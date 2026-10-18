@@ -1,0 +1,7 @@
+# 앱 자료 준비용 작업 파일 (이 컴퓨터에만 둠)
+/assets/
+/sources_*.json
+/september_sources.json
+/correction_*.json
+/prepare_month_assets.py
+/prepare_september.py
