@@ -693,7 +693,8 @@ h3 { font-size: 1.02em; font-weight: 600; margin: 0; }
 
   // 내 기도(시안과 같게): 왼쪽은 이번 달 내 기도제목(대상은 칩을 눌러 고르고, 공개 범위는 누를 때마다 바뀌고, 칸을 벗어나면 저장),
   //  오른쪽(휴대폰은 아래)은 새 기도제목 쓰기: 큰 칸에 쭉 써서 '항목으로 나누기' → 미리보기에서 빼기 → 추가하기
-  const tipOn = () => { try { return !localStorage.getItem('koide-tip-scope'); } catch (e) { return false; } };
+  // 처음 한 번만 보여 주는 안내: '알겠어요'를 누르면 이 기기에서는 다시 안 보여요
+  const tipOn = (k = 'scope') => { try { return !localStorage.getItem('koide-tip-' + k); } catch (e) { return false; } };
   function editLi(i, first) {
     const open = S.tgtOpen === i.id, targets = [...new Set([...words().targets(mineFam().kids), i.target])];
     return `<li class="edit s-${i.scope}"><fieldset ${i.pending ? 'disabled' : ''}>
@@ -715,7 +716,7 @@ h3 { font-size: 1.02em; font-weight: 600; margin: 0; }
       <div class="two-col"><div class="col">
         ${carried ? `<p class="notice">${mm === 1 ? 12 : mm - 1}월 기도제목 ${carried}개가 그대로 넘어와 있어요. 바뀐 것만 고치면 돼요.</p>` : ''}
         ${mine.items.length ? `<ul class="edit-list">${mine.items.map((i, k) => editLi(i, k === 0)).join('')}</ul>
-          <p class="hint">이뤄졌거나 그만 올릴 기도제목은 <b>마치기</b>(지난 기록에 남아요), 잘못 쓴 것은 <b>지우기</b>를 눌러요.</p>` : '<p class="notice">이번 달 기도제목이 아직 없어요. 새 기도제목을 써 주세요.</p>'}
+          ${!tipOn() && tipOn('end') ? `<div class="coach" role="note"><p>이뤄졌거나 그만 올릴 기도제목은 <b>마치기</b>(지난 기록에 남아요), 잘못 쓴 것은 <b>지우기</b>를 눌러요.</p><button data-act="tip" data-v="end">알겠어요</button></div>` : ''}` : '<p class="notice">이번 달 기도제목이 아직 없어요. 새 기도제목을 써 주세요.</p>'}
         ${ended.length ? `<div class="dropped"><p class="label">이번 달에 마친 기도제목</p>${ended.map(d => `<div class="drop-row"><span class="tgt">${esc(d.target)}</span><p class="drop-txt">${esc(d.text)}</p><button class="undo" data-act="reopen" data-id="${esc(d.id)}">되돌리기</button></div>`).join('')}</div>` : ''}
         ${mine.status === 'same' ? '<button class="btn wide ghost" data-act="confirm">이번 달도 그대로예요</button>' : `<p class="hint">${mine.status === 'confirmed' ? '이번 달도 그대로라고 리더에게 알렸어요.' : '이번 달 기도제목을 손봤어요. 따로 제출할 필요 없어요.'}</p>`}
       </div>
@@ -1451,6 +1452,7 @@ h3 { font-size: 1.02em; font-weight: 600; margin: 0; }
       case 'a2hs': S.a2hs = !S.a2hs; return render();
       case 'a2hsos': S.a2hsOs = v; return render();
       case 'tipscope': try { localStorage.setItem('koide-tip-scope', '1'); } catch (err) { /* 무시 */ } return render();
+      case 'tip': try { localStorage.setItem('koide-tip-' + b.dataset.v, '1'); } catch (err) { /* 무시 */ } return render();
       case 'sample': S.draft = solo() ? '나ㅡ졸업 논문 마감이 다가와요. 지치지 않고 끝까지 잘 마무리하도록\n\n가족ㅡ할머니가 다음 주에 수술을 받으세요. 수술이 잘 끝나고 회복이 빠르도록\n\n친구ㅡ교회에 처음 나온 친구가 공동체에 잘 적응하도록'
           : '형제ㅡ연말이라 회사 일이 몰려서 마음에 여유가 없어요. 지치지 않고 지혜롭게 마무리할 수 있도록 기도해 주세요.\n\n자매ㅡ다음 주에 복직 준비 교육을 마쳐요. 끝까지 건강하게 마치고, 복직 전까지 쉼이 있는 시간을 보낼 수 있도록\n\n' + (mineFam().kids[0] || '아이') + 'ㅡ감기가 2주째 이어지고 있어요. 빨리 낫고 다시 즐겁게 지내도록\n\n함께- 시댁 식구들이 하나님을 믿을 수 있도록';
         S.preview = null; { const at = $('#add-t'); if (at) at.value = S.draft; } return render();
