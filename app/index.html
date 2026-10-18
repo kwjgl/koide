@@ -156,6 +156,14 @@ h2 { font-size: 1.05em; margin: 0; }
 .bseg.edited, .sw.edited { background: var(--accent); }
 .bseg.confirmed, .sw.confirmed { background: var(--accent-mid); }
 .bseg.same, .sw.same { background: var(--line-strong); }
+/* 목사님 홈: 부서 숫자와 사랑방마다 이번 달 현황 */
+.stats { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; text-align: center; }
+.stat b { display: block; font-size: 1.6em; font-weight: 600; font-variant-numeric: tabular-nums; }
+.stat span { font-size: .78em; color: var(--ink-2); }
+.room-board { display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: 12px; }
+.room-sum { font: inherit; color: inherit; text-align: left; cursor: pointer; display: flex; flex-direction: column; gap: 8px; width: 100%; }
+.room-sum .row { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+.room-sum .hint { margin: 0; }
 .legend { list-style: none; margin: .6em 0 0; padding: 0; display: flex; flex-wrap: wrap; gap: .3em 1em; font-size: .78em; color: var(--ink-2); }
 .sw { display: inline-block; width: .8em; height: .8em; border-radius: 3px; margin-right: .35em; vertical-align: -.05em; }
 .group { border-top: 1px solid var(--line); margin-top: 12px; padding-top: 10px; }
@@ -256,6 +264,9 @@ body.praying .tabs { display: none; }
 .pss-lp { margin: 0; color: var(--accent); font-size: .92em; word-break: keep-all; }
 .pss-nav { position: sticky; bottom: 0; display: grid; grid-template-columns: 1fr 1.4fr; gap: 10px; max-width: 640px; width: 100%; margin: 0 auto; padding: 12px 0 max(16px, env(safe-area-inset-bottom)); background: linear-gradient(transparent, var(--page) 30%); }
 .pss-nav.one { grid-template-columns: 1fr; }
+/* 기도하기: 이전·다음은 작게, 기도했어요는 크게 */
+.pss-nav.trio { grid-template-columns: 1fr 1fr 2.4fr; }
+.pss-nav button:disabled:not(.pss-pray) { opacity: .4; cursor: default; }
 .pss-nav button { font: inherit; font-weight: 600; min-height: 56px; border-radius: 14px; border: 1px solid var(--line); background: var(--surface); color: var(--ink); cursor: pointer; display: inline-flex; align-items: center; justify-content: center; gap: .4em; }
 .pss-nav .pss-pray { background: var(--accent); border-color: var(--accent); color: var(--on-accent); }
 .pss-nav .pss-pray:disabled { opacity: .55; cursor: default; }
@@ -900,6 +911,9 @@ try { const p = JSON.parse(localStorage.getItem('koide-pref') || '{}'), d = docu
     check: '<svg viewBox="0 0 16 16" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3.5 8.5l3 3 6-7"/></svg>'
   };
 
+  // 아이폰 Safari 등 카톡 밖 브라우저: 카카오 로그인이 카톡 앱을 오가는데, 비공개 릴레이가 켜져 있으면 IP가 달라져 카카오가 막는다
+  const iosSafari = () => (/iP(hone|ad|od)/.test(navigator.userAgent) || (/Macintosh/.test(navigator.userAgent) && navigator.maxTouchPoints > 1)) && !/KAKAOTALK/i.test(navigator.userAgent);
+
   const VIEWS = {
     loading: () => '<p class="loading">불러오는 중…</p>',
     error: () => `<h1>잠시 문제가 생겼어요</h1><p class="hint">${esc(S.err && S.err.message)}</p><button class="btn" data-act="retry">다시 해 보기</button>`,
@@ -912,7 +926,7 @@ try { const p = JSON.parse(localStorage.getItem('koide-pref') || '{}'), d = docu
           <button class="choice" data-act="login" data-v="윤하람">데모: 윤하람으로 들어가기 (청년부 1순 리더)</button>
           <button class="choice" data-act="login" data-v="한기쁨">데모: 한기쁨으로 들어가기 (청장년부 목사님)</button></div>
           <p class="hint">데모 모드에서는 카카오 대신 이 버튼으로 사람을 골라 들어가요.</p>`
-        : `<button class="kakao" data-act="login">${ICON.bubble}카카오로 시작하기</button>`}
+        : `<button class="kakao" data-act="login">${ICON.bubble}카카오로 시작하기</button>${iosSafari() ? '<p class="hint">아이폰에서 \'접속 정보를 확인해 주세요\'가 나오면, 카톡 채팅방에서 이 링크를 눌러 열거나 설정 → iCloud → 비공개 릴레이를 끄고 다시 해 주세요.</p>' : ''}`}
       <p class="hint name-note">코이데는 '교제'를 뜻하는 코이노니아와 '간구'를 뜻하는 데에시스에서 영감을 얻은 이름이에요. 서로의 기도를 나누고, 함께 기도하는 공동체를 뜻해요. 우리를 잇는 끈은 성령의 교통하심(코이노니아)이에요.</p>`,
     dept: () => `${steps(1)}<p class="eyebrow">처음 한 번만 확인할게요</p><h1>어느 부서인가요?</h1>
       <div class="choices">${(S.depts || []).map(d => `<button class="choice" data-act="pickdept" data-v="${esc(d.id)}">${esc(d.name)}</button>`).join('')}</div>`,
@@ -1044,7 +1058,8 @@ try { const p = JSON.parse(localStorage.getItem('koide-pref') || '{}'), d = docu
   }
 
   function homeView() {
-    const M = S.month, mine = M.families.find(f => f.own), others = M.families.filter(f => !f.own), t = todayFam();
+    if (staffMe()) return staffHomeView();
+    const M = S.month, others = M.families.filter(f => !f.own), t = todayFam();
     return `<div class="page-top"><div><p class="eyebrow">${esc(M.room.name)}</p><h1>${Number(M.month.slice(5))}월 기도제목 <span aria-hidden="true">🙏</span></h1></div><p class="date">${todayLabel()}</p></div>
       <div class="home-grid"><div class="col side">${t ? `<section class="card today" aria-label="지금 함께 기도할 ${words().one}"><p class="today-tag">${ICON.hands}지금 함께 기도할 ${words().one}</p><h2>${esc(t.name)}</h2>
           <div class="today-body" data-id="${esc(t.id)}" tabindex="0" aria-label="${esc(t.name)} 기도제목">${t.items.length ? itemList(t.items, false) : `<p class="hint">아직 올린 기도제목이 없어요. 이 ${words().one}을 떠올리며 기도해요.</p>`}</div>
@@ -1053,18 +1068,64 @@ try { const p = JSON.parse(localStorage.getItem('koide-pref') || '{}'), d = docu
           <p class="hint">앱을 열 때마다 이번 달 아직 기도하지 않은 ${words().one}부터 돌아가며 나와요.</p>
           ${cordHtml(t.id)}</section>` : ''}</div>
       <div class="col main">
-        <section class="card" aria-label="${words().mine}"><div class="fam-head"><div><p class="label">${words().mine}</p><h3>${esc(mine.name)}</h3></div><span class="chip-status st-${mine.status}">${STATUS_LABEL[mine.status]}</span></div>
-          ${staffMe() ? '' : receivedLine()}
-          ${mine.items.length ? itemList(mine.items, true) : '<p class="hint">아직 올린 기도제목이 없어요.</p>'}
-          <div class="actions"><button class="btn" data-act="tab" data-v="mine">고치기</button>${mine.status === 'same' ? '<button class="btn ghost" data-act="confirm">이번 달도 그대로예요</button>' : ''}</div>
-          ${mine.status === 'confirmed' ? `<p class="hint">이번 달도 그대로라고 ${staffMe() ? '표시했어요' : '리더에게 알렸어요'}.</p>` : ''}</section>
-        ${staffMe() ? `<section class="notice"><b>${esc(M.dept && M.dept.name || '')} 사랑방 현황</b><p class="hint">목사님 홈(사랑방마다 업데이트 현황, 오늘의 사랑방 기도하기)은 다음 단계에서 열려요. 지금은 우리 가정 기도제목을 쓰고, 섬기는 분들 카드에 어떻게 보이는지 확인할 수 있어요.</p></section>${serveCard()}</div></div>` : `
+        ${mineCard()}
         <div class="section-row"><div class="sr-title"><h2 class="section-title">${esc(grp())} ${words().members} ${others.length}</h2><span class="sr-legend"><i class="new-dot"></i>이번 달 새 기도제목</span></div>
           <div class="sr-tools"><button class="btn small ghost meet-btn" data-act="meet" title="모임 때 한 ${words().one}씩 크게 보기">${ICON.screen}모임 모드</button>
           <div class="seg2" role="tablist" aria-label="보기 방식">${[['card', '카드'], ['table', '표']].map(([k, l]) => `<button class="${(S.homeView || 'card') === k ? 'on' : ''}" role="tab" aria-selected="${(S.homeView || 'card') === k}" data-act="homeview" data-v="${k}">${l}</button>`).join('')}</div></div></div>
         ${S.homeView === 'table' ? tableCard() : `<div class="fam-grid">${others.map(famCard).join('')}</div>`}
         ${serveCard()}
-      </div></div>`}`;
+      </div></div>`;
+  }
+  // 우리 가정 카드(회원과 목사님·장로님 홈에 같이 나온다)
+  function mineCard() {
+    const mine = S.month.families.find(f => f.own);
+    return `<section class="card" aria-label="${words().mine}"><div class="fam-head"><div><p class="label">${words().mine}</p><h3>${esc(mine.name)}</h3></div><span class="chip-status st-${mine.status}">${STATUS_LABEL[mine.status]}</span></div>
+      ${staffMe() ? '' : receivedLine()}
+      ${mine.items.length ? itemList(mine.items, true) : '<p class="hint">아직 올린 기도제목이 없어요.</p>'}
+      <div class="actions"><button class="btn" data-act="tab" data-v="mine">고치기</button>${mine.status === 'same' ? '<button class="btn ghost" data-act="confirm">이번 달도 그대로예요</button>' : ''}</div>
+      ${mine.status === 'confirmed' ? `<p class="hint">이번 달도 그대로라고 ${staffMe() ? '표시했어요' : '리더에게 알렸어요'}.</p>` : ''}</section>`;
+  }
+  // S5 목사님 홈: 부서 전체를 훑어보고(사랑방마다 손봄·확인), 사랑방을 눌러 그 사랑방 가정을 보며 기도한다
+  function staffHomeView() {
+    if (S.openRoom) return staffRoomView();
+    const M = S.month, rooms = M.rooms || [], sum = k => rooms.reduce((a, r) => a + r[k], 0);
+    const stat = (n, l) => `<div class="stat"><b>${n}</b><span>${l}</span></div>`;
+    return `<div class="page-top"><div><p class="eyebrow">${esc(M.dept.name)} 전체 · ${esc(M.me.label || M.me.person)}</p><h1>${Number(M.month.slice(5))}월 기도제목 <span aria-hidden="true">🙏</span></h1></div><p class="date">${todayLabel()}</p></div>
+      <div class="home-grid"><div class="col side">
+        <section class="card"><div class="stats">${stat(rooms.length, grp())}${stat(sum('n'), words().count)}${stat(sum('edited') + sum('confirmed'), '이번 달 손봄·확인')}</div></section>
+        ${rooms.length ? `<section class="card">${roomCordHtml()}<p class="hint">매듭을 누르면 그 ${esc(grp())}을 위해 기도하러 가요.</p></section>` : ''}
+        ${mineCard()}
+      </div><div class="col main">
+        <h2 class="section-title">${esc(grp())}별 이번 달 현황</h2>
+        ${rooms.length ? `<div class="room-board">${rooms.map(r => { const same = r.n - r.edited - r.confirmed;
+          return `<button class="card room-sum" data-act="openroom" data-v="${esc(r.id)}"><span class="row"><b>${esc(r.name)}</b>${ICON.chevR}</span>
+            <span class="hint">리더 ${r.leaders.length ? r.leaders.map(esc).join(', ') : '미지정'} · ${r.n}${words().count}</span>
+            <span class="bar" role="img" aria-label="이번 달 손봄 ${r.edited}, 그대로 확인 ${r.confirmed}, 지난달 그대로 ${same}"><span class="bseg edited" style="flex:${r.edited}"></span><span class="bseg confirmed" style="flex:${r.confirmed}"></span><span class="bseg same" style="flex:${same}"></span></span>
+            <span class="hint">손봄 ${r.edited} · 그대로 확인 ${r.confirmed} · 지난달 그대로 ${same}${r.fresh ? ` · 새 기도제목 ${r.fresh}` : ''}</span></button>`; }).join('')}</div>
+          <ul class="legend"><li><i class="sw edited"></i>이번 달 손봄</li><li><i class="sw confirmed"></i>그대로 확인</li><li><i class="sw same"></i>지난달 그대로</li></ul>`
+        : `<p class="hint">아직 ${esc(grp())}이 없어요.</p>`}
+        ${serveCard()}
+      </div></div>`;
+  }
+  // 목사님 홈에서 고른 사랑방: 리더·목사님 항목까지 보고, 가정마다 기도했어요를 누른다
+  function staffRoomView() {
+    const r = (S.month.rooms || []).find(x => x.id === S.openRoom) || {}, R = loadRoom(S.openRoom);
+    return `<button class="link back" data-act="roomclose">${ICON.chevL}${esc(S.month.dept.name)} 전체로</button>
+      <div class="page-top"><div><p class="eyebrow">${esc(S.month.dept.name)}</p><h1>${esc(r.name || '')}</h1></div><p class="date">${todayLabel()}</p></div>
+      ${!R ? '<p class="loading">불러오는 중…</p>' : `<section class="card">${cordHtml()}<div class="actions"><button class="btn" data-act="roomknot" data-v="${esc(r.id)}">${ICON.hands}이 ${esc(grp())}을 위해 기도하기</button></div>
+        <p class="hint">리더·목사님 항목까지 보여요. "${esc(words().only)}" 항목은 보이지 않아요.</p></section>
+        ${R.families.length ? `<div class="fam-grid">${R.families.map(famCard).join('')}</div>` : `<p class="hint">이 ${esc(grp())}에는 아직 ${words().members}이 없어요.</p>`}`}`;
+  }
+  // 목사님·장로님이 보는 사랑방 하나(목사님 홈에서 연 사랑방, 기도하기의 오늘의 사랑방). 한 번에 하나만 들고 있다
+  function loadRoom(id) {
+    if (!id) return null;
+    if (S.room && S.room.room.id === id) return S.room;
+    if (S.roomLoading !== id) {
+      S.roomLoading = id;
+      api('room', { roomId: id }).then(r => { if (S.roomLoading === id) { S.room = r; S.roomLoading = null; paint(); } })
+        .catch(err => { S.roomLoading = null; S.openRoom = null; paint(); oops(err); });
+    }
+    return null;
   }
   // 교역자로 들어왔는지
   const staffMe = () => !!(S.month && S.month.me && S.month.me.staff);
@@ -1330,9 +1391,9 @@ try { const p = JSON.parse(localStorage.getItem('koide-pref') || '{}'), d = docu
   // ── 기도하기 ────────────────────────────────────────
   // 조용한 화면에서 한 장씩 넘기며 기도한다. 순서는 우리 사랑방 가정 → 우리 가정 → 하나님의 나라.
   //  기도의 끈과 '기도했어요' 횟수는 사랑방 가정을 위한 기도만 센다(가정마다 하루 3번까지)
-  // 순서는 우리 사랑방 → 우리 가정 → 섬기는 분들(있을 때) → 하나님의 나라. 교역자는 맡은 사랑방이 없어 우리 사랑방을 빼고 고른다(목사님 기도하기는 다음 단계)
+  // 순서는 우리 사랑방 → 우리 가정 → 섬기는 분들(있을 때) → 하나님의 나라. 목사님·장로님은 맡은 사랑방 대신 오늘의 사랑방
   const serveList = () => (S.month && S.month.serve) || [];
-  const PS_KINDS = () => [...(staffMe() ? [] : [['room', '우리 ' + grp()]]), ['me', words().mine], ...(serveList().length ? [['serve', '섬기는 분들']] : []), ['world', '하나님의 나라']];
+  const PS_KINDS = () => [['room', (staffMe() ? '오늘의 ' : '우리 ') + grp()], ['me', words().mine], ...(serveList().length ? [['serve', '섬기는 분들']] : []), ['world', '하나님의 나라']];
   const PS_TIMES = [[0, '시간 없이'], [60, '1분'], [180, '3분'], [300, '5분']];
   // 주기도문(개역개정 이전 번역)과 하나님의 나라 주제 6개. 주제마다 주기도문 간구 하나씩 짝지어 그 순서대로 둔다(lines: 장 위에 다는 구절 번호)
   //  송영에 짝지은 "감사와 찬양"은 고르는 주제가 아니라 하나님의 나라를 고르면 늘 마지막 장으로 나온다
@@ -1382,7 +1443,8 @@ try { const p = JSON.parse(localStorage.getItem('koide-pref') || '{}'), d = docu
   const savePset = () => { try { localStorage.setItem(PSET_KEY, JSON.stringify(PSET)); } catch (e) { /* 무시 */ } };
   // 섬기는 분들은 처음부터 켜 둔다(설계서). 예전에 고른 것이 기억된 기기에도 한 번만 더한다
   if (!PSET.serveSet) { if (PSET.kinds.indexOf('serve') < 0) PSET.kinds.push('serve'); PSET.serveSet = true; savePset(); }
-  const roomFams = () => S.month.families.filter(f => !f.own);
+  // 기도할 사랑방 가정: 회원은 우리 사랑방, 목사님·장로님은 불러온 사랑방(오늘의 사랑방이나 홈에서 연 사랑방)
+  const roomFams = () => staffMe() ? (S.room ? S.room.families : []) : S.month.families.filter(f => !f.own);
   // 지금 함께 기도할 가정: 이번 달 아직 기도하지 않은 가정부터 하나씩 돌아가며 나온다. 시작점은 우리 가정ID로 정해서
   //  사람마다 달라지고(사랑방 전체로는 관심이 고르게 퍼진다), 다 기도했으면 차례대로 돈다
   function todayFam() {
@@ -1397,35 +1459,59 @@ try { const p = JSON.parse(localStorage.getItem('koide-pref') || '{}'), d = docu
     for (let k = 0; k < n; k++) if (at(k).id !== skip && !at(k).prayed) { S.todayId = at(k).id; return at(k); }
     const f = at(0).id === skip && n > 1 ? at(1) : at(0); S.todayId = f.id; return f;
   }
-  const famById = id => S.month.families.find(f => f.id === id);
+  const famById = id => S.month.families.find(f => f.id === id) || (S.room && S.room.families.find(f => f.id === id));
   // 오늘 아직 기도하지 않은 가정부터, 그다음 이번 달 덜 기도한 가정부터
   const psOrder = () => roomFams().slice().sort((a, b) => ((a.today || 0) > 0) - ((b.today || 0) > 0) || a.prayed - b.prayed).map(f => f.id);
   function psList() {
     const K = PSET.kinds;
-    return [...(K.includes('room') && !staffMe() ? psOrder().map(id => 'f:' + id) : []), ...(K.includes('me') ? ['me'] : []), ...(K.includes('serve') && serveList().length ? ['s'] : []),
+    return [...(K.includes('room') ? psOrder().map(id => 'f:' + id) : []), ...(K.includes('me') ? ['me'] : []), ...(K.includes('serve') && serveList().length ? ['s'] : []),
       ...(K.includes('world') ? [...PRAY_TOPICS.filter(t => PSET.topics.includes(t.k)), PRAY_THANKS].map(t => 't:' + t.k) : [])];
   }
+  // 목사님·장로님의 오늘의 사랑방: 날마다 한 사랑방씩 돌아가고, 다른 사랑방을 골라도 된다
+  function psRoomId() {
+    const rs = S.month.rooms || []; if (!rs.length) return null;
+    if (S.psRoom && rs.some(r => r.id === S.psRoom)) return S.psRoom;
+    return rs[Math.floor((Date.now() + 9 * 3600e3) / 864e5) % rs.length].id;
+  }
   const fmtTime = t => Math.floor(t / 60) + ':' + String(t % 60).padStart(2, '0');
+  // 끈 그림: 매듭 자리마다 { id, label, on, title }. 이웃한 두 자리가 다 지어지면 그 사이 끈이 팽팽해진다. act가 있으면 매듭을 누를 수 있다
+  function cordSvg(slots, aria, act, cur) {
+    const n = slots.length, W = 300, x = i => n === 1 ? W / 2 : 12 + i * (W - 24) / (n - 1);
+    const segs = slots.slice(1).map((f, i) => { const t = slots[i].on && f.on, a = x(i), b = x(i + 1);
+      return `<path class="seg-l${t ? ' tight' : ''}" d="M${a} 12 Q${(a + b) / 2} ${t ? 12 : 22} ${b} 12"/>`; }).join('');
+    const knots = slots.map((f, i) => `<circle class="knot${f.on ? ' on' : ''}${f.id === cur ? ' cur' : ''}" cx="${x(i)}" cy="12" r="${f.on ? 6 : 4}"/><text x="${x(i)}" y="34" text-anchor="middle">${esc(f.label)}</text>`
+      + (act ? `<circle class="hit" cx="${x(i)}" cy="18" r="16" data-act="${act}" data-v="${esc(f.id)}"><title>${esc(f.title)}</title></circle>` : '')).join('');
+    return `<svg class="cord-svg" viewBox="-4 0 ${W + 8} 40" role="img" aria-label="${esc(aria)}">${segs}${knots}</svg>`;
+  }
   // 기도의 끈: 이번 달 내가 기도한 가정에 매듭. 나만 본다
   //  cur: 지금 카드에 있는 가정(테두리 표시). 매듭을 누르면 그 가정이 '지금 함께 기도할 가정'으로 온다
   function cordHtml(cur) {
     const fams = roomFams(), n = fams.length; if (!n) return '';
-    const W = 300, x = i => n === 1 ? W / 2 : 12 + i * (W - 24) / (n - 1), on = f => f.prayed > 0, k = fams.filter(on).length;
-    const segs = fams.slice(1).map((f, i) => { const t = on(fams[i]) && on(f), a = x(i), b = x(i + 1);
-      return `<path class="seg-l${t ? ' tight' : ''}" d="M${a} 12 Q${(a + b) / 2} ${t ? 12 : 22} ${b} 12"/>`; }).join('');
-    const knots = fams.map((f, i) => `<circle class="knot${on(f) ? ' on' : ''}${f.id === cur ? ' cur' : ''}" cx="${x(i)}" cy="12" r="${on(f) ? 6 : 4}"/><text x="${x(i)}" y="34" text-anchor="middle">${esc(f.name.slice(0, 1))}</text>`
-      + (cur !== undefined ? `<circle class="hit" cx="${x(i)}" cy="18" r="16" data-act="cordpick" data-v="${esc(f.id)}"><title>${esc(f.name)}${solo() ? '' : ' 가정'}, ${on(f) ? '이번 달 ' + f.prayed + '번 기도함' : '아직 기도하지 않음'}</title></circle>` : '')).join('');
+    const k = fams.filter(f => f.prayed > 0).length;
+    const slots = fams.map(f => ({ id: f.id, label: f.name.slice(0, 1), on: f.prayed > 0, title: `${f.name}${solo() ? '' : ' 가정'}, ${f.prayed > 0 ? '이번 달 ' + f.prayed + '번 기도함' : '아직 기도하지 않음'}` }));
     return `<div class="cord"><div class="cord-head"><p class="label" style="margin:0">기도의 끈</p><p class="cord-n">${n}${words().count} 중 <b>${k}${words().count}</b>과 이어졌어요</p></div>
-      <svg class="cord-svg" viewBox="-4 0 ${W + 8} 40" role="img" aria-label="이번 달 ${n}${words().count} 중 ${k}${words().count}을 위해 기도했어요">${segs}${knots}</svg>
+      ${cordSvg(slots, `이번 달 ${n}${words().count} 중 ${k}${words().count}을 위해 기도했어요`, cur !== undefined && 'cordpick', cur)}
       ${k === n ? `<p class="cord-done">${esc(grp())} ${solo() ? '식구 모두와' : '모든 가정과'} 이어졌어요 <span aria-hidden="true">🙌</span></p>` : ''}</div>`;
   }
+  // 청장년부 기도의 끈(목사님·장로님): 사랑방마다 매듭 자리. 이번 주에 그 사랑방 가정을 위해 기도하면 매듭이 지어지고,
+  //  다 지어지면 리본으로 묶인다. 매듭을 누르면 그 사랑방을 오늘의 사랑방으로 골라 기도하러 간다
+  function roomCordHtml() {
+    const rooms = S.month.rooms || [], n = rooms.length; if (!n) return '';
+    const k = rooms.filter(r => r.week).length, short = r => r.name.replace(new RegExp('\\s*' + grp() + '$'), '');
+    const slots = rooms.map(r => ({ id: r.id, label: short(r), on: r.week, title: `${r.name}, ${r.week ? '이번 주에 기도함' : '이번 주에 아직 기도하지 않음'}` }));
+    return `<div class="cord"><div class="cord-head"><p class="label" style="margin:0">${esc(S.month.dept.name)} 기도의 끈</p><p class="cord-n">이번 주 ${n}곳 중 <b>${k}곳</b>과 이어졌어요</p></div>
+      ${cordSvg(slots, `이번 주 ${grp()} ${n}곳 중 ${k}곳을 위해 기도했어요`, 'roomknot')}
+      ${k === n ? `<p class="cord-done">이번 주 모든 ${esc(grp())}과 이어졌어요 <span aria-hidden="true">🎀</span></p>` : ''}</div>`;
+  }
   function prayView() {
+    const staffRoom = staffMe() && PSET.kinds.includes('room') ? psRoomId() : null, roomReady = !staffRoom || !!loadRoom(staffRoom);
     const list = psList(), seg = (items, cur, act, n, mark) => `<div class="seg" style="--n:${n || items.length}" role="group">${items.map(([k, l]) => { const on = Array.isArray(cur) ? cur.includes(k) : cur === k;
       return `<button class="${on ? 'on' : ''}" data-act="${act}" data-v="${k}" aria-pressed="${on}">${mark && on ? ICON.check + ' ' : ''}${l}</button>`; }).join('')}</div>`;
     const HY = Array.from({ length: 8 }, (_, i) => [i, (i + 1) + '장']);
     return `<div class="page-top"><div><p class="eyebrow">${esc(S.month.room.name)}</p><h1>기도하기 <span aria-hidden="true">🕯️</span></h1></div><p class="date">${todayLabel()}</p></div>
       <div class="two-col"><div class="col"><section class="card"><p style="margin-top:0">조용한 화면에서 <b>한 장씩</b> 넘기며 기도해요. ${esc(grp())} ${solo() ? '식구는' : '가정은'} 오늘 아직 기도하지 않은 ${words().one}부터 나와요.</p>
         <p class="label">무엇을 위해 기도할까요?</p>${seg(PS_KINDS(), PSET.kinds, 'pskind')}
+        ${staffRoom ? `<p class="label" style="margin-top:14px">오늘의 ${esc(grp())}</p><div class="chips">${S.month.rooms.map(r => `<button class="chip-btn${r.id === staffRoom ? ' on' : ''}" data-act="psroom" data-v="${esc(r.id)}" aria-pressed="${r.id === staffRoom}">${esc(r.name)}</button>`).join('')}</div>` : ''}
         ${PSET.kinds.includes('world') ? `<div class="ps-topics"><p class="hint" style="margin:0">기도할 주제를 골라요. 마지막엔 늘 감사와 찬양으로 마쳐요.</p>${seg(PRAY_TOPICS.map(t => [t.k, t.name]), PSET.topics, 'pstopic', 2, true)}</div>` : ''}
         <p class="label" style="margin-top:14px">한 장에 머무는 시간</p>${seg(PS_TIMES, PSET.dur, 'psdur')}
         <div class="row" style="margin-top:14px"><div><p class="label" style="margin:0">잔잔한 음악 (찬송가 1~8장)</p><p class="hint">기도하는 동안 조용히 흘러요. 이어폰을 권해요.</p></div>
@@ -1434,8 +1520,8 @@ try { const p = JSON.parse(localStorage.getItem('koide-pref') || '{}'), d = docu
           <div class="ps-tracks">${HY.map(([i, l]) => `<button class="chip-btn${PSET.track === i ? ' on' : ''}" data-act="pstrack" data-v="${i}" aria-pressed="${PSET.track === i}" style="justify-content:center">${l}</button>`).join('')}</div>
           <div class="row"><div><p class="label" style="margin:0">다 들으면 다음 곡으로</p><p class="hint">${PSET.auto ? HYMNS[PSET.track].label + '부터 차례로 이어져요. 8장 다음은 다시 1장이에요.' : HYMNS[PSET.track].label + '만 반복해요.'}</p></div>
             <button class="switch${PSET.auto ? ' on' : ''}" role="switch" aria-checked="${PSET.auto}" aria-label="다 들으면 다음 곡으로" data-act="psauto"><span></span></button></div></div>` : ''}
-        <button class="btn wide" data-act="psstart" style="margin-top:16px;min-height:54px" ${list.length ? '' : 'disabled'}>${ICON.hands.replace('<svg', '<svg width="22" height="22"')} ${list.length ? '기도 시작 · ' + list.length + '장' : '무엇을 위해 기도할지 골라 주세요'}</button></section>
-      </div><div class="col side"><section class="card"><p class="label" style="margin:0">오늘 기도할 순서</p>
+        <button class="btn wide" data-act="psstart" style="margin-top:16px;min-height:54px" ${list.length && roomReady ? '' : 'disabled'}>${ICON.hands.replace('<svg', '<svg width="22" height="22"')} ${!roomReady ? '불러오는 중…' : list.length ? '기도 시작 · ' + list.length + '장' : '무엇을 위해 기도할지 골라 주세요'}</button></section>
+      </div><div class="col side"><section class="card"><p class="label" style="margin:0">오늘 기도할 순서${staffRoom ? ' · ' + esc((S.month.rooms.find(r => r.id === staffRoom) || {}).name || '') : ''}</p>
         <ol class="ps-list">${list.map(id => { const f = id.startsWith('f:') && famById(id.slice(2));
           return f ? `<li><span>${esc(f.name)}</span><span class="${f.today ? 'ok' : ''}">${f.today ? '오늘 ' + f.today + '번' : '아직'}</span></li>` : `<li><span>${esc(psPageName(id))}</span><span>${id === 'me' ? words().mine : id === 's' ? '함께 기억해요' : '하나님의 나라'}</span></li>`; }).join('')}</ol></section></div></div>`;
   }
@@ -1450,7 +1536,7 @@ try { const p = JSON.parse(localStorage.getItem('koide-pref') || '{}'), d = docu
       return `<div class="pss-top"><span></span>${musicBtn()}</div>
         <div class="pss-body" style="justify-content:center"><p class="eyebrow">오늘의 기도</p><h2>${n ? n + words().count + '을 위해 기도했어요' : ps.extra.length ? '함께 기도했어요' : '오늘은 여기까지 해요'}</h2>
           ${n ? `<p>${names.map(esc).join(', ')}</p>` : ''}${ps.extra.filter(x => x !== 's').length ? `<p class="hint">함께 기도한 것 · ${ps.extra.filter(x => x !== 's').map(psPageName).map(esc).join(', ')}</p>` : ''}${ps.extra.includes('s') ? `<p class="hint">${esc(andJoin(serveList().map(s => s.label)))}도 함께 기억했어요</p>` : ''}
-          ${PSET.kinds.includes('room') || n ? cordHtml() : ''}</div>
+          ${staffMe() ? roomCordHtml() : PSET.kinds.includes('room') || n ? cordHtml() : ''}</div>
         <div class="pss-nav one"><button data-act="psclose">마치기</button></div>`;
     }
     const id = ps.list[ps.i], last = ps.i === ps.list.length - 1, ready = ps.dur && ps.left === 0;
@@ -1470,7 +1556,7 @@ try { const p = JSON.parse(localStorage.getItem('koide-pref') || '{}'), d = docu
         body = `<p class="pss-lp">${t.lines.map(n => LORDS_PRAYER[n]).join(' ')}</p><p class="eyebrow">하나님의 나라</p><h2>${t.name}</h2><ul>${t.items.map(x => li('', x)).join('')}</ul>`; }
       pray = `<button class="pss-pray${ready ? ' ready' : ''}" data-act="psextra">${ICON.hands.replace('<svg', '<svg width="20" height="20"')} 기도했어요</button>`;
     }
-    return `${top}<div class="pss-body">${body}</div><div class="pss-nav"><button data-act="psnext">${last ? '마치기' : '다음'}</button>${pray}</div>`;
+    return `${top}<div class="pss-body">${body}</div><div class="pss-nav trio"><button data-act="psprev"${ps.i ? '' : ' disabled'}>이전</button><button data-act="psnext">${last ? '마치기' : '다음'}</button>${pray}</div>`;
   }
   // 한 장에 머무는 시간: 줄어드는 고리와 숫자. 다 되면 '기도했어요'가 부드럽게 반짝이고, 저절로 넘어가지는 않는다
   let psTimer = null;
@@ -1516,7 +1602,10 @@ try { const p = JSON.parse(localStorage.getItem('koide-pref') || '{}'), d = docu
   const wakeOff = () => { try { if (wake) wake.release(); } catch (e) { /* 무시 */ } wake = null; };
   // '기도했어요': 화면은 먼저 늘리고 서버에는 뒤에서 적는다. 서버가 돌려준 이번 달·오늘 횟수로 맞춘다
   function prayFor(f) {
-    f.today = (f.today || 0) + 1; f.prayed++; render();
+    f.today = (f.today || 0) + 1; f.prayed++;
+    // 목사님·장로님: 그 사랑방 매듭을 이번 주 기도한 것으로(청장년부 기도의 끈)
+    if (staffMe() && S.room && S.room.families.indexOf(f) >= 0) { const r = (S.month.rooms || []).find(x => x.id === S.room.room.id); if (r) r.week = true; }
+    render();
     api('pray', { familyId: f.id }).then(r => {
       const g = famById(f.id) || f;
       if (r.today != null) { g.today = r.today; g.prayed = r.prayed; }
@@ -1796,9 +1885,9 @@ try { const p = JSON.parse(localStorage.getItem('koide-pref') || '{}'), d = docu
     const brand = `<button class="brand"${S.view === 'app' ? ' data-act="tab" data-v="home"' : ''} aria-label="코이데 홈"><span class="brand-mark">${ICON.knot}</span><span class="brand-name">코이데</span></button>`;
     if (S.view !== 'app') return `<div class="wrap">${brand}</div>`;
     const M = S.month, me = M.me, lead = me.role === '리더' || me.role === '코리더', on = tabOn();
-    const role = lead ? me.role : me.admin ? '관리자' : '회원', rc = lead ? 'leader' : me.admin ? 'admin' : '';
+    const role = lead || me.staff ? me.role : me.admin ? '관리자' : '회원', rc = lead || me.staff ? 'leader' : me.admin ? 'admin' : '';
     const menu = S.menu === 'badge' ? `<div class="menu" role="menu" aria-label="사랑방">
-        <p class="mlabel">${esc(grp())}</p><div class="mitem static"><b>${esc(M.room.name)}</b><small>${M.dept && M.dept.name ? esc(M.dept.name) + ' · ' : ''}${M.month.slice(0, 4)}년 편성 · ${M.families.length}${words().count}</small></div>
+        <p class="mlabel">${esc(grp())}</p><div class="mitem static"><b>${esc(M.room.name)}</b><small>${M.dept && M.dept.name ? esc(M.dept.name) + ' · ' : ''}${me.staff ? `${grp()} ${(M.rooms || []).length}곳 · ${(M.rooms || []).reduce((a, r) => a + r.n, 0)}${words().count}` : `${M.month.slice(0, 4)}년 편성 · ${M.families.length}${words().count}`}</small></div>
         ${me.admin && !DEMO ? '<div class="mdiv"></div><a class="mitem" role="menuitem" href="?demo" target="_blank" rel="noopener"><span>데모로 둘러보기</span><small>예시 데이터</small></a>' : ''}</div>`
       : S.menu === 'settings' ? `<div class="menu" role="menu" aria-label="설정">
         <p class="mlabel">화면 모드 · 색 테마 · 디자인</p>${themeControls()}<div class="mdiv"></div>
@@ -1937,13 +2026,14 @@ try { const p = JSON.parse(localStorage.getItem('koide-pref') || '{}'), d = docu
         S.busy = false; return render();
       }
       case 'tab':
+        if (v === 'home' && S.tab === 'home') S.openRoom = null;
         S.tab = v; S.copied = null; render(); window.scrollTo(0, 0);
         if (v === 'history') { loadHist(S.hist && S.hist.month); track('화면 보기', { screen: '지난 기록' }); }
         if (v === 'status' || v === 'admin') { try { S.pending = await api('pending'); render(); } catch (err) { oops(err); } }
         return;
       case 'confirm': return save(() => api('confirmSame'), ok => ok && toast(staffMe() ? '이번 달도 그대로라고 표시했어요.' : '이번 달도 그대로라고 리더에게 알렸어요.'));
       case 'pray': {
-        const f = S.month.families.find(x => x.id === v);
+        const f = famById(v);
         if (f.today >= 3) return toast('이 ' + words().one + '은 오늘 충분히 기도했어요. 내일 또 기도해 주세요.');
         return prayFor(f);
       }
@@ -2001,6 +2091,10 @@ try { const p = JSON.parse(localStorage.getItem('koide-pref') || '{}'), d = docu
       case 'servetoggle': S.serveOpen = !S.serveOpen; return render();
       case 'histtab': S.histTab = v; return render();
       case 'histmonth': if (S.hist) S.hist.month = v; render(); return loadHist(v);
+      case 'openroom': S.openRoom = v; render(); return window.scrollTo(0, 0);
+      case 'roomclose': S.openRoom = null; render(); return window.scrollTo(0, 0);
+      case 'roomknot': S.psRoom = v; if (PSET.kinds.indexOf('room') < 0) { PSET.kinds.unshift('room'); savePset(); } S.tab = 'pray'; render(); return window.scrollTo(0, 0);
+      case 'psroom': S.psRoom = v; return render();
       case 'nexttoday': { const fams = roomFams(), i = fams.findIndex(f => f.id === S.todayId); pickToday(fams, i + 1, S.todayId); return render(); }
       case 'cordpick': S.todayId = v; render(); { const c = document.querySelector('.card.today'); if (c) c.scrollIntoView({ block: 'nearest', behavior: 'smooth' }); } return;
       case 'pskind': case 'pstopic': {
@@ -2021,6 +2115,7 @@ try { const p = JSON.parse(localStorage.getItem('koide-pref') || '{}'), d = docu
         if (PSET.music) { Music.unlock(); Music.play(PSET.track); }
         wakeOn(); render(); return psTick();
       }
+      case 'psprev': return S.ps.i > 0 && psGo(S.ps.i - 1);
       case 'psnext': return psGo(S.ps.i + 1);
       case 'pspray': {
         const f = famById(S.ps.list[S.ps.i].slice(2)); if (!f || (f.today || 0) >= 3) return;
