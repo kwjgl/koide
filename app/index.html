@@ -266,8 +266,9 @@ body.praying .tabs { display: none; }
 .today-tag svg { width: 1.15em; height: 1.15em; }
 .card.today h2 { font-family: var(--f-display, inherit); font-size: 1.6em; margin: .3em 0 .2em; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 /* 기도제목 칸은 가정마다 같은 높이로 두고 길면 칸 안에서 내려 읽는다. 그래야 기도했어요·다음 버튼이 가정마다 같은 자리에 있다.
+   휴대폰에서는 화면 높이에 맞춰 키운다(sizeToday).
    아래에 더 있으면 끝을 흐리게 해서 내려 볼 글이 있다는 걸 알린다 */
-.today-body { height: 14em; overflow-y: auto; overscroll-behavior: contain; }
+.today-body { height: 20em; overflow-y: auto; overscroll-behavior: contain; }
 .today-body.below { -webkit-mask-image: linear-gradient(180deg, #000 calc(100% - 2.5em), transparent); mask-image: linear-gradient(180deg, #000 calc(100% - 2.5em), transparent); }
 .today-acts { display: flex; gap: 8px; margin-top: 12px; }
 .today-acts .btn { flex: 1; }
@@ -330,7 +331,17 @@ h3 { font-size: 1.02em; font-weight: 600; margin: 0; }
 .link { font-size: .8em; padding: .35em 0; min-height: 36px; align-self: flex-start; }
 .card.today { background: linear-gradient(180deg, var(--accent-soft) 0%, color-mix(in srgb, var(--accent-soft) 35%, var(--surface)) 100%); border-color: transparent; box-shadow: inset 0 4px 0 var(--accent), 0 6px 18px -10px var(--shadow); padding-top: 1.25em; }
 .today-tag { align-self: flex-start; }
-.card.today h2 { font-family: var(--f-display); font-size: 1.75em; font-weight: 700; line-height: 1.25; margin: .1em 0 0; }
+.card.today h2 { font-family: var(--f-display); font-size: 1.5em; font-weight: 700; line-height: 1.25; margin: 0; }
+/* 기도제목 칸을 넓게 쓰려고 카드 머리(배지·이름)를 낮추고, 기도했어요와 다음 가정을 한 줄에 둔다 */
+.card.today { padding-top: 1em; }
+.card.today .today-tag { font-size: .72em; padding: .2em .8em .2em .65em; }
+/* 줄 높이를 정해 두고 글이 길면(큰 글씨의 '오늘은 여기까지' 등) 버튼 안에서 두 줄로 접는다. 그래야 누른 뒤에도 자리가 그대로다 */
+.pray-row { display: flex; gap: .5em; align-items: stretch; height: 3.4em; }
+.pray-row .pray.hero, .pray-row .btn.next { word-break: keep-all; }
+.pray-row .pray.hero { flex: 1; min-width: 0; min-height: 0; white-space: normal; text-align: center; line-height: 1.25; padding: 0 .5em; }
+/* 한 줄에 둘을 놓아 폭이 좁으니, 하루 다 채운 뒤의 3/3은 뺀다('오늘은 여기까지'로 이미 알 수 있어서) */
+.pray-row .pray.hero:disabled .pray-n { display: none; }
+.pray-row .btn.next { flex: none; width: 6.2em; min-height: 0; border-radius: 14px; padding: 0 .6em; line-height: 1.25; text-align: center; }
 /* 사랑방 가정 줄: 제목과 범례, 오른쪽에 카드 | 표 */
 .section-row { display: flex; justify-content: space-between; align-items: center; gap: .6em; margin-top: .2em; }
 .section-row .section-title { margin: 0 .2em !important; }
@@ -705,7 +716,7 @@ try { const p = JSON.parse(localStorage.getItem('koide-pref') || '{}'), d = docu
   // 기도했어요: 오늘 횟수(N/3)를 함께. 하루 3번이 되면 '오늘은 여기까지'
   function prayBtn(f, small, hero) {
     const t = f.today || 0, on = t > 0;
-    if (t >= 3) return `<button class="pray on${small ? ' small' : ''}${hero ? ' hero' : ''}" disabled aria-label="오늘은 이 ${words().one}을 위해 3번 기도했어요. 내일 또 누를 수 있어요">${ICON.check}${hero ? '오늘은 여기까지, 내일 또 만나요' : '오늘은 여기까지'}<span class="pray-n" aria-hidden="true">3/3</span></button>`;
+    if (t >= 3) return `<button class="pray on${small ? ' small' : ''}${hero ? ' hero' : ''}" disabled aria-label="오늘은 이 ${words().one}을 위해 3번 기도했어요. 내일 또 누를 수 있어요">${ICON.check}오늘은 여기까지<span class="pray-n" aria-hidden="true">3/3</span></button>`;
     return `<button class="pray${small ? ' small' : ''}${hero ? ' hero' : ''}${on ? ' on' : ''}" data-act="pray" data-v="${esc(f.id)}" aria-label="기도했어요${on ? ` (오늘 ${t}번 기도함, 하루 3번까지)` : ''}">${on ? ICON.check : ICON.hands}기도했어요${on ? `<span class="pray-n" aria-hidden="true">${t}/3</span>` : ''}</button>`;
   }
   const STATUS_LABEL = { same: '지난달 그대로', edited: '이번 달 손봄', confirmed: '그대로 확인' };
@@ -754,8 +765,7 @@ try { const p = JSON.parse(localStorage.getItem('koide-pref') || '{}'), d = docu
       ${a2hsCard()}
       <div class="home-grid"><div class="col side">${t ? `<section class="card today" aria-label="지금 함께 기도할 ${words().one}"><p class="today-tag">${ICON.hands}지금 함께 기도할 ${words().one}</p><h2>${esc(t.name)}</h2>
           <div class="today-body" data-id="${esc(t.id)}" tabindex="0" aria-label="${esc(t.name)} 기도제목">${t.items.length ? itemList(t.items, false) : `<p class="hint">아직 올린 기도제목이 없어요. 이 ${words().one}을 떠올리며 기도해요.</p>`}</div>
-          <div class="pray-hero">${prayBtn(t, false, true)}
-            <div class="actions"><button class="btn${t.today ? '' : ' ghost'}" data-act="nexttoday">다음 ${words().one}${t.today ? '으로' : ''}</button></div>
+          <div class="pray-hero"><div class="pray-row">${prayBtn(t, false, true)}<button class="btn next${t.today ? '' : ' ghost'}" data-act="nexttoday">다음 ${words().one}${t.today ? '으로' : ''}</button></div>
             ${t.prayed ? `<p class="pray-done">이번 달 ${esc(t.name)}${solo() ? ' 님' : ' 가정'}을 위해 ${t.prayed}번 기도했어요</p>` : ''}</div>
           <p class="hint">앱을 열 때마다 이번 달 아직 기도하지 않은 ${words().one}부터 돌아가며 나와요.</p>
           ${cordHtml(t.id)}</section>` : ''}</div>
@@ -1465,6 +1475,7 @@ try { const p = JSON.parse(localStorage.getItem('koide-pref') || '{}'), d = docu
     document.querySelectorAll('#main textarea.field').forEach(autosize);
     const tb2 = $('.today-body');
     if (tb2) {
+      sizeToday(tb2);
       if (tbKeep && tbKeep.id === tb2.dataset.id) tb2.scrollTop = tbKeep.top;
       const fade = () => tb2.classList.toggle('below', tb2.scrollTop + tb2.clientHeight < tb2.scrollHeight - 2);
       fade(); tb2.addEventListener('scroll', fade, { passive: true });
@@ -1487,6 +1498,21 @@ try { const p = JSON.parse(localStorage.getItem('koide-pref') || '{}'), d = docu
   let queue = Promise.resolve(), waiting = 0;
   function setSaved(t) { S.saved = t; const sv = $('#saved'); if (sv) sv.textContent = t; }
   // 글을 쓰는 중이면 다시 그리지 않는다(쓰던 칸이 사라지지 않게). 다음에 그릴 때 맞춰진다
+  // 휴대폰: 기도제목 칸을 화면 높이에 맞춰, 기도했어요 줄이 아래 탭 바로 위에 오도록 키운다(9~20줄 사이).
+  //  주소창이 숨었다 나왔다 해도 칸이 출렁이지 않게 가장 작은 화면 높이(svh)로 잰다. 태블릿·PC는 CSS의 20em 그대로
+  function sizeToday(tb) {
+    tb.style.height = '';
+    if (innerWidth >= 640) return;
+    const probe = document.createElement('div'); probe.style.cssText = 'position:fixed;top:0;height:100svh;visibility:hidden';
+    document.body.appendChild(probe); const vh = probe.offsetHeight || innerHeight; probe.remove();
+    const r = tb.getBoundingClientRect(), row = tb.closest('.card').querySelector('.pray-row');
+    const tabs = $('#tabs'), tabsH = tabs && !tabs.hidden ? tabs.offsetHeight : 0;
+    const below = row.getBoundingClientRect().bottom - r.bottom, lh = parseFloat(getComputedStyle(tb).fontSize) * 1.55;
+    const h = vh - tabsH - 12 - (r.top + scrollY) - below;
+    tb.style.height = Math.round(Math.min(20 * lh, Math.max(9 * lh, h))) + 'px';
+  }
+  let sizedW = innerWidth;
+  addEventListener('resize', () => { if (innerWidth === sizedW) return; sizedW = innerWidth; const tb = $('.today-body'); if (tb) { sizeToday(tb); tb.dispatchEvent(new Event('scroll')); } });
   function paint() { const a = document.activeElement; if (a && $('#main').contains(a) && a.matches('textarea, input')) return; render(); }
   function save(call, done) {
     waiting++; setSaved('저장 중…');
