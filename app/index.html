@@ -191,6 +191,7 @@ body.praying .tabs { display: none; }
 .toast { pointer-events: none; position: fixed; left: 50%; bottom: 90px; transform: translateX(-50%); background: var(--ink); color: var(--page); padding: .6em 1em; border-radius: 10px; font-size: .88em; z-index: 20; max-width: calc(100% - 32px); }
 .loading { text-align: center; color: var(--ink-2); padding: 48px 0; }
 .demo { background: var(--warn-soft); color: var(--warn); font-size: .8em; padding: .5em 16px; text-align: center; }
+.demo a { color: inherit; }
 .demo button { background: none; border: 0; color: inherit; text-decoration: underline; cursor: pointer; font-size: inherit; }
 .saved { font-size: .78em; color: var(--ink-2); }
 </style>
@@ -206,15 +207,17 @@ body.praying .tabs { display: none; }
 <script>
 (function () {
   const CFG = window.KOIDE_CONFIG || {};
-  const DEMO = !CFG.API_URL;
+  // 데모: 서버 주소가 없거나, 주소 뒤에 ?demo를 붙였을 때. 지어낸 예시 데이터로 리더·회원 화면을 눌러 본다
+  //  ?demo로 연 데모는 실제 앱과 같은 주소라서, 로그인·화면 기억을 따로 둬서 실제 로그인을 건드리지 않는다
+  const DEMO_LINK = !!CFG.API_URL && new URLSearchParams(location.search).has('demo'), DEMO = !CFG.API_URL || DEMO_LINK;
   const $ = s => document.querySelector(s);
   const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
-  const TOKEN = 'koide-token';
+  const TOKEN = DEMO_LINK ? 'koide-demo-token' : 'koide-token';
   const getToken = () => { try { return localStorage.getItem(TOKEN); } catch (e) { return null; } };
   // 로그인 표시가 바뀌면(로그인·로그아웃) 기억해 둔 화면도 지운다. 다른 사람의 기도제목이 남지 않게
   const setToken = t => { try { t ? localStorage.setItem(TOKEN, t) : localStorage.removeItem(TOKEN); localStorage.removeItem(CACHE); } catch (e) { /* 무시 */ } };
   // 지난번 이번 달 화면: 앱을 열 때 서버를 기다리지 않고 먼저 보여 준다
-  const CACHE = 'koide-cache';
+  const CACHE = DEMO_LINK ? 'koide-demo-cache' : 'koide-cache';
   const readCache = () => { try { return JSON.parse(localStorage.getItem(CACHE)); } catch (e) { return null; } };
   const writeCache = () => { try { localStorage.setItem(CACHE, JSON.stringify({ me: S.me, month: S.month })); } catch (e) { /* 무시 */ } };
 
@@ -248,7 +251,7 @@ body.praying .tabs { display: none; }
 
   // ── 시작: 카카오에서 돌아왔으면(code) 로그인부터, 아니면 내 상태를 확인 ──
   async function boot() {
-    if (DEMO) { await loadDemo(); $('#demo').hidden = false; $('#demo').innerHTML = '데모 모드 · 이 브라우저에만 저장돼요 <button data-act="demoreset">데모 데이터 지우기</button>'; }
+    if (DEMO) { await loadDemo(); $('#demo').hidden = false; $('#demo').innerHTML = '데모 모드 · 지어낸 예시 데이터예요 <button data-act="demoreset">데모 데이터 지우기</button>' + (DEMO_LINK ? ' · <a href="./">실제 앱으로</a>' : ''); }
     const q = new URLSearchParams(location.search);
     if (q.get('code')) {
       try { const r = await api('login', { code: q.get('code'), redirectUri: CFG.REDIRECT_URI || '' }); setToken(r.token); }
@@ -811,6 +814,8 @@ body.praying .tabs { display: none; }
           : '<p class="hint">확인할 신청이 없어요.</p>'}
         <ul class="items" style="margin-top:12px">${P.families.map(f => `<li style="grid-template-columns:1fr auto"><span>${esc(f.name)}</span><span>${f.linked.length ? f.linked.map(l => `${esc(l.person)}${l.kakaoId !== '' && l.person !== me.person ? ` <button class="link danger" data-act="unlink" data-v="${esc(l.kakaoId)}">해제</button>` : ''}`).join(', ') : '<span class="hint">아직 연결 없음</span>'}</span></li>`).join('')}</ul>`}
         <p class="hint">휴대폰을 잃어버렸거나 가정을 잘못 고른 사람만 해제해요.</p></section>` : ''}
+      ${me.admin && !DEMO ? `<section class="card"><h2>데모로 둘러보기</h2><p class="hint">지어낸 예시 데이터로 리더·회원 화면을 눌러 봐요. 실제 데이터와 로그인은 그대로예요.</p>
+        <a class="btn small ghost" href="?demo" target="_blank" rel="noopener" style="margin-top:8px;text-decoration:none">데모 열기</a></section>` : ''}
       ${me.admin ? `<section class="card"><h2>기존 기도제목 가져오기</h2><p class="hint">지금 쓰는 구글 시트의 사랑방 탭을 붙여 넣어 이번 달 기도제목으로 옮겨요.</p>
         <button class="btn small ghost" data-act="tab" data-v="import" style="margin-top:8px">가져오기 열기</button></section>` : ''}
       <section class="card"><button class="btn ghost wide" data-act="logout">이 기기에서 로그아웃</button><p class="hint">다시 들어올 때 카카오로 로그인해요.</p></section>`;
@@ -858,7 +863,7 @@ body.praying .tabs { display: none; }
     switch (b.dataset.act) {
       case 'login': return kakaoLogin(v);
       case 'retry': S.view = 'loading'; render(); return refreshMe();
-      case 'demoreset': window.koideDemo && window.koideDemo.reset(); setToken(null); location.replace(location.pathname); return;
+      case 'demoreset': window.koideDemo && window.koideDemo.reset(); setToken(null); location.replace(location.pathname + location.search); return;
       case 'logout': try { await api('logout'); } catch (err) { /* 이미 끝난 로그인 */ } setToken(null); S.view = 'login'; S.tab = 'home'; S.pending = null; S.hist = null; S.histTab = null; return render();
       case 'pickroom': S.pick = { roomId: v }; S.view = 'family'; return render();
       case 'pickfam': { S.pick.familyId = v; const ps = famPicked().name.split(' · '); if (ps.length > 1) S.view = 'who'; else { S.pick.person = ps[0]; S.view = 'consent'; } return render(); }
