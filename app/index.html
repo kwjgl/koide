@@ -472,11 +472,12 @@ textarea.field { resize: vertical; line-height: 1.55; }
 
   // 더보기: (리더) 이번 달 현황·카톡방에 올릴 가정·연결 승인·해제, 로그아웃
   function moreView() {
-    const me = S.month.me, leader = me.admin || me.role === '리더' || me.role === '코리더';
+    // 현황·카톡 공유는 사랑방을 맡은 리더·코리더만, 가정 관리(승인·해제)는 관리자도 본다
+    const me = S.month.me, leader = me.role === '리더' || me.role === '코리더', manager = me.admin || leader;
     const P = S.pending;
     return `<p class="eyebrow">${esc(S.month.families.find(f => f.own).name)} 가정 · ${esc(me.person)}</p><h1>더보기</h1>
       ${leader ? statusCard() + shareCard() : ''}
-      ${leader ? `<section class="card"><h2>사랑방 가정 관리</h2>
+      ${manager ? `<section class="card"><h2>사랑방 가정 관리</h2>
         ${!P ? '<p class="hint">불러오는 중…</p>' : `
         ${P.requests.length ? P.requests.map(q => `<div class="req"><b>${q.newFamily ? '새로 온 가정 · ' : ''}${esc(q.person)} 님 → ${esc(q.familyName)}</b>
             <small>${q.kids ? '자녀 ' + esc(q.kids) + ' · ' : ''}카카오 "${esc(q.nick)}" · ${esc(q.requestedAt)} 요청</small>
