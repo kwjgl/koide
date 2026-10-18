@@ -105,7 +105,7 @@ textarea.field { resize: vertical; line-height: 1.55; }
 .scope.s-family { background: var(--private); }
 .edit-foot { display: flex; justify-content: space-between; align-items: center; margin-top: .4em; font-size: .78em; color: var(--ink-2); }
 .wait { display: flex; align-items: center; gap: .6em; background: var(--accent-soft); border-radius: 12px; padding: .9em 1em; font-weight: 600; margin: 12px 0; }
-.tabs { position: fixed; left: 0; right: 0; bottom: 0; display: grid; grid-template-columns: repeat(4, 1fr); background: var(--surface); border-top: 1px solid var(--line); padding-bottom: env(safe-area-inset-bottom); z-index: 10; }
+.tabs { position: fixed; left: 0; right: 0; bottom: 0; display: grid; grid-template-columns: repeat(5, 1fr); background: var(--surface); border-top: 1px solid var(--line); padding-bottom: env(safe-area-inset-bottom); z-index: 10; }
 .tabs button { min-height: 58px; border: 0; background: none; color: var(--ink-2); font-size: .8em; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px; cursor: pointer; }
 /* 휴대폰에서 글을 쓰는 동안은 키보드 위로 올라온 아래 메뉴가 버튼을 가리지 않게 숨긴다 */
 @media (pointer: coarse) { body.typing .tabs { display: none; } }
@@ -168,6 +168,12 @@ body.praying .tabs { display: none; }
 .today-acts .btn { flex: 1; }
 .card.today .cord { border-top: 1px solid color-mix(in srgb, var(--accent) 20%, var(--line)); margin-top: 14px; padding-top: 12px; }
 .cord { width: 100%; text-align: left; }
+/* 지난 기록 */
+.hist-chips { display: flex; gap: 6px; overflow-x: auto; padding: 2px 0 8px; margin: 10px 0 4px; scrollbar-width: none; }
+.hist-chips .chip-btn { flex: none; }
+.items li.ended { color: var(--ink-2); }
+.end-tag { font-size: .72em; font-weight: 600; color: var(--ink-2); border: 1px solid var(--line-strong); border-radius: 999px; padding: .05em .5em; margin-left: .4em; white-space: nowrap; }
+.own-tag { font-size: .72em; font-weight: 600; color: var(--accent); background: var(--accent-soft); border-radius: 999px; padding: .15em .6em; }
 .cord-head { display: flex; justify-content: space-between; align-items: baseline; gap: .6em; }
 .cord-n { font-size: .78em; color: var(--ink-2); margin: 0; }
 .cord-n b { color: var(--accent); }
@@ -303,6 +309,7 @@ body.praying .tabs { display: none; }
     pen: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M4 20h4L19 9l-4-4L4 16z"/></svg>',
     more: '<svg viewBox="0 0 24 24" fill="currentColor"><circle cx="5" cy="12" r="1.8"/><circle cx="12" cy="12" r="1.8"/><circle cx="19" cy="12" r="1.8"/></svg>',
     hands: '<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M8 2.5v10.5"/><path d="M8 2.5C6.7 3.8 6 5.6 6 7.6L3.4 10.4 5 13.5h3"/><path d="M8 2.5c1.3 1.3 2 3.1 2 5.1l2.6 2.8-1.6 3.1H8"/></svg>',
+    book: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"><rect x="5" y="3.5" width="14" height="17" rx="2"/><path d="M8.5 8h7M8.5 11.5h7M8.5 15h4"/></svg>',
     check: '<svg viewBox="0 0 16 16" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3.5 8.5l3 3 6-7"/></svg>'
   };
 
@@ -348,7 +355,7 @@ body.praying .tabs { display: none; }
       <button class="btn wide" data-act="retry">승인됐는지 다시 확인</button>
       <p class="hint">${DEMO ? '데모: 로그아웃하고 "김도윤으로 들어가기"(리더) → 더보기에서 승인해 보세요.' : '보통 하루 안에 끝나요.'}</p>
       <button class="link" data-act="logout">로그아웃</button>`,
-    app: () => ({ home: homeView, mine: mineView, pray: prayView, more: moreView, import: importView })[S.tab]()
+    app: () => ({ home: homeView, mine: mineView, pray: prayView, history: historyView, more: moreView, import: importView })[S.tab]()
   };
   const famPicked = () => S.rooms.find(x => x.id === S.pick.roomId).families.find(f => f.id === S.pick.familyId);
   const consentList = () => `<ul class="consent">
@@ -445,6 +452,35 @@ body.praying .tabs { display: none; }
       <div class="row" style="justify-content:flex-start"><button class="btn small" data-act="copyshare" data-id="${f.id}">카톡용 복사</button>${posts[f.id] === P.today ? `<button class="link" data-act="unpost" data-id="${f.id}">올림 표시 지우기</button>` : ''}</div>
       ${copyNote('share-' + f.id, text)}
       <p class="hint">복사하면 오늘 올린 것으로 표시돼요. 복사만 하고 올리지 않았다면 "올림 표시 지우기"를 눌러요. 리더·목사님 항목과 우리 가정만 항목은 빠져요.</p></section>`;
+  }
+
+  // ── 지난 기록 ────────────────────────────────────────
+  // 사랑방: 달을 고르면 그 달에 우리 가정이 있던 사랑방의 기도제목(사랑방 공개, 그때 리더였으면 리더·목사님 항목까지).
+  //  우리 가정: 달마다 우리 가정 기도제목 전부. 과거 기록은 그때 함께한 사람에게만 보인다(서버가 고른다)
+  const monthLabel = (m, now) => (m.slice(0, 4) !== now.slice(0, 4) ? m.slice(0, 4) + '년 ' : '') + Number(m.slice(5)) + '월';
+  function histItems(its) {
+    return its.length ? `<ul class="items">${its.map(i => `<li class="s-${i.scope}${i.ended ? ' ended' : ''}"><span class="tgt">${esc(i.target)}</span><span>${esc(i.text)}${i.ended ? '<span class="end-tag">마침</span>' : ''}${i.scope !== 'room' ? `<span class="scope-note">${SCOPE[i.scope]}</span>` : ''}</span></li>`).join('')}</ul>`
+      : '<p class="hint">이 달에 올린 기도제목이 없어요.</p>';
+  }
+  function historyView() {
+    const H = S.hist, tab = S.histTab || 'room';
+    const head = `<p class="eyebrow">${esc(H && H.room || S.month.room.name)}</p><h1>지난 기록 <span aria-hidden="true">📖</span></h1>
+      <div class="seg" style="--n:2" role="tablist">${[['room', '사랑방'], ['mine', '우리 가정']].map(([k, l]) => `<button class="${tab === k ? 'on' : ''}" role="tab" aria-selected="${tab === k}" data-act="histtab" data-v="${k}">${l}</button>`).join('')}</div>`;
+    if (!H) return head + '<p class="loading">불러오는 중…</p>';
+    const past = H.months.filter(m => m < H.now);
+    const first = past.length ? '' : `<section class="card"><p style="margin:0">지난 기록은 다음 달부터 쌓여요.</p>
+      <p class="hint">${Number(H.now.slice(5)) % 12 + 1}월 1일이 되면 ${Number(H.now.slice(5))}월 기도제목이 첫 기록으로 남아요. 그때까지는 이번 달만 보여요.</p></section>`;
+    if (tab === 'mine') return head + first + (H.mine.length ? H.mine.map(x => `<section class="card"><h2>${monthLabel(x.month, H.now)}${x.month === H.now ? ' <span class="own-tag">이번 달</span>' : ''}</h2>${histItems(x.items)}</section>`).join('')
+      : '<p class="hint" style="margin-top:12px">아직 올린 기도제목이 없어요.</p>');
+    return head + first + `<div class="hist-chips" role="radiogroup" aria-label="달">${H.months.map(m => `<button class="chip-btn${m === H.month ? ' on' : ''}" role="radio" aria-checked="${m === H.month}" data-act="histmonth" data-v="${m}">${monthLabel(m, H.now)}${m === H.now ? '<small>이번 달</small>' : ''}</button>`).join('')}</div>
+      <h2>${monthLabel(H.month, H.now)}${H.room ? ' · ' + esc(H.room) : ''}</h2>
+      ${H.families.length ? H.families.map(f => `<section class="card"><div class="row"><h2>${esc(f.name)}</h2>${f.own ? '<span class="own-tag">우리 가정</span>' : ''}</div>${histItems(f.items)}</section>`).join('')
+        : '<p class="hint">이 달의 사랑방 기록을 찾지 못했어요.</p>'}`;
+  }
+  async function loadHist(month) {
+    try { S.hist = await api('history', month ? { month } : {}); }
+    catch (e) { if (e.code === 'bad') toast('서버를 새 버전으로 배포하면 지난 기록을 볼 수 있어요.'); else oops(e); S.hist = S.hist || null; }
+    if (S.tab === 'history') render();
   }
 
   // ── 기도하기 ────────────────────────────────────────
@@ -788,7 +824,7 @@ body.praying .tabs { display: none; }
     if (app) writeCache();
     $('#tabs').hidden = !app;
     $('#badge').innerHTML = app ? `<span class="badge">${esc(S.month.room.name)} · ${esc(S.month.me.role)}</span>` : '';
-    if (app) $('#tabs').innerHTML = [['home', '이번 달', ICON.home], ['mine', '내 기도', ICON.pen], ['pray', '기도하기', ICON.hands], ['more', '더보기', ICON.more]]
+    if (app) $('#tabs').innerHTML = [['home', '이번 달', ICON.home], ['mine', '내 기도', ICON.pen], ['pray', '기도하기', ICON.hands], ['history', '지난 기록', ICON.book], ['more', '더보기', ICON.more]]
       .map(([k, l, ic]) => `<button class="${k === 'pray' ? 'pray-tab ' : ''}${S.tab === k ? 'on' : ''}" data-act="tab" data-v="${k}" ${S.tab === k ? 'aria-current="page"' : ''}>${ic}${l}</button>`).join('');
     // 기도하는 화면은 아래 탭까지 덮는 전체 화면
     const P = $('#pss'), praying = app && !!S.ps;
@@ -823,7 +859,7 @@ body.praying .tabs { display: none; }
       case 'login': return kakaoLogin(v);
       case 'retry': S.view = 'loading'; render(); return refreshMe();
       case 'demoreset': window.koideDemo && window.koideDemo.reset(); setToken(null); location.replace(location.pathname); return;
-      case 'logout': try { await api('logout'); } catch (err) { /* 이미 끝난 로그인 */ } setToken(null); S.view = 'login'; S.tab = 'home'; S.pending = null; return render();
+      case 'logout': try { await api('logout'); } catch (err) { /* 이미 끝난 로그인 */ } setToken(null); S.view = 'login'; S.tab = 'home'; S.pending = null; S.hist = null; S.histTab = null; return render();
       case 'pickroom': S.pick = { roomId: v }; S.view = 'family'; return render();
       case 'pickfam': { S.pick.familyId = v; const ps = famPicked().name.split(' · '); if (ps.length > 1) S.view = 'who'; else { S.pick.person = ps[0]; S.view = 'consent'; } return render(); }
       case 'pickwho': S.pick.person = v; S.view = 'consent'; return render();
@@ -840,6 +876,7 @@ body.praying .tabs { display: none; }
       }
       case 'tab':
         S.tab = v; S.copied = null; render(); window.scrollTo(0, 0);
+        if (v === 'history') loadHist(S.hist && S.hist.month);
         if (v === 'more') { const me = S.month.me; if (me.admin || me.role === '리더' || me.role === '코리더') { try { S.pending = await api('pending'); render(); } catch (err) { oops(err); } } }
         return;
       case 'confirm': return save(() => api('confirmSame'), ok => ok && toast('이번 달도 그대로라고 리더에게 알렸어요.'));
@@ -859,6 +896,8 @@ body.praying .tabs { display: none; }
         if (b.dataset.act === 'end') toast('마쳤어요. 지난 기록에는 남아요.');
         return save(() => api(b.dataset.act === 'end' ? 'endItem' : 'deleteItem', { id }));
       }
+      case 'histtab': S.histTab = v; return render();
+      case 'histmonth': if (S.hist) S.hist.month = v; render(); return loadHist(v);
       case 'nexttoday': { const fams = roomFams(), i = fams.findIndex(f => f.id === S.todayId); pickToday(fams, i + 1, S.todayId); return render(); }
       case 'cordpick': S.todayId = v; render(); { const c = document.querySelector('.card.today'); if (c) c.scrollIntoView({ block: 'nearest', behavior: 'smooth' }); } return;
       case 'pskind': case 'pstopic': {

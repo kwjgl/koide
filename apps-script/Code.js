@@ -34,7 +34,7 @@ const SCOPES = ['room', 'leader', 'family'];
 // ── 요청 받기 ─────────────────────────────────────────────
 
 // 서버 코드를 고칠 때마다 바꾼다. 웹 앱 주소를 열면 보여서, 새 버전으로 배포됐는지 확인할 수 있다
-const VERSION = '2026-10-19 기도하기';
+const VERSION = '2026-10-19 지난 기록';
 function doGet() {
   return ContentService.createTextOutput('코이데 서버가 켜져 있어요. (버전: ' + VERSION + ')');
 }
@@ -67,6 +67,7 @@ const ACTIONS = {
   rooms: body => { who_(body); return roomsWithFamilies_(); },
   requestLink: requestLink_,
   month: body => monthView_(member_(body)),
+  history: body => historyView_(member_(body), String(body.month || '')),
   saveItem: saveItem_,
   endItem: body => setItemState_(body, '마침'),
   deleteItem: deleteItem_,
@@ -312,6 +313,32 @@ function canManage_(c, familyId) {
 // ── 이번 달 ──────────────────────────────────────────────
 
 // 우리 사랑방 가정과 기도제목. 공개 범위: room은 모두, leader는 리더·코리더와 우리 가정, family는 우리 가정만
+// 지난 기록: 과거 기록은 그때 함께한 사람에게만 보인다(설계서 '지난 기록 열람 규칙').
+//  그 달이 속한 해의 편성에서 우리 가정이 있던 사랑방을 보여 주고, 사랑방 공개 항목(그때 리더·코리더였으면 리더·목사님 항목까지)을,
+//  우리 가정은 모든 항목을 보여 준다. 마친 항목도 그 달의 기록이라 '마침'으로 남긴다
+//  돌려주는 것: months(볼 수 있는 달, 최근 순), month(고른 달), room, families(그 달 사랑방), mine(우리 가정의 달마다 기도제목)
+function historyView_(c, want) {
+  const items = read_('items'), rooms = read_('rooms'), fams = read_('families'), roster = read_('roster');
+  const myRoom = y => roster.find(r => String(r.year) === y && r.familyId === c.familyId);
+  const seen = {};
+  items.forEach(i => { const r = myRoom(i.month.slice(0, 4)); if (i.familyId === c.familyId || (r && i.roomId === r.roomId)) seen[i.month] = true; });
+  const months = Object.keys(seen).sort().reverse();
+  const m = months.indexOf(want) >= 0 ? want : (months.find(x => x < month_()) || months[0] || month_());
+  const r = myRoom(m.slice(0, 4)), lead = !!r && (r.role === '리더' || r.role === '코리더');
+  const show = i => ({ target: i.target, text: i.text, scope: i.scope, ended: i.state === '마침' });
+  const families = !r ? [] : roster.filter(x => String(x.year) === m.slice(0, 4) && x.roomId === r.roomId).map(x => {
+    const f = fams.find(y => y.id === x.familyId); if (!f) return null;
+    const own = f.id === c.familyId;
+    const its = items.filter(i => i.month === m && i.familyId === f.id && (own || i.scope === 'room' || (i.scope === 'leader' && lead)))
+      .sort((a, b) => a.order - b.order).map(show);
+    return { id: f.id, name: f.name, own, items: its };
+  }).filter(Boolean).sort((a, b) => b.own - a.own);
+  const mine = months.map(mm => ({ month: mm, items: items.filter(i => i.month === mm && i.familyId === c.familyId).sort((a, b) => a.order - b.order).map(show) }))
+    .filter(x => x.items.length);
+  const room = r ? rooms.find(x => x.id === r.roomId) : null;
+  return { months, month: m, now: month_(), room: room ? room.name : '', families, mine };
+}
+
 function monthView_(c) {
   const m = month_();
   ensureMonth_(c.roomId, m);
