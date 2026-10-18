@@ -34,7 +34,7 @@ const SCOPES = ['room', 'leader', 'family'];
 // ── 요청 받기 ─────────────────────────────────────────────
 
 // 서버 코드를 고칠 때마다 바꾼다. 웹 앱 주소를 열면 보여서, 새 버전으로 배포됐는지 확인할 수 있다
-const VERSION = '2026-10-18 가져오기·예시 지우기';
+const VERSION = '2026-10-19 기도하기';
 function doGet() {
   return ContentService.createTextOutput('코이데 서버가 켜져 있어요. (버전: ' + VERSION + ')');
 }
@@ -328,6 +328,7 @@ function monthView_(c) {
       id: f.id, name: f.name, kids: f.kids ? String(f.kids).split(/\s*,\s*/) : [], own,
       status: st ? st.status : 'same',
       prayed: prayed.filter(p => p.familyId === f.id).length,
+      today: prayed.filter(p => p.familyId === f.id && fmtDate_(p.at) === today_()).length,
       items: items.filter(i => i.familyId === f.id && (own || i.scope === 'room' || (i.scope === 'leader' && isLeader)))
         .sort((a, b) => a.order - b.order)
         .map(i => ({ id: i.id, target: i.target, text: i.text, scope: i.scope, same: yes_(i.same), isNew: !i.prevId && !yes_(i.same),
@@ -405,11 +406,12 @@ function deleteItem_(body) {
 function pray_(body) {
   const c = member_(body);
   if (!read_('roster').some(r => String(r.year) === year_() && r.roomId === c.roomId && r.familyId === body.familyId)) throw fail_('bad', '우리 사랑방 가정이 아니에요.');
-  const today = today_();
-  const n = read_('prayers').filter(p => p.by === c.familyId && p.familyId === body.familyId && fmtDate_(p.at) === today).length;
-  if (n >= 3) return { prayed: n, capped: true };
+  // prayed: 이번 달 횟수, today: 오늘 횟수(가정마다 하루 3번까지)
+  const mine = read_('prayers').filter(p => p.by === c.familyId && p.familyId === body.familyId && fmtMonth_(p.at) === month_());
+  const n = mine.filter(p => fmtDate_(p.at) === today_()).length;
+  if (n >= 3) return { prayed: mine.length, today: n, capped: true };
   append_('prayers', { at: new Date(), by: c.familyId, familyId: body.familyId });
-  return { prayed: n + 1, capped: n + 1 >= 3 };
+  return { prayed: mine.length + 1, today: n + 1, capped: n + 1 >= 3 };
 }
 
 function setMonthly_(familyId, m, status) {
