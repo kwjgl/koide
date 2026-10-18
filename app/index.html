@@ -24,6 +24,7 @@
   --accent: #2B6A62; --accent-mid: #8DBDB5; --accent-soft: #DCEBE7; --on-accent: #FFFFFF;
   --leader: #62519E; --leader-soft: #ECE7F7; --private: #E8ECEA;
   --warn: #9A5A14; --warn-soft: #F5E8D6; --shadow: rgba(20, 35, 32, .14);
+  --neu-hi: rgba(255, 255, 255, .9); --neu-lo: rgba(20, 35, 32, .17);
   --base: 16px;
   --f-display: 'Gowun Batang', 'AppleMyungjo', 'Batang', serif;
   --f-body: 'IBM Plex Sans KR', 'Apple SD Gothic Neo', 'Malgun Gothic', sans-serif;
@@ -33,14 +34,14 @@
   --ink: #E5ECE9; --ink-2: #9CAAA5; --line: #2D3935; --line-strong: #4A5853;
   --accent: #7CC2B7; --accent-mid: #3F7C73; --accent-soft: #1E3934; --on-accent: #0F1A18;
   --leader: #B6A8EA; --leader-soft: #2A2442; --private: #252E2B;
-  --warn: #E2A563; --warn-soft: #3A2C1B; --shadow: rgba(0, 0, 0, .5); color-scheme: dark; } }
+  --warn: #E2A563; --warn-soft: #3A2C1B; --shadow: rgba(0, 0, 0, .5); --neu-hi: rgba(255, 255, 255, .06); --neu-lo: rgba(0, 0, 0, .6); color-scheme: dark; } }
 /* 화면 모드: 기기 설정이면 기기를 따르고, '밝게'·'어둡게'를 고르면 그대로(data-mode) */
 :root[data-mode="dark"] {
   --page: #141B19; --surface: #1C2522; --surface-2: #232D2A;
   --ink: #E5ECE9; --ink-2: #9CAAA5; --line: #2D3935; --line-strong: #4A5853;
   --accent: #7CC2B7; --accent-mid: #3F7C73; --accent-soft: #1E3934; --on-accent: #0F1A18;
   --leader: #B6A8EA; --leader-soft: #2A2442; --private: #252E2B;
-  --warn: #E2A563; --warn-soft: #3A2C1B; --shadow: rgba(0, 0, 0, .5); color-scheme: dark; }
+  --warn: #E2A563; --warn-soft: #3A2C1B; --shadow: rgba(0, 0, 0, .5); --neu-hi: rgba(255, 255, 255, .06); --neu-lo: rgba(0, 0, 0, .6); color-scheme: dark; }
 /* 글씨: 휴대폰·태블릿 16px, PC 15px. 큰 글씨 모드는 약 1.2배 */
 @media (min-width: 1000px) { :root { --base: 15px; } }
 :root[data-big] { --base: 19px; }
@@ -521,12 +522,166 @@ body.pop-open { overflow: hidden; }
 .ps-list li span:last-child { font-size: .85em; }
 /* 글씨가 커져 '사랑방 가정' 줄(제목·범례 | 모임 모드·카드|표)이 휴대폰 폭을 넘으면 두 줄로 */
 .section-row { flex-wrap: wrap; row-gap: .4em; }
+
+/* ── 디자인 스타일 (설정에서 고름, 이 기기에만): basic(기본) / new(뉴모피즘) / classic(스큐어모피즘) / glass(글래스모피즘).
+   시안(prototype/index.html)의 규칙을 실제 앱의 이름(:root[data-style], .tabs button, .seg, 기도하기·모임 모드 화면)에 맞춰 옮겼다.
+   색은 모두 테마색과 화면 모드에서 가져온다 ── */
+
+/* new: 누르는 것은 판에서 볼록하게, 고른 것과 담는 자리(이름표·입력칸)는 오목하게. 판(카드·바·메뉴)은 바탕과 같은 색에 그림자로 나눈다 */
+:root[data-style="neu"] {
+  --raise: -4px -4px 10px var(--neu-hi), 5px 5px 12px var(--neu-lo);
+  --raise-sm: -3px -3px 7px var(--neu-hi), 3px 3px 8px var(--neu-lo);
+  --press: inset 3px 3px 7px var(--neu-lo), inset -3px -3px 7px var(--neu-hi);
+  --press-sm: inset 2px 2px 4px var(--neu-lo), inset -2px -2px 4px var(--neu-hi);
+  /* 카드는 바탕보다 한 톤 밝게 올려서, 그림자만으로는 흐린 카드 경계를 또렷하게 한다 */
+  --card: color-mix(in srgb, var(--surface) 60%, var(--page));
+  --raise-card: -6px -6px 14px var(--neu-hi), 8px 8px 20px var(--neu-lo), 0 0 0 1px color-mix(in srgb, var(--line) 55%, transparent);
+}
+:root[data-style="neu"] .fam-grid, :root[data-style="neu"] .col { gap: 18px; }
+:root[data-style="neu"] .card, :root[data-style="neu"] .notice { background-color: var(--card); border-color: transparent; box-shadow: var(--raise-card); }
+:root[data-style="neu"] .card.today { background: linear-gradient(180deg, var(--accent-soft) 0%, var(--card) 100%); box-shadow: inset 0 4px 0 var(--accent), var(--raise-card); }
+:root[data-style="neu"] .topbar { background: var(--page); border-bottom-color: transparent; box-shadow: 0 4px 12px -6px var(--neu-lo); }
+:root[data-style="neu"] .tabs { background: var(--page); border-top-color: transparent; box-shadow: 0 -4px 12px -6px var(--neu-lo); }
+:root[data-style="neu"] .tabs button.on:not(.pray-tab) { box-shadow: var(--press); border-radius: 16px; margin: 5px 10px; min-height: 46px; }
+:root[data-style="neu"] .tabs button.on::after { content: none; }
+:root[data-style="neu"] .tabs button.pray-tab .ic { background: var(--card); box-shadow: var(--raise-sm); }
+:root[data-style="neu"] .tabs button.pray-tab.on .ic { background: var(--accent); box-shadow: var(--press); }
+:root[data-style="neu"] .topnav button.on { background: var(--surface); box-shadow: var(--press); }
+:root[data-style="neu"] .brand-mark { box-shadow: var(--raise-sm); }
+:root[data-style="neu"] .badge-btn, :root[data-style="neu"] .topbar .icon-btn { background: var(--card); border-color: transparent; box-shadow: var(--raise-sm); }
+:root[data-style="neu"] .topbar .icon-btn { border-radius: 50%; }
+:root[data-style="neu"] .topbar .icon-btn[aria-expanded="true"] { box-shadow: var(--press); }
+:root[data-style="neu"] .role-tag { background: var(--page); border-color: transparent; box-shadow: var(--press-sm); }
+:root[data-style="neu"] .role-tag.leader { background: var(--leader-soft); }
+:root[data-style="neu"] .role-tag.admin { background: var(--accent); }
+:root[data-style="neu"] .menu { background: var(--card); border-color: transparent; box-shadow: var(--raise), 0 18px 40px -16px var(--neu-lo); }
+:root[data-style="neu"] .mitem:hover { background: transparent; box-shadow: var(--press-sm); }
+/* 누르는 것: 볼록하게 */
+:root[data-style="neu"] .pray { border: 0; background: var(--surface); color: var(--accent); box-shadow: var(--raise-sm); transition: box-shadow .25s, background .25s, color .25s; }
+:root[data-style="neu"] .pray:hover { border: 0; }
+:root[data-style="neu"] .pray.on { background: var(--accent-soft); color: var(--accent); box-shadow: var(--press); }
+:root[data-style="neu"] .pray.hero { background: var(--accent); color: var(--on-accent); box-shadow: var(--raise); }
+:root[data-style="neu"] .pray.hero.on { background: color-mix(in srgb, var(--accent-soft) 60%, var(--surface)); color: var(--accent); box-shadow: var(--press); }
+:root[data-style="neu"] .pray.on .pray-n { background: var(--accent); color: var(--on-accent); }
+:root[data-style="neu"] .btn:not(.ghost):not(:disabled) { box-shadow: var(--raise-sm); }
+:root[data-style="neu"] .btn.ghost, :root[data-style="neu"] .mchip, :root[data-style="neu"] .chip-btn, :root[data-style="neu"] .scope-btn, :root[data-style="neu"] .tgt-btn,
+:root[data-style="neu"] .choice, :root[data-style="neu"] .icon-btn.sm, :root[data-style="neu"] .swatch, :root[data-style="neu"] .rm-x { background-color: var(--card); border-color: transparent; box-shadow: var(--raise-sm); }
+:root[data-style="neu"] .mchip.on, :root[data-style="neu"] .chip-btn.open, :root[data-style="neu"] .swatch.on { box-shadow: var(--press); border-color: transparent; }
+:root[data-style="neu"] .mchip.on { background: var(--page); color: var(--accent); }
+:root[data-style="neu"] .btn:not(:disabled):active, :root[data-style="neu"] .pray:active, :root[data-style="neu"] .mchip:active, :root[data-style="neu"] .choice:active { box-shadow: var(--press); }
+:root[data-style="neu"] .seg, :root[data-style="neu"] .seg2 { border: 0; background: var(--surface-2); box-shadow: var(--press); padding: 4px; gap: 5px; }
+:root[data-style="neu"] .seg button.on, :root[data-style="neu"] .seg2 button.on { background: var(--surface); box-shadow: var(--raise-sm); }
+/* 담는 자리: 오목하게 */
+:root[data-style="neu"] .tgt, :root[data-style="neu"] .today .tgt, :root[data-style="neu"] .chip-status, :root[data-style="neu"] .kid { background: var(--page); border-color: transparent; box-shadow: var(--press-sm); }
+:root[data-style="neu"] .st-edited, :root[data-style="neu"] .kid { background: var(--accent-soft); }
+:root[data-style="neu"] .item.s-family, :root[data-style="neu"] .today .item.s-family, :root[data-style="neu"] .sub > li.s-family { background: var(--page); box-shadow: var(--press); }
+:root[data-style="neu"] .received { box-shadow: var(--press-sm); }
+:root[data-style="neu"] .received.r-plain { box-shadow: none; }
+:root[data-style="neu"] .field, :root[data-style="neu"] .kid-form input, :root[data-style="neu"] .copybox { background: var(--page); border-color: transparent; box-shadow: var(--press); }
+:root[data-style="neu"] .export, :root[data-style="neu"] .kid-list li { background: var(--page); box-shadow: var(--press); }
+:root[data-style="neu"] .switch { background: var(--page); box-shadow: var(--press); }
+:root[data-style="neu"] .switch.on { background: var(--accent); }
+:root[data-style="neu"] .switch > span { background: var(--page); box-shadow: 1px 1px 3px var(--neu-lo); }
+:root[data-style="neu"] .pray-table thead th { background: var(--page); }
+:root[data-style="neu"] .pss { background: var(--page); }
+:root[data-style="neu"] .pss-nav button { box-shadow: var(--raise); }
+:root[data-style="neu"] .pss-nav button:first-child { background: var(--page); border-color: transparent; }
+:root[data-style="neu"] .pss-body li { background: var(--card); box-shadow: var(--raise-sm); }
+@media (prefers-reduced-motion: reduce) { :root[data-style="neu"] .pray { transition: none; } }
+
+/* classic: 종이 카드, 천 무늬 바탕, 광택 있는 버튼, 박음질 */
+:root[data-style="skeu"] {
+  --paper-hi: color-mix(in srgb, var(--surface) 92%, #FFF6E0);
+  --paper-lo: color-mix(in srgb, var(--surface) 88%, #E9DFC8);
+  --gloss: linear-gradient(180deg, rgba(255,255,255,.38) 0%, rgba(255,255,255,.08) 50%, rgba(0,0,0,.06) 51%, rgba(0,0,0,.14) 100%);
+  --bevel: inset 0 1px 0 rgba(255,255,255,.45), inset 0 -1px 0 rgba(0,0,0,.18), 0 1px 2px rgba(0,0,0,.25);
+}
+:root[data-style="skeu"] body { background-image: repeating-linear-gradient(45deg, rgba(0,0,0,.025) 0 2px, transparent 2px 4px), repeating-linear-gradient(-45deg, rgba(255,255,255,.035) 0 2px, transparent 2px 4px); }
+:root[data-style="skeu"] .card, :root[data-style="skeu"] .notice, :root[data-style="skeu"] .menu {
+  background: linear-gradient(180deg, var(--paper-hi), var(--paper-lo)); border: 1px solid color-mix(in srgb, var(--line-strong) 70%, transparent);
+  box-shadow: inset 0 1px 0 rgba(255,255,255,.6), 0 1px 1px rgba(0,0,0,.08), 0 4px 0 -2px color-mix(in srgb, var(--paper-lo) 85%, #000), 0 8px 18px -8px rgba(0,0,0,.3); }
+:root[data-style="skeu"] .card.today { background: linear-gradient(180deg, color-mix(in srgb, var(--accent-soft) 70%, var(--paper-hi)), var(--paper-lo));
+  outline: 1.5px dashed color-mix(in srgb, var(--accent) 45%, transparent); outline-offset: -8px; box-shadow: inset 0 4px 0 var(--accent), 0 1px 1px rgba(0,0,0,.08), 0 10px 22px -10px rgba(0,0,0,.35); }
+:root[data-style="skeu"] .topbar { background: linear-gradient(180deg, color-mix(in srgb, var(--surface) 80%, #fff), color-mix(in srgb, var(--surface-2) 85%, #000)); border-bottom: 1px solid rgba(0,0,0,.25); box-shadow: 0 2px 6px rgba(0,0,0,.15); }
+:root[data-style="skeu"] .tabs { background: linear-gradient(180deg, color-mix(in srgb, var(--surface-2) 85%, #000), color-mix(in srgb, var(--surface-2) 70%, #000)); border-top: 1px solid rgba(255,255,255,.25); box-shadow: 0 -2px 6px rgba(0,0,0,.18); }
+:root[data-style="skeu"] .tabs button { color: color-mix(in srgb, var(--ink) 60%, transparent); }
+:root[data-style="skeu"] .tabs button.on { color: var(--accent); filter: drop-shadow(0 0 4px color-mix(in srgb, var(--accent) 50%, transparent)); }
+:root[data-style="skeu"] .brand-mark { background: radial-gradient(circle at 35% 30%, color-mix(in srgb, var(--accent) 55%, #fff), var(--accent) 60%, color-mix(in srgb, var(--accent) 70%, #000)); box-shadow: var(--bevel); }
+:root[data-style="skeu"] h1 { text-shadow: 0 1px 0 rgba(255,255,255,.55); }
+/* 광택 버튼 */
+:root[data-style="skeu"] .btn:not(.ghost), :root[data-style="skeu"] .pray.hero, :root[data-style="skeu"] .pray.on, :root[data-style="skeu"] .pss-nav .pss-pray, :root[data-style="skeu"] .role-tag.admin, :root[data-style="skeu"] .today-tag {
+  background-image: var(--gloss); background-color: var(--accent); border: 1px solid color-mix(in srgb, var(--accent) 70%, #000); box-shadow: var(--bevel); text-shadow: 0 -1px 0 rgba(0,0,0,.25); }
+:root[data-style="skeu"] .pray.hero.on { background: linear-gradient(180deg, color-mix(in srgb, var(--accent-soft) 60%, #000 6%), var(--accent-soft)); color: var(--accent);
+  box-shadow: inset 0 2px 6px rgba(0,0,0,.25), 0 1px 0 rgba(255,255,255,.5); text-shadow: 0 1px 0 rgba(255,255,255,.5); border-color: color-mix(in srgb, var(--accent) 35%, transparent); }
+:root[data-style="skeu"] .btn.ghost, :root[data-style="skeu"] .pray:not(.hero):not(.on), :root[data-style="skeu"] .mchip, :root[data-style="skeu"] .chip-btn, :root[data-style="skeu"] .scope-btn, :root[data-style="skeu"] .tgt-btn, :root[data-style="skeu"] .badge-btn,
+:root[data-style="skeu"] .choice, :root[data-style="skeu"] .icon-btn.sm, :root[data-style="skeu"] .pss-nav button:not(.pss-pray), :root[data-style="skeu"] .pss-x, :root[data-style="skeu"] .pss-music {
+  background-image: linear-gradient(180deg, rgba(255,255,255,.3), rgba(255,255,255,0) 60%, rgba(0,0,0,.06)); background-color: var(--surface); border: 1px solid color-mix(in srgb, var(--line-strong) 85%, #000 10%); box-shadow: inset 0 1px 0 rgba(255,255,255,.7), 0 1px 2px rgba(0,0,0,.15); }
+:root[data-style="skeu"] .mchip.on, :root[data-style="skeu"] .chip-btn.open { background: color-mix(in srgb, var(--surface-2) 80%, #000 6%); box-shadow: inset 0 2px 4px rgba(0,0,0,.2); color: var(--accent); border-color: color-mix(in srgb, var(--line-strong) 70%, #000 20%); }
+:root[data-style="skeu"] .btn:not(:disabled):active, :root[data-style="skeu"] .pray:active, :root[data-style="skeu"] .mchip:active { box-shadow: inset 0 2px 5px rgba(0,0,0,.3); }
+/* 이름표·입력칸은 종이에 찍힌 듯 */
+:root[data-style="skeu"] .tgt, :root[data-style="skeu"] .chip-status, :root[data-style="skeu"] .role-tag { box-shadow: inset 0 1px 2px rgba(0,0,0,.15), 0 1px 0 rgba(255,255,255,.6); }
+:root[data-style="skeu"] .field, :root[data-style="skeu"] .kid-form input, :root[data-style="skeu"] .copybox, :root[data-style="skeu"] .kakao {
+  background: color-mix(in srgb, var(--surface) 96%, #FFF8E6); border: 1px solid color-mix(in srgb, var(--line-strong) 80%, #000 10%); box-shadow: inset 0 2px 3px rgba(0,0,0,.12); }
+:root[data-style="skeu"] .kakao { background: #FEE500; }
+:root[data-style="skeu"] textarea.field { line-height: 1.6em; background-image: repeating-linear-gradient(180deg, transparent 0 calc(1.6em - 1px), color-mix(in srgb, var(--accent) 22%, transparent) calc(1.6em - 1px) 1.6em);
+  background-origin: content-box; background-clip: padding-box; background-attachment: local; }
+/* 스위치·선택 버튼 */
+:root[data-style="skeu"] .seg, :root[data-style="skeu"] .seg2 { background: linear-gradient(180deg, color-mix(in srgb, var(--surface-2) 85%, #000 8%), var(--surface-2)); border: 1px solid color-mix(in srgb, var(--line-strong) 80%, #000 15%); box-shadow: inset 0 1px 3px rgba(0,0,0,.18); }
+:root[data-style="skeu"] .seg button.on, :root[data-style="skeu"] .seg2 button.on { background: linear-gradient(180deg, color-mix(in srgb, var(--surface) 82%, #fff), var(--surface)); color: var(--ink); box-shadow: inset 0 1px 0 #fff, 0 1px 2px rgba(0,0,0,.25); }
+:root[data-style="skeu"] .switch { box-shadow: inset 0 2px 4px rgba(0,0,0,.3); }
+:root[data-style="skeu"] .switch.on { background-image: var(--gloss); }
+:root[data-style="skeu"] .switch > span { background: radial-gradient(circle at 40% 30%, #fff, #ddd); box-shadow: 0 1px 3px rgba(0,0,0,.4); }
+:root[data-style="skeu"] .received { box-shadow: inset 0 1px 3px rgba(0,0,0,.12); }
+:root[data-style="skeu"] .item.s-family, :root[data-style="skeu"] .sub > li.s-family { box-shadow: inset 0 1px 3px rgba(0,0,0,.12); }
+:root[data-style="skeu"] .pss-body li { background: linear-gradient(180deg, var(--paper-hi), var(--paper-lo)); box-shadow: 0 1px 1px rgba(0,0,0,.08), 0 6px 14px -8px rgba(0,0,0,.3); }
+
+/* glass: 테마색으로 은은하게 물든 바탕 위에 반투명 유리판(카드·바)을 얹는다. 글이 읽히도록 유리는 너무 투명하게 하지 않는다 */
+:root[data-style="glass"] {
+  --glass: color-mix(in srgb, var(--surface) 58%, transparent);
+  --glass-strong: color-mix(in srgb, var(--surface) 78%, transparent);
+  --glass-soft: color-mix(in srgb, var(--surface) 40%, transparent);
+  --glass-blur: blur(18px) saturate(160%);
+  --glass-edge: 1px solid color-mix(in srgb, var(--surface) 70%, transparent);
+  --glass-shadow: inset 0 1px 0 var(--neu-hi), inset 0 0 0 1px color-mix(in srgb, var(--ink) 5%, transparent), 0 10px 30px -14px var(--shadow);
+}
+:root[data-style="glass"] body { position: relative; isolation: isolate; }
+/* 바탕의 빛 번짐: 테마색 + 따뜻한 색 + 보라빛을 크게 흐리게 겹친다. 화면에 고정해 스크롤해도 유리 너머로 비친다 */
+:root[data-style="glass"] body::before { content: ""; position: fixed; inset: 0; z-index: -1; pointer-events: none;
+  background:
+    radial-gradient(42% 38% at 12% 18%, color-mix(in srgb, var(--accent) 50%, transparent), transparent 72%),
+    radial-gradient(38% 34% at 88% 30%, color-mix(in srgb, #F2A65A 45%, transparent), transparent 72%),
+    radial-gradient(46% 40% at 70% 92%, color-mix(in srgb, var(--leader) 36%, transparent), transparent 72%),
+    radial-gradient(36% 30% at 20% 85%, color-mix(in srgb, var(--accent-mid) 55%, transparent), transparent 72%); }
+:root[data-style="glass"] .card, :root[data-style="glass"] .notice {
+  background: var(--glass); -webkit-backdrop-filter: var(--glass-blur); backdrop-filter: var(--glass-blur); border: var(--glass-edge); box-shadow: var(--glass-shadow); }
+:root[data-style="glass"] .card.today { background: linear-gradient(160deg, color-mix(in srgb, var(--accent-soft) 70%, transparent), var(--glass-soft)); box-shadow: inset 0 4px 0 var(--accent), var(--glass-shadow); }
+:root[data-style="glass"] .topbar, :root[data-style="glass"] .tabs { background: var(--glass); -webkit-backdrop-filter: var(--glass-blur); backdrop-filter: var(--glass-blur); border-color: color-mix(in srgb, var(--surface) 60%, transparent); }
+/* 위에 뜨는 것(메뉴·홈 화면에 두기 창·기도하기·모임 모드)은 아래 글과 겹치지 않게 진하게. 메뉴는 유리 상단 바 안이라 흐림이 먹지 않아 불투명하게 */
+:root[data-style="glass"] .menu { background: var(--surface); border: var(--glass-edge); box-shadow: var(--glass-shadow), 0 16px 40px -12px var(--shadow); }
+:root[data-style="glass"] .pop-sheet { background: var(--glass-strong); }
+:root[data-style="glass"] .pss { background: color-mix(in srgb, var(--page) 82%, transparent); -webkit-backdrop-filter: blur(24px) saturate(160%); backdrop-filter: blur(24px) saturate(160%); }
+:root[data-style="glass"] .pss-top { background: linear-gradient(color-mix(in srgb, var(--page) 90%, transparent) 75%, transparent); }
+:root[data-style="glass"] .pss-body li { background: var(--glass); border: var(--glass-edge); }
+/* 작은 단추·칩·입력칸은 한 겹 더 얇은 유리 */
+:root[data-style="glass"] .btn.ghost, :root[data-style="glass"] .pray:not(.hero):not(.on), :root[data-style="glass"] .mchip, :root[data-style="glass"] .chip-btn, :root[data-style="glass"] .badge-btn,
+:root[data-style="glass"] .tgt, :root[data-style="glass"] .role-tag:not(.admin):not(.leader), :root[data-style="glass"] .seg, :root[data-style="glass"] .seg2 {
+  background: var(--glass-soft); border-color: color-mix(in srgb, var(--surface) 65%, transparent); }
+:root[data-style="glass"] .field, :root[data-style="glass"] .kid-form input { background: var(--glass-strong); border-color: color-mix(in srgb, var(--line-strong) 60%, transparent); }
+:root[data-style="glass"] .seg button.on, :root[data-style="glass"] .seg2 button.on { background: var(--glass-strong); box-shadow: inset 0 1px 0 var(--neu-hi), 0 2px 8px -3px var(--shadow); }
+:root[data-style="glass"] .mchip.on { background: color-mix(in srgb, var(--accent-soft) 70%, transparent); color: var(--ink); border-color: color-mix(in srgb, var(--accent) 55%, transparent); }
+:root[data-style="glass"] .btn:not(.ghost), :root[data-style="glass"] .pray.hero { box-shadow: inset 0 1px 0 rgba(255, 255, 255, .3), 0 8px 20px -10px var(--accent); }
+:root[data-style="glass"] .item.s-family, :root[data-style="glass"] .sub > li.s-family { background: color-mix(in srgb, var(--private) 60%, transparent); }
+/* 유리 흐림을 못 쓰는 브라우저는 반투명 대신 거의 불투명하게 해서 글이 읽히게 */
+@supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
+  :root[data-style="glass"] { --glass: color-mix(in srgb, var(--surface) 90%, transparent); --glass-soft: color-mix(in srgb, var(--surface) 75%, transparent); --glass-strong: var(--surface); }
+}
 </style>
 <script>
 /* 화면 모드·색 테마·큰 글씨는 이 기기에만 기억한다. 화면이 그려지기 전에 먼저 입힌다 */
 try { const p = JSON.parse(localStorage.getItem('koide-pref') || '{}'), d = document.documentElement;
   if (p.mode === 'light' || p.mode === 'dark') d.dataset.mode = p.mode;
   if (p.accent && p.accent !== 'green') d.dataset.accent = p.accent;
+  if (p.style && p.style !== 'flat') d.dataset.style = p.style;
   if (p.big) d.dataset.big = ''; } catch (e) { /* 무시 */ }
 </script>
 </head>
@@ -588,6 +743,34 @@ try { const p = JSON.parse(localStorage.getItem('koide-pref') || '{}'), d = docu
     }
     return res.data;
   }
+  // ── 사용기록(설계서 10장): 행동과 숫자·선택지만 기기에 모아 두었다가, 앱을 열 때(start) 함께 보낸다 ──
+  //  기기ID는 이 기기에서 무작위로 만든 값이고 가정·사람과 잇지 않는다. 이름, 기도제목, 쓴 글은 넣지 않는다
+  const USAGE_Q = 'koide-usage', DEVICE = (() => {
+    try {
+      let d = localStorage.getItem('koide-device');
+      if (!d) { d = (crypto.randomUUID ? crypto.randomUUID() : Math.random().toString(36).slice(2) + Date.now().toString(36)).replace(/[^a-z0-9]/gi, '').toLowerCase().slice(0, 24); localStorage.setItem('koide-device', d); }
+      return d;
+    } catch (e) { return ''; }
+  })();
+  const usageQ = () => { try { return JSON.parse(localStorage.getItem(USAGE_Q) || '[]'); } catch (e) { return []; } };
+  function track(e, d) {
+    try { const q = usageQ(); q.push({ at: new Date().toISOString(), e, d: d || {} }); localStorage.setItem(USAGE_Q, JSON.stringify(q.slice(-200))); } catch (err) { /* 기록 못 해도 앱은 그대로 */ }
+    if (usageQ().length >= 30) sendUsage();
+  }
+  // 보낼 것: start에 붙이거나(usagePart) 많이 쌓이면 따로(sendUsage). 서버가 받았다고 하면(kept) 보낸 만큼만 지운다
+  const usagePart = () => { const q = usageQ(); return q.length && DEVICE ? { device: DEVICE, events: q } : {}; };
+  function usageSent(part, r) { if (!part.events || !r || !r.kept) return; try { localStorage.setItem(USAGE_Q, JSON.stringify(usageQ().slice(part.events.length))); } catch (e) { /* 다음에 다시 */ } }
+  async function sendUsage() {
+    if (sendUsage.busy || !getToken()) return; const part = usagePart(); if (!part.events) return;
+    sendUsage.busy = true; try { usageSent(part, await api('usage', part)); } catch (e) { /* 다음에 다시 보낸다 */ } sendUsage.busy = false;
+  }
+  const widthKind = () => innerWidth < 640 ? 'phone' : innerWidth < 1024 ? 'tablet' : 'pc';
+  // 앱을 연 기록은 하루 한 번
+  function trackOpen() {
+    try { if (localStorage.getItem('koide-usage-day') === new Date().toDateString()) return; localStorage.setItem('koide-usage-day', new Date().toDateString()); } catch (e) { return; }
+    const me = S.month && S.month.me || {};
+    track('열기', { role: me.admin ? '관리자' : me.role || '회원', width: widthKind(), style: (STYLES.find(s => s[0] === (PREF.style || 'flat')) || STYLES[0])[1], group: grp(), big: !!PREF.big, mode: PREF.mode || 'auto', app: STANDALONE });
+  }
   function toast(msg) { const t = $('#toast'); t.textContent = msg; t.hidden = false; clearTimeout(toast.t); toast.t = setTimeout(() => { t.hidden = true; }, 2600); }
   const oops = e => toast((e && e.message) || '잠시 문제가 생겼어요. 다시 해 주세요.');
 
@@ -619,7 +802,8 @@ try { const p = JSON.parse(localStorage.getItem('koide-pref') || '{}'), d = docu
     try {
       let r;
       // start가 없는 예전 서버 코드여도 열리게 예전 방식(me → month)으로 이어 간다
-      try { r = await api('start'); } catch (e) { if (e.code !== 'bad') throw e; r = { me: await api('me') }; }
+      const part = usagePart();
+      try { r = await api('start', part); usageSent(part, r.usage); } catch (e) { if (e.code !== 'bad') throw e; r = { me: await api('me') }; }
       S.me = r.me;
       if (!S.me.link) {
         // 부서를 모르는 예전 서버면 사랑방 목록을 부서 하나로 본다
@@ -628,7 +812,7 @@ try { const p = JSON.parse(localStorage.getItem('koide-pref') || '{}'), d = docu
         if (S.depts.length === 1) pickDept(S.depts[0].id); else S.view = 'dept';
       }
       else if (S.me.link.status === '요청') S.view = 'wait';
-      else { const m = r.month || await api('month'); if (!waiting) S.month = m; S.view = 'app'; }
+      else { const m = r.month || await api('month'); if (!waiting) S.month = m; S.view = 'app'; trackOpen(); }
     } catch (e) {
       if (e.code === 'login') return;
       if (quiet) return oops(e);
@@ -753,25 +937,28 @@ try { const p = JSON.parse(localStorage.getItem('koide-pref') || '{}'), d = docu
       <li><b>무엇을</b><span>${solo() ? '이름, 내가 쓴 기도제목' : '가정 이름, 자녀 이름, 우리 가정이 쓴 기도제목'}, 카카오 회원번호와 닉네임</span></li>
       <li><b>어디에</b><span>교회가 관리하는 비공개 구글 시트 한 곳</span></li>
       <li><b>누가 보나</b><span>기도제목마다 고른 공개 범위대로만 보여요. 시트를 관리하는 관리자는 모두 볼 수 있어요</span></li>
-      <li><b>얼마나</b><span>교회를 떠나면 1년 뒤 내용을 지우고 개수만 남겨요. 언제든 ${solo() ? '내' : '우리 가정'} 기록을 지워 달라고 할 수 있어요</span></li></ul>`;
+      <li><b>얼마나</b><span>교회를 떠나면 1년 뒤 내용을 지우고 개수만 남겨요. 언제든 ${solo() ? '내' : '우리 가정'} 기록을 지워 달라고 할 수 있어요</span></li>
+      <li><b>사용 기록</b><span>앱을 좋게 만들기 위해 이름 없는 사용 기록을 남겨요. "기도하기를 열었다"처럼 누른 것과 숫자만이고, 이름과 기도제목은 넣지 않아요</span></li></ul>`;
 
   // 이번 달: 우리 가정 + 사랑방 가정마다 기도제목과 "기도했어요"
   const todayLabel = () => { const d = new Date(); return (d.getMonth() + 1) + '월 ' + d.getDate() + '일 ' + '일월화수목금토'[d.getDay()]; };
   // 기도제목 줄(시안과 같게): 같은 대상은 칩 하나 아래로 묶고, 휴대폰에서는 3줄까지 보이고 '더 보기'로 펼친다.
   //  새 기도제목은 글 앞 작은 점, 공개 범위는 리더·목사님(보라 띠)·우리 가정만(회색 바탕 + 자물쇠)
   const SCOPE_ICON = { room: ICON.room, leader: ICON.people, family: ICON.lock };
-  function itemBody(i, clamp) {
-    const open = S.openItems.has(i.id);
+  //  famId가 있으면(사랑방 가정 카드) 글의 '더 보기'가 그 가정 카드 전체를 펼친다: 4개 넘는 항목과 접힌 글까지 한 번에
+  function itemBody(i, clamp, famId) {
+    const open = !famId && S.openItems.has(i.id);
     const dot = i.isNew ? '<i class="new-dot" title="이번 달 새 기도제목"></i><span class="sr">새 기도제목: </span>' : '';
-    const tog = clamp ? `<button class="more-txt" data-act="itemtoggle" data-id="${esc(i.id)}" aria-expanded="${open}">${open ? '접기' : '더 보기'}</button>` : '';
+    const tog = !clamp ? '' : famId ? `<button class="more-txt" data-act="famtoggle" data-id="${esc(famId)}" aria-expanded="false">더 보기</button>`
+      : `<button class="more-txt" data-act="itemtoggle" data-id="${esc(i.id)}" aria-expanded="${open}">${open ? '접기' : '더 보기'}</button>`;
     const scope = i.scope !== 'room' ? `<span class="b-scope ${i.scope}">${SCOPE_ICON[i.scope]}${scopeName(i.scope)}</span>` : '';
     return `<div class="item-body"><p class="txt${clamp && !open ? ' clamp' : ''}">${dot}${esc(i.text)}${i.ended ? '<span class="end-tag">마침</span>' : ''}</p>${tog || scope ? `<div class="item-foot">${scope}${tog}</div>` : ''}</div>`;
   }
-  function itemList(items, clamp) {
+  function itemList(items, clamp, famId) {
     const groups = [];
     items.filter(i => !i.pending).forEach(i => { const g = groups.find(x => x.target === i.target); g ? g.items.push(i) : groups.push({ target: i.target, items: [i] }); });
-    return `<ul class="items">${groups.map(g => g.items.length === 1 ? `<li class="item s-${g.items[0].scope}"><span class="tgt">${esc(g.target)}</span>${itemBody(g.items[0], clamp)}</li>`
-      : `<li class="item grp"><span class="tgt">${esc(g.target)}</span><ul class="sub">${g.items.map(i => `<li class="s-${i.scope}">${itemBody(i, clamp)}</li>`).join('')}</ul></li>`).join('')}</ul>`;
+    return `<ul class="items">${groups.map(g => g.items.length === 1 ? `<li class="item s-${g.items[0].scope}"><span class="tgt">${esc(g.target)}</span>${itemBody(g.items[0], clamp, famId)}</li>`
+      : `<li class="item grp"><span class="tgt">${esc(g.target)}</span><ul class="sub">${g.items.map(i => `<li class="s-${i.scope}">${itemBody(i, clamp, famId)}</li>`).join('')}</ul></li>`).join('')}</ul>`;
   }
   // 기도했어요: 오늘 횟수(N/3)를 함께. 하루 3번이 되면 '오늘은 여기까지'
   function prayBtn(f, small, hero) {
@@ -790,10 +977,12 @@ try { const p = JSON.parse(localStorage.getItem('koide-pref') || '{}'), d = docu
     return `<p class="received r-${k}">${ICON.hands}<span>${t}</span></p>`;
   }
   function famCard(f) {
+    // 펼치면 모든 항목을 접지 않고 다 보여 주고, 맨 아래 '접기' 하나로 다시 접는다
     const its = f.items.filter(i => !i.pending), open = S.openFams.has(f.id), more = its.length - 4;
     return `<article class="card"><div class="fam-head"><h3>${esc(f.name)}</h3>${prayBtn(f, true)}</div>
-      ${its.length ? itemList(open ? its : its.slice(0, 4), true) : '<p class="hint">아직 올린 기도제목이 없어요.</p>'}
-      ${more > 0 ? `<button class="link" data-act="famtoggle" data-id="${esc(f.id)}" aria-expanded="${open}">${open ? '접기' : '더 보기 · ' + more + '개'}</button>` : ''}</article>`;
+      ${its.length ? (open ? itemList(its, false) : itemList(its.slice(0, 4), true, f.id)) : '<p class="hint">아직 올린 기도제목이 없어요.</p>'}
+      ${open ? `<button class="link" data-act="famtoggle" data-id="${esc(f.id)}" aria-expanded="true">접기</button>`
+        : more > 0 ? `<button class="link" data-act="famtoggle" data-id="${esc(f.id)}" aria-expanded="false">더 보기 · ${more}개</button>` : ''}</article>`;
   }
   // ── 홈 화면에 두기(13장 홈 화면 앱) ──
   // 홈 화면 앱으로 열었으면 나오지 않는다. "알겠어요"를 누르면 이 기기에서는 다시 나오지 않고, 더보기에서 다시 볼 수 있다
@@ -1247,7 +1436,7 @@ try { const p = JSON.parse(localStorage.getItem('koide-pref') || '{}'), d = docu
     }, 1000);
   }
   function psGo(i) {
-    const ps = S.ps;
+    const ps = S.ps; ps.seen = Math.max(ps.seen || 1, Math.min(i + 1, ps.list.length));
     if (i >= ps.list.length) { ps.done = true; clearInterval(psTimer); }
     else { ps.i = i; ps.left = ps.dur; }
     render(); $('#pss').scrollTop = 0; psTick();
@@ -1269,7 +1458,7 @@ try { const p = JSON.parse(localStorage.getItem('koide-pref') || '{}'), d = docu
       <p class="m-hint">${esc(grp())} 공개 기도제목만 나와요. 키보드 왼쪽·오른쪽 화살표로도 넘길 수 있어요.</p>
       ${nav(i > 0, i === n - 1 ? '주기도문으로 마치기' : '다음 ' + w, 'meetnext')}`;
   }
-  function meetGo(i) { S.meet = Math.max(0, Math.min(meetFams().length, i)); render(); $('#pss').scrollTop = 0; }
+  function meetGo(i) { S.meet = Math.max(0, Math.min(meetFams().length, i)); S.meetSeen = Math.max(S.meetSeen || 1, S.meet + 1); render(); $('#pss').scrollTop = 0; }
   // 기도하는 동안 화면이 꺼지지 않게(되는 기기에서만)
   let wake = null;
   const wakeOn = () => { try { navigator.wakeLock.request('screen').then(w => { wake = w; }).catch(() => {}); } catch (e) { /* 안 되는 기기 */ } };
@@ -1501,6 +1690,8 @@ try { const p = JSON.parse(localStorage.getItem('koide-pref') || '{}'), d = docu
   // 화면 모드·색 테마·큰 글씨: 이 기기에만 기억(head에서 먼저 입힌 값을 그대로 이어 쓴다)
   const PREF = (() => { try { return JSON.parse(localStorage.getItem('koide-pref')) || {}; } catch (e) { return {}; } })();
   const MODES = [['system', '기기 설정'], ['light', '밝게'], ['dark', '어둡게']];
+  // 디자인 스타일: 저장하는 이름 → 화면에 보이는 이름(시안과 같게)
+  const STYLES = [['flat', 'basic'], ['neu', 'new'], ['skeu', 'classic'], ['glass', 'glass']];
   const ACCENTS = [['green', '초록', '#2B6A62'], ['amber', '주황', '#C46A24'], ['blue', '파랑', '#2F5D95'], ['rose', '장미', '#A8435C'], ['ink', '먹색', '#3A3A36']];
   function setPref(k, v) {
     PREF[k] = v;
@@ -1508,16 +1699,18 @@ try { const p = JSON.parse(localStorage.getItem('koide-pref') || '{}'), d = docu
     const d = document.documentElement;
     if (PREF.mode === 'light' || PREF.mode === 'dark') d.dataset.mode = PREF.mode; else delete d.dataset.mode;
     if (PREF.accent && PREF.accent !== 'green') d.dataset.accent = PREF.accent; else delete d.dataset.accent;
+    if (PREF.style && PREF.style !== 'flat') d.dataset.style = PREF.style; else delete d.dataset.style;
     if (PREF.big) d.dataset.big = ''; else delete d.dataset.big;
   }
   const themeControls = () => {
-    const mode = PREF.mode || 'system', accent = PREF.accent || 'green';
+    const mode = PREF.mode || 'system', accent = PREF.accent || 'green', style = PREF.style || 'flat';
     return `<div class="seg" style="--n:3" role="radiogroup" aria-label="화면 모드">${MODES.map(([k, l]) => `<button class="${mode === k ? 'on' : ''}" role="radio" aria-checked="${mode === k}" data-act="mode" data-v="${k}">${l}</button>`).join('')}</div>
-      <div class="swatches" role="radiogroup" aria-label="색 테마">${ACCENTS.map(([k, l, c]) => `<button class="swatch${accent === k ? ' on' : ''}" role="radio" aria-checked="${accent === k}" data-act="accent" data-v="${k}" aria-label="${l}" title="${l}"><i style="background:${c}"></i></button>`).join('')}</div>`;
+      <div class="swatches" role="radiogroup" aria-label="색 테마">${ACCENTS.map(([k, l, c]) => `<button class="swatch${accent === k ? ' on' : ''}" role="radio" aria-checked="${accent === k}" data-act="accent" data-v="${k}" aria-label="${l}" title="${l}"><i style="background:${c}"></i></button>`).join('')}</div>
+      <div class="seg" style="--n:4" role="radiogroup" aria-label="디자인">${STYLES.map(([k, l]) => `<button class="${style === k ? 'on' : ''}" role="radio" aria-checked="${style === k}" data-act="style" data-v="${k}">${l}</button>`).join('')}</div>`;
   };
   const bigSwitch = () => `<button class="switch${PREF.big ? ' on' : ''}" role="switch" aria-checked="${!!PREF.big}" aria-label="큰 글씨 모드" data-act="big"><span></span></button>`;
   function settingsCard() {
-    return `<section class="card"><p class="label">화면 모드 · 색 테마</p>${themeControls()}
+    return `<section class="card"><p class="label">화면 모드 · 색 테마 · 디자인</p>${themeControls()}
       <div class="mdiv" style="margin:14px 0"></div>
       <div class="set-row"><div><p class="label" style="margin:0">큰 글씨 모드</p><p class="hint" style="margin:.2em 0 0">글씨를 조금 더 크게 보여 줘요.</p></div>${bigSwitch()}</div>
       <p class="hint">이 기기에만 적용돼요.</p></section>`;
@@ -1533,7 +1726,7 @@ try { const p = JSON.parse(localStorage.getItem('koide-pref') || '{}'), d = docu
         <p class="mlabel">${esc(grp())}</p><div class="mitem static"><b>${esc(M.room.name)}</b><small>${M.dept && M.dept.name ? esc(M.dept.name) + ' · ' : ''}${M.month.slice(0, 4)}년 편성 · ${M.families.length}${words().count}</small></div>
         ${me.admin && !DEMO ? '<div class="mdiv"></div><a class="mitem" role="menuitem" href="?demo" target="_blank" rel="noopener"><span>데모로 둘러보기</span><small>예시 데이터</small></a>' : ''}</div>`
       : S.menu === 'settings' ? `<div class="menu" role="menu" aria-label="설정">
-        <p class="mlabel">화면 모드 · 색 테마</p>${themeControls()}<div class="mdiv"></div>
+        <p class="mlabel">화면 모드 · 색 테마 · 디자인</p>${themeControls()}<div class="mdiv"></div>
         <div class="mitem static set-row" style="flex-direction:row;align-items:center"><span>큰 글씨 모드</span>${bigSwitch()}</div>
         <button class="mitem" role="menuitem" data-act="tab" data-v="more"><span>${solo() ? '내 정보' : '우리 가정 정보'}</span></button>
         <div class="mdiv"></div><button class="mitem" role="menuitem" data-act="logout"><span>이 기기에서 로그아웃</span></button></div>` : '';
@@ -1544,7 +1737,17 @@ try { const p = JSON.parse(localStorage.getItem('koide-pref') || '{}'), d = docu
       <button class="icon-btn" data-act="menu" data-v="settings" aria-haspopup="menu" aria-expanded="${S.menu === 'settings'}" aria-label="설정">${ICON.gear}</button>
       ${menu}</div>`;
   }
+  // 첫 접속 단계마다 들어온 것을 남긴다(어디서 그만두는지 보려고). 연결이 되어 앱 화면에 처음 들어오면 마친 것
+  const ONBOARD = ['login', 'dept', 'room', 'family', 'who', 'newfam', 'consent', 'wait'];
+  let lastView = null;
+  function trackView(v) {
+    if (v === lastView) return;
+    if (ONBOARD.indexOf(v) >= 0) track('첫접속 단계', { step: v, done: false });
+    else if (v === 'app' && ONBOARD.indexOf(lastView) > 0) track('첫접속 단계', { step: 'app', done: true });
+    lastView = v;
+  }
   function render() {
+    trackView(S.view);
     const app = S.view === 'app';
     // 새 기도제목 칸에 쓰던 글은 다시 그려도 남긴다
     const at = $('#add-t'); if (at) S.draft = at.value;
@@ -1623,7 +1826,7 @@ try { const p = JSON.parse(localStorage.getItem('koide-pref') || '{}'), d = docu
   document.addEventListener('click', async e => {
     const b = e.target.closest('[data-act]');
     // 메뉴 안에서 색·모드·큰 글씨를 바꿀 때는 메뉴를 열어 둔 채로 바로 보여 준다
-    const keep = e.target.closest('.menu') && (!b || ['mode', 'accent', 'big'].includes(b.dataset.act));
+    const keep = e.target.closest('.menu') && (!b || ['mode', 'accent', 'style', 'big'].includes(b.dataset.act));
     if (S.menu && !keep && !(b && b.dataset.act === 'menu')) { S.menu = null; $('#topbar').innerHTML = topHtml(); }
     if (!b) return;
     const v = b.dataset.v, id = b.dataset.id;
@@ -1658,7 +1861,7 @@ try { const p = JSON.parse(localStorage.getItem('koide-pref') || '{}'), d = docu
       }
       case 'tab':
         S.tab = v; S.copied = null; render(); window.scrollTo(0, 0);
-        if (v === 'history') loadHist(S.hist && S.hist.month);
+        if (v === 'history') { loadHist(S.hist && S.hist.month); track('화면 보기', { screen: '지난 기록' }); }
         if (v === 'status' || v === 'admin') { try { S.pending = await api('pending'); render(); } catch (err) { oops(err); } }
         return;
       case 'confirm': return save(() => api('confirmSame'), ok => ok && toast('이번 달도 그대로라고 리더에게 알렸어요.'));
@@ -1691,7 +1894,7 @@ try { const p = JSON.parse(localStorage.getItem('koide-pref') || '{}'), d = docu
       case 'kidadd': { const x = $('#kid-name'), n = x.value.trim(); keepFam(); if (n && !S.famEdit.kids.includes(n)) S.famEdit.kids.push(n); render(); const y = $('#kid-name'); if (y) y.focus(); return; }
       case 'kiddel': keepFam(); S.famEdit.kids.splice(Number(v), 1); return render();
       case 'kidup': { keepFam(); const k = S.famEdit.kids, n = Number(v); [k[n - 1], k[n]] = [k[n], k[n - 1]]; return render(); }
-      case 'mode': case 'accent': setPref(b.dataset.act, v); return render();
+      case 'mode': case 'accent': case 'style': setPref(b.dataset.act, v); return render();
       case 'big': setPref('big', !PREF.big); return render();
       case 'tipscope': try { localStorage.setItem('koide-tip-scope', '1'); } catch (err) { /* 무시 */ } return render();
       case 'tip': try { localStorage.setItem('koide-tip-' + b.dataset.v, '1'); } catch (err) { /* 무시 */ } return render();
@@ -1704,17 +1907,18 @@ try { const p = JSON.parse(localStorage.getItem('koide-pref') || '{}'), d = docu
       case 'addparts': {
         // 목록에 바로 넣고(서버의 답이 오기 전까지는 잠가 둠), 서버에는 하나씩 차례대로 저장한다
         const parts = S.preview, f = mineFam(); S.preview = null; S.draft = ''; const at = $('#add-t'); if (at) at.value = '';
+        track('기도제목 저장', { items: parts.length, split: true });
         parts.forEach((x, k) => { f.items.push({ id: 'new' + Date.now() + k, target: x.target, text: x.text, scope: 'room', isNew: true, editedBy: S.me.person, pending: true });
           save(() => api('saveItem', { target: x.target, text: x.text, scope: 'room' })); });
         render(); return toast(parts.length + '개를 더했어요.');
       }
-      case 'homeview': S.homeView = v; if (v === 'table' && !S.hist) loadHist(); return render();
+      case 'homeview': S.homeView = v; if (v === 'table') { track('화면 보기', { screen: '표' }); if (!S.hist) loadHist(); } return render();
       case 'exopen': if (!S.ex) S.ex = {}; S.ex.open = !S.ex.open; return render();
       case 'experiod': S.ex.period = v; if (v !== 'this' && !S.hist) loadHist(); return render();
       case 'exmonth': S.ex.month = v; return render();
       case 'exlead': S.ex.lead = b.checked; return render();
       case 'exprint': return window.print();
-      case 'exdo': S.busy = true; render(); try { await exportXlsx(); } catch (err) { oops(err); } S.busy = false; return render();
+      case 'exdo': S.busy = true; render(); try { await exportXlsx(); track('내려받기', { range: S.ex.period || 'this' }); } catch (err) { oops(err); } S.busy = false; return render();
       case 'itemtoggle': S.openItems.has(id) ? S.openItems.delete(id) : S.openItems.add(id); return render();
       case 'famtoggle': S.openFams.has(id) ? S.openFams.delete(id) : S.openFams.add(id); return render();
       case 'histtab': S.histTab = v; return render();
@@ -1734,7 +1938,8 @@ try { const p = JSON.parse(localStorage.getItem('koide-pref') || '{}'), d = docu
       case 'psnexttrack': Music.unlock(); Music.play((PSET.track + 1) % HYMNS.length); return render();
       case 'psstart': {
         const list = psList(); if (!list.length) return;
-        S.ps = { list, i: 0, dur: PSET.dur, left: PSET.dur, prayed: [], extra: [], done: false };
+        S.ps = { list, i: 0, dur: PSET.dur, left: PSET.dur, prayed: [], extra: [], done: false, t0: Date.now(), seen: 1 };
+        track('기도하기 시작', { kinds: PSET.kinds.join('·'), cards: list.length, secs: PSET.dur, music: !!PSET.music });
         if (PSET.music) { Music.unlock(); Music.play(PSET.track); }
         wakeOn(); render(); return psTick();
       }
@@ -1746,11 +1951,15 @@ try { const p = JSON.parse(localStorage.getItem('koide-pref') || '{}'), d = docu
       }
       case 'psextra': { const id = S.ps.list[S.ps.i]; if (S.ps.extra.indexOf(id) < 0) S.ps.extra.push(id); return psGo(S.ps.i + 1); }
       case 'psend': S.ps.done = true; clearInterval(psTimer); return render();
-      case 'psclose': clearInterval(psTimer); S.ps = null; Music.off(); wakeOff(); return render();
-      case 'meet': S.meet = 0; S.menu = null; wakeOn(); return render();
+      case 'psclose':
+        // 몇 장까지 봤는지, 끝 장까지 가기 전에 끝냈는지(early: '끝내기'도 마친 화면을 보여 주므로 본 장 수로 정한다), 머문 시간(분)
+        { const seen = Math.min(S.ps.list.length, Math.max(S.ps.seen || 1, S.ps.i + 1));
+          track('기도하기 마침', { kinds: PSET.kinds.join('·'), cards: S.ps.list.length, seen, mins: (Date.now() - S.ps.t0) / 60000, music: !!PSET.music, early: seen < S.ps.list.length }); }
+        clearInterval(psTimer); S.ps = null; Music.off(); wakeOff(); return render();
+      case 'meet': S.meet = 0; S.meetSeen = 1; S.menu = null; wakeOn(); track('모임 모드 시작', { cards: meetFams().length + 1 }); return render();
       case 'meetprev': return meetGo(S.meet - 1);
       case 'meetnext': return meetGo(S.meet + 1);
-      case 'meetclose': S.meet = null; wakeOff(); return render();
+      case 'meetclose': track('모임 모드 마침', { cards: meetFams().length + 1, seen: S.meetSeen }); S.meet = null; wakeOff(); return render();
       case 'impparse': {
         const r = readSheet($('#imp-t').value);
         if (!r.families.length) return toast('가정을 찾지 못했어요. 시트의 사랑방 탭을 통째로 복사해 주세요.');
@@ -1786,7 +1995,7 @@ try { const p = JSON.parse(localStorage.getItem('koide-pref') || '{}'), d = docu
   document.addEventListener('keydown', e => {
     if (e.key === 'Escape' && !$('#pop').hidden) { S.a2hs = false; return render(); }
     if (S.meet == null || S.ps || S.view !== 'app') return;
-    if (e.key === 'Escape') { S.meet = null; wakeOff(); render(); }
+    if (e.key === 'Escape') { track('모임 모드 마침', { cards: meetFams().length + 1, seen: S.meetSeen }); S.meet = null; wakeOff(); render(); }
     else if (e.key === 'ArrowRight') meetGo(S.meet + 1);
     else if (e.key === 'ArrowLeft') meetGo(S.meet - 1);
   });
@@ -1804,6 +2013,7 @@ try { const p = JSON.parse(localStorage.getItem('koide-pref') || '{}'), d = docu
       Object.assign(i, { text, target });
       const body = { id, target, text, scope: i.scope };
       save(() => api('saveItem', body));
+      track('기도제목 저장', { items: 1, split: false });
     }
   });
   document.addEventListener('submit', async e => {

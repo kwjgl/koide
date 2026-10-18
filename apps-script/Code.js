@@ -30,7 +30,9 @@ const SCHEMA = {
   items: ['기도제목', [['id', '항목ID'], ['month', '월'], ['familyId', '가정ID'], ['roomId', '당시 사랑방'], ['target', '대상'], ['text', '내용'], ['scope', '공개범위'], ['state', '상태'], ['prevId', '이전 항목ID'], ['same', '지난달과 같음'], ['order', '순서'], ['editedAt', '수정일'], ['editedBy', '고친 사람']]],
   monthly: ['월별 상태', [['month', '월'], ['familyId', '가정ID'], ['status', '상태']]],
   prayers: ['기도기록', [['at', '날짜시각'], ['by', '누른 가정ID'], ['familyId', '기도한 가정ID']]],
-  posts: ['카톡 공유', [['roomId', '사랑방ID'], ['familyId', '가정ID'], ['date', '올린 날'], ['by', '올린 사람']]]
+  posts: ['카톡 공유', [['roomId', '사랑방ID'], ['familyId', '가정ID'], ['date', '올린 날'], ['by', '올린 사람']]],
+  // 사용기록(설계서 10장): 행동과 숫자·선택지만. 이름·기도제목·가정ID는 넣지 않고, 기기ID는 기기마다 무작위 값이다
+  usage: ['사용기록', [['at', '날짜시각'], ['device', '기기ID'], ['deptId', '부서ID'], ['event', '사건'], ['data', '덧붙임']]]
 };
 const SCOPES = ['room', 'leader', 'family'];
 // 부서 탭이 비어 있을 때 만드는 첫 부서. 단위: 가정(부부·자녀) 또는 개인(한 사람)
@@ -39,7 +41,7 @@ const FIRST_DEPT = { id: 'D1', name: '청장년부', group: '사랑방', unit: '
 // ── 요청 받기 ─────────────────────────────────────────────
 
 // 서버 코드를 고칠 때마다 바꾼다. 웹 앱 주소를 열면 보여서, 새 버전으로 배포됐는지 확인할 수 있다
-const VERSION = '2026-10-20 우리 가정 정보 고치기';
+const VERSION = '2026-10-18 사용기록';
 function doGet() {
   return ContentService.createTextOutput('코이데 서버가 켜져 있어요. (버전: ' + VERSION + ')');
 }
@@ -65,9 +67,11 @@ const ACTIONS = {
   // 앱을 열 때 한 번에: 나 + (연결됐으면 이번 달, 연결 전이면 부서와 사랑방 목록). 서버와 두 번 이야기하던 것을 한 번으로
   start: body => {
     const w = who_(body), me = meInfo_(w);
-    if (!w.link) return { me, depts: deptsWithRooms_() };
-    if (w.link.status === '연결') return { me, month: monthView_(memberFrom_(w)) };
-    return { me };
+    // 기기에 모아 둔 사용기록을 앱을 열 때 함께 받는다(요청을 따로 보내지 않게)
+    const usage = body.events ? usage_(w, body) : undefined;
+    if (!w.link) return { me, depts: deptsWithRooms_(), usage };
+    if (w.link.status === '연결') return { me, month: monthView_(memberFrom_(w)), usage };
+    return { me, usage };
   },
   rooms: body => { who_(body); return roomsWithFamilies_(); },
   requestLink: requestLink_,
@@ -87,7 +91,8 @@ const ACTIONS = {
   unpost: body => setPosted_(body, false),
   importRoom: importRoom_,
   unlink: unlink_,
-  logout: logout_
+  logout: logout_,
+  usage: body => usage_(who_(body), body)
 };
 
 // ── 로그인 ───────────────────────────────────────────────
@@ -481,6 +486,40 @@ function pray_(body) {
   if (n >= 3) return { prayed: mine.length, today: n, capped: true };
   append_('prayers', { at: new Date(), by: c.familyId, familyId: body.familyId });
   return { prayed: mine.length + 1, today: n + 1, capped: n + 1 >= 3 };
+}
+
+// ── 사용기록 ─────────────────────────────────────────────
+// 화면이 기기에 모아 둔 사건을 한꺼번에 받는다. 정해 둔 사건 이름만, 덧붙임은 정해 둔 칸의 짧은 값(숫자·참거짓·짧은 낱말)만 받아서
+//  기도제목이나 이름 같은 글이 섞여 들어오지 못하게 한다. 저장이 몰리면 이번에는 받지 않고(kept: false) 화면이 다음에 다시 보낸다
+const USAGE_EVENTS_ = {
+  '열기': ['role', 'width', 'style', 'group', 'big', 'mode', 'app'],
+  '첫접속 단계': ['step', 'done'],
+  '기도제목 저장': ['items', 'split'],
+  '기도하기 시작': ['kinds', 'cards', 'secs', 'music'],
+  '기도하기 마침': ['kinds', 'cards', 'seen', 'mins', 'music', 'early'],
+  '모임 모드 시작': ['cards'],
+  '모임 모드 마침': ['cards', 'seen'],
+  '화면 보기': ['screen'],
+  '내려받기': ['range']
+};
+function usage_(w, body) {
+  const list = Array.isArray(body.events) ? body.events.slice(0, 200) : [];
+  const device = /^[a-z0-9]{8,32}$/.test(String(body.device || '')) ? String(body.device) : '';
+  if (!list.length || !device) return { kept: true, n: 0 };
+  let deptId = '';
+  if (w.link && w.link.status === '연결') { try { deptId = memberFrom_(w).deptId || ''; } catch (e) { /* 편성이 없으면 비워 둔다 */ } }
+  const clean = v => typeof v === 'number' && isFinite(v) ? Math.round(v * 10) / 10 : typeof v === 'boolean' ? v : /^[\w가-힣·\- ]{1,20}$/.test(String(v)) ? String(v) : null;
+  const rows = list.map(ev => {
+    const keys = USAGE_EVENTS_[ev && ev.e];
+    const at = new Date(ev && ev.at);
+    if (!keys || isNaN(at)) return null;
+    const d = {}; keys.forEach(k => { const v = ev.d && ev.d[k] !== undefined ? clean(ev.d[k]) : null; if (v !== null) d[k] = v; });
+    return { at, device, deptId, event: ev.e, data: JSON.stringify(d) };
+  }).filter(Boolean);
+  const lock = LockService.getScriptLock();
+  if (!lock.tryLock(3000)) return { kept: false, n: 0 };
+  try { appendMany_('usage', rows); } finally { lock.releaseLock(); }
+  return { kept: true, n: rows.length };
 }
 
 function setMonthly_(familyId, m, status) {
