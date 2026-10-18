@@ -497,6 +497,19 @@ body.pop-open { overflow: hidden; }
 .a2hs .row { justify-content: space-between; align-items: center; }
 .a2hs p { margin: 0; word-break: keep-all; }
 .a2hs-steps { margin: 0; padding-left: 1.3em; display: flex; flex-direction: column; gap: .25em; font-size: .92em; }
+/* 시작 화면: 앱을 켤 때 매듭이 지어지고, 첫 화면이 준비되면 사라진다. 서버가 느리면 기다리는 이유를 여기 적는다 */
+.splash { position: fixed; inset: 0; z-index: 60; background: var(--page); display: flex; flex-direction: column; align-items: center; justify-content: center; gap: .5em; padding: 24px; text-align: center; transition: opacity .25s ease-out; }
+.splash.out { opacity: 0; pointer-events: none; }
+.splash-mark { width: 88px; height: 88px; border-radius: 50%; background: var(--accent); color: var(--on-accent); display: grid; place-items: center; margin-bottom: .4em; }
+.splash-mark svg { width: 54px; height: 54px; overflow: visible; fill: none; stroke: currentColor; stroke-width: 1.5; stroke-linecap: round; stroke-linejoin: round; }
+/* 선이 그려지기 전에는 숨긴다: 둥근 선 끝이 점으로 먼저 보이지 않게 */
+.splash-mark path { stroke-dasharray: 1; animation: splash-tie .45s cubic-bezier(.4, 0, .2, 1) .1s both; }
+.splash-mark path + path { animation-duration: .3s; animation-delay: .5s; }
+@keyframes splash-tie { 0% { stroke-dashoffset: 1; opacity: 0; } 1% { opacity: 1; } 100% { stroke-dashoffset: 0; opacity: 1; } }
+.splash-name { margin: 0; font-family: var(--f-display); font-size: 1.6em; font-weight: 700; color: var(--ink); }
+.splash-sub { margin: 0; color: var(--ink-2); font-size: .9em; }
+.splash .loading { padding: 0; min-height: 1.5em; font-size: .85em; max-width: 22em; word-break: keep-all; }
+@media (prefers-reduced-motion: reduce) { .splash { transition: none; } .splash-mark path { animation: none; } }
 </style>
 <script>
 /* 화면 모드·색 테마·큰 글씨는 이 기기에만 기억한다. 화면이 그려지기 전에 먼저 입힌다 */
@@ -507,6 +520,12 @@ try { const p = JSON.parse(localStorage.getItem('koide-pref') || '{}'), d = docu
 </script>
 </head>
 <body>
+<div id="splash" class="splash" aria-hidden="true">
+  <span class="splash-mark"><svg viewBox="0 0 16 12"><path pathLength="1" d="M.5 8.5h3.8c1.2 0 1.7-1.5 1.7-2.8C6 3.7 7.3 2.5 9 2.5s3 1.2 3 3.1-1.8 3.1-4 3.3"/><path pathLength="1" d="M5.6 10.1C7.6 9 9.6 8.5 15.5 8.5"/></svg></span>
+  <p class="splash-name">코이데</p>
+  <p class="splash-sub">함께 기도하는 공동체</p>
+  <p class="loading"></p>
+</div>
 <div id="demo" class="demo" hidden></div>
 <header class="topbar" id="topbar"></header>
 <main id="main" class="wrap"><p class="loading">불러오는 중…</p></main>
@@ -1520,6 +1539,7 @@ try { const p = JSON.parse(localStorage.getItem('koide-pref') || '{}'), d = docu
     // 기도했어요를 눌러 다시 그려도 같은 가정이면 읽던 자리를 지킨다
     const tb = $('.today-body'), tbKeep = tb && { id: tb.dataset.id, top: tb.scrollTop };
     $('#main').innerHTML = VIEWS[S.view]();
+    if (S.view !== 'loading') hideSplash();
     if (app) writeCache();
     $('#tabs').hidden = !app;
     $('#topbar').innerHTML = topHtml();
@@ -1569,6 +1589,12 @@ try { const p = JSON.parse(localStorage.getItem('koide-pref') || '{}'), d = docu
   }
   let sizedW = innerWidth;
   addEventListener('resize', () => { if (innerWidth === sizedW) return; sizedW = innerWidth; const tb = $('.today-body'); if (tb) { sizeToday(tb); tb.dispatchEvent(new Event('scroll')); } });
+  // 시작 화면은 매듭이 다 지어질 때까지(움직임 줄이기면 잠깐)만 두고, 첫 화면이 준비되면 바로 걷는다. 일부러 기다리게 하지 않는다
+  function hideSplash() {
+    const s = $('#splash'); if (!s || s.classList.contains('out')) return;
+    const calm = matchMedia('(prefers-reduced-motion: reduce)').matches;
+    setTimeout(() => { s.classList.add('out'); setTimeout(() => s.remove(), calm ? 0 : 300); }, Math.max(0, (calm ? 300 : 900) - performance.now()));
+  }
   function paint() { const a = document.activeElement; if (a && $('#main').contains(a) && a.matches('textarea, input')) return; render(); }
   function save(call, done) {
     waiting++; setSaved('저장 중…');
