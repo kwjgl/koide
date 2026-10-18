@@ -124,8 +124,14 @@ textarea.field { resize: vertical; line-height: 1.55; }
     if (DEMO) res = window.koideDemo.call(body);
     else {
       // 본문을 글자로 보내면 브라우저가 미리 묻는 요청(CORS preflight) 없이 바로 보낸다. Apps Script는 그 요청을 받지 못한다
-      const r = await fetch(CFG.API_URL, { method: 'POST', body: JSON.stringify(body) });
-      res = await r.json();
+      // 한동안 안 쓰면 서버가 깨어나는 데 10~20초 걸린다. 4초가 넘으면 기다리는 이유를 알려 주고, 60초가 넘으면 그만 기다린다
+      const slow = setTimeout(() => { const l = $('.loading'); if (l) l.textContent = '서버를 깨우는 중이에요. 처음에는 20초쯤 걸릴 수 있어요…'; }, 4000);
+      const ctl = new AbortController(), stop = setTimeout(() => ctl.abort(), 60000);
+      try {
+        const r = await fetch(CFG.API_URL, { method: 'POST', body: JSON.stringify(body), signal: ctl.signal });
+        res = await r.json();
+      } catch (e) { throw { code: 'net', message: '서버가 답하지 않아요. 잠시 뒤 다시 해 주세요.' }; }
+      finally { clearTimeout(slow); clearTimeout(stop); }
     }
     if (!res.ok) {
       if (res.code === 'login') { setToken(null); S.view = 'login'; render(); }
@@ -369,7 +375,8 @@ textarea.field { resize: vertical; line-height: 1.55; }
     }
   });
 
-  boot().catch(oops);
+  // 시작하다 막히면 "불러오는 중"에 멈춰 있지 않고 다시 해 보기 버튼을 보여 준다
+  boot().catch(e => { S.view = 'error'; S.err = e; render(); });
 })();
 </script>
 </body>
