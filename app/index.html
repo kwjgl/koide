@@ -526,6 +526,7 @@ try { const p = JSON.parse(localStorage.getItem('koide-pref') || '{}'), d = docu
   <p class="splash-sub">함께 기도하는 공동체</p>
   <p class="loading"></p>
 </div>
+<script>window.SPLASH_AT = performance.now(); /* 시작 화면이 실제로 보이기 시작한 때. 머무는 시간은 여기서부터 잰다 */</script>
 <div id="demo" class="demo" hidden></div>
 <header class="topbar" id="topbar"></header>
 <main id="main" class="wrap"><p class="loading">불러오는 중…</p></main>
@@ -1589,11 +1590,12 @@ try { const p = JSON.parse(localStorage.getItem('koide-pref') || '{}'), d = docu
   }
   let sizedW = innerWidth;
   addEventListener('resize', () => { if (innerWidth === sizedW) return; sizedW = innerWidth; const tb = $('.today-body'); if (tb) { sizeToday(tb); tb.dispatchEvent(new Event('scroll')); } });
-  // 시작 화면은 매듭이 다 지어질 때까지(움직임 줄이기면 잠깐)만 두고, 첫 화면이 준비되면 바로 걷는다. 일부러 기다리게 하지 않는다
+  // 시작 화면은 보이기 시작한 때부터 매듭이 다 지어지고(약 0.8초) 이름을 알아볼 만큼(합쳐 1.3초, 움직임 줄이기면 0.6초) 둔다.
+  //  앱을 누른 때부터 재면 아이폰이 앱을 띄우는 시간에 다 써 버려서 시작 화면이 거의 보이지 않았다
   function hideSplash() {
     const s = $('#splash'); if (!s || s.classList.contains('out')) return;
-    const calm = matchMedia('(prefers-reduced-motion: reduce)').matches;
-    setTimeout(() => { s.classList.add('out'); setTimeout(() => s.remove(), calm ? 0 : 300); }, Math.max(0, (calm ? 300 : 900) - performance.now()));
+    const calm = matchMedia('(prefers-reduced-motion: reduce)').matches, shown = performance.now() - (window.SPLASH_AT || 0);
+    setTimeout(() => { s.classList.add('out'); setTimeout(() => s.remove(), calm ? 0 : 300); }, Math.max(0, (calm ? 600 : 1300) - shown));
   }
   function paint() { const a = document.activeElement; if (a && $('#main').contains(a) && a.matches('textarea, input')) return; render(); }
   function save(call, done) {
