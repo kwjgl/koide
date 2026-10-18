@@ -48,7 +48,7 @@ const FIRST_DEPT = { id: 'D1', name: '청장년부', group: '사랑방', unit: '
 // ── 요청 받기 ─────────────────────────────────────────────
 
 // 서버 코드를 고칠 때마다 바꾼다. 웹 앱 주소를 열면 보여서, 새 버전으로 배포됐는지 확인할 수 있다
-const VERSION = '2026-10-18 목사님 홈';
+const VERSION = '2026-10-19 돌봄 신호';
 function doGet() {
   return ContentService.createTextOutput('코이데 서버가 켜져 있어요. (버전: ' + VERSION + ')');
 }
@@ -264,7 +264,9 @@ function pendingView_(c) {
   // 카톡방에 올린 날: 가정마다 마지막으로 올린 날(yyyy-MM-dd)
   const posts = {};
   read_('posts').filter(p => p.roomId === c.roomId).forEach(p => { if (!posts[p.familyId] || p.date > posts[p.familyId]) posts[p.familyId] = p.date; });
-  return { requests, families, posts, today: today_(), staff: c.admin ? staffList_(c.deptId) : undefined };
+  // 돌봄 신호: 리더·코리더가 우리 사랑방 것을 본다
+  const lead = c.role === '리더' || c.role === '코리더';
+  return { requests, families, posts, today: today_(), staff: c.admin ? staffList_(c.deptId) : undefined, signals: lead ? careSignals_([c.roomId], month_()) : undefined };
 }
 
 // 기존 시트 가져오기(관리자): 사랑방 탭 하나를 화면에서 나눠 보낸 것을 이번 달 기도제목으로 넣는다.
@@ -409,6 +411,9 @@ function historyView_(c, want) {
 // 교역자의 이번 달: 사랑방 대신 우리 가정 하나와 섬기는 분들(목사님 홈은 다음 단계)
 function staffMonthView_(c) {
   const m = month_();
+  // 부서의 모든 사랑방을 이번 달로 이월해 둔다(사랑방 현황과 돌봄 신호가 이번 달 기준이 되게)
+  const roomIds = roomIdsOfDept_(c.deptId);
+  roomIds.forEach(id => ensureMonth_(id, m));
   ensureFamilies_([c.familyId], m, () => '');
   const all = read_('items').filter(i => i.month === m && i.familyId === c.familyId);
   const st = read_('monthly').find(x => x.month === m && x.familyId === c.familyId);
@@ -417,7 +422,7 @@ function staffMonthView_(c) {
     items: all.filter(i => i.state !== '마침').sort((a, b) => a.order - b.order).map(i => Object.assign(show(i), { same: yes_(i.same), isNew: !i.prevId && !yes_(i.same), editedBy: i.editedBy, editedAt: fmtDay_(i.editedAt) })),
     ended: all.filter(i => i.state === '마침').map(show) };
   return { month: m, dept: c.dept, room: { id: '', name: c.dept.name }, me: { person: c.person, familyId: c.familyId, role: c.role, admin: c.admin, staff: true, label: c.label },
-    families: [own], received: { n: 0, of: 0 }, serve: serveView_(c.deptId), rooms: staffRooms_(c, m) };
+    families: [own], received: { n: 0, of: 0 }, serve: serveView_(c.deptId), rooms: staffRooms_(c, m), signals: careSignals_(roomIds, m) };
 }
 
 // 목사님 홈: 부서의 사랑방마다 이번 달 손봄·확인 수, 새 기도제목 수, 리더, 이번 주에 내가 그 사랑방을 위해 기도했는지(청장년부 기도의 끈)
@@ -435,6 +440,31 @@ function staffRooms_(c, m) {
       fresh: items.filter(i => ids.indexOf(i.familyId) >= 0 && !i.prevId && !yes_(i.same)).length,
       week: week.some(p => ids.indexOf(p.familyId) >= 0) };
   });
+}
+
+// 돌봄 신호(설계서 10장): 오래 그대로인 가정(3달 넘게 이어서 지난달 그대로)과 오래 이어진 기도제목(3개월 넘게 이어 옴).
+//  심방·연락 참고용이라 리더(우리 사랑방)와 목사님·장로님(부서 전체)만 본다. 우리 가정만 항목은 넣지 않는다. 오래된 순
+function careSignals_(roomIds, m) {
+  const fams = read_('families'), rooms = read_('rooms'), items = read_('items');
+  const byId = {}, has = {}, status = {};
+  items.forEach(i => { byId[i.id] = i; has[i.familyId + '|' + i.month] = true; });
+  read_('monthly').forEach(x => { status[x.familyId + '|' + x.month] = x.status; });
+  const out = [];
+  read_('roster').filter(r => String(r.year) === year_() && roomIds.indexOf(r.roomId) >= 0).forEach(r => {
+    const f = fams.find(x => x.id === r.familyId);
+    if (!f || f.status !== '활동') return;
+    const at = { roomId: r.roomId, room: (rooms.find(x => x.id === r.roomId) || {}).name || '', familyId: f.id, name: f.name };
+    // 이번 달부터 거슬러 기도제목이 있고 '지난달 그대로'(상태가 없으면 그대로로 본다)인 달을 센다
+    let n = 0;
+    for (let mm = m; has[f.id + '|' + mm] && (status[f.id + '|' + mm] || 'same') === 'same'; mm = prevMonth_(mm)) n++;
+    if (n >= 3) out.push(Object.assign({ type: 'same', n, note: '' }, at));
+    items.filter(i => i.familyId === f.id && i.month === m && i.state !== '마침' && i.scope !== 'family').forEach(i => {
+      let k = 1;
+      for (let p = byId[i.prevId]; p && k < 600; p = byId[p.prevId]) k++;
+      if (k >= 3) out.push(Object.assign({ type: 'long', n: k, note: i.target + ' · ' + i.text }, at));
+    });
+  });
+  return out.sort((a, b) => b.n - a.n);
 }
 
 // 목사님·장로님이 고른 사랑방의 이번 달: 리더·목사님 항목까지 보이고, 기도했어요 횟수는 본인 것
@@ -656,9 +686,20 @@ function sampleData() {
   it('F1', 'R1', '우리 가정', '이사할 집을 잘 만나도록', 'room', 1, '김도윤');
   it('F1', 'R1', '하준', '어린이집 새 반에 잘 적응하도록', 'room', 2, '이수아');
   it('F1', 'R1', '아내', '복직 전까지 몸과 마음이 회복되도록', 'leader', 3, '이수아');
-  it('F2', 'R1', '우리 가정', '매일 10분이라도 가족이 함께 말씀 읽기', 'room', 1, '박민재');
+  // 돌봄 신호 예시: n달 전부터 지난달까지 같은 기도제목을 이전 항목ID로 잇는다. same이면 이어 온 달은 '지난달 그대로'
+  const chain = (fid, roomId, target, text, scope, order, by, n, same) => {
+    const ms = [prev]; while (ms.length < n) ms.unshift(prevMonth_(ms[0]));
+    let prevId = '';
+    ms.forEach(mm => {
+      const id = newId_();
+      append_('items', { id, month: mm, familyId: fid, roomId, target, text, scope, state: '이어짐', prevId, same: prevId ? '예' : '아니오', order, editedAt: new Date(), editedBy: by });
+      append_('monthly', { month: mm, familyId: fid, status: prevId && same ? 'same' : 'edited' });
+      prevId = id;
+    });
+  };
+  chain('F2', 'R1', '우리 가정', '매일 10분이라도 가족이 함께 말씀 읽기', 'room', 1, '박민재', 2, false);
   it('F3', 'R1', '아내', '임신 기간 건강하게 지내도록', 'room', 1, '한지민');
-  it('F4', 'R1', '부모님', '부모님이 신앙을 갖도록', 'room', 1, '오세훈');
+  chain('F4', 'R1', '부모님', '부모님이 신앙을 갖도록', 'room', 1, '오세훈', 3, true);
   it('F6', 'R2', '우리 가정', '새 직장에 잘 적응하도록', 'room', 1, '임재현');
   it('F8', 'R3', '나', '졸업 논문을 잘 마무리하도록', 'room', 1, '윤하람');
   it('F8', 'R3', '가족', '할머니 수술이 잘 끝나도록', 'leader', 2, '윤하람');
