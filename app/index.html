@@ -815,9 +815,12 @@ h3 { font-size: 1.02em; font-weight: 600; margin: 0; }
   //  우리 가정: 달마다 우리 가정 기도제목 전부. 과거 기록은 그때 함께한 사람에게만 보인다(서버가 고른다)
   const monthLabel = (m, now) => (m.slice(0, 4) !== now.slice(0, 4) ? m.slice(0, 4) + '년 ' : '') + Number(m.slice(5)) + '월';
   // 지난 기록도 이번 달 카드와 같은 모양(대상별로 묶고 긴 글은 3줄까지). 지난 항목엔 id가 없어서 '더 보기'용으로 붙여 준다
+  //  이번 달처럼 4개까지만 보이고 나머지는 '더 보기'로 펼친다
   function histItems(its, key) {
-    return its.length ? itemList(its.map((i, k) => Object.assign({}, i, { id: 'h-' + key + '-' + k })), true)
-      : '<p class="hint">이 달에는 올린 기도제목이 없어요.</p>';
+    if (!its.length) return '<p class="hint">이 달에는 올린 기도제목이 없어요.</p>';
+    const id = 'h-' + key, open = S.openFams.has(id), more = its.length - 4;
+    return itemList((open ? its : its.slice(0, 4)).map((i, k) => Object.assign({}, i, { id: id + '-' + k })), true)
+      + (more > 0 ? `<button class="link" data-act="famtoggle" data-id="${esc(id)}" aria-expanded="${open}">${open ? '접기' : '더 보기 · ' + more + '개'}</button>` : '');
   }
   function historyView() {
     const H = S.hist, tab = S.histTab || 'room';
