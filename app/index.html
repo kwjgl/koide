@@ -1,0 +1,376 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>코이데</title>
+<meta name="theme-color" content="#2B6A62">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 24 24%22%3E%3Ccircle cx=%2212%22 cy=%2212%22 r=%2212%22 fill=%22%232B6A62%22/%3E%3C/svg%3E">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Gowun+Batang:wght@700&family=IBM+Plex+Sans+KR:wght@400;500;600&display=swap">
+<style>
+/* 시안(prototype/index.html)의 색과 글꼴을 그대로 쓴다. 실제 앱은 핵심 흐름만: 로그인 → 연결 → 이번 달 / 내 기도 / 더보기 */
+:root {
+  --page: #F3F5F2; --surface: #FFFFFF; --surface-2: #EEF2EF;
+  --ink: #1B2523; --ink-2: #5B6965; --line: #DDE4E0; --line-strong: #B9C4BF;
+  --accent: #2B6A62; --accent-soft: #DCEBE7; --on-accent: #FFFFFF;
+  --leader: #62519E; --leader-soft: #ECE7F7; --private: #E8ECEA;
+  --warn: #9A5A14; --warn-soft: #F5E8D6;
+  --f-display: 'Gowun Batang', 'AppleMyungjo', 'Batang', serif;
+  --f-body: 'IBM Plex Sans KR', 'Apple SD Gothic Neo', 'Malgun Gothic', sans-serif;
+}
+@media (prefers-color-scheme: dark) { :root {
+  --page: #141B19; --surface: #1C2522; --surface-2: #232D2A;
+  --ink: #E5ECE9; --ink-2: #9CAAA5; --line: #2D3935; --line-strong: #4A5853;
+  --accent: #7CC2B7; --accent-soft: #1E3934; --on-accent: #0F1A18;
+  --leader: #B6A8EA; --leader-soft: #2A2442; --private: #252E2B;
+  --warn: #E2A563; --warn-soft: #3A2C1B; color-scheme: dark; } }
+* { box-sizing: border-box; }
+html, body { margin: 0; }
+body { background: var(--page); color: var(--ink); font-family: var(--f-body); font-size: 16px; line-height: 1.55; -webkit-tap-highlight-color: transparent; }
+button, input, textarea, select { font: inherit; color: inherit; }
+.wrap { max-width: 640px; margin: 0 auto; padding: 0 16px; }
+.top { display: flex; justify-content: space-between; align-items: center; padding: 12px 16px; max-width: 640px; margin: 0 auto; }
+.brand { display: flex; align-items: center; gap: .5em; font-weight: 600; }
+.mark { width: 28px; height: 28px; border-radius: 50%; background: var(--accent); color: var(--on-accent); display: grid; place-items: center; }
+.mark svg { width: 17px; height: 17px; }
+.badge { font-size: .8em; background: var(--surface-2); border: 1px solid var(--line); border-radius: 999px; padding: .25em .75em; color: var(--ink-2); }
+main { padding-bottom: 96px; }
+h1 { font-family: var(--f-display); font-size: 1.65em; line-height: 1.3; margin: .3em 0 .2em; }
+h2 { font-size: 1.05em; margin: 0; }
+.eyebrow { font-size: .8em; color: var(--ink-2); margin: 1em 0 0; }
+.hint { font-size: .82em; color: var(--ink-2); margin: .4em 0 0; }
+.card { background: var(--surface); border: 1px solid var(--line); border-radius: 16px; padding: 16px; margin: 12px 0; }
+.row { display: flex; justify-content: space-between; align-items: center; gap: .6em; }
+.btn { display: inline-flex; align-items: center; justify-content: center; gap: .4em; min-height: 44px; padding: 0 1.1em; border-radius: 12px; border: 1px solid var(--accent); background: var(--accent); color: var(--on-accent); font-weight: 600; cursor: pointer; }
+.btn.ghost { background: transparent; color: var(--accent); }
+.btn.small { min-height: 36px; padding: 0 .8em; font-size: .88em; border-radius: 10px; }
+.btn.wide { width: 100%; }
+.btn:disabled { opacity: .5; cursor: default; }
+.link { background: none; border: 0; padding: .3em .2em; color: var(--accent); font-weight: 600; font-size: .88em; cursor: pointer; }
+.link.danger { color: var(--warn); }
+.kakao { display: flex; align-items: center; justify-content: center; gap: .5em; width: 100%; min-height: 52px; border: 0; border-radius: 12px; background: #FEE500; color: rgba(0,0,0,.85); font-weight: 600; cursor: pointer; }
+.choices { display: flex; flex-direction: column; gap: 8px; margin: 12px 0; }
+.choice { text-align: left; min-height: 52px; padding: 0 16px; border-radius: 14px; border: 1px solid var(--line); background: var(--surface); cursor: pointer; }
+.choice.new { border-style: dashed; color: var(--ink-2); }
+.steps { display: flex; gap: 6px; margin-top: 16px; }
+.steps span { flex: 1; height: 4px; border-radius: 4px; background: var(--line); }
+.steps span.on { background: var(--accent); }
+.consent { list-style: none; padding: 0; margin: 12px 0; display: flex; flex-direction: column; gap: 8px; }
+.consent li { display: grid; grid-template-columns: 4.6em 1fr; gap: .6em; background: var(--surface); border: 1px solid var(--line); border-radius: 12px; padding: .7em .85em; font-size: .92em; }
+.consent b { color: var(--accent); font-size: .9em; }
+label.f { display: block; font-size: .85em; font-weight: 600; margin: 12px 0 4px; }
+.field { width: 100%; min-height: 44px; padding: .5em .75em; border-radius: 10px; border: 1px solid var(--line-strong); background: var(--surface); }
+textarea.field { resize: vertical; line-height: 1.55; }
+.check { display: flex; gap: .5em; align-items: center; margin: 12px 0; font-size: .92em; }
+.items { list-style: none; padding: 0; margin: 8px 0 0; display: flex; flex-direction: column; gap: 8px; }
+.items li { display: grid; grid-template-columns: auto 1fr; gap: .6em; align-items: start; }
+.items li.s-family { background: var(--private); border-radius: 10px; padding: .5em; }
+.items li.s-leader { border-left: 3px solid var(--leader); padding-left: .5em; }
+.tgt { font-size: .75em; font-weight: 600; background: var(--surface-2); border-radius: 999px; padding: .2em .6em; white-space: nowrap; }
+.scope-note { display: block; font-size: .72em; color: var(--ink-2); margin-top: .15em; }
+.pray-btn { min-height: 36px; border-radius: 999px; border: 0; background: var(--accent-soft); color: var(--accent); font-weight: 600; padding: 0 .9em; cursor: pointer; font-size: .88em; }
+.pray-btn.on { background: var(--accent); color: var(--on-accent); }
+.chip { font-size: .75em; border-radius: 999px; padding: .2em .65em; background: var(--surface-2); color: var(--ink-2); white-space: nowrap; }
+.chip.edited, .chip.confirmed { background: var(--accent-soft); color: var(--accent); }
+.edit { background: var(--surface); border: 1px solid var(--line); border-radius: 14px; padding: 12px; margin: 10px 0; }
+.edit.s-leader { border-left: 4px solid var(--leader); }
+.edit.s-family { background: var(--private); }
+.edit-top { display: flex; gap: .5em; align-items: center; margin-bottom: .5em; }
+.edit-top select { min-height: 36px; border-radius: 999px; border: 1px solid var(--line); background: var(--surface-2); padding: 0 .7em; font-size: .85em; }
+.scope { min-height: 36px; border-radius: 999px; border: 1px solid var(--line); background: var(--surface); padding: 0 .8em; font-size: .82em; cursor: pointer; margin-left: auto; }
+.scope.s-leader { background: var(--leader-soft); color: var(--leader); border-color: transparent; }
+.scope.s-family { background: var(--private); }
+.edit-foot { display: flex; justify-content: space-between; align-items: center; margin-top: .4em; font-size: .78em; color: var(--ink-2); }
+.wait { display: flex; align-items: center; gap: .6em; background: var(--accent-soft); border-radius: 12px; padding: .9em 1em; font-weight: 600; margin: 12px 0; }
+.tabs { position: fixed; left: 0; right: 0; bottom: 0; display: grid; grid-template-columns: repeat(3, 1fr); background: var(--surface); border-top: 1px solid var(--line); padding-bottom: env(safe-area-inset-bottom); z-index: 10; }
+.tabs button { min-height: 58px; border: 0; background: none; color: var(--ink-2); font-size: .8em; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px; cursor: pointer; }
+.tabs button.on { color: var(--accent); font-weight: 600; }
+.tabs svg { width: 22px; height: 22px; }
+.req { background: var(--accent-soft); border-radius: 12px; padding: 12px; margin: 8px 0; }
+.req small { display: block; color: var(--ink-2); }
+.toast { position: fixed; left: 50%; bottom: 90px; transform: translateX(-50%); background: var(--ink); color: var(--page); padding: .6em 1em; border-radius: 10px; font-size: .88em; z-index: 20; max-width: calc(100% - 32px); }
+.loading { text-align: center; color: var(--ink-2); padding: 48px 0; }
+.demo { background: var(--warn-soft); color: var(--warn); font-size: .8em; padding: .5em 16px; text-align: center; }
+.demo button { background: none; border: 0; color: inherit; text-decoration: underline; cursor: pointer; font-size: inherit; }
+.saved { font-size: .78em; color: var(--ink-2); }
+</style>
+</head>
+<body>
+<div id="demo" class="demo" hidden></div>
+<header class="top"><span class="brand"><span class="mark" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M2 14h5c2 0 2-6 5-6s3 6 0 6-3-6 0-6"/><path d="M15 14h7"/></svg></span>코이데</span><span id="badge"></span></header>
+<main id="main" class="wrap"><p class="loading">불러오는 중…</p></main>
+<nav id="tabs" class="tabs" hidden></nav>
+<div id="toast" class="toast" role="status" hidden></div>
+<script src="config.js"></script>
+<script>
+(function () {
+  const CFG = window.KOIDE_CONFIG || {};
+  const DEMO = !CFG.API_URL;
+  const $ = s => document.querySelector(s);
+  const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+  const TOKEN = 'koide-token';
+  const getToken = () => { try { return localStorage.getItem(TOKEN); } catch (e) { return null; } };
+  const setToken = t => { try { t ? localStorage.setItem(TOKEN, t) : localStorage.removeItem(TOKEN); } catch (e) { /* 무시 */ } };
+
+  // 화면 상태
+  const S = { view: 'loading', me: null, rooms: null, pick: {}, month: null, tab: 'home', pending: null, busy: false };
+
+  // ── 서버 부르기: 데모는 브라우저 안의 서버 코드, 실제는 Apps Script 웹 앱 ──
+  async function api(action, data) {
+    const body = Object.assign({ action, token: getToken() }, data || {});
+    let res;
+    if (DEMO) res = window.koideDemo.call(body);
+    else {
+      // 본문을 글자로 보내면 브라우저가 미리 묻는 요청(CORS preflight) 없이 바로 보낸다. Apps Script는 그 요청을 받지 못한다
+      const r = await fetch(CFG.API_URL, { method: 'POST', body: JSON.stringify(body) });
+      res = await r.json();
+    }
+    if (!res.ok) {
+      if (res.code === 'login') { setToken(null); S.view = 'login'; render(); }
+      throw res;
+    }
+    return res.data;
+  }
+  function toast(msg) { const t = $('#toast'); t.textContent = msg; t.hidden = false; clearTimeout(toast.t); toast.t = setTimeout(() => { t.hidden = true; }, 2600); }
+  const oops = e => toast((e && e.message) || '잠시 문제가 생겼어요. 다시 해 주세요.');
+
+  // ── 시작: 카카오에서 돌아왔으면(code) 로그인부터, 아니면 내 상태를 확인 ──
+  async function boot() {
+    if (DEMO) { await loadDemo(); $('#demo').hidden = false; $('#demo').innerHTML = '데모 모드 · 이 브라우저에만 저장돼요 <button data-act="demoreset">데모 데이터 지우기</button>'; }
+    const q = new URLSearchParams(location.search);
+    if (q.get('code')) {
+      try { const r = await api('login', { code: q.get('code'), redirectUri: CFG.REDIRECT_URI || '' }); setToken(r.token); }
+      catch (e) { oops(e); }
+      history.replaceState(null, '', location.pathname);
+    }
+    if (q.get('error')) { toast('카카오 로그인을 취소했어요.'); history.replaceState(null, '', location.pathname); }
+    if (!getToken()) { S.view = 'login'; return render(); }
+    await refreshMe();
+  }
+  function loadDemo() {
+    return new Promise((ok, bad) => {
+      const a = document.createElement('script'); a.src = 'demo/gas-shim.js';
+      a.onload = () => { const b = document.createElement('script'); b.src = CFG.DEMO_CODE || '../apps-script/Code.js'; b.onload = ok; b.onerror = bad; document.head.appendChild(b); };
+      a.onerror = bad; document.head.appendChild(a);
+    });
+  }
+  async function refreshMe() {
+    try {
+      S.me = await api('me');
+      if (!S.me.link) { S.view = 'room'; S.pick = {}; S.rooms = await api('rooms'); }
+      else if (S.me.link.status === '요청') S.view = 'wait';
+      else { S.view = 'app'; await loadMonth(); }
+    } catch (e) { if (e.code !== 'login') { S.view = 'error'; S.err = e; } }
+    render();
+  }
+  async function loadMonth() { S.month = await api('month'); }
+
+  async function kakaoLogin(who) {
+    // 데모: 카카오 화면 대신 고른 사람으로 바로 로그인(실제로는 카카오에서 돌아올 때 주소에 code가 붙는다)
+    if (DEMO) {
+      try { const r = await api('login', { code: 'demo:' + who, redirectUri: '' }); setToken(r.token); } catch (e) { return oops(e); }
+      S.view = 'loading'; render(); return refreshMe();
+    }
+    location.href = 'https://kauth.kakao.com/oauth/authorize?response_type=code&client_id=' + encodeURIComponent(CFG.KAKAO_REST_KEY) + '&redirect_uri=' + encodeURIComponent(CFG.REDIRECT_URI);
+  }
+
+  // ── 화면 ──
+  const SCOPE = { room: '사랑방 공개', leader: '리더·목사님', family: '우리 가정만' };
+  const NEXT_SCOPE = { room: 'leader', leader: 'family', family: 'room' };
+  const callName = n => { const g = String(n).slice(1), c = g.charCodeAt(g.length - 1) - 0xAC00; return g + (c >= 0 && c % 28 ? '이' : '가'); };
+  const whoDid = by => !by || (S.me && by === S.me.person) ? '내가' : callName(by);
+  const steps = n => `<div class="steps" aria-hidden="true">${[1, 2, 3, 4].map(k => `<span class="${k <= n ? 'on' : ''}"></span>`).join('')}</div>`;
+  const ICON = {
+    bubble: '<svg viewBox="0 0 18 18" width="18" height="18" aria-hidden="true"><path fill="currentColor" d="M9 2.2c-4.1 0-7.4 2.6-7.4 5.8 0 2.1 1.4 3.9 3.5 4.9l-.8 2.9c-.1.3.2.5.4.3l3.4-2.3h.9c4.1 0 7.4-2.6 7.4-5.8S13.1 2.2 9 2.2z"/></svg>',
+    home: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M4 11l8-6 8 6v8a1 1 0 0 1-1 1h-4v-6H9v6H5a1 1 0 0 1-1-1z"/></svg>',
+    pen: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M4 20h4L19 9l-4-4L4 16z"/></svg>',
+    more: '<svg viewBox="0 0 24 24" fill="currentColor"><circle cx="5" cy="12" r="1.8"/><circle cx="12" cy="12" r="1.8"/><circle cx="19" cy="12" r="1.8"/></svg>'
+  };
+
+  const VIEWS = {
+    loading: () => '<p class="loading">불러오는 중…</p>',
+    error: () => `<h1>잠시 문제가 생겼어요</h1><p class="hint">${esc(S.err && S.err.message)}</p><button class="btn" data-act="retry">다시 해 보기</button>`,
+    login: () => `<p class="eyebrow">코이데 · 함께 기도하는 공동체</p><h1>서로의 기도를 나누고<br>함께 기도해요</h1>
+      <p>처음 한 번만 로그인하면 돼요.</p>
+      ${DEMO ? `<div class="choices">
+          <button class="kakao" data-act="login" data-v="새 사람${Date.now() % 1000}">${ICON.bubble}카카오로 시작하기 (처음 오는 사람)</button>
+          <button class="choice" data-act="login" data-v="김도윤">데모: 김도윤으로 들어가기 (2-20 리더)</button>
+          <button class="choice" data-act="login" data-v="박민재">데모: 박민재로 들어가기 (회원)</button></div>
+          <p class="hint">데모 모드에서는 카카오 대신 이 버튼으로 사람을 골라 들어가요.</p>`
+        : `<button class="kakao" data-act="login">${ICON.bubble}카카오로 시작하기</button>`}`,
+    room: () => `${steps(1)}<p class="eyebrow">처음 한 번만 확인할게요</p><h1>어느 사랑방인가요?</h1>
+      <div class="choices">${(S.rooms || []).map(r => `<button class="choice" data-act="pickroom" data-v="${esc(r.id)}">${esc(r.name)}</button>`).join('')}</div>`,
+    family: () => { const r = S.rooms.find(x => x.id === S.pick.roomId);
+      return `${steps(2)}<p class="eyebrow">${esc(r.name)}</p><h1>우리 가정을 골라 주세요</h1>
+      <div class="choices">${r.families.map(f => `<button class="choice" data-act="pickfam" data-v="${esc(f.id)}">${esc(f.name)}</button>`).join('')}
+        <button class="choice new" data-act="newfam">목록에 우리 가정이 없어요 · 새로 왔어요</button></div>
+      <button class="link" data-act="back" data-v="room">뒤로</button>`; },
+    who: () => { const f = famPicked();
+      return `${steps(3)}<p class="eyebrow">${esc(f.name)} 가정</p><h1>누구세요?</h1>
+      <div class="choices">${f.name.split(' · ').map(n => `<button class="choice" data-act="pickwho" data-v="${esc(n)}">${esc(n)}</button>`).join('')}</div>
+      <p class="hint">우리 가정 안에서 누가 고쳤는지 보여 줄 때 써요.</p>
+      <button class="link" data-act="back" data-v="family">뒤로</button>`; },
+    consent: () => `${steps(4)}<p class="eyebrow">${S.pick.newFamily ? '새 가정 신청' : esc(famPicked().name) + ' 가정 · ' + esc(S.pick.person)}</p><h1>기도제목은 이렇게 지켜요</h1>
+      ${consentList()}
+      <button class="btn wide" data-act="request" ${S.busy ? 'disabled' : ''}>동의하고 연결 요청</button>
+      <p class="hint">동의하지 않으면 앱을 쓸 수 없어요. 궁금한 점은 리더나 목사님께 물어봐 주세요.</p>
+      <button class="link" data-act="back" data-v="${S.pick.newFamily ? 'newfam' : 'who'}">뒤로</button>`,
+    newfam: () => `${steps(2)}<p class="eyebrow">새 가정 신청</p><h1>우리 가정을 알려 주세요</h1>
+      <form data-form="newfam">
+        <label class="f" for="nf-a">남편 또는 본인 이름</label><input id="nf-a" class="field" required maxlength="10" value="${esc((S.pick.newFamily || {}).a || '')}">
+        <label class="f" for="nf-b">아내 이름 · 1인 가정이면 비워 두세요</label><input id="nf-b" class="field" maxlength="10" value="${esc((S.pick.newFamily || {}).b || '')}">
+        <label class="f" for="nf-k">자녀 이름 · 선택, 쉼표로 구분</label><input id="nf-k" class="field" maxlength="40" value="${esc((S.pick.newFamily || {}).kids || '')}">
+        <p class="hint">신청하면 리더가 확인한 뒤 승인해요. 배우자는 나중에 각자 카카오로 연결하면 돼요.</p>
+        <button class="btn wide" type="submit" style="margin-top:12px">다음</button></form>
+      <button class="link" data-act="back" data-v="family">뒤로</button>`,
+    wait: () => `${steps(4)}<p class="eyebrow">${esc(S.me.familyName || '')}</p><h1>연결을 요청했어요</h1>
+      <p>${esc(S.me.link.person)} 님의 카카오 계정을 <b>${esc(S.me.familyName)}</b>에 연결해 달라고 리더에게 보냈어요. 승인되면 바로 열려요.</p>
+      <div class="wait">리더가 확인하고 있어요</div>
+      <button class="btn wide" data-act="retry">승인됐는지 다시 확인</button>
+      <p class="hint">${DEMO ? '데모: 로그아웃하고 "김도윤으로 들어가기"(리더) → 더보기에서 승인해 보세요.' : '보통 하루 안에 끝나요.'}</p>
+      <button class="link" data-act="logout">로그아웃</button>`,
+    app: () => ({ home: homeView, mine: mineView, more: moreView })[S.tab]()
+  };
+  const famPicked = () => S.rooms.find(x => x.id === S.pick.roomId).families.find(f => f.id === S.pick.familyId);
+  const consentList = () => `<ul class="consent">
+      <li><b>무엇을</b><span>가정 이름, 자녀 이름, 우리 가정이 쓴 기도제목, 카카오 회원번호와 닉네임</span></li>
+      <li><b>어디에</b><span>교회가 관리하는 비공개 구글 시트 한 곳</span></li>
+      <li><b>누가 보나</b><span>기도제목마다 고른 공개 범위대로만 보여요. 시트를 관리하는 관리자는 모두 볼 수 있어요</span></li>
+      <li><b>얼마나</b><span>교회를 떠나면 1년 뒤 내용을 지우고 개수만 남겨요. 언제든 우리 가정 기록을 지워 달라고 할 수 있어요</span></li></ul>`;
+
+  // 이번 달: 우리 가정 + 사랑방 가정마다 기도제목과 "기도했어요"
+  function homeView() {
+    const M = S.month, mine = M.families.find(f => f.own), others = M.families.filter(f => !f.own);
+    const items = f => f.items.length ? `<ul class="items">${f.items.map(i => `<li class="s-${i.scope}"><span class="tgt">${esc(i.target)}</span><span>${esc(i.text)}${i.scope !== 'room' ? `<span class="scope-note">${SCOPE[i.scope]}</span>` : ''}</span></li>`).join('')}</ul>` : '<p class="hint">아직 올린 기도제목이 없어요.</p>';
+    const ST = { same: '지난달 그대로', edited: '이번 달 손봄', confirmed: '그대로 확인' };
+    return `<p class="eyebrow">${esc(M.room.name)}</p><h1>${Number(M.month.slice(5))}월 기도제목</h1>
+      <section class="card"><div class="row"><div><p class="hint" style="margin:0">우리 가정</p><h2>${esc(mine.name)}</h2></div><span class="chip ${mine.status}">${ST[mine.status]}</span></div>
+        ${items(mine)}
+        <div class="row" style="justify-content:flex-start;margin-top:12px"><button class="btn small" data-act="tab" data-v="mine">고치기</button>${mine.status === 'same' ? '<button class="btn small ghost" data-act="confirm">이번 달도 그대로예요</button>' : ''}</div></section>
+      <h2 style="margin-top:20px">사랑방 가정 ${others.length}</h2>
+      ${others.map(f => `<section class="card"><div class="row"><h2>${esc(f.name)}</h2>
+          <button class="pray-btn${f.prayed ? ' on' : ''}" data-act="pray" data-v="${esc(f.id)}">기도했어요${f.prayed ? ' ' + f.prayed : ''}</button></div>${items(f)}</section>`).join('')}`;
+  }
+
+  // 내 기도: 항목마다 대상·공개 범위·내용을 고치고, 칸을 벗어나면 저장
+  function mineView() {
+    const mine = S.month.families.find(f => f.own);
+    const targets = ['우리 가정', '남편', '아내', ...mine.kids, '부모님', '기타'];
+    const tgtSel = (v, id) => `<select data-act="tgt" data-id="${id}" aria-label="대상">${[...new Set([v, ...targets])].map(t => `<option${t === v ? ' selected' : ''}>${esc(t)}</option>`).join('')}</select>`;
+    return `<p class="eyebrow">${esc(mine.name)} 가정 · ${esc(S.me.person)}</p><h1>내 기도 · ${Number(S.month.month.slice(5))}월</h1>
+      <p class="hint">바뀐 것만 고치면 돼요. 칸을 벗어나면 저장돼요. <span class="saved" id="saved"></span></p>
+      ${mine.items.map(i => `<div class="edit s-${i.scope}">
+        <div class="edit-top">${tgtSel(i.target, i.id)}<button class="scope s-${i.scope}" data-act="scope" data-id="${i.id}">${SCOPE[i.scope]}</button></div>
+        <textarea class="field" rows="2" data-id="${i.id}" aria-label="기도제목 내용">${esc(i.text)}</textarea>
+        <div class="edit-foot"><span>${i.isNew ? whoDid(i.editedBy) + ' 새로 씀' : i.same ? '지난달과 같음 · ' + whoDid(i.editedBy) + ' 씀' : whoDid(i.editedBy) + ' 고침' + (i.editedAt ? ' · ' + i.editedAt : '')}</span>
+          <span><button class="link" data-act="end" data-id="${i.id}">마치기</button><button class="link danger" data-act="del" data-id="${i.id}">지우기</button></span></div></div>`).join('')}
+      <section class="card"><form data-form="add"><label class="f" for="add-t" style="margin-top:0">새 기도제목</label>
+        <div class="row" style="margin-bottom:8px">${tgtSel('우리 가정', 'new').replace('data-act="tgt" data-id="new"', 'id="add-tgt"')}</div>
+        <textarea id="add-t" class="field" rows="3" placeholder="이번 달 새로 생긴 기도제목"></textarea>
+        <button class="btn wide" type="submit" style="margin-top:8px">더하기</button></form></section>
+      <p class="hint">마치기: 이뤄졌거나 그만 올릴 때(지난 기록에 남아요) · 지우기: 잘못 썼을 때</p>`;
+  }
+
+  // 더보기: 내 정보, (리더) 연결 승인·해제, 로그아웃
+  function moreView() {
+    const me = S.month.me, leader = me.admin || me.role === '리더' || me.role === '코리더';
+    const P = S.pending;
+    return `<p class="eyebrow">${esc(S.month.families.find(f => f.own).name)} 가정 · ${esc(me.person)}</p><h1>더보기</h1>
+      ${leader ? `<section class="card"><h2>사랑방 가정 관리</h2>
+        ${!P ? '<p class="hint">불러오는 중…</p>' : `
+        ${P.requests.length ? P.requests.map(q => `<div class="req"><b>${q.newFamily ? '새로 온 가정 · ' : ''}${esc(q.person)} 님 → ${esc(q.familyName)}</b>
+            <small>${q.kids ? '자녀 ' + esc(q.kids) + ' · ' : ''}카카오 "${esc(q.nick)}" · ${esc(q.requestedAt)} 요청</small>
+            <div class="row" style="justify-content:flex-start;margin-top:8px"><button class="btn small" data-act="approve" data-v="${esc(q.kakaoId)}">승인</button><button class="btn small ghost" data-act="reject" data-v="${esc(q.kakaoId)}">거절</button></div></div>`).join('')
+          : '<p class="hint">확인할 신청이 없어요.</p>'}
+        <ul class="items" style="margin-top:12px">${P.families.map(f => `<li style="grid-template-columns:1fr auto"><span>${esc(f.name)}</span><span>${f.linked.length ? f.linked.map(l => `${esc(l.person)}${l.kakaoId !== '' && l.person !== me.person ? ` <button class="link danger" data-act="unlink" data-v="${esc(l.kakaoId)}">해제</button>` : ''}`).join(', ') : '<span class="hint">아직 연결 없음</span>'}</span></li>`).join('')}</ul>`}
+        <p class="hint">휴대폰을 잃어버렸거나 가정을 잘못 고른 사람만 해제해요.</p></section>` : ''}
+      <section class="card"><button class="btn ghost wide" data-act="logout">이 기기에서 로그아웃</button><p class="hint">다시 들어올 때 카카오로 로그인해요.</p></section>`;
+  }
+
+  function render() {
+    const app = S.view === 'app';
+    $('#main').innerHTML = VIEWS[S.view]();
+    $('#tabs').hidden = !app;
+    $('#badge').innerHTML = app ? `<span class="badge">${esc(S.month.room.name)} · ${esc(S.month.me.role)}</span>` : '';
+    if (app) $('#tabs').innerHTML = [['home', '이번 달', ICON.home], ['mine', '내 기도', ICON.pen], ['more', '더보기', ICON.more]]
+      .map(([k, l, ic]) => `<button class="${S.tab === k ? 'on' : ''}" data-act="tab" data-v="${k}" ${S.tab === k ? 'aria-current="page"' : ''}>${ic}${l}</button>`).join('');
+  }
+  const mineFam = () => S.month.families.find(f => f.own);
+  const itemOf = id => mineFam().items.find(i => i.id === id);
+  // 서버가 돌려준 이번 달로 바꾸고 다시 그린다(내 기도에서 쓰던 칸은 그대로 두려고 저장 표시만 바꿀 때도 있다)
+  async function act(promise, after) {
+    try { S.month = await promise; if (after) after(); render(); } catch (e) { oops(e); }
+  }
+
+  document.addEventListener('click', async e => {
+    const b = e.target.closest('[data-act]'); if (!b) return;
+    const v = b.dataset.v, id = b.dataset.id;
+    switch (b.dataset.act) {
+      case 'login': return kakaoLogin(v);
+      case 'retry': S.view = 'loading'; render(); return refreshMe();
+      case 'demoreset': window.koideDemo && window.koideDemo.reset(); setToken(null); location.replace(location.pathname); return;
+      case 'logout': try { await api('logout'); } catch (err) { /* 이미 끝난 로그인 */ } setToken(null); S.view = 'login'; S.tab = 'home'; S.pending = null; return render();
+      case 'pickroom': S.pick = { roomId: v }; S.view = 'family'; return render();
+      case 'pickfam': { S.pick.familyId = v; const ps = famPicked().name.split(' · '); if (ps.length > 1) S.view = 'who'; else { S.pick.person = ps[0]; S.view = 'consent'; } return render(); }
+      case 'pickwho': S.pick.person = v; S.view = 'consent'; return render();
+      case 'newfam': S.view = 'newfam'; return render();
+      case 'back': S.view = v; if (v === 'who' && famPicked().name.indexOf(' · ') < 0) S.view = 'family'; return render();
+      case 'request': {
+        S.busy = true; render();
+        try {
+          S.me = await api('requestLink', S.pick.newFamily ? { newFamily: S.pick.newFamily, roomId: S.pick.roomId } : { familyId: S.pick.familyId, person: S.pick.person });
+          S.view = S.me.link && S.me.link.status === '연결' ? 'app' : 'wait';
+          if (S.view === 'app') await loadMonth();
+        } catch (err) { oops(err); }
+        S.busy = false; return render();
+      }
+      case 'tab':
+        S.tab = v; render(); window.scrollTo(0, 0);
+        if (v === 'more') { const me = S.month.me; if (me.admin || me.role === '리더' || me.role === '코리더') { try { S.pending = await api('pending'); render(); } catch (err) { oops(err); } } }
+        return;
+      case 'confirm': return act(api('confirmSame'), () => toast('이번 달도 그대로라고 리더에게 알렸어요.'));
+      case 'pray': {
+        const f = S.month.families.find(x => x.id === v); f.prayed++; render();
+        try { const r = await api('pray', { familyId: v }); f.prayed = r.prayed; if (r.capped) toast('이 가정은 오늘 충분히 기도했어요. 내일 또 기도해 주세요.'); render(); }
+        catch (err) { f.prayed--; render(); oops(err); }
+        return;
+      }
+      case 'scope': { const i = itemOf(id); return act(api('saveItem', { id, target: i.target, text: i.text, scope: NEXT_SCOPE[i.scope] })); }
+      case 'end': return act(api('endItem', { id }), () => toast('마쳤어요. 지난 기록에는 남아요.'));
+      case 'del': if (!confirm('이 기도제목을 지울까요? 되돌릴 수 없어요.')) return; return act(api('deleteItem', { id }));
+      case 'approve': case 'reject': case 'unlink':
+        try { S.pending = await api(b.dataset.act, { kakaoId: v }); render(); toast(b.dataset.act === 'approve' ? '승인했어요.' : b.dataset.act === 'reject' ? '거절했어요.' : '연결을 해제했어요.'); } catch (err) { oops(err); }
+        return;
+    }
+  });
+  // 칸을 벗어나면(내용·대상) 저장
+  document.addEventListener('change', e => {
+    const t = e.target;
+    if (t.matches('textarea[data-id]') || t.matches('select[data-act="tgt"]')) {
+      const id = t.dataset.id, i = itemOf(id), box = t.closest('.edit');
+      const text = box.querySelector('textarea').value, target = box.querySelector('select').value;
+      if (text === i.text && target === i.target) return;
+      const sv = $('#saved'); if (sv) sv.textContent = '저장 중…';
+      act(api('saveItem', { id, target, text, scope: i.scope }), () => setTimeout(() => { const s2 = $('#saved'); if (s2) s2.textContent = '저장됨'; }, 0));
+    }
+  });
+  document.addEventListener('submit', async e => {
+    e.preventDefault();
+    const f = e.target;
+    if (f.dataset.form === 'newfam') {
+      S.pick.newFamily = { a: $('#nf-a').value.trim(), b: $('#nf-b').value.trim(), kids: $('#nf-k').value.trim() };
+      S.view = 'consent'; return render();
+    }
+    if (f.dataset.form === 'add') {
+      const text = $('#add-t').value.trim(); if (!text) return toast('내용을 적어 주세요.');
+      return act(api('saveItem', { target: $('#add-tgt').value, text, scope: 'room' }), () => toast('더했어요.'));
+    }
+  });
+
+  boot().catch(oops);
+})();
+</script>
+</body>
+</html>
