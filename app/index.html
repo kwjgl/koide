@@ -510,6 +510,17 @@ body.pop-open { overflow: hidden; }
 .splash-sub { margin: 0; color: var(--ink-2); font-size: .9em; }
 .splash .loading { padding: 0; min-height: 1.5em; font-size: .85em; max-width: 22em; word-break: keep-all; }
 @media (prefers-reduced-motion: reduce) { .splash { transition: none; } .splash-mark path { animation: none; } }
+/* 작은 글씨의 바닥 (2026-10-18, 휴대폰에서 안내 글·이름표가 너무 작다는 의견). 위 곳곳의 작은 크기를 여기서 한 번에 올린다.
+   휴대폰 16px 기준으로 설명 글 약 14px, 이름표·작은 버튼 약 13.5px, 칩·꼬리표 약 12.5px. 원래 더 큰 것은 건드리지 않는다 */
+.hint, .menu-card small, .mitem small, .kid small, .notice, .del-ask p, .edit-foot, .m-hint, .legend, .sr-legend, .saved, .page-top .saved, .date, .pray-done, .received { font-size: .875em; }
+.label, .eyebrow, .mlabel, .link, .seg2 button, .more-txt, .pray.small, .pray-table thead th, .demo, .badge-btn, .chip-btn small, .tgt-btn, .scope-btn, .kl-num, .cord-n, .state, .scope-note { font-size: .84em; }
+.tgt, .items .tgt, .chip, .chip-status, .me-tag, .end-tag, .own-tag, .b-scope, .mchip, .rm-feats span, .today-tag, .card.today .today-tag { font-size: .78em; }
+.badge-btn .role-tag { font-size: .93em; }
+/* 작은 글씨 안에 또 작은 글씨가 들어가 겹쳐 작아지는 곳 */
+.chip-btn small, .edit-foot .state, .edit-foot .link { font-size: .93em; }
+.ps-list li span:last-child { font-size: .85em; }
+/* 글씨가 커져 '사랑방 가정' 줄(제목·범례 | 모임 모드·카드|표)이 휴대폰 폭을 넘으면 두 줄로 */
+.section-row { flex-wrap: wrap; row-gap: .4em; }
 </style>
 <script>
 /* 화면 모드·색 테마·큰 글씨는 이 기기에만 기억한다. 화면이 그려지기 전에 먼저 입힌다 */
@@ -773,9 +784,9 @@ try { const p = JSON.parse(localStorage.getItem('koide-pref') || '{}'), d = docu
   function receivedLine() {
     const R = S.month.received || { n: 0, of: 0 };
     // 가정 단위는 '사랑방 가족이 우리 가정을', 개인 단위는 '순 식구가 나를'
-    const g = grp() + (solo() ? ' 식구' : ' 가족'), me = solo() ? '나를' : '우리 가정을', my = solo() ? '내' : '우리 가정';
-    // 아무도 누르지 않은 달에도 기도받지 못하는 가정은 없다(롬 8:34): 그리스도의 간구를 먼저 말하고, 앱이 하는 일은 뒤에 둔다
-    const [k, t] = !R.n ? ['plain', '그리스도께서 ' + me + ' 위해 간구하고 계세요. ' + my + ' 기도제목이 ' + g + '들 화면에 돌아가며 나오고 있어요'] : R.n * 2 >= R.of ? ['deep', g + '들이 함께 ' + me + ' 위해 기도하고 있어요'] : ['soft', g + (solo() ? '가 ' : '이 ') + me + ' 위해 기도했어요'];
+    const g = grp() + (solo() ? ' 식구' : ' 가족'), me = solo() ? '나를' : '우리 가정을';
+    // 아무도 누르지 않은 달에도 기도받지 못하는 가정은 없다(롬 8:34)
+    const [k, t] = !R.n ? ['plain', '그리스도께서 ' + me + ' 위해 간구하고 계세요.'] : R.n * 2 >= R.of ? ['deep', g + '들이 함께 ' + me + ' 위해 기도하고 있어요'] : ['soft', g + (solo() ? '가 ' : '이 ') + me + ' 위해 기도했어요'];
     return `<p class="received r-${k}">${ICON.hands}<span>${t}</span></p>`;
   }
   function famCard(f) {
