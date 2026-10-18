@@ -828,7 +828,8 @@ try { const p = JSON.parse(localStorage.getItem('koide-pref') || '{}'), d = docu
   function loadDemo() {
     return new Promise((ok, bad) => {
       const a = document.createElement('script'); a.src = 'demo/gas-shim.js';
-      a.onload = () => { const b = document.createElement('script'); b.src = CFG.DEMO_CODE || '../apps-script/Code.js'; b.onload = ok; b.onerror = bad; document.head.appendChild(b); };
+      // 서버 코드는 app 폴더 밖이라 홈 화면 앱 도우미(sw.js)가 다루지 않는다. 브라우저에 남은 10분 사본 대신 늘 새로 받는다
+      a.onload = () => { const b = document.createElement('script'); b.src = (CFG.DEMO_CODE || '../apps-script/Code.js') + '?t=' + Date.now(); b.onload = ok; b.onerror = bad; document.head.appendChild(b); };
       a.onerror = bad; document.head.appendChild(a);
     });
   }
