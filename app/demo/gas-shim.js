@@ -52,7 +52,8 @@
   const cache = new Map();
   window.CacheService = { getScriptCache: () => ({ get: k => cache.get(k) ?? null, put: (k, v) => cache.set(k, v), remove: k => cache.delete(k) }) };
   window.LockService = { getScriptLock: () => ({ tryLock: () => true, releaseLock() {} }) };
-  window.PropertiesService = { getScriptProperties: () => ({ getProperties: () => ({ KAKAO_REST_KEY: 'demo', REDIRECT_URI: '' }) }) };
+  const props = { KAKAO_REST_KEY: 'demo', REDIRECT_URI: '' };
+  window.PropertiesService = { getScriptProperties: () => ({ getProperties: () => Object.assign({}, props), setProperty: (k, v) => { props[k] = v; }, deleteProperty: k => { delete props[k]; } }) };
   window.ContentService = { MimeType: { JSON: 'json' }, createTextOutput: s => ({ content: s, setMimeType() { return this; } }) };
 
   // 카카오 흉내: code가 곧 사람이다(demo:김도윤 → 카카오ID d-김도윤). 실제로는 카카오 화면에서 로그인한다

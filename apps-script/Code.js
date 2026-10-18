@@ -186,7 +186,16 @@ function requestLink_(body) {
       const fam = read_('families').find(f => f.id === familyId);
       if (!fam || fam.name.split(' · ').indexOf(person) < 0) throw fail_('bad', '가정과 사람을 다시 골라 주세요.');
     }
-    append_('links', { kakaoId: w.kakaoId, nick: w.nick, familyId, person, status: '요청', requestedAt: today_(), approvedBy: '', lastSeen: today_() });
+    // 예시 데이터를 지울 때 기억해 둔 관리자는 승인해 줄 사람이 없으니, 고른 가정에 바로 연결하고 그 가정을 관리자로 만든다
+    const next = String(props_().NEXT_ADMIN || '').split(',').filter(Boolean), first = next.indexOf(w.kakaoId) >= 0;
+    append_('links', { kakaoId: w.kakaoId, nick: w.nick, familyId, person, status: first ? '연결' : '요청', requestedAt: today_(), approvedBy: first ? '처음 관리자' : '', lastSeen: today_() });
+    if (first) {
+      const fam = read_('families').find(f => f.id === familyId);
+      Object.assign(fam, { status: '활동', admin: '예' }); update_('families', fam);
+      const rest = next.filter(k => k !== w.kakaoId);
+      if (rest.length) PropertiesService.getScriptProperties().setProperty('NEXT_ADMIN', rest.join(','));
+      else PropertiesService.getScriptProperties().deleteProperty('NEXT_ADMIN');
+    }
     return meInfo_(who_(body));
   });
 }
@@ -447,6 +456,27 @@ function sampleData() {
   it('F4', 'R1', '부모님', '부모님이 신앙을 갖도록', 'room', 1, '오세훈');
   it('F6', 'R2', '우리 가정', '새 직장에 잘 적응하도록', 'room', 1, '임재현');
   return '예시 데이터를 넣었어요. ' + m + '월 기도제목은 처음 열 때 ' + prev + '에서 이어 붙여져요.';
+}
+
+// 실제로 쓰기 전에 한 번: sampleData로 넣은 예시 가정(가정ID와 이름이 모두 같을 때만)과 그 기도제목·편성·월별 상태·
+//  기도기록·카톡 공유·연결을 지우고, 가정이 남지 않은 예시 사랑방도 지운다. Apps Script 편집기에서 실행한다.
+//  예시 가정에 연결돼 있던 관리자의 카카오 계정은 기억해 두었다가, 앱에서 실제 우리 가정을 고르면 승인 없이 연결하고 관리자로 만든다
+const SAMPLE_FAMILIES_ = [['F1', '김도윤 · 이수아'], ['F2', '박민재 · 최예린'], ['F3', '정우진 · 한지민'], ['F4', '오세훈 · 윤가은'], ['F5', '서준호 · 임채원'], ['F6', '임재현 · 고은비'], ['F7', '송민석 · 유하린']];
+function clearSampleData() {
+  return withLock_(() => {
+    const fams = read_('families');
+    const ids = SAMPLE_FAMILIES_.filter(([id, name]) => fams.some(f => f.id === id && f.name === name)).map(([id]) => id);
+    if (!ids.length) return '지울 예시 가정이 없어요.';
+    const admins = read_('links').filter(l => ids.indexOf(l.familyId) >= 0 && l.status === '연결' && fams.some(f => f.id === l.familyId && yes_(f.admin))).map(l => String(l.kakaoId));
+    const del = (key, hit) => read_(key).filter(hit).sort((a, b) => b._row - a._row).forEach(o => remove_(key, o));
+    const mine = o => ids.indexOf(o.familyId) >= 0;
+    del('items', mine); del('roster', mine); del('monthly', mine); del('posts', mine); del('links', mine);
+    del('prayers', p => mine(p) || ids.indexOf(p.by) >= 0);
+    del('families', f => ids.indexOf(f.id) >= 0);
+    del('rooms', r => (r.id === 'R1' || r.id === 'R2') && !read_('roster').some(x => x.roomId === r.id));
+    if (admins.length) PropertiesService.getScriptProperties().setProperty('NEXT_ADMIN', admins.join(','));
+    return '예시 가정 ' + ids.length + '곳을 지웠어요.' + (admins.length ? ' 앱을 다시 열어 실제 우리 가정을 고르면 바로 연결되고 관리자가 돼요.' : '');
+  });
 }
 
 // ── 시트 읽고 쓰기 ────────────────────────────────────────
