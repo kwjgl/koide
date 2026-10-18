@@ -388,6 +388,26 @@ h3 { font-size: 1.02em; font-weight: 600; margin: 0; }
 .seg2 button.on { background: var(--surface); color: var(--ink); font-weight: 600; box-shadow: 0 1px 3px var(--shadow); }
 /* 표 보기: 지금 구글 시트처럼 가정 | 기도제목 한 장 */
 .table-wrap { overflow-x: auto; margin: 0 -.2em; }
+/* 기도 타임라인: 기도제목마다 처음 올린 달부터 마지막 달까지 한 줄 */
+.tl-table { border-collapse: collapse; width: 100%; font-size: .88em; }
+.tl-table thead th { font-size: .8em; color: var(--ink-2); font-weight: 500; text-align: center; padding: 0 0 .4em; font-variant-numeric: tabular-nums; white-space: nowrap; }
+.tl-table thead th.now { color: var(--accent); font-weight: 700; }
+.tl-table tbody th { text-align: left; font-weight: 400; padding: .35em .5em .35em 0; width: 11em; max-width: 11em; }
+.tl-go { display: flex; align-items: center; gap: .4em; width: 100%; background: none; border: 0; padding: .2em 0; font: inherit; color: var(--ink); text-align: left; cursor: pointer; min-height: 36px; }
+.tl-go:hover .tl-text { color: var(--accent); text-decoration: underline; text-underline-offset: 3px; }
+.tl-text { display: inline-block; max-width: 7.5em; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; vertical-align: middle; }
+.tl-cell { position: relative; height: 34px; min-width: 2.4em; text-align: center; border-top: 1px solid var(--line); }
+.tl-cell.on::before { content: ''; position: absolute; top: 50%; left: 0; right: 0; height: 8px; margin-top: -4px; background: var(--accent-mid); }
+.tl-cell.start::before { left: 50%; }
+.tl-cell.end::before { right: 50%; }
+.tl-cell.start.end::before { display: none; }
+.tl-cell.on::after { content: ''; position: absolute; left: 50%; top: 50%; width: 12px; height: 12px; margin: -6px 0 0 -6px; border-radius: 50%; background: var(--accent); }
+.tl-end { font-size: .74em; color: var(--ink-2); white-space: nowrap; }
+.only { display: inline-flex; align-items: center; gap: .25em; font-size: .75em; color: var(--ink-2); white-space: nowrap; }
+.only svg { width: 1.1em; height: 1.1em; }
+.card.hl { animation: hl-flash 2.4s ease-out; }
+@keyframes hl-flash { 0%, 40% { box-shadow: 0 0 0 4px var(--accent-mid); } 100% { box-shadow: 0 0 0 4px transparent; } }
+@media (prefers-reduced-motion: reduce) { .card.hl { animation: none; box-shadow: 0 0 0 3px var(--accent-mid); } }
 .pray-table { width: 100%; border-collapse: collapse; font-size: .9em; table-layout: fixed; }
 .pray-table th, .pray-table td { border-top: 1px solid var(--line); padding: .6em .5em; text-align: left; vertical-align: top; }
 .pray-table thead th { font-size: .78em; color: var(--ink-2); font-weight: 600; border-top: 0; background: var(--surface-2); }
@@ -1296,17 +1316,40 @@ try { const p = JSON.parse(localStorage.getItem('koide-pref') || '{}'), d = docu
   function historyView() {
     const H = S.hist, tab = S.histTab || 'room';
     const head = `<div class="page-top"><div><p class="eyebrow">${esc(H && H.room || S.month.room.name)}</p><h1>지난 기록 <span aria-hidden="true">📖</span></h1></div></div>
-      <div class="seg fit" style="--n:2" role="tablist" aria-label="지난 기록 보기">${[['room', grp()], ['mine', words().mine]].map(([k, l]) => `<button class="${tab === k ? 'on' : ''}" role="tab" aria-selected="${tab === k}" data-act="histtab" data-v="${k}">${l}</button>`).join('')}</div>`;
+      <div class="seg fit" style="--n:3" role="tablist" aria-label="지난 기록 보기">${[['room', grp()], ['mine', words().mine], ['timeline', '기도 타임라인']].map(([k, l]) => `<button class="${tab === k ? 'on' : ''}" role="tab" aria-selected="${tab === k}" data-act="histtab" data-v="${k}">${l}</button>`).join('')}</div>`;
     if (!H) return head + '<p class="loading">불러오는 중…</p>';
     const past = H.months.filter(m => m < H.now);
     const first = past.length ? '' : `<section class="card"><p style="margin:0">지난 기록은 다음 달부터 쌓여요.</p>
       <p class="hint">${Number(H.now.slice(5)) % 12 + 1}월 1일이 되면 ${Number(H.now.slice(5))}월 기도제목이 첫 기록으로 남아요. 그때까지는 이번 달만 보여요.</p></section>`;
-    if (tab === 'mine') return head + first + (H.mine.length ? `<div class="fam-grid wide hist-grid">${H.mine.map(x => `<section class="card"><h3>${monthLabel(x.month, H.now)}${x.month === H.now ? '<span class="me-tag">이번 달</span>' : ''}</h3>${histItems(x.items, 'm' + x.month)}</section>`).join('')}</div>`
+    if (tab === 'timeline') return head + timelineCard(H);
+    if (tab === 'mine') return head + first + (H.mine.length ? `<div class="fam-grid wide hist-grid">${H.mine.map(x => `<section class="card${S.hlMonth === x.month ? ' hl' : ''}" id="hm-${x.month}"><h3>${monthLabel(x.month, H.now)}${x.month === H.now ? '<span class="me-tag">이번 달</span>' : ''}</h3>${histItems(x.items, 'm' + x.month)}</section>`).join('')}</div>`
       : '<p class="hint" style="margin-top:12px">아직 올린 기도제목이 없어요.</p>');
     return head + first + `<div class="hist-chips" role="radiogroup" aria-label="달">${H.months.map(m => `<button class="chip-btn${m === H.month ? ' on' : ''}" role="radio" aria-checked="${m === H.month}" data-act="histmonth" data-v="${m}">${monthLabel(m, H.now)}${m === H.now ? '<small>이번 달</small>' : ''}</button>`).join('')}</div>
       <p class="hint">그 달의 ${esc(grp())} 모습 그대로 보여요. 해가 바뀌어 편성이 달라져도 그때 그대로예요.</p>
       ${H.families.length ? `<div class="fam-grid wide hist-grid">${H.families.map((f, k) => `<section class="card"><h3>${esc(f.name)}${f.own ? `<span class="me-tag">${words().mine}</span>` : ''}</h3>${histItems(f.items, H.month + '-' + k)}</section>`).join('')}</div>`
         : `<p class="hint">이 달의 ${esc(grp())} 기록을 찾지 못했어요.</p>`}`;
+  }
+  // 기도 타임라인(우리 가정만 봄): 기도제목마다 처음 올린 달부터 마지막 달까지 한 줄. 이전 항목ID로 이어진 것을 서버가 묶어 준다.
+  //  누르면 처음 올린 달의 우리 가정 카드로 가서 잠깐 강조한다
+  const prevMon = m => { const [y, mo] = m.split('-').map(Number); return mo === 1 ? (y - 1) + '-12' : y + '-' + String(mo - 1).padStart(2, '0'); };
+  function timelineCard(H) {
+    const T = H.threads || [], now = H.now;
+    if (!T.length) return '<p class="hint" style="margin-top:12px">아직 올린 기도제목이 없어요.</p>';
+    // 열은 가장 오래된 기도제목이 시작한 달부터 이번 달까지, 많아도 12달
+    const oldest = T.reduce((a, t) => t.from < a ? t.from : a, now), cols = [now];
+    while (cols.length < 12 && cols[0] > oldest) cols.unshift(prevMon(cols[0]));
+    const rows = T.filter(t => t.to >= cols[0]), live = T.filter(t => t.to === now && !t.ended);
+    const len = t => { let n = 1; for (let m = t.to; m > t.from && n < 600; m = prevMon(m)) n++; return n; };
+    const cell = (t, m, k) => m < t.from || m > t.to
+      ? `<td class="tl-cell">${k && cols[k - 1] === t.to ? `<span class="tl-end">${t.ended ? '마침' : '내림'}</span>` : ''}</td>`
+      : `<td class="tl-cell on${m === t.from || k === 0 ? ' start' : ''}${m === t.to ? ' end' : ''}" title="${monthLabel(m, now)}"></td>`;
+    return `<section class="card" style="margin-top:12px"><div class="row"><p class="label" style="margin:0">기도 타임라인</p><span class="only">${ICON.lock}${esc(words().only)} 보여요</span></div>
+      <p class="hint">지금 이어지는 기도제목 ${live.length}개${live.length ? ` · 가장 오래된 것은 ${Math.max(...live.map(len))}개월째예요` : ''}. 기도제목을 누르면 처음 올린 달의 카드로 가요.</p>
+      <div class="table-wrap"><table class="tl-table">
+        <thead><tr><th scope="col"><span class="sr">기도제목</span></th>${cols.map(m => `<th scope="col"${m === now ? ' class="now"' : ''}>${Number(m.slice(5))}월</th>`).join('')}</tr></thead>
+        <tbody>${rows.map(t => `<tr><th scope="row"><button class="tl-go" data-act="tlgo" data-v="${t.from}" title="${monthLabel(t.from, now)} 기도제목으로 가기: ${esc(t.text)}"><span class="tgt">${esc(t.target)}</span><span class="tl-text">${esc(t.text)}</span></button></th>${cols.map((m, k) => cell(t, m, k)).join('')}</tr>`).join('')}</tbody>
+      </table></div>
+      <ul class="legend"><li><i class="sw edited"></i>그 달에 올린 기도제목</li><li>마침: 이뤄졌거나 맡겨 둠 · 내림: 더 올리지 않음</li></ul></section>`;
   }
   async function loadHist(month) {
     try { S.hist = await api('history', month ? { month } : {}); }
@@ -2217,6 +2260,11 @@ try { const p = JSON.parse(localStorage.getItem('koide-pref') || '{}'), d = docu
       case 'famtoggle': S.openFams.has(id) ? S.openFams.delete(id) : S.openFams.add(id); return render();
       case 'servetoggle': S.serveOpen = !S.serveOpen; return render();
       case 'histtab': S.histTab = v; return render();
+      case 'tlgo': {
+        S.histTab = 'mine'; S.hlMonth = v; S.openFams.add('h-m' + v); render(); S.hlMonth = null;
+        const c = document.getElementById('hm-' + v); if (c) c.scrollIntoView({ block: 'center', behavior: matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth' });
+        return;
+      }
       case 'histmonth': if (S.hist) S.hist.month = v; render(); return loadHist(v);
       case 'openroom': S.openRoom = v; render(); return window.scrollTo(0, 0);
       case 'roomclose': S.openRoom = null; render(); return window.scrollTo(0, 0);

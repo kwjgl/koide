@@ -48,7 +48,7 @@ const FIRST_DEPT = { id: 'D1', name: '청장년부', group: '사랑방', unit: '
 // ── 요청 받기 ─────────────────────────────────────────────
 
 // 서버 코드를 고칠 때마다 바꾼다. 웹 앱 주소를 열면 보여서, 새 버전으로 배포됐는지 확인할 수 있다
-const VERSION = '2026-10-19 돌봄 신호';
+const VERSION = '2026-10-19 기도 타임라인';
 function doGet() {
   return ContentService.createTextOutput('코이데 서버가 켜져 있어요. (버전: ' + VERSION + ')');
 }
@@ -405,7 +405,22 @@ function historyView_(c, want) {
   const mine = months.map(mm => ({ month: mm, items: items.filter(i => i.month === mm && i.familyId === c.familyId).sort((a, b) => a.order - b.order).map(show) }))
     .filter(x => x.items.length);
   const room = r ? rooms.find(x => x.id === r.roomId) : null;
-  return { months, month: m, now: month_(), room: room ? room.name : '', families, mine };
+  return { months, month: m, now: month_(), room: room ? room.name : '', families, mine, threads: threads_(items.filter(i => i.familyId === c.familyId)) };
+}
+
+// 기도 타임라인(우리 가정만 봄): 이전 항목ID로 이어진 기도제목을 한 줄로. 처음 올린 달(from)부터 마지막 달(to)까지,
+//  글은 마지막 달 것. 마쳤으면 ended. 지금 이어지는 것을 먼저, 그 안에서는 오래된 순
+function threads_(own) {
+  const byId = {}, next = {};
+  own.forEach(i => { byId[i.id] = i; });
+  own.forEach(i => { if (i.prevId && byId[i.prevId]) next[i.prevId] = i; });
+  const out = own.filter(i => !i.prevId || !byId[i.prevId]).map(first => {
+    let last = first, n = 1;
+    while (next[last.id] && n < 600) { last = next[last.id]; n++; }
+    return { target: last.target, text: last.text, scope: last.scope, from: first.month, to: last.month, ended: last.state === '마침' };
+  });
+  const now = month_(), on = t => t.to === now && !t.ended;
+  return out.sort((a, b) => on(b) - on(a) || (a.from < b.from ? -1 : a.from > b.from ? 1 : 0));
 }
 
 // 교역자의 이번 달: 사랑방 대신 우리 가정 하나와 섬기는 분들(목사님 홈은 다음 단계)
@@ -697,6 +712,10 @@ function sampleData() {
       prevId = id;
     });
   };
+  // 지난 기록 › 기도 타임라인 예시: 석 달 전에 올려 두 달 이어 오다 마친 기도제목
+  const pp = prevMonth_(prev), p3 = prevMonth_(pp), done = newId_();
+  append_('items', { id: done, month: p3, familyId: 'F1', roomId: 'R1', target: '우리 가정', text: '전세 대출 심사가 잘 통과되도록', scope: 'room', state: '이어짐', prevId: '', same: '아니오', order: 1, editedAt: new Date(), editedBy: '김도윤' });
+  append_('items', { id: newId_(), month: pp, familyId: 'F1', roomId: 'R1', target: '우리 가정', text: '전세 대출 심사가 잘 통과되도록', scope: 'room', state: '마침', prevId: done, same: '예', order: 1, editedAt: new Date(), editedBy: '김도윤' });
   chain('F2', 'R1', '우리 가정', '매일 10분이라도 가족이 함께 말씀 읽기', 'room', 1, '박민재', 2, false);
   it('F3', 'R1', '아내', '임신 기간 건강하게 지내도록', 'room', 1, '한지민');
   chain('F4', 'R1', '부모님', '부모님이 신앙을 갖도록', 'room', 1, '오세훈', 3, true);
