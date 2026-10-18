@@ -75,6 +75,7 @@ const ACTIONS = {
   reject: body => decide_(body, false),
   post: body => setPosted_(body, true),
   unpost: body => setPosted_(body, false),
+  importRoom: importRoom_,
   unlink: unlink_,
   logout: logout_
 };
@@ -207,6 +208,55 @@ function pendingView_(c) {
   const posts = {};
   read_('posts').filter(p => p.roomId === c.roomId).forEach(p => { if (!posts[p.familyId] || p.date > posts[p.familyId]) posts[p.familyId] = p.date; });
   return { requests, families, posts, today: today_() };
+}
+
+// 기존 시트 가져오기(관리자): 사랑방 탭 하나를 화면에서 나눠 보낸 것을 이번 달 기도제목으로 넣는다.
+//  body: { roomName, families: [{ a, b, kids: [..], items: [{ target, text }] }] }
+//  없는 사랑방·가정은 만들고, 이미 있는 가정은 이번 달 기도제목을 가져온 것으로 바꾼다. 실제 교인 내용은 이 시트에만 남는다
+function importRoom_(body) {
+  const c = member_(body);
+  if (!c.admin) throw fail_('forbidden', '관리자만 가져올 수 있어요.');
+  const roomName = String(body.roomName || '').trim(), list = Array.isArray(body.families) ? body.families : [];
+  if (!roomName || !list.length) throw fail_('bad', '사랑방 이름과 가정을 확인해 주세요.');
+  return withLock_(() => {
+    const m = month_(), y = year_(), now = new Date();
+    const rooms = read_('rooms');
+    let room = rooms.find(r => r.name === roomName);
+    if (!room) {
+      room = { id: 'R' + Date.now().toString(36), name: roomName, order: rooms.reduce((a, r) => Math.max(a, r.order), 0) + 1 };
+      append_('rooms', room);
+    }
+    let made = 0, replaced = 0, count = 0;
+    const newFams = [], newRoster = [], newItems = [], monthly = [], drop = [];
+    list.forEach((f, n) => {
+      const a = String(f.a || '').trim(), b = String(f.b || '').trim();
+      if (!a) return;
+      const name = b ? a + ' · ' + b : a, kids = (f.kids || []).map(k => String(k).trim()).filter(Boolean);
+      let fam = read_('families').find(x => x.name === name && x.status === '활동');
+      if (fam) {
+        const had = fam.kids ? String(fam.kids).split(/\s*,\s*/) : [];
+        const all = had.concat(kids.filter(k => had.indexOf(k) < 0));
+        if (all.join(',') !== had.join(',')) { fam.kids = all.join(', '); update_('families', fam); }
+        const old = read_('items').filter(i => i.familyId === fam.id && i.month === m);
+        if (old.length) { replaced++; drop.push(...old); }
+      } else {
+        fam = { id: 'F' + Date.now().toString(36) + n, name, kids: kids.join(', '), status: '활동', admin: '' };
+        newFams.push(fam); made++;
+      }
+      if (!read_('roster').some(r => String(r.year) === y && r.familyId === fam.id)) newRoster.push({ year: y, roomId: room.id, familyId: fam.id, role: '회원' });
+      (f.items || []).forEach((it, k) => {
+        const text = String(it.text || '').trim(); if (!text) return;
+        newItems.push({ id: newId_(), month: m, familyId: fam.id, roomId: room.id, target: String(it.target || '우리 가정').trim().slice(0, 10),
+          text, scope: 'room', state: '이어짐', prevId: '', same: '아니오', order: k + 1, editedAt: now, editedBy: '가져옴' });
+        count++;
+      });
+      monthly.push(fam.id);
+    });
+    drop.sort((p, q) => q._row - p._row).forEach(i => remove_('items', i));
+    appendMany_('families', newFams); appendMany_('roster', newRoster); appendMany_('items', newItems);
+    monthly.forEach(id => setMonthly_(id, m, 'same'));
+    return { room: room.name, families: list.length, made, replaced, items: count };
+  });
 }
 
 // 리더가 카톡용 문구를 복사하면 오늘 올린 것으로 적고, "올림 표시 지우기"면 오늘 적은 것을 지운다
@@ -434,6 +484,13 @@ function rowOf_(key, o) {
     v = v instanceof Date ? v.toISOString() : String(v);
     return /^[=+\-@\d]/.test(v) ? "'" + v : v;
   });
+}
+// 여러 줄을 한 번에 쓴다(가져오기처럼 많을 때 한 줄씩 쓰면 느리다)
+function appendMany_(key, list) {
+  if (!list.length) return;
+  const sh = sheet_(key);
+  sh.getRange(sh.getLastRow() + 1, 1, list.length, SCHEMA[key][1].length).setValues(list.map(o => rowOf_(key, o)));
+  delete READ_CACHE_[key];
 }
 function append_(key, o) { sheet_(key).appendRow(rowOf_(key, o)); delete READ_CACHE_[key]; }
 function update_(key, o) { sheet_(key).getRange(o._row, 1, 1, SCHEMA[key][1].length).setValues([rowOf_(key, o)]); delete READ_CACHE_[key]; }
