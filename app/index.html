@@ -159,6 +159,14 @@ body.praying .tabs { display: none; }
 @keyframes pss-glow { 50% { box-shadow: 0 0 0 6px var(--accent-soft); } }
 @media (prefers-reduced-motion: reduce) { .pss-nav .pss-pray.ready { animation: none; } }
 /* 기도의 끈: 사랑방 가정마다 매듭 자리, 이웃한 두 가정을 다 기도하면 그 사이 끈이 팽팽해진다 */
+/* 지금 함께 기도할 가정: 테마색 배지와 큰 이름으로 다른 카드보다 먼저 눈에 들어오게 */
+.card.today { background: linear-gradient(180deg, var(--accent-soft), var(--surface)); border-color: transparent; box-shadow: inset 0 4px 0 var(--accent); padding-top: 20px; }
+.today-tag { display: inline-flex; align-items: center; gap: .35em; font-size: .78em; font-weight: 600; color: var(--on-accent); background: var(--accent); border-radius: 999px; padding: .3em .85em .3em .7em; margin: 0; }
+.today-tag svg { width: 1.15em; height: 1.15em; }
+.card.today h2 { font-family: var(--f-display, inherit); font-size: 1.6em; margin: .3em 0 .2em; }
+.today-acts { display: flex; gap: 8px; margin-top: 12px; }
+.today-acts .btn { flex: 1; }
+.card.today .cord { border-top: 1px solid color-mix(in srgb, var(--accent) 20%, var(--line)); margin-top: 14px; padding-top: 12px; }
 .cord { width: 100%; text-align: left; }
 .cord-head { display: flex; justify-content: space-between; align-items: baseline; gap: .6em; }
 .cord-n { font-size: .78em; color: var(--ink-2); margin: 0; }
@@ -168,6 +176,8 @@ body.praying .tabs { display: none; }
 .cord-svg .seg-l.tight { stroke: var(--accent); stroke-width: 3; }
 .cord-svg .knot { fill: var(--surface); stroke: var(--line-strong); stroke-width: 1.5; }
 .cord-svg .knot.on { fill: var(--accent); stroke: var(--accent); }
+.cord-svg .knot.cur { stroke: var(--ink); stroke-width: 2.5; }
+.cord-svg .hit { fill: transparent; cursor: pointer; }
 .cord-svg text { font-size: 10px; fill: var(--ink-2); }
 .cord-done { margin: 6px 0 0; font-weight: 600; color: var(--accent); font-size: .9em; }
 .req { background: var(--accent-soft); border-radius: 12px; padding: 12px; margin: 8px 0; }
@@ -352,7 +362,14 @@ body.praying .tabs { display: none; }
     const M = S.month, mine = M.families.find(f => f.own), others = M.families.filter(f => !f.own);
     const items = f => f.items.length ? `<ul class="items">${f.items.map(i => `<li class="s-${i.scope}"><span class="tgt">${esc(i.target)}</span><span>${esc(i.text)}${i.scope !== 'room' ? `<span class="scope-note">${SCOPE[i.scope]}</span>` : ''}</span></li>`).join('')}</ul>` : '<p class="hint">아직 올린 기도제목이 없어요.</p>';
     const ST = { same: '지난달 그대로', edited: '이번 달 손봄', confirmed: '그대로 확인' };
-    return `<p class="eyebrow">${esc(M.room.name)}</p><h1>${Number(M.month.slice(5))}월 기도제목</h1>
+    const t = todayFam();
+    return `<p class="eyebrow">${esc(M.room.name)}</p><h1>${Number(M.month.slice(5))}월 기도제목 <span aria-hidden="true">🙏</span></h1>
+      ${t ? `<section class="card today" aria-label="지금 함께 기도할 가정"><p class="today-tag">${ICON.hands}지금 함께 기도할 가정</p><h2>${esc(t.name)}</h2>
+        ${items(t)}${t.prayed ? `<p class="hint">이번 달 이 가정을 위해 ${t.prayed}번 기도했어요.</p>` : ''}
+        <div class="today-acts"><button class="btn" data-act="pray" data-v="${esc(t.id)}" ${(t.today || 0) >= 3 ? 'disabled' : ''}>${(t.today || 0) >= 3 ? '오늘은 여기까지' : '기도했어요'}${t.today ? ` ${t.today}/3` : ''}</button>
+          <button class="btn ghost" data-act="nexttoday">다음 가정${t.today ? '으로' : ''}</button></div>
+        <p class="hint">앱을 열 때마다 이번 달 아직 기도하지 않은 가정부터 돌아가며 나와요.</p>
+        ${cordHtml(t.id)}</section>` : ''}
       <section class="card"><div class="row"><div><p class="hint" style="margin:0">우리 가정</p><h2>${esc(mine.name)}</h2></div><span class="chip ${mine.status}">${ST[mine.status]}</span></div>
         ${items(mine)}
         <div class="row" style="justify-content:flex-start;margin-top:12px"><button class="btn small" data-act="tab" data-v="mine">고치기</button>${mine.status === 'same' ? '<button class="btn small ghost" data-act="confirm">이번 달도 그대로예요</button>' : ''}</div></section>
@@ -482,6 +499,20 @@ body.praying .tabs { display: none; }
     (() => { try { return JSON.parse(localStorage.getItem(PSET_KEY)) || {}; } catch (e) { return {}; } })());
   const savePset = () => { try { localStorage.setItem(PSET_KEY, JSON.stringify(PSET)); } catch (e) { /* 무시 */ } };
   const roomFams = () => S.month.families.filter(f => !f.own);
+  // 지금 함께 기도할 가정: 이번 달 아직 기도하지 않은 가정부터 하나씩 돌아가며 나온다. 시작점은 우리 가정ID로 정해서
+  //  사람마다 달라지고(사랑방 전체로는 관심이 고르게 퍼진다), 다 기도했으면 차례대로 돈다
+  function todayFam() {
+    const fams = roomFams(); if (!fams.length) return null;
+    const t = famById(S.todayId);
+    if (t && !t.own) return t;
+    const me = S.month.families.find(f => f.own), seed = [...String(me && me.id)].reduce((a, c) => a + c.charCodeAt(0), 0);
+    return pickToday(fams, seed % fams.length);
+  }
+  function pickToday(fams, from, skip) {
+    const n = fams.length, at = k => fams[(from + k) % n];
+    for (let k = 0; k < n; k++) if (at(k).id !== skip && !at(k).prayed) { S.todayId = at(k).id; return at(k); }
+    const f = at(0).id === skip && n > 1 ? at(1) : at(0); S.todayId = f.id; return f;
+  }
   const famById = id => S.month.families.find(f => f.id === id);
   // 오늘 아직 기도하지 않은 가정부터, 그다음 이번 달 덜 기도한 가정부터
   const psOrder = () => roomFams().slice().sort((a, b) => ((a.today || 0) > 0) - ((b.today || 0) > 0) || a.prayed - b.prayed).map(f => f.id);
@@ -492,12 +523,14 @@ body.praying .tabs { display: none; }
   }
   const fmtTime = t => Math.floor(t / 60) + ':' + String(t % 60).padStart(2, '0');
   // 기도의 끈: 이번 달 내가 기도한 가정에 매듭. 나만 본다
-  function cordHtml() {
+  //  cur: 지금 카드에 있는 가정(테두리 표시). 매듭을 누르면 그 가정이 '지금 함께 기도할 가정'으로 온다
+  function cordHtml(cur) {
     const fams = roomFams(), n = fams.length; if (!n) return '';
     const W = 300, x = i => n === 1 ? W / 2 : 12 + i * (W - 24) / (n - 1), on = f => f.prayed > 0, k = fams.filter(on).length;
     const segs = fams.slice(1).map((f, i) => { const t = on(fams[i]) && on(f), a = x(i), b = x(i + 1);
       return `<path class="seg-l${t ? ' tight' : ''}" d="M${a} 12 Q${(a + b) / 2} ${t ? 12 : 22} ${b} 12"/>`; }).join('');
-    const knots = fams.map((f, i) => `<circle class="knot${on(f) ? ' on' : ''}" cx="${x(i)}" cy="12" r="${on(f) ? 6 : 4}"/><text x="${x(i)}" y="34" text-anchor="middle">${esc(f.name.slice(0, 1))}</text>`).join('');
+    const knots = fams.map((f, i) => `<circle class="knot${on(f) ? ' on' : ''}${f.id === cur ? ' cur' : ''}" cx="${x(i)}" cy="12" r="${on(f) ? 6 : 4}"/><text x="${x(i)}" y="34" text-anchor="middle">${esc(f.name.slice(0, 1))}</text>`
+      + (cur !== undefined ? `<circle class="hit" cx="${x(i)}" cy="18" r="16" data-act="cordpick" data-v="${esc(f.id)}"><title>${esc(f.name)} 가정, ${on(f) ? '이번 달 ' + f.prayed + '번 기도함' : '아직 기도하지 않음'}</title></circle>` : '')).join('');
     return `<div class="cord"><div class="cord-head"><p class="label" style="margin:0">기도의 끈</p><p class="cord-n">${n}가정 중 <b>${k}가정</b>과 이어졌어요</p></div>
       <svg class="cord-svg" viewBox="-4 0 ${W + 8} 40" role="img" aria-label="이번 달 ${n}가정 중 ${k}가정을 위해 기도했어요">${segs}${knots}</svg>
       ${k === n ? '<p class="cord-done">사랑방 모든 가정과 이어졌어요 <span aria-hidden="true">🙌</span></p>' : ''}</div>`;
@@ -520,8 +553,7 @@ body.praying .tabs { display: none; }
         <button class="btn wide" data-act="psstart" style="margin-top:16px;min-height:54px" ${list.length ? '' : 'disabled'}>${ICON.hands.replace('<svg', '<svg width="22" height="22"')} ${list.length ? '기도 시작 · ' + list.length + '장' : '무엇을 위해 기도할지 골라 주세요'}</button></section>
       <section class="card"><p class="label" style="margin:0">오늘 기도할 순서</p>
         <ol class="ps-list">${list.map(id => { const f = id.startsWith('f:') && famById(id.slice(2));
-          return f ? `<li><span>${esc(f.name)}</span><span class="${f.today ? 'ok' : ''}">${f.today ? '오늘 ' + f.today + '번' : '아직'}</span></li>` : `<li><span>${esc(psPageName(id))}</span><span>${id === 'me' ? '우리 가정' : '하나님의 나라'}</span></li>`; }).join('')}</ol>
-        <div style="margin-top:14px">${cordHtml()}</div></section>`;
+          return f ? `<li><span>${esc(f.name)}</span><span class="${f.today ? 'ok' : ''}">${f.today ? '오늘 ' + f.today + '번' : '아직'}</span></li>` : `<li><span>${esc(psPageName(id))}</span><span>${id === 'me' ? '우리 가정' : '하나님의 나라'}</span></li>`; }).join('')}</ol></section>`;
   }
   const psPageName = id => id.startsWith('f:') ? (famById(id.slice(2)) || {}).name || '' : id === 'me' ? '우리 가정' : topicOf(id).name;
   const musicBtn = () => `<span class="pss-mus"><button class="pss-music${PSET.music ? ' on' : ''}" data-act="psmusic" aria-pressed="${PSET.music}">♪ <span class="trk">${PSET.music ? HYMNS[PSET.track].label : '음악 꺼짐'}</span></button>${PSET.music ? '<button class="pss-music" data-act="psnexttrack" aria-label="다음 곡">다음 곡 ›</button>' : ''}</span>`;
@@ -827,6 +859,8 @@ body.praying .tabs { display: none; }
         if (b.dataset.act === 'end') toast('마쳤어요. 지난 기록에는 남아요.');
         return save(() => api(b.dataset.act === 'end' ? 'endItem' : 'deleteItem', { id }));
       }
+      case 'nexttoday': { const fams = roomFams(), i = fams.findIndex(f => f.id === S.todayId); pickToday(fams, i + 1, S.todayId); return render(); }
+      case 'cordpick': S.todayId = v; render(); { const c = document.querySelector('.card.today'); if (c) c.scrollIntoView({ block: 'nearest', behavior: 'smooth' }); } return;
       case 'pskind': case 'pstopic': {
         const L = b.dataset.act === 'pskind' ? PSET.kinds : PSET.topics, i = L.indexOf(v);
         i >= 0 ? L.splice(i, 1) : L.push(v); savePset(); return render();
