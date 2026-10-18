@@ -33,8 +33,10 @@ const SCOPES = ['room', 'leader', 'family'];
 
 // ── 요청 받기 ─────────────────────────────────────────────
 
+// 서버 코드를 고칠 때마다 바꾼다. 웹 앱 주소를 열면 보여서, 새 버전으로 배포됐는지 확인할 수 있다
+const VERSION = '2026-10-18 가져오기·예시 지우기';
 function doGet() {
-  return ContentService.createTextOutput('코이데 서버가 켜져 있어요.');
+  return ContentService.createTextOutput('코이데 서버가 켜져 있어요. (버전: ' + VERSION + ')');
 }
 
 function doPost(e) {
