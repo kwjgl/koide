@@ -726,7 +726,7 @@ h3 { font-size: 1.02em; font-weight: 600; margin: 0; }
       <div class="col side"><section class="card">
         <label class="label" for="add-t">새 기도제목 쓰기</label>
         <textarea id="add-t" class="field" rows="4" placeholder="${solo() ? '예)&#10;졸업 논문을 잘 마무리하도록&#10;가족ㅡ할머니 수술이 잘 끝나도록' : '예)&#10;남편ㅡ회사 일이 바빠도 지치지 않도록&#10;' + esc(mine.kids[0] || '아이') + 'ㅡ새 반에 잘 적응하도록'}">${esc(S.draft || '')}</textarea>
-        <p class="hint">한 줄에 하나씩 쓰면 나뉘어요. 카톡에 쓰던 글을 그대로 붙여 넣어도 돼요.</p>
+        ${tipOn('write') ? `<div class="coach" role="note"><p>한 줄에 하나씩 쓰면 나뉘어요. 카톡에 쓰던 글을 그대로 붙여 넣어도 돼요.</p><button data-act="tip" data-v="write">알겠어요</button></div>` : ''}
         <div class="actions"><button class="btn" data-act="split">항목으로 나누기</button><button class="link" data-act="sample">예시 넣어 보기</button></div>
         ${P ? `<div class="preview"><p class="hint">${P.length}개 항목으로 나눴어요. 앞에 쓴 이름표로 대상을 붙였어요. 빼야 할 줄은 ×를 눌러요.</p>
           <ul class="items">${P.map((x, k) => `<li class="item s-room"><span class="tgt">${esc(x.target)}</span><div class="item-body"><p class="txt">${esc(x.text)}</p></div><button class="rm-x" data-act="prevrm" data-v="${k}" aria-label="이 항목 빼기" title="빼기">${ICON.x}</button></li>`).join('')}</ul>
