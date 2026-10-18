@@ -69,15 +69,15 @@
       return res(404, {});
     }
   };
-  const DEMO_NICK = { 김도윤: '도윤아빠', 이수아: '수아', 박민재: '민재', 서준호: '준호아빠' };
+  const DEMO_NICK = { 김도윤: '도윤아빠', 이수아: '수아', 박민재: '민재', 서준호: '준호아빠', 윤하람: '하람' };
 
-  // 처음 열면 예시 데이터를 넣고, 김도윤(리더)과 박민재(회원)는 이미 연결된 것으로 둔다
+  // 처음 열면 예시 데이터를 넣고, 김도윤(청장년부 리더·관리자), 박민재(회원), 윤하람(청년부 리더·관리자)은 이미 연결된 것으로 둔다
   window.koideDemo = {
     ready() {
       if (!db['연결']) {
         setup(); sampleData();
         const today = Utilities.formatDate(new Date(), 'Asia/Seoul', 'yyyy-MM-dd');
-        [['김도윤', 'F1'], ['박민재', 'F2']].forEach(([p, f]) => db['연결'].push(['d-' + p, DEMO_NICK[p], f, p, '연결', today, '데모', today]));
+        [['김도윤', 'F1'], ['박민재', 'F2'], ['윤하람', 'F8']].forEach(([p, f]) => db['연결'].push(['d-' + p, DEMO_NICK[p], f, p, '연결', today, '데모', today]));
         save();
       }
     },

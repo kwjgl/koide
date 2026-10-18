@@ -7,6 +7,8 @@
  * - 로그인: 카카오 로그인으로 받은 code를 여기서 카카오에 직접 확인하고, 앱의 로그인 표시(30일)를 내준다
  * - 연결: 카카오 계정을 가정 안의 실제 사람(김도윤/이수아)과 잇고, 처음 연결은 리더가 승인한다
  * - 기도제목: 달마다 쌓는다. 그 달 기도제목이 없으면 지난달 것을 이어 붙인다(월초 이월)
+ * - 부서: 교회 > 부서(청장년부, 청년부) > 소그룹(사랑방, 순) > 가정 또는 개인. 부서마다 소그룹 이름과 단위가 다르고,
+ *   관리자는 자기 부서만 관리한다. 부서 탭은 처음 요청 때 저절로 생기고, 예전 사랑방은 모두 청장년부로 들어간다
  *
  * 스크립트 속성(프로젝트 설정 > 스크립트 속성):
  *   KAKAO_REST_KEY       카카오 개발자 앱의 REST API 키
@@ -19,7 +21,8 @@ const SESSION_DAYS = 30;
 
 // 시트 이름과 칸. 칸 이름(오른쪽)은 시트 첫 줄에 그대로 쓰여서 사람이 시트를 열어도 읽을 수 있다
 const SCHEMA = {
-  rooms: ['사랑방', [['id', '사랑방ID'], ['name', '이름'], ['order', '순서']]],
+  depts: ['부서', [['id', '부서ID'], ['name', '이름'], ['group', '소그룹 이름'], ['unit', '단위'], ['order', '순서']]],
+  rooms: ['사랑방', [['id', '사랑방ID'], ['name', '이름'], ['order', '순서'], ['deptId', '부서ID']]],
   families: ['가정', [['id', '가정ID'], ['name', '이름'], ['kids', '자녀'], ['status', '상태'], ['admin', '관리자']]],
   roster: ['편성', [['year', '연도'], ['roomId', '사랑방ID'], ['familyId', '가정ID'], ['role', '역할']]],
   links: ['연결', [['kakaoId', '카카오ID'], ['nick', '닉네임'], ['familyId', '가정ID'], ['person', '사람'], ['status', '상태'], ['requestedAt', '요청일'], ['approvedBy', '승인한 사람'], ['lastSeen', '마지막 접속']]],
@@ -30,11 +33,13 @@ const SCHEMA = {
   posts: ['카톡 공유', [['roomId', '사랑방ID'], ['familyId', '가정ID'], ['date', '올린 날'], ['by', '올린 사람']]]
 };
 const SCOPES = ['room', 'leader', 'family'];
+// 부서 탭이 비어 있을 때 만드는 첫 부서. 단위: 가정(부부·자녀) 또는 개인(한 사람)
+const FIRST_DEPT = { id: 'D1', name: '청장년부', group: '사랑방', unit: '가정', order: 1 };
 
 // ── 요청 받기 ─────────────────────────────────────────────
 
 // 서버 코드를 고칠 때마다 바꾼다. 웹 앱 주소를 열면 보여서, 새 버전으로 배포됐는지 확인할 수 있다
-const VERSION = '2026-10-20 우리 가정을 위한 기도';
+const VERSION = '2026-10-20 부서·우리 가정을 위한 기도';
 function doGet() {
   return ContentService.createTextOutput('코이데 서버가 켜져 있어요. (버전: ' + VERSION + ')');
 }
@@ -57,10 +62,10 @@ function doPost(e) {
 const ACTIONS = {
   login: login_,
   me: body => meInfo_(who_(body)),
-  // 앱을 열 때 한 번에: 나 + (연결됐으면 이번 달, 연결 전이면 사랑방 목록). 서버와 두 번 이야기하던 것을 한 번으로
+  // 앱을 열 때 한 번에: 나 + (연결됐으면 이번 달, 연결 전이면 부서와 사랑방 목록). 서버와 두 번 이야기하던 것을 한 번으로
   start: body => {
     const w = who_(body), me = meInfo_(w);
-    if (!w.link) return { me, rooms: roomsWithFamilies_() };
+    if (!w.link) return { me, depts: deptsWithRooms_() };
     if (w.link.status === '연결') return { me, month: monthView_(memberFrom_(w)) };
     return { me };
   },
@@ -133,7 +138,7 @@ function who_(body) {
   return { kakaoId: a.kakaoId, nick: a.nick, link };
 }
 
-// 연결이 승인된 회원: 가정, 올해 사랑방, 역할(회원/리더/코리더), 관리자 여부
+// 연결이 승인된 회원: 가정, 올해 사랑방과 그 부서, 역할(회원/리더/코리더), 관리자 여부(자기 부서)
 function member_(body) { return memberFrom_(who_(body)); }
 function memberFrom_(w) {
   if (!w.link || w.link.status !== '연결') throw fail_('notLinked', '아직 리더의 승인을 기다리고 있어요.');
@@ -141,7 +146,8 @@ function memberFrom_(w) {
   const r = read_('roster').find(x => String(x.year) === year_() && x.familyId === w.link.familyId);
   if (!fam || !r) throw fail_('notLinked', '올해 편성에서 우리 가정을 찾지 못했어요. 리더에게 알려 주세요.');
   if (w.link.lastSeen !== today_()) { w.link.lastSeen = today_(); update_('links', w.link); }
-  return { kakaoId: w.kakaoId, person: w.link.person, familyId: fam.id, family: fam, roomId: r.roomId, role: r.role, admin: yes_(fam.admin) };
+  const dept = deptOfRoom_(r.roomId);
+  return { kakaoId: w.kakaoId, person: w.link.person, familyId: fam.id, family: fam, roomId: r.roomId, deptId: dept.id, dept: deptInfo_(dept), role: r.role, admin: yes_(fam.admin) };
 }
 
 function leaderOrAdmin_(body) {
@@ -165,10 +171,15 @@ function meInfo_(w) {
 function roomsWithFamilies_() {
   const fams = read_('families'), roster = read_('roster').filter(r => String(r.year) === year_());
   return read_('rooms').sort((a, b) => a.order - b.order).map(r => ({
-    id: r.id, name: r.name,
+    id: r.id, name: r.name, deptId: deptOfRoom_(r.id).id,
     families: roster.filter(x => x.roomId === r.id).map(x => fams.find(f => f.id === x.familyId))
       .filter(f => f && f.status === '활동').map(f => ({ id: f.id, name: f.name }))
   }));
+}
+// 첫 접속에서 고르는 순서대로: 부서 → 그 부서의 사랑방 → 가정
+function deptsWithRooms_() {
+  const rooms = roomsWithFamilies_();
+  return depts_().map(d => Object.assign(deptInfo_(d), { rooms: rooms.filter(r => r.deptId === d.id) })).filter(d => d.rooms.length);
 }
 
 // 이미 있는 가정에 연결(familyId + person) 또는 새 가정 신청(newFamily: {a, b, kids}, roomId)
@@ -182,7 +193,9 @@ function requestLink_(body) {
       const a = String(body.newFamily.a || '').trim(), b = String(body.newFamily.b || '').trim();
       if (!a || !read_('rooms').some(r => r.id === body.roomId)) throw fail_('bad', '이름과 사랑방을 확인해 주세요.');
       familyId = 'F' + Date.now().toString(36);
-      append_('families', { id: familyId, name: b ? a + ' · ' + b : a, kids: String(body.newFamily.kids || ''), status: '승인 대기', admin: '' });
+      // 개인 단위 부서(청년부)는 한 사람이 한 줄이라 배우자·자녀를 받지 않는다
+      const one = deptOfRoom_(body.roomId).unit === '개인';
+      append_('families', { id: familyId, name: b && !one ? a + ' · ' + b : a, kids: one ? '' : String(body.newFamily.kids || ''), status: '승인 대기', admin: '' });
       append_('roster', { year: year_(), roomId: body.roomId, familyId, role: '회원' });
       person = a;
     } else {
@@ -203,10 +216,11 @@ function requestLink_(body) {
   });
 }
 
-// 리더(관리자는 모든 사랑방): 승인을 기다리는 요청과, 사랑방 가정마다 연결된 사람
+// 리더(관리자는 우리 부서의 모든 사랑방): 승인을 기다리는 요청과, 사랑방 가정마다 연결된 사람
 function pendingView_(c) {
   const fams = read_('families'), links = read_('links'), roster = read_('roster').filter(r => String(r.year) === year_());
-  const mine = roster.filter(r => c.admin || r.roomId === c.roomId).map(r => r.familyId);
+  const deptRooms = roomIdsOfDept_(c.deptId);
+  const mine = roster.filter(r => c.admin ? deptRooms.indexOf(r.roomId) >= 0 : r.roomId === c.roomId).map(r => r.familyId);
   const famOf = id => fams.find(f => f.id === id) || {};
   const requests = links.filter(l => l.status === '요청' && mine.indexOf(l.familyId) >= 0).map(l => ({
     kakaoId: String(l.kakaoId), nick: l.nick, person: l.person, familyId: l.familyId, familyName: famOf(l.familyId).name,
@@ -224,7 +238,8 @@ function pendingView_(c) {
 
 // 기존 시트 가져오기(관리자): 사랑방 탭 하나를 화면에서 나눠 보낸 것을 이번 달 기도제목으로 넣는다.
 //  body: { roomName, families: [{ a, b, kids: [..], items: [{ target, text }] }] }
-//  없는 사랑방·가정은 만들고, 이미 있는 가정은 이번 달 기도제목을 가져온 것으로 바꾼다. 실제 교인 내용은 이 시트에만 남는다
+//  없는 사랑방·가정은 만들고, 이미 있는 가정은 이번 달 기도제목을 가져온 것으로 바꾼다. 실제 교인 내용은 이 시트에만 남는다.
+//  사랑방과 가정은 관리자의 부서 안에서만 찾고 만든다(다른 부서에 같은 이름이 있어도 섞이지 않게)
 function importRoom_(body) {
   const c = member_(body);
   if (!c.admin) throw fail_('forbidden', '관리자만 가져올 수 있어요.');
@@ -233,18 +248,19 @@ function importRoom_(body) {
   return withLock_(() => {
     const m = month_(), y = year_(), now = new Date();
     const rooms = read_('rooms');
-    let room = rooms.find(r => r.name === roomName);
+    let room = rooms.find(r => r.name === roomName && deptOfRoom_(r.id).id === c.deptId);
     if (!room) {
-      room = { id: 'R' + Date.now().toString(36), name: roomName, order: rooms.reduce((a, r) => Math.max(a, r.order), 0) + 1 };
+      room = { id: 'R' + Date.now().toString(36), name: roomName, order: rooms.reduce((a, r) => Math.max(a, r.order), 0) + 1, deptId: c.deptId };
       append_('rooms', room);
     }
+    const deptFams = read_('roster').filter(r => roomIdsOfDept_(c.deptId).indexOf(r.roomId) >= 0).map(r => r.familyId);
     let made = 0, replaced = 0, count = 0;
     const newFams = [], newRoster = [], newItems = [], monthly = [], drop = [];
     list.forEach((f, n) => {
       const a = String(f.a || '').trim(), b = String(f.b || '').trim();
       if (!a) return;
       const name = b ? a + ' · ' + b : a, kids = (f.kids || []).map(k => String(k).trim()).filter(Boolean);
-      let fam = read_('families').find(x => x.name === name && x.status === '활동');
+      let fam = read_('families').find(x => x.name === name && x.status === '활동' && deptFams.indexOf(x.id) >= 0);
       if (fam) {
         const had = fam.kids ? String(fam.kids).split(/\s*,\s*/) : [];
         const all = had.concat(kids.filter(k => had.indexOf(k) < 0));
@@ -307,7 +323,8 @@ function unlink_(body) {
 }
 
 function canManage_(c, familyId) {
-  return c.admin || read_('roster').some(r => String(r.year) === year_() && r.familyId === familyId && r.roomId === c.roomId);
+  const rooms = c.admin ? roomIdsOfDept_(c.deptId) : [c.roomId];
+  return read_('roster').some(r => String(r.year) === year_() && r.familyId === familyId && rooms.indexOf(r.roomId) >= 0);
 }
 
 // ── 이번 달 ──────────────────────────────────────────────
@@ -365,7 +382,7 @@ function monthView_(c) {
   // 이번 달 사랑방의 다른 가정 중 몇 가정이 우리 가정을 위해 기도했는지(누가 했는지는 알리지 않는다)
   const by = {}; read_('prayers').forEach(p => { if (p.familyId === c.familyId && p.by !== c.familyId && fmtMonth_(p.at) === m) by[p.by] = true; });
   const received = { n: Object.keys(by).length, of: Math.max(0, families.length - 1) };
-  return { month: m, room: { id: room.id, name: room.name }, me: { person: c.person, familyId: c.familyId, role: c.role, admin: c.admin }, families, received };
+  return { month: m, dept: c.dept, room: { id: room.id, name: room.name }, me: { person: c.person, familyId: c.familyId, role: c.role, admin: c.admin }, families, received };
 }
 
 // 월초 이월: 이번 달 기도제목이 없는 가정은 지난달 것(마치지 않은 것)을 이어 붙이고 "지난달과 같음"으로 둔다
@@ -390,7 +407,7 @@ function ensureMonth_(roomId, m) {
 
 function saveItem_(body) {
   const c = member_(body), m = month_();
-  const text = String(body.text || '').trim(), target = String(body.target || '우리 가정').trim().slice(0, 10);
+  const text = String(body.text || '').trim(), target = String(body.target || (c.dept.unit === '개인' ? '나' : '우리 가정')).trim().slice(0, 10);
   const scope = SCOPES.indexOf(body.scope) >= 0 ? body.scope : 'room';
   if (!text) throw fail_('bad', '내용을 적어 주세요.');
   return withLock_(() => {
@@ -460,9 +477,19 @@ function setup() {
     let sh = ss.getSheetByName(name);
     if (!sh) sh = ss.insertSheet(name);
     if (sh.getLastRow() === 0) { sh.getRange(1, 1, 1, cols.length).setValues([cols.map(c => c[1])]); sh.setFrozenRows(1); }
+    else {
+      // 새 버전에서 늘어난 칸(사랑방의 부서ID 등)은 첫 줄 끝에 이름을 더한다. 있던 줄은 그대로다
+      const head = sh.getRange(1, 1, 1, cols.length).getValues()[0];
+      cols.forEach((c, k) => { if (head[k] === '' || head[k] === undefined) sh.getRange(1, k + 1, 1, 1).setValues([[c[1]]]); });
+    }
   });
   const first = ss.getSheets()[0];
   if (first && !SCHEMA_NAMES_().includes(first.getName()) && first.getLastRow() === 0) ss.deleteSheet(first);
+  // 부서가 없으면 첫 부서(청장년부)를 만들고, 부서가 비어 있는 사랑방을 모두 그 부서로 둔다
+  Object.keys(READ_CACHE_).forEach(k => delete READ_CACHE_[k]);
+  if (!read_('depts').length) append_('depts', FIRST_DEPT);
+  const d1 = read_('depts').sort((a, b) => a.order - b.order)[0];
+  read_('rooms').filter(r => !r.deptId).forEach(r => { r.deptId = d1.id; update_('rooms', r); });
   return '시트를 만들었어요.';
 }
 
@@ -471,11 +498,18 @@ function sampleData() {
   setup();
   if (read_('rooms').length) return '이미 데이터가 있어서 넣지 않았어요.';
   const y = year_(), m = month_(), prev = prevMonth_(m);
-  append_('rooms', { id: 'R1', name: '2-20 사랑방', order: 1 });
-  append_('rooms', { id: 'R2', name: '2-21 사랑방', order: 2 });
+  const d1 = read_('depts')[0].id;
+  if (!read_('depts').some(d => d.name === '청년부')) append_('depts', { id: 'D2', name: '청년부', group: '순', unit: '개인', order: 2 });
+  const d2 = read_('depts').find(d => d.name === '청년부').id;
+  append_('rooms', { id: 'R1', name: '2-20 사랑방', order: 1, deptId: d1 });
+  append_('rooms', { id: 'R2', name: '2-21 사랑방', order: 2, deptId: d1 });
+  append_('rooms', { id: 'R3', name: '1순', order: 3, deptId: d2 });
+  append_('rooms', { id: 'R4', name: '2순', order: 4, deptId: d2 });
   const fams = [
     ['F1', '김도윤 · 이수아', '하준', '예', 'R1', '리더'], ['F2', '박민재 · 최예린', '서윤', '', 'R1', '회원'], ['F3', '정우진 · 한지민', '', '', 'R1', '회원'],
-    ['F4', '오세훈 · 윤가은', '도하', '', 'R1', '코리더'], ['F5', '서준호 · 임채원', '', '', 'R1', '회원'], ['F6', '임재현 · 고은비', '', '', 'R2', '리더'], ['F7', '송민석 · 유하린', '', '', 'R2', '회원']
+    ['F4', '오세훈 · 윤가은', '도하', '', 'R1', '코리더'], ['F5', '서준호 · 임채원', '', '', 'R1', '회원'], ['F6', '임재현 · 고은비', '', '', 'R2', '리더'], ['F7', '송민석 · 유하린', '', '', 'R2', '회원'],
+    // 청년부: 한 사람이 한 줄
+    ['F8', '윤하람', '', '예', 'R3', '리더'], ['F9', '장서진', '', '', 'R3', '회원'], ['F10', '문태오', '', '', 'R3', '회원'], ['F11', '배유나', '', '', 'R4', '리더']
   ];
   fams.forEach(([id, name, kids, admin, roomId, role]) => {
     append_('families', { id, name, kids, status: '활동', admin });
@@ -489,13 +523,18 @@ function sampleData() {
   it('F3', 'R1', '아내', '임신 기간 건강하게 지내도록', 'room', 1, '한지민');
   it('F4', 'R1', '부모님', '부모님이 신앙을 갖도록', 'room', 1, '오세훈');
   it('F6', 'R2', '우리 가정', '새 직장에 잘 적응하도록', 'room', 1, '임재현');
+  it('F8', 'R3', '나', '졸업 논문을 잘 마무리하도록', 'room', 1, '윤하람');
+  it('F8', 'R3', '가족', '할머니 수술이 잘 끝나도록', 'leader', 2, '윤하람');
+  it('F9', 'R3', '학교·직장', '첫 직장에서 좋은 동료를 만나도록', 'room', 1, '장서진');
+  it('F10', 'R3', '나', '매일 아침 말씀 묵상을 이어 가도록', 'room', 1, '문태오');
   return '예시 데이터를 넣었어요. ' + m + '월 기도제목은 처음 열 때 ' + prev + '에서 이어 붙여져요.';
 }
 
 // 실제로 쓰기 전에 한 번: sampleData로 넣은 예시 가정(가정ID와 이름이 모두 같을 때만)과 그 기도제목·편성·월별 상태·
-//  기도기록·카톡 공유·연결을 지우고, 가정이 남지 않은 예시 사랑방도 지운다. Apps Script 편집기에서 실행한다.
+//  기도기록·카톡 공유·연결을 지우고, 가정이 남지 않은 예시 사랑방도 지운다. 부서(청장년부·청년부)는 그대로 둔다. Apps Script 편집기에서 실행한다.
 //  예시 가정에 연결돼 있던 관리자의 카카오 계정은 기억해 두었다가, 앱에서 실제 우리 가정을 고르면 승인 없이 연결하고 관리자로 만든다
-const SAMPLE_FAMILIES_ = [['F1', '김도윤 · 이수아'], ['F2', '박민재 · 최예린'], ['F3', '정우진 · 한지민'], ['F4', '오세훈 · 윤가은'], ['F5', '서준호 · 임채원'], ['F6', '임재현 · 고은비'], ['F7', '송민석 · 유하린']];
+const SAMPLE_FAMILIES_ = [['F1', '김도윤 · 이수아'], ['F2', '박민재 · 최예린'], ['F3', '정우진 · 한지민'], ['F4', '오세훈 · 윤가은'], ['F5', '서준호 · 임채원'], ['F6', '임재현 · 고은비'], ['F7', '송민석 · 유하린'],
+  ['F8', '윤하람'], ['F9', '장서진'], ['F10', '문태오'], ['F11', '배유나']];
 function clearSampleData() {
   return withLock_(() => {
     const fams = read_('families');
@@ -507,11 +546,26 @@ function clearSampleData() {
     del('items', mine); del('roster', mine); del('monthly', mine); del('posts', mine); del('links', mine);
     del('prayers', p => mine(p) || ids.indexOf(p.by) >= 0);
     del('families', f => ids.indexOf(f.id) >= 0);
-    del('rooms', r => (r.id === 'R1' || r.id === 'R2') && !read_('roster').some(x => x.roomId === r.id));
+    del('rooms', r => ['R1', 'R2', 'R3', 'R4'].indexOf(r.id) >= 0 && !read_('roster').some(x => x.roomId === r.id));
     if (admins.length) PropertiesService.getScriptProperties().setProperty('NEXT_ADMIN', admins.join(','));
     return '예시 가정 ' + ids.length + '곳을 지웠어요.' + (admins.length ? ' 앱을 다시 열어 실제 우리 가정을 고르면 바로 연결되고 관리자가 돼요.' : '');
   });
 }
+
+// ── 부서 ────────────────────────────────────────────────
+
+function depts_() {
+  const seen = {};
+  return read_('depts').sort((a, b) => a.order - b.order).filter(d => !seen[d.id] && (seen[d.id] = true));
+}
+// 사랑방의 부서. 부서ID가 비었거나 없는 부서면 첫 부서로 본다
+function deptOfRoom_(roomId) {
+  const room = read_('rooms').find(r => r.id === roomId) || {}, all = depts_();
+  return all.find(d => d.id === room.deptId) || all[0] || FIRST_DEPT;
+}
+function roomIdsOfDept_(deptId) { return read_('rooms').filter(r => deptOfRoom_(r.id).id === deptId).map(r => r.id); }
+// 화면에 주는 부서: 소그룹 이름과 단위로 화면의 말이 바뀐다
+function deptInfo_(d) { return { id: d.id, name: d.name, group: d.group || '사랑방', unit: d.unit === '개인' ? '개인' : '가정' }; }
 
 // ── 시트 읽고 쓰기 ────────────────────────────────────────
 

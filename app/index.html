@@ -381,7 +381,7 @@ h3 { font-size: 1.02em; font-weight: 600; margin: 0; }
   const writeCache = () => { try { localStorage.setItem(CACHE, JSON.stringify({ me: S.me, month: S.month })); } catch (e) { /* 무시 */ } };
 
   // 화면 상태
-  const S = { openItems: new Set(), openFams: new Set(), view: 'loading', me: null, rooms: null, pick: {}, month: null, tab: 'home', pending: null, busy: false };
+  const S = { openItems: new Set(), openFams: new Set(), view: 'loading', me: null, depts: null, rooms: null, pick: {}, month: null, tab: 'home', pending: null, busy: false };
 
   // ── 서버 부르기: 데모는 브라우저 안의 서버 코드, 실제는 Apps Script 웹 앱 ──
   async function api(action, data) {
@@ -438,7 +438,12 @@ h3 { font-size: 1.02em; font-weight: 600; margin: 0; }
       // start가 없는 예전 서버 코드여도 열리게 예전 방식(me → month)으로 이어 간다
       try { r = await api('start'); } catch (e) { if (e.code !== 'bad') throw e; r = { me: await api('me') }; }
       S.me = r.me;
-      if (!S.me.link) { S.view = 'room'; S.pick = {}; S.rooms = r.rooms || await api('rooms'); }
+      if (!S.me.link) {
+        // 부서를 모르는 예전 서버면 사랑방 목록을 부서 하나로 본다
+        S.depts = r.depts || [Object.assign({ id: '', name: '' }, DEPT0, { rooms: r.rooms || await api('rooms') })];
+        S.pick = {};
+        if (S.depts.length === 1) pickDept(S.depts[0].id); else S.view = 'dept';
+      }
       else if (S.me.link.status === '요청') S.view = 'wait';
       else { const m = r.month || await api('month'); if (!waiting) S.month = m; S.view = 'app'; }
     } catch (e) {
@@ -459,8 +464,23 @@ h3 { font-size: 1.02em; font-weight: 600; margin: 0; }
     location.href = 'https://kauth.kakao.com/oauth/authorize?response_type=code&client_id=' + encodeURIComponent(CFG.KAKAO_REST_KEY) + '&redirect_uri=' + encodeURIComponent(CFG.REDIRECT_URI);
   }
 
+  // ── 부서마다 다른 말 ──
+  // 부서 탭의 소그룹 이름(사랑방, 순)과 단위(가정, 개인)로 화면의 말을 바꾼다. 개인 단위는 청년부처럼 한 사람이 한 줄
+  const DEPT0 = { group: '사랑방', unit: '가정' };
+  const UNIT = {
+    가정: { one: '가정', mine: '우리 가정', only: '우리 가정만', count: '가정', members: '가정', self: '우리 가정',
+      targets: kids => ['우리 가정', '남편', '아내', ...kids, '부모님', '기타'] },
+    개인: { one: '사람', mine: '나', only: '나만', count: '명', members: '식구', self: '나',
+      targets: () => ['나', '가족', '친구', '학교·직장', '기타'] }
+  };
+  const dept = () => (S.view === 'app' && S.month && S.month.dept) || (S.depts && S.depts.find(d => d.id === S.pick.deptId)) || DEPT0;
+  const words = () => UNIT[dept().unit] || UNIT.가정;
+  const solo = () => dept().unit === '개인';
+  const grp = () => dept().group || '사랑방';
+  function pickDept(id) { S.pick = { deptId: id }; S.rooms = S.depts.find(d => d.id === id).rooms; S.view = 'room'; }
+
   // ── 화면 ──
-  const SCOPE = { room: '사랑방 공개', leader: '리더·목사님', family: '우리 가정만' };
+  const scopeName = k => ({ room: grp() + ' 공개', leader: '리더·목사님', family: words().only })[k];
   const NEXT_SCOPE = { room: 'leader', leader: 'family', family: 'room' };
   const callName = n => { const g = String(n).slice(1), c = g.charCodeAt(g.length - 1) - 0xAC00; return g + (c >= 0 && c % 28 ? '이' : '가'); };
   const whoDid = by => !by || (S.me && by === S.me.person) ? '내가' : callName(by);
@@ -488,27 +508,37 @@ h3 { font-size: 1.02em; font-weight: 600; margin: 0; }
       ${DEMO ? `<div class="choices">
           <button class="kakao" data-act="login" data-v="새 사람${Date.now() % 1000}">${ICON.bubble}카카오로 시작하기 (처음 오는 사람)</button>
           <button class="choice" data-act="login" data-v="김도윤">데모: 김도윤으로 들어가기 (2-20 리더)</button>
-          <button class="choice" data-act="login" data-v="박민재">데모: 박민재로 들어가기 (회원)</button></div>
+          <button class="choice" data-act="login" data-v="박민재">데모: 박민재로 들어가기 (회원)</button>
+          <button class="choice" data-act="login" data-v="윤하람">데모: 윤하람으로 들어가기 (청년부 1순 리더)</button></div>
           <p class="hint">데모 모드에서는 카카오 대신 이 버튼으로 사람을 골라 들어가요.</p>`
         : `<button class="kakao" data-act="login">${ICON.bubble}카카오로 시작하기</button>`}`,
-    room: () => `${steps(1)}<p class="eyebrow">처음 한 번만 확인할게요</p><h1>어느 사랑방인가요?</h1>
-      <div class="choices">${(S.rooms || []).map(r => `<button class="choice" data-act="pickroom" data-v="${esc(r.id)}">${esc(r.name)}</button>`).join('')}</div>`,
+    dept: () => `${steps(1)}<p class="eyebrow">처음 한 번만 확인할게요</p><h1>어느 부서인가요?</h1>
+      <div class="choices">${(S.depts || []).map(d => `<button class="choice" data-act="pickdept" data-v="${esc(d.id)}">${esc(d.name)}</button>`).join('')}</div>`,
+    room: () => `${steps(1)}<p class="eyebrow">${dept().name ? esc(dept().name) : '처음 한 번만 확인할게요'}</p><h1>어느 ${esc(grp())}인가요?</h1>
+      <div class="choices">${(S.rooms || []).map(r => `<button class="choice" data-act="pickroom" data-v="${esc(r.id)}">${esc(r.name)}</button>`).join('')}</div>
+      ${S.depts && S.depts.length > 1 ? '<button class="link" data-act="back" data-v="dept">뒤로</button>' : ''}`,
     family: () => { const r = S.rooms.find(x => x.id === S.pick.roomId);
-      return `${steps(2)}<p class="eyebrow">${esc(r.name)}</p><h1>우리 가정을 골라 주세요</h1>
+      return `${steps(2)}<p class="eyebrow">${esc(r.name)}</p><h1>${solo() ? '내 이름을 골라 주세요' : '우리 가정을 골라 주세요'}</h1>
       <div class="choices">${r.families.map(f => `<button class="choice" data-act="pickfam" data-v="${esc(f.id)}">${esc(f.name)}</button>`).join('')}
-        <button class="choice new" data-act="newfam">목록에 우리 가정이 없어요 · 새로 왔어요</button></div>
+        <button class="choice new" data-act="newfam">${solo() ? '목록에 내 이름이 없어요 · 새로 왔어요' : '목록에 우리 가정이 없어요 · 새로 왔어요'}</button></div>
       <button class="link" data-act="back" data-v="room">뒤로</button>`; },
     who: () => { const f = famPicked();
       return `${steps(3)}<p class="eyebrow">${esc(f.name)} 가정</p><h1>누구세요?</h1>
       <div class="choices">${f.name.split(' · ').map(n => `<button class="choice" data-act="pickwho" data-v="${esc(n)}">${esc(n)}</button>`).join('')}</div>
       <p class="hint">우리 가정 안에서 누가 고쳤는지 보여 줄 때 써요.</p>
       <button class="link" data-act="back" data-v="family">뒤로</button>`; },
-    consent: () => `${steps(4)}<p class="eyebrow">${S.pick.newFamily ? '새 가정 신청' : esc(famPicked().name) + ' 가정 · ' + esc(S.pick.person)}</p><h1>기도제목은 이렇게 지켜요</h1>
+    consent: () => `${steps(4)}<p class="eyebrow">${S.pick.newFamily ? (solo() ? '새로 왔어요' : '새 가정 신청') : solo() ? esc(S.pick.person) : esc(famPicked().name) + ' 가정 · ' + esc(S.pick.person)}</p><h1>기도제목은 이렇게 지켜요</h1>
       ${consentList()}
       <button class="btn wide" data-act="request" ${S.busy ? 'disabled' : ''}>동의하고 연결 요청</button>
       <p class="hint">동의하지 않으면 앱을 쓸 수 없어요. 궁금한 점은 리더나 목사님께 물어봐 주세요.</p>
       <button class="link" data-act="back" data-v="${S.pick.newFamily ? 'newfam' : 'who'}">뒤로</button>`,
-    newfam: () => `${steps(2)}<p class="eyebrow">새 가정 신청</p><h1>우리 가정을 알려 주세요</h1>
+    newfam: () => solo() ? `${steps(2)}<p class="eyebrow">새로 왔어요</p><h1>이름을 알려 주세요</h1>
+      <form data-form="newfam">
+        <label class="f" for="nf-a">이름</label><input id="nf-a" class="field" required maxlength="10" value="${esc((S.pick.newFamily || {}).a || '')}">
+        <p class="hint">신청하면 리더가 확인한 뒤 승인해요.</p>
+        <button class="btn wide" type="submit" style="margin-top:12px">다음</button></form>
+      <button class="link" data-act="back" data-v="family">뒤로</button>`
+      : `${steps(2)}<p class="eyebrow">새 가정 신청</p><h1>우리 가정을 알려 주세요</h1>
       <form data-form="newfam">
         <label class="f" for="nf-a">남편 또는 본인 이름</label><input id="nf-a" class="field" required maxlength="10" value="${esc((S.pick.newFamily || {}).a || '')}">
         <label class="f" for="nf-b">아내 이름 · 1인 가정이면 비워 두세요</label><input id="nf-b" class="field" maxlength="10" value="${esc((S.pick.newFamily || {}).b || '')}">
@@ -517,19 +547,19 @@ h3 { font-size: 1.02em; font-weight: 600; margin: 0; }
         <button class="btn wide" type="submit" style="margin-top:12px">다음</button></form>
       <button class="link" data-act="back" data-v="family">뒤로</button>`,
     wait: () => `${steps(4)}<p class="eyebrow">${esc(S.me.familyName || '')}</p><h1>연결을 요청했어요</h1>
-      <p>${esc(S.me.link.person)} 님의 카카오 계정을 <b>${esc(S.me.familyName)}</b>에 연결해 달라고 리더에게 보냈어요. 승인되면 바로 열려요.</p>
+      <p>${S.me.familyName && S.me.familyName !== S.me.link.person ? `${esc(S.me.link.person)} 님의 카카오 계정을 <b>${esc(S.me.familyName)}</b>에 연결해 달라고` : `${esc(S.me.link.person)} 님의 카카오 계정을 연결해 달라고`} 리더에게 보냈어요. 승인되면 바로 열려요.</p>
       <div class="wait">리더가 확인하고 있어요</div>
       <button class="btn wide" data-act="retry">승인됐는지 다시 확인</button>
-      <p class="hint">${DEMO ? '데모: 로그아웃하고 "김도윤으로 들어가기"(리더) → 더보기에서 승인해 보세요.' : '보통 하루 안에 끝나요.'}</p>
+      <p class="hint">${DEMO ? '데모: 로그아웃하고 그 부서의 리더(청장년부는 김도윤, 청년부는 윤하람)로 들어가 더보기에서 승인해 보세요.' : '보통 하루 안에 끝나요.'}</p>
       <button class="link" data-act="logout">로그아웃</button>`,
     app: () => ({ home: homeView, mine: mineView, pray: prayView, history: historyView, more: moreView, import: importView })[S.tab]()
   };
   const famPicked = () => S.rooms.find(x => x.id === S.pick.roomId).families.find(f => f.id === S.pick.familyId);
   const consentList = () => `<ul class="consent">
-      <li><b>무엇을</b><span>가정 이름, 자녀 이름, 우리 가정이 쓴 기도제목, 카카오 회원번호와 닉네임</span></li>
+      <li><b>무엇을</b><span>${solo() ? '이름, 내가 쓴 기도제목' : '가정 이름, 자녀 이름, 우리 가정이 쓴 기도제목'}, 카카오 회원번호와 닉네임</span></li>
       <li><b>어디에</b><span>교회가 관리하는 비공개 구글 시트 한 곳</span></li>
       <li><b>누가 보나</b><span>기도제목마다 고른 공개 범위대로만 보여요. 시트를 관리하는 관리자는 모두 볼 수 있어요</span></li>
-      <li><b>얼마나</b><span>교회를 떠나면 1년 뒤 내용을 지우고 개수만 남겨요. 언제든 우리 가정 기록을 지워 달라고 할 수 있어요</span></li></ul>`;
+      <li><b>얼마나</b><span>교회를 떠나면 1년 뒤 내용을 지우고 개수만 남겨요. 언제든 ${solo() ? '내' : '우리 가정'} 기록을 지워 달라고 할 수 있어요</span></li></ul>`;
 
   // 이번 달: 우리 가정 + 사랑방 가정마다 기도제목과 "기도했어요"
   const todayLabel = () => { const d = new Date(); return (d.getMonth() + 1) + '월 ' + d.getDate() + '일 ' + '일월화수목금토'[d.getDay()]; };
@@ -540,7 +570,7 @@ h3 { font-size: 1.02em; font-weight: 600; margin: 0; }
     const open = S.openItems.has(i.id);
     const dot = i.isNew ? '<i class="new-dot" title="이번 달 새 기도제목"></i><span class="sr">새 기도제목: </span>' : '';
     const tog = clamp ? `<button class="more-txt" data-act="itemtoggle" data-id="${esc(i.id)}" aria-expanded="${open}">${open ? '접기' : '더 보기'}</button>` : '';
-    const scope = i.scope !== 'room' ? `<span class="b-scope ${i.scope}">${SCOPE_ICON[i.scope]}${SCOPE[i.scope]}</span>` : '';
+    const scope = i.scope !== 'room' ? `<span class="b-scope ${i.scope}">${SCOPE_ICON[i.scope]}${scopeName(i.scope)}</span>` : '';
     return `<div class="item-body"><p class="txt${clamp && !open ? ' clamp' : ''}">${dot}${esc(i.text)}</p>${tog || scope ? `<div class="item-foot">${scope}${tog}</div>` : ''}</div>`;
   }
   function itemList(items, clamp) {
@@ -552,14 +582,16 @@ h3 { font-size: 1.02em; font-weight: 600; margin: 0; }
   // 기도했어요: 오늘 횟수(N/3)를 함께. 하루 3번이 되면 '오늘은 여기까지'
   function prayBtn(f, small, hero) {
     const t = f.today || 0, on = t > 0;
-    if (t >= 3) return `<button class="pray on${small ? ' small' : ''}${hero ? ' hero' : ''}" disabled aria-label="오늘은 이 가정을 위해 3번 기도했어요. 내일 또 누를 수 있어요">${ICON.check}${hero ? '오늘은 여기까지, 내일 또 만나요' : '오늘은 여기까지'}<span class="pray-n" aria-hidden="true">3/3</span></button>`;
+    if (t >= 3) return `<button class="pray on${small ? ' small' : ''}${hero ? ' hero' : ''}" disabled aria-label="오늘은 이 ${words().one}을 위해 3번 기도했어요. 내일 또 누를 수 있어요">${ICON.check}${hero ? '오늘은 여기까지, 내일 또 만나요' : '오늘은 여기까지'}<span class="pray-n" aria-hidden="true">3/3</span></button>`;
     return `<button class="pray${small ? ' small' : ''}${hero ? ' hero' : ''}${on ? ' on' : ''}" data-act="pray" data-v="${esc(f.id)}" aria-label="기도했어요${on ? ` (오늘 ${t}번 기도함, 하루 3번까지)` : ''}">${on ? ICON.check : ICON.hands}기도했어요${on ? `<span class="pray-n" aria-hidden="true">${t}/3</span>` : ''}</button>`;
   }
   const STATUS_LABEL = { same: '지난달 그대로', edited: '이번 달 손봄', confirmed: '그대로 확인' };
   // 우리 가정 카드의 한 줄: 이번 달 몇 가정이 우리 가정을 위해 기도했는지에 따라(누가 했는지는 보이지 않는다)
   function receivedLine() {
     const R = S.month.received || { n: 0, of: 0 };
-    const [k, t] = !R.n ? ['plain', '우리 가정 기도제목이 사랑방 가족들 화면에 돌아가며 나오고 있어요'] : R.n * 2 >= R.of ? ['deep', '사랑방 가족들이 함께 우리 가정을 위해 기도하고 있어요'] : ['soft', '사랑방 가족이 우리 가정을 위해 기도했어요'];
+    // 가정 단위는 '사랑방 가족이 우리 가정을', 개인 단위는 '순 식구가 나를'
+    const g = grp() + (solo() ? ' 식구' : ' 가족'), me = solo() ? '나를' : '우리 가정을', my = solo() ? '내' : '우리 가정';
+    const [k, t] = !R.n ? ['plain', my + ' 기도제목이 ' + g + '들 화면에 돌아가며 나오고 있어요'] : R.n * 2 >= R.of ? ['deep', g + '들이 함께 ' + me + ' 위해 기도하고 있어요'] : ['soft', g + (solo() ? '가 ' : '이 ') + me + ' 위해 기도했어요'];
     return `<p class="received r-${k}">${ICON.hands}<span>${t}</span></p>`;
   }
   function famCard(f) {
@@ -571,20 +603,20 @@ h3 { font-size: 1.02em; font-weight: 600; margin: 0; }
   function homeView() {
     const M = S.month, mine = M.families.find(f => f.own), others = M.families.filter(f => !f.own), t = todayFam();
     return `<div class="page-top"><div><p class="eyebrow">${esc(M.room.name)}</p><h1>${Number(M.month.slice(5))}월 기도제목 <span aria-hidden="true">🙏</span></h1></div><p class="date">${todayLabel()}</p></div>
-      <div class="home-grid"><div class="col side">${t ? `<section class="card today" aria-label="지금 함께 기도할 가정"><p class="today-tag">${ICON.hands}지금 함께 기도할 가정</p><h2>${esc(t.name)}</h2>
-          ${t.items.length ? itemList(S.openFams.has(t.id) ? t.items : t.items.slice(0, 4), false) : '<p class="hint">아직 올린 기도제목이 없어요. 이 가정을 떠올리며 기도해요.</p>'}
+      <div class="home-grid"><div class="col side">${t ? `<section class="card today" aria-label="지금 함께 기도할 ${words().one}"><p class="today-tag">${ICON.hands}지금 함께 기도할 ${words().one}</p><h2>${esc(t.name)}</h2>
+          ${t.items.length ? itemList(S.openFams.has(t.id) ? t.items : t.items.slice(0, 4), false) : `<p class="hint">아직 올린 기도제목이 없어요. 이 ${words().one}을 떠올리며 기도해요.</p>`}
           ${t.items.length > 4 ? `<button class="link" data-act="famtoggle" data-id="${esc(t.id)}" aria-expanded="${S.openFams.has(t.id)}">${S.openFams.has(t.id) ? '접기' : '더 보기 · ' + (t.items.length - 4) + '개'}</button>` : ''}
-          <div class="pray-hero">${t.prayed ? `<p class="pray-done">이번 달 ${esc(t.name)} 가정을 위해 ${t.prayed}번 기도했어요</p>` : ''}${prayBtn(t, false, true)}
-            <div class="actions"><button class="btn${t.today ? '' : ' ghost'}" data-act="nexttoday">다음 가정${t.today ? '으로' : ''}</button></div></div>
-          <p class="hint">앱을 열 때마다 이번 달 아직 기도하지 않은 가정부터 돌아가며 나와요.</p>
+          <div class="pray-hero">${t.prayed ? `<p class="pray-done">이번 달 ${esc(t.name)}${solo() ? ' 님' : ' 가정'}을 위해 ${t.prayed}번 기도했어요</p>` : ''}${prayBtn(t, false, true)}
+            <div class="actions"><button class="btn${t.today ? '' : ' ghost'}" data-act="nexttoday">다음 ${words().one}${t.today ? '으로' : ''}</button></div></div>
+          <p class="hint">앱을 열 때마다 이번 달 아직 기도하지 않은 ${words().one}부터 돌아가며 나와요.</p>
           ${cordHtml(t.id)}</section>` : ''}</div>
       <div class="col main">
-        <section class="card" aria-label="우리 가정"><div class="fam-head"><div><p class="label">우리 가정</p><h3>${esc(mine.name)}</h3></div><span class="chip-status st-${mine.status}">${STATUS_LABEL[mine.status]}</span></div>
+        <section class="card" aria-label="${words().mine}"><div class="fam-head"><div><p class="label">${words().mine}</p><h3>${esc(mine.name)}</h3></div><span class="chip-status st-${mine.status}">${STATUS_LABEL[mine.status]}</span></div>
           ${receivedLine()}
           ${mine.items.length ? itemList(mine.items, true) : '<p class="hint">아직 올린 기도제목이 없어요.</p>'}
           <div class="actions"><button class="btn" data-act="tab" data-v="mine">고치기</button>${mine.status === 'same' ? '<button class="btn ghost" data-act="confirm">이번 달도 그대로예요</button>' : ''}</div>
           ${mine.status === 'confirmed' ? '<p class="hint">이번 달도 그대로라고 리더에게 알렸어요.</p>' : ''}</section>
-        <div class="section-row"><div class="sr-title"><h2 class="section-title">사랑방 가정 ${others.length}</h2><span class="sr-legend"><i class="new-dot"></i>이번 달 새 기도제목</span></div>
+        <div class="section-row"><div class="sr-title"><h2 class="section-title">${esc(grp())} ${words().members} ${others.length}</h2><span class="sr-legend"><i class="new-dot"></i>이번 달 새 기도제목</span></div>
           <div class="seg2" role="tablist" aria-label="보기 방식">${[['card', '카드'], ['table', '표']].map(([k, l]) => `<button class="${(S.homeView || 'card') === k ? 'on' : ''}" role="tab" aria-selected="${(S.homeView || 'card') === k}" data-act="homeview" data-v="${k}">${l}</button>`).join('')}</div></div>
         ${S.homeView === 'table' ? tableCard() : `<div class="fam-grid">${others.map(famCard).join('')}</div>`}
       </div></div>`;
@@ -594,17 +626,17 @@ h3 { font-size: 1.02em; font-weight: 600; margin: 0; }
   // 내 기도: 항목마다 대상·공개 범위·내용을 고치고, 칸을 벗어나면 저장
   function mineView() {
     const mine = S.month.families.find(f => f.own);
-    const targets = ['우리 가정', '남편', '아내', ...mine.kids, '부모님', '기타'];
+    const targets = words().targets(mine.kids);
     const tgtSel = (v, id) => `<select data-act="tgt" data-id="${id}" aria-label="대상">${[...new Set([v, ...targets])].map(t => `<option${t === v ? ' selected' : ''}>${esc(t)}</option>`).join('')}</select>`;
-    return `<p class="eyebrow">${esc(mine.name)} 가정 · ${esc(S.me.person)}</p><h1>내 기도 · ${Number(S.month.month.slice(5))}월</h1>
+    return `<p class="eyebrow">${solo() ? esc(S.me.person) : esc(mine.name) + ' 가정 · ' + esc(S.me.person)}</p><h1>내 기도 · ${Number(S.month.month.slice(5))}월</h1>
       <p class="hint">바뀐 것만 고치면 돼요. 칸을 벗어나면 저장돼요. <span class="saved" id="saved">${S.saved || ''}</span></p>
       ${mine.items.map(i => `<div class="edit s-${i.scope}"><fieldset ${i.pending ? 'disabled' : ''}>
-        <div class="edit-top">${tgtSel(i.target, i.id)}<button class="scope s-${i.scope}" data-act="scope" data-id="${i.id}">${SCOPE[i.scope]}</button></div>
+        <div class="edit-top">${tgtSel(i.target, i.id)}<button class="scope s-${i.scope}" data-act="scope" data-id="${i.id}">${scopeName(i.scope)}</button></div>
         <textarea class="field" rows="2" data-id="${i.id}" aria-label="기도제목 내용">${esc(i.text)}</textarea>
         <div class="edit-foot"><span>${i.pending ? '저장 중…' : i.isNew ? whoDid(i.editedBy) + ' 새로 씀' : i.same ? '지난달과 같음 · ' + whoDid(i.editedBy) + ' 씀' : whoDid(i.editedBy) + ' 고침' + (i.editedAt ? ' · ' + i.editedAt : '')}</span>
           <span><button class="link" data-act="end" data-id="${i.id}">마치기</button><button class="link danger" data-act="del" data-id="${i.id}">지우기</button></span></div></fieldset></div>`).join('')}
       <section class="card"><form data-form="add"><label class="f" for="add-t" style="margin-top:0">새 기도제목</label>
-        <div class="row" style="margin-bottom:8px">${tgtSel(S.draftTgt || '우리 가정', 'new').replace('data-act="tgt" data-id="new"', 'id="add-tgt"')}</div>
+        <div class="row" style="margin-bottom:8px">${tgtSel(S.draftTgt || words().self, 'new').replace('data-act="tgt" data-id="new"', 'id="add-tgt"')}</div>
         <textarea id="add-t" class="field" rows="3" placeholder="이번 달 새로 생긴 기도제목">${esc(S.draft || '')}</textarea>
         <button class="btn wide" type="submit" style="margin-top:8px">더하기</button></form></section>
       <p class="hint">마치기: 이뤄졌거나 그만 올릴 때(지난 기록에 남아요) · 지우기: 잘못 썼을 때</p>`;
@@ -616,9 +648,14 @@ h3 { font-size: 1.02em; font-weight: 600; margin: 0; }
   const md = d => Number(d.slice(5, 7)) + '/' + Number(d.slice(8, 10));
   const remindText = () => monthNum() + '월 기도제목 앱에 한번 들어와 보세요. 바뀐 게 없으면 "이번 달도 그대로예요"만 눌러도 괜찮아요.\n' + location.origin + location.pathname;
   // 카톡방 문구: 지금 카톡방 형식 그대로. 남편은 형제, 아내는 자매, 우리 가정은 함께로 바꾸고
-  //  형제 → 자매 → 자녀(가정에 적은 순서) → 그 밖(부모님 등) → 함께 순서. 사랑방 공개 항목만 담는다
+  //  형제 → 자매 → 자녀(가정에 적은 순서) → 그 밖(부모님 등) → 함께 순서. 사랑방 공개 항목만 담는다.
+  //  개인 단위(청년부)는 "○○ 님을 위해", 나에 대한 항목을 먼저 이름표 없이 쓴다
   const SHARE_LABEL = { '남편': '형제', '아내': '자매', '우리 가정': '함께' };
   function shareText(f) {
+    if (solo()) {
+      const its = f.items.filter(i => i.scope === 'room' && !i.pending).sort((a, b) => (a.target === '나' ? 0 : 1) - (b.target === '나' ? 0 : 1));
+      return f.name + ' 님을 위해 기도합니다' + (its.length ? '\n\n' + its.map(i => (i.target === '나' ? '' : i.target + 'ㅡ') + i.text).join('\n\n') : '');
+    }
     const rank = t => t === '남편' ? 0 : t === '아내' ? 1 : f.kids.includes(t) ? 2 + f.kids.indexOf(t) / 100 : t === '우리 가정' ? 4 : 3;
     const its = f.items.filter(i => i.scope === 'room' && !i.pending).sort((a, b) => rank(a.target) - rank(b.target));
     return f.name.replace(' · ', ' ') + ' 가정을 위해 기도합니다' + (its.length ? '\n\n' + its.map(i => (SHARE_LABEL[i.target] || i.target) + 'ㅡ' + i.text).join('\n\n') : '');
@@ -635,29 +672,29 @@ h3 { font-size: 1.02em; font-weight: 600; margin: 0; }
   function statusCard() {
     const fams = S.month.families, by = k => fams.filter(f => f.status === k);
     const e = by('edited').length, c = by('confirmed').length, s = by('same').length;
-    const group = (k, extra) => by(k).length ? `<div class="group"><p class="label">${STATUS[k]} · ${by(k).length}가정</p>
+    const group = (k, extra) => by(k).length ? `<div class="group"><p class="label">${STATUS[k]} · ${by(k).length}${words().count}</p>
       <p class="names">${by(k).map(f => esc(f.name)).join(', ')}</p>${extra || ''}</div>` : '';
     return `<section class="card"><h2>${monthNum()}월 현황</h2>
-      <p class="big-num">${e + c}<small> / ${fams.length}가정 손봄·확인</small></p>
+      <p class="big-num">${e + c}<small> / ${fams.length}${words().count} 손봄·확인</small></p>
       <div class="bar" role="img" aria-label="이번 달 손봄 ${e}, 그대로 확인 ${c}, 지난달 그대로 ${s}"><span class="bseg edited" style="flex:${e}"></span><span class="bseg confirmed" style="flex:${c}"></span><span class="bseg same" style="flex:${s}"></span></div>
       <ul class="legend"><li><i class="sw edited"></i>이번 달 손봄 ${e}</li><li><i class="sw confirmed"></i>그대로 확인 ${c}</li><li><i class="sw same"></i>지난달 그대로 ${s}</li></ul>
       ${group('same', `<button class="btn small ghost" data-act="copyremind">안부 문구 복사</button>${copyNote('remind', remindText())}`)}${group('edited')}${group('confirmed')}</section>`;
   }
   // 카톡방에 올릴 가정: 올린 지 오래된 가정부터(아직 안 올린 가정이 맨 앞). 맨 앞 가정을 "차례"로 골라 둔다
   function shareCard() {
-    const P = S.pending, title = '<h2><span aria-hidden="true">💬 </span>카톡방에 올릴 가정</h2>';
+    const P = S.pending, title = `<h2><span aria-hidden="true">💬 </span>카톡방에 올릴 ${words().one}</h2>`;
     if (!P) return `<section class="card">${title}<p class="hint">불러오는 중…</p></section>`;
     const posts = P.posts || {};
     const order = S.month.families.slice().sort((a, b) => (posts[a.id] || '').localeCompare(posts[b.id] || '')), up = order[0];
     if (!order.some(x => x.id === S.shareId)) S.shareId = up.id;  // 복사해서 순서가 바뀌어도 고른 가정은 그대로 둔다
     const f = order.find(x => x.id === S.shareId), text = shareText(f);
     return `<section class="card">${title}
-      <p class="hint">올린 지 오래된 가정부터 줄을 세우고 맨 앞 가정을 골라 뒀어요. 다른 가정을 골라도 돼요.</p>
+      <p class="hint">올린 지 오래된 ${words().one}부터 줄을 세우고 맨 앞 ${words().one}을 골라 뒀어요. 다른 ${words().one}을 골라도 돼요.</p>
       <div class="chips">${order.map(x => `<button class="chip-btn${x.id === f.id ? ' on' : ''}" data-act="sharepick" data-id="${x.id}" aria-pressed="${x.id === f.id}">${esc(x.name)}<small>${x === up ? '차례' : posts[x.id] ? md(posts[x.id]) + ' 올림' : '아직'}</small></button>`).join('')}</div>
       <pre class="share-text">${esc(text)}</pre>
       <div class="row" style="justify-content:flex-start"><button class="btn small" data-act="copyshare" data-id="${f.id}">카톡용 복사</button>${posts[f.id] === P.today ? `<button class="link" data-act="unpost" data-id="${f.id}">올림 표시 지우기</button>` : ''}</div>
       ${copyNote('share-' + f.id, text)}
-      <p class="hint">복사하면 오늘 올린 것으로 표시돼요. 복사만 하고 올리지 않았다면 "올림 표시 지우기"를 눌러요. 리더·목사님 항목과 우리 가정만 항목은 빠져요.</p></section>`;
+      <p class="hint">복사하면 오늘 올린 것으로 표시돼요. 복사만 하고 올리지 않았다면 "올림 표시 지우기"를 눌러요. 리더·목사님 항목과 ${words().only} 항목은 빠져요.</p></section>`;
   }
 
   // ── 지난 기록 ────────────────────────────────────────
@@ -665,13 +702,13 @@ h3 { font-size: 1.02em; font-weight: 600; margin: 0; }
   //  우리 가정: 달마다 우리 가정 기도제목 전부. 과거 기록은 그때 함께한 사람에게만 보인다(서버가 고른다)
   const monthLabel = (m, now) => (m.slice(0, 4) !== now.slice(0, 4) ? m.slice(0, 4) + '년 ' : '') + Number(m.slice(5)) + '월';
   function histItems(its) {
-    return its.length ? `<ul class="items">${its.map(i => `<li class="s-${i.scope}${i.ended ? ' ended' : ''}"><span class="tgt">${esc(i.target)}</span><span>${esc(i.text)}${i.ended ? '<span class="end-tag">마침</span>' : ''}${i.scope !== 'room' ? `<span class="scope-note">${SCOPE[i.scope]}</span>` : ''}</span></li>`).join('')}</ul>`
+    return its.length ? `<ul class="items">${its.map(i => `<li class="s-${i.scope}${i.ended ? ' ended' : ''}"><span class="tgt">${esc(i.target)}</span><span>${esc(i.text)}${i.ended ? '<span class="end-tag">마침</span>' : ''}${i.scope !== 'room' ? `<span class="scope-note">${scopeName(i.scope)}</span>` : ''}</span></li>`).join('')}</ul>`
       : '<p class="hint">이 달에 올린 기도제목이 없어요.</p>';
   }
   function historyView() {
     const H = S.hist, tab = S.histTab || 'room';
     const head = `<p class="eyebrow">${esc(H && H.room || S.month.room.name)}</p><h1>지난 기록 <span aria-hidden="true">📖</span></h1>
-      <div class="seg" style="--n:2" role="tablist">${[['room', '사랑방'], ['mine', '우리 가정']].map(([k, l]) => `<button class="${tab === k ? 'on' : ''}" role="tab" aria-selected="${tab === k}" data-act="histtab" data-v="${k}">${l}</button>`).join('')}</div>`;
+      <div class="seg" style="--n:2" role="tablist">${[['room', grp()], ['mine', words().mine]].map(([k, l]) => `<button class="${tab === k ? 'on' : ''}" role="tab" aria-selected="${tab === k}" data-act="histtab" data-v="${k}">${l}</button>`).join('')}</div>`;
     if (!H) return head + '<p class="loading">불러오는 중…</p>';
     const past = H.months.filter(m => m < H.now);
     const first = past.length ? '' : `<section class="card"><p style="margin:0">지난 기록은 다음 달부터 쌓여요.</p>
@@ -680,8 +717,8 @@ h3 { font-size: 1.02em; font-weight: 600; margin: 0; }
       : '<p class="hint" style="margin-top:12px">아직 올린 기도제목이 없어요.</p>');
     return head + first + `<div class="hist-chips" role="radiogroup" aria-label="달">${H.months.map(m => `<button class="chip-btn${m === H.month ? ' on' : ''}" role="radio" aria-checked="${m === H.month}" data-act="histmonth" data-v="${m}">${monthLabel(m, H.now)}${m === H.now ? '<small>이번 달</small>' : ''}</button>`).join('')}</div>
       <div class="row"><h2>${monthLabel(H.month, H.now)}${H.room ? ' · ' + esc(H.room) : ''}</h2></div>
-      ${H.families.length ? `<div class="fam-grid wide" style="margin-top:12px">${H.families.map(f => `<section class="card"><div class="row"><h2>${esc(f.name)}</h2>${f.own ? '<span class="own-tag">우리 가정</span>' : ''}</div>${histItems(f.items)}</section>`).join('')}</div>`
-        : '<p class="hint">이 달의 사랑방 기록을 찾지 못했어요.</p>'}`;
+      ${H.families.length ? `<div class="fam-grid wide" style="margin-top:12px">${H.families.map(f => `<section class="card"><div class="row"><h2>${esc(f.name)}</h2>${f.own ? `<span class="own-tag">${words().mine}</span>` : ''}</div>${histItems(f.items)}</section>`).join('')}</div>`
+        : `<p class="hint">이 달의 ${esc(grp())} 기록을 찾지 못했어요.</p>`}`;
   }
   async function loadHist(month) {
     try { S.hist = await api('history', month ? { month } : {}); }
@@ -701,20 +738,20 @@ h3 { font-size: 1.02em; font-weight: 600; margin: 0; }
         <div class="seg" style="--n:3" role="radiogroup" aria-label="기간">${[['this', '이번 달'], ['pick', '월 고르기'], ['year', M.month.slice(0, 4) + '년 전체']].map(([k, l]) => `<button class="${E.period === k ? 'on' : ''}" role="radio" aria-checked="${E.period === k}" data-act="experiod" data-v="${k}">${l}</button>`).join('')}</div>
         ${E.period === 'pick' ? (months.length ? `<div class="chips">${months.map(m => `<button class="chip-btn${E.month === m ? ' on' : ''}" data-act="exmonth" data-v="${m}" aria-pressed="${E.month === m}">${monthLabel(m, M.month)}</button>`).join('')}</div>` : `<p class="hint">${S.hist ? '아직 지난 달 기록이 없어요. 다음 달부터 고를 수 있어요.' : '달 목록을 불러오는 중…'}</p>`) : ''}
         ${isLead() ? `<label class="check"><input type="checkbox" data-act="exlead"${E.lead ? ' checked' : ''}> 리더·목사님 항목도 넣기</label>${E.lead ? '<p class="hint warn-text">파일은 다른 사람에게 전달될 수 있어요. 꼭 필요할 때만 넣으세요.</p>' : ''}` : ''}
-        <p class="hint">"우리 가정만" 항목은 어떤 경우에도 파일에 넣지 않아요.${E.period === 'year' ? ' 1년 치는 달마다 탭 하나씩 나눠 담아요.' : ''}</p>
+        <p class="hint">"${words().only}" 항목은 어떤 경우에도 파일에 넣지 않아요.${E.period === 'year' ? ' 1년 치는 달마다 탭 하나씩 나눠 담아요.' : ''}</p>
         <div class="actions"><button class="btn" data-act="exdo" ${S.busy ? 'disabled' : ''}>${S.busy ? '만드는 중…' : '내려받기 (.xlsx)'}</button></div></div>`;
     return `<section class="card print-area"><div class="row"><p class="label">${esc(M.room.name)} · ${M.month.slice(0, 4)}년 ${Number(M.month.slice(5))}월</p>
         <span class="actions print-hide"><button class="link" data-act="exprint">인쇄</button><button class="btn small ghost" data-act="exopen" aria-expanded="${E.open}">엑셀로 내려받기</button></span></div>
       ${panel}
-      <div class="table-wrap"><table class="pray-table"><thead><tr><th scope="col">가정</th><th scope="col">기도제목</th></tr></thead>
+      <div class="table-wrap"><table class="pray-table"><thead><tr><th scope="col">${solo() ? '이름' : '가정'}</th><th scope="col">기도제목</th></tr></thead>
         <tbody>${M.families.map(f => { const its = f.items.filter(i => !i.pending);
-          return `<tr><th scope="row">${f.name.split(' · ').map(esc).join('<br>')}${f.own ? '<span class="me-tag">우리 가정</span>' : ''}</th>
-            <td>${its.length ? `<ul class="t-items">${its.map(i => `<li class="s-${i.scope}"><b>${esc(i.target)}</b> ${esc(i.text)}${i.scope !== 'room' ? ` <span class="b-scope ${i.scope}">${SCOPE[i.scope]}</span>` : ''}</li>`).join('')}</ul>` : '<span class="hint">아직 올린 기도제목이 없어요</span>'}</td></tr>`; }).join('')}</tbody>
+          return `<tr><th scope="row">${f.name.split(' · ').map(esc).join('<br>')}${f.own ? `<span class="me-tag">${words().mine}</span>` : ''}</th>
+            <td>${its.length ? `<ul class="t-items">${its.map(i => `<li class="s-${i.scope}"><b>${esc(i.target)}</b> ${esc(i.text)}${i.scope !== 'room' ? ` <span class="b-scope ${i.scope}">${scopeName(i.scope)}</span>` : ''}</li>`).join('')}</ul>` : '<span class="hint">아직 올린 기도제목이 없어요</span>'}</td></tr>`; }).join('')}</tbody>
       </table></div></section>`;
   }
   // 파일 한 장(탭)에 들어갈 표: 제목, 가정 | "[대상] 내용"을 줄마다
   function sheetOf(room, month, fams, lead) {
-    return { room, month, title: room + ' · ' + month.slice(0, 4) + '년 ' + Number(month.slice(5)) + '월',
+    return { room, month, solo: solo(), title: room + ' · ' + month.slice(0, 4) + '년 ' + Number(month.slice(5)) + '월',
       rows: fams.map(f => ({ name: f.name, lines: f.items.filter(i => !i.pending && (i.scope === 'room' || (lead && i.scope === 'leader')))
         .map(i => '[' + i.target + '] ' + i.text + (i.scope === 'leader' ? ' (리더·목사님)' : '') + (i.ended ? ' (마침)' : '')) })) };
   }
@@ -765,7 +802,7 @@ h3 { font-size: 1.02em; font-weight: 600; margin: 0; }
     const sheetXml = T => { const rows = T.rows.map((r, i) => `<row r="${i + 3}" ht="${height(r.lines)}" customHeight="1">${cell('A' + (i + 3), r.name, 3)}${cell('B' + (i + 3), r.lines.join('\n'), 4)}</row>`).join('');
     const sheet = `<?xml version="1.0" encoding="UTF-8" standalone="yes"?><worksheet xmlns="${NS}" xmlns:r="${R}"><sheetViews><sheetView workbookViewId="0"><pane ySplit="2" topLeftCell="A3" activePane="bottomLeft" state="frozen"/></sheetView></sheetViews>
 <cols><col min="1" max="1" width="20" customWidth="1"/><col min="2" max="2" width="90" customWidth="1"/></cols>
-<sheetData><row r="1" ht="26" customHeight="1">${cell('A1', T.title, 1)}</row><row r="2">${cell('A2', '가정', 2)}${cell('B2', '기도제목', 2)}</row>${rows}</sheetData>
+<sheetData><row r="1" ht="26" customHeight="1">${cell('A1', T.title, 1)}</row><row r="2">${cell('A2', T.solo ? '이름' : '가정', 2)}${cell('B2', '기도제목', 2)}</row>${rows}</sheetData>
 <mergeCells count="1"><mergeCell ref="A1:B1"/></mergeCells><pageMargins left="0.5" right="0.5" top="0.6" bottom="0.6" header="0.3" footer="0.3"/></worksheet>`; return sheet; };
     const styles = `<?xml version="1.0" encoding="UTF-8" standalone="yes"?><styleSheet xmlns="${NS}">
 <fonts count="3"><font><sz val="11"/><name val="맑은 고딕"/></font><font><b/><sz val="14"/><name val="맑은 고딕"/></font><font><b/><sz val="11"/><name val="맑은 고딕"/></font></fonts>
@@ -793,7 +830,7 @@ h3 { font-size: 1.02em; font-weight: 600; margin: 0; }
   // ── 기도하기 ────────────────────────────────────────
   // 조용한 화면에서 한 장씩 넘기며 기도한다. 순서는 우리 사랑방 가정 → 우리 가정 → 하나님의 나라.
   //  기도의 끈과 '기도했어요' 횟수는 사랑방 가정을 위한 기도만 센다(가정마다 하루 3번까지)
-  const PS_KINDS = [['room', '우리 사랑방'], ['me', '우리 가정'], ['world', '하나님의 나라']];
+  const PS_KINDS = () => [['room', '우리 ' + grp()], ['me', words().mine], ['world', '하나님의 나라']];
   const PS_TIMES = [[0, '시간 없이'], [60, '1분'], [180, '3분'], [300, '5분']];
   // 주기도문(개역개정 이전 번역)과 하나님의 나라 주제 6개. 주제마다 주기도문 간구 하나씩 짝지어 그 순서대로 둔다(lines: 장 위에 다는 구절 번호)
   //  송영에 짝지은 "감사와 찬양"은 고르는 주제가 아니라 하나님의 나라를 고르면 늘 마지막 장으로 나온다
@@ -873,18 +910,18 @@ h3 { font-size: 1.02em; font-weight: 600; margin: 0; }
     const segs = fams.slice(1).map((f, i) => { const t = on(fams[i]) && on(f), a = x(i), b = x(i + 1);
       return `<path class="seg-l${t ? ' tight' : ''}" d="M${a} 12 Q${(a + b) / 2} ${t ? 12 : 22} ${b} 12"/>`; }).join('');
     const knots = fams.map((f, i) => `<circle class="knot${on(f) ? ' on' : ''}${f.id === cur ? ' cur' : ''}" cx="${x(i)}" cy="12" r="${on(f) ? 6 : 4}"/><text x="${x(i)}" y="34" text-anchor="middle">${esc(f.name.slice(0, 1))}</text>`
-      + (cur !== undefined ? `<circle class="hit" cx="${x(i)}" cy="18" r="16" data-act="cordpick" data-v="${esc(f.id)}"><title>${esc(f.name)} 가정, ${on(f) ? '이번 달 ' + f.prayed + '번 기도함' : '아직 기도하지 않음'}</title></circle>` : '')).join('');
-    return `<div class="cord"><div class="cord-head"><p class="label" style="margin:0">기도의 끈</p><p class="cord-n">${n}가정 중 <b>${k}가정</b>과 이어졌어요</p></div>
-      <svg class="cord-svg" viewBox="-4 0 ${W + 8} 40" role="img" aria-label="이번 달 ${n}가정 중 ${k}가정을 위해 기도했어요">${segs}${knots}</svg>
-      ${k === n ? '<p class="cord-done">사랑방 모든 가정과 이어졌어요 <span aria-hidden="true">🙌</span></p>' : ''}</div>`;
+      + (cur !== undefined ? `<circle class="hit" cx="${x(i)}" cy="18" r="16" data-act="cordpick" data-v="${esc(f.id)}"><title>${esc(f.name)}${solo() ? '' : ' 가정'}, ${on(f) ? '이번 달 ' + f.prayed + '번 기도함' : '아직 기도하지 않음'}</title></circle>` : '')).join('');
+    return `<div class="cord"><div class="cord-head"><p class="label" style="margin:0">기도의 끈</p><p class="cord-n">${n}${words().count} 중 <b>${k}${words().count}</b>과 이어졌어요</p></div>
+      <svg class="cord-svg" viewBox="-4 0 ${W + 8} 40" role="img" aria-label="이번 달 ${n}${words().count} 중 ${k}${words().count}을 위해 기도했어요">${segs}${knots}</svg>
+      ${k === n ? `<p class="cord-done">${esc(grp())} ${solo() ? '식구 모두와' : '모든 가정과'} 이어졌어요 <span aria-hidden="true">🙌</span></p>` : ''}</div>`;
   }
   function prayView() {
     const list = psList(), seg = (items, cur, act, n, mark) => `<div class="seg" style="--n:${n || items.length}" role="group">${items.map(([k, l]) => { const on = Array.isArray(cur) ? cur.includes(k) : cur === k;
       return `<button class="${on ? 'on' : ''}" data-act="${act}" data-v="${k}" aria-pressed="${on}">${mark && on ? ICON.check + ' ' : ''}${l}</button>`; }).join('')}</div>`;
     const HY = Array.from({ length: 8 }, (_, i) => [i, (i + 1) + '장']);
     return `<div class="page-top"><div><p class="eyebrow">${esc(S.month.room.name)}</p><h1>기도하기 <span aria-hidden="true">🕯️</span></h1></div><p class="date">${todayLabel()}</p></div>
-      <div class="two-col"><div class="col"><section class="card"><p style="margin-top:0">조용한 화면에서 <b>한 장씩</b> 넘기며 기도해요. 사랑방 가정은 오늘 아직 기도하지 않은 가정부터 나와요.</p>
-        <p class="label">무엇을 위해 기도할까요?</p>${seg(PS_KINDS, PSET.kinds, 'pskind')}
+      <div class="two-col"><div class="col"><section class="card"><p style="margin-top:0">조용한 화면에서 <b>한 장씩</b> 넘기며 기도해요. ${esc(grp())} ${solo() ? '식구는' : '가정은'} 오늘 아직 기도하지 않은 ${words().one}부터 나와요.</p>
+        <p class="label">무엇을 위해 기도할까요?</p>${seg(PS_KINDS(), PSET.kinds, 'pskind')}
         ${PSET.kinds.includes('world') ? `<div class="ps-topics"><p class="hint" style="margin:0">기도할 주제를 골라요. 마지막엔 늘 감사와 찬양으로 마쳐요.</p>${seg(PRAY_TOPICS.map(t => [t.k, t.name]), PSET.topics, 'pstopic', 2, true)}</div>` : ''}
         <p class="label" style="margin-top:14px">한 장에 머무는 시간</p>${seg(PS_TIMES, PSET.dur, 'psdur')}
         <div class="row" style="margin-top:14px"><div><p class="label" style="margin:0">잔잔한 음악 (찬송가 1~8장)</p><p class="hint">기도하는 동안 조용히 흘러요. 이어폰을 권해요.</p></div>
@@ -896,16 +933,16 @@ h3 { font-size: 1.02em; font-weight: 600; margin: 0; }
         <button class="btn wide" data-act="psstart" style="margin-top:16px;min-height:54px" ${list.length ? '' : 'disabled'}>${ICON.hands.replace('<svg', '<svg width="22" height="22"')} ${list.length ? '기도 시작 · ' + list.length + '장' : '무엇을 위해 기도할지 골라 주세요'}</button></section>
       </div><div class="col side"><section class="card"><p class="label" style="margin:0">오늘 기도할 순서</p>
         <ol class="ps-list">${list.map(id => { const f = id.startsWith('f:') && famById(id.slice(2));
-          return f ? `<li><span>${esc(f.name)}</span><span class="${f.today ? 'ok' : ''}">${f.today ? '오늘 ' + f.today + '번' : '아직'}</span></li>` : `<li><span>${esc(psPageName(id))}</span><span>${id === 'me' ? '우리 가정' : '하나님의 나라'}</span></li>`; }).join('')}</ol></section></div></div>`;
+          return f ? `<li><span>${esc(f.name)}</span><span class="${f.today ? 'ok' : ''}">${f.today ? '오늘 ' + f.today + '번' : '아직'}</span></li>` : `<li><span>${esc(psPageName(id))}</span><span>${id === 'me' ? words().mine : '하나님의 나라'}</span></li>`; }).join('')}</ol></section></div></div>`;
   }
-  const psPageName = id => id.startsWith('f:') ? (famById(id.slice(2)) || {}).name || '' : id === 'me' ? '우리 가정' : topicOf(id).name;
+  const psPageName = id => id.startsWith('f:') ? (famById(id.slice(2)) || {}).name || '' : id === 'me' ? words().mine : topicOf(id).name;
   const musicBtn = () => `<span class="pss-mus"><button class="pss-music${PSET.music ? ' on' : ''}" data-act="psmusic" aria-pressed="${PSET.music}">♪ <span class="trk">${PSET.music ? HYMNS[PSET.track].label : '음악 꺼짐'}</span></button>${PSET.music ? '<button class="pss-music" data-act="psnexttrack" aria-label="다음 곡">다음 곡 ›</button>' : ''}</span>`;
   function psHtml() {
     const ps = S.ps;
     if (ps.done) {
       const names = ps.prayed.map(id => (famById(id) || {}).name).filter(Boolean), n = names.length;
       return `<div class="pss-top"><span></span>${musicBtn()}</div>
-        <div class="pss-body" style="justify-content:center"><p class="eyebrow">오늘의 기도</p><h2>${n ? n + '가정을 위해 기도했어요' : ps.extra.length ? '함께 기도했어요' : '오늘은 여기까지 해요'}</h2>
+        <div class="pss-body" style="justify-content:center"><p class="eyebrow">오늘의 기도</p><h2>${n ? n + words().count + '을 위해 기도했어요' : ps.extra.length ? '함께 기도했어요' : '오늘은 여기까지 해요'}</h2>
           ${n ? `<p>${names.map(esc).join(', ')}</p>` : ''}${ps.extra.length ? `<p class="hint">함께 기도한 것 · ${ps.extra.map(psPageName).map(esc).join(', ')}</p>` : ''}
           ${PSET.kinds.includes('room') || n ? cordHtml() : ''}</div>
         <div class="pss-nav one"><button data-act="psclose">마치기</button></div>`;
@@ -917,11 +954,11 @@ h3 { font-size: 1.02em; font-weight: 600; margin: 0; }
     let body, pray;
     if (id.startsWith('f:')) {
       const f = famById(id.slice(2)) || { name: '', items: [], today: 0 }, capped = (f.today || 0) >= 3;
-      body = `<h2>${esc(f.name)}</h2>${f.items.length ? `<ul>${f.items.map(i => li(i.target, i.text)).join('')}</ul>` : '<p class="hint">이번 달 기도제목이 아직 없어요. 이 가정을 떠올리며 기도해요.</p>'}`;
+      body = `<h2>${esc(f.name)}</h2>${f.items.length ? `<ul>${f.items.map(i => li(i.target, i.text)).join('')}</ul>` : `<p class="hint">이번 달 기도제목이 아직 없어요. 이 ${words().one}을 떠올리며 기도해요.</p>`}`;
       pray = `<button class="pss-pray${ready ? ' ready' : ''}" data-act="pspray" ${capped ? 'disabled' : ''}>${capped ? ICON.check + ' 오늘은 여기까지' : ICON.hands.replace('<svg', '<svg width="20" height="20"') + ' 기도했어요'}</button>`;
     } else {
       if (id === 'me') { const m = S.month.families.find(f => f.own);
-        body = `<p class="eyebrow">우리 가정</p><h2>${esc(m.name)}</h2>${m.items.length ? `<ul>${m.items.map(i => li(i.target, i.text)).join('')}</ul>` : '<p class="hint">이번 달 기도제목이 아직 없어요.</p>'}`; }
+        body = `<p class="eyebrow">${words().mine}</p><h2>${esc(m.name)}</h2>${m.items.length ? `<ul>${m.items.map(i => li(i.target, i.text)).join('')}</ul>` : '<p class="hint">이번 달 기도제목이 아직 없어요.</p>'}`; }
       else { const t = topicOf(id);
         body = `<p class="pss-lp">${t.lines.map(n => LORDS_PRAYER[n]).join(' ')}</p><p class="eyebrow">하나님의 나라</p><h2>${t.name}</h2><ul>${t.items.map(x => li('', x)).join('')}</ul>`; }
       pray = `<button class="pss-pray${ready ? ' ready' : ''}" data-act="psextra">${ICON.hands.replace('<svg', '<svg width="20" height="20"')} 기도했어요</button>`;
@@ -958,7 +995,7 @@ h3 { font-size: 1.02em; font-weight: 600; margin: 0; }
     api('pray', { familyId: f.id }).then(r => {
       const g = famById(f.id) || f;
       if (r.today != null) { g.today = r.today; g.prayed = r.prayed; }
-      if (r.capped && S.tab === 'home') toast('이 가정은 오늘 충분히 기도했어요. 내일 또 기도해 주세요.');
+      if (r.capped && S.tab === 'home') toast('이 ' + words().one + '은 오늘 충분히 기도했어요. 내일 또 기도해 주세요.');
       paint();
     }).catch(err => { const g = famById(f.id) || f; g.today--; g.prayed--; paint(); oops(err); });
   }
@@ -1108,19 +1145,19 @@ h3 { font-size: 1.02em; font-weight: 600; margin: 0; }
     // 현황·카톡 공유는 사랑방을 맡은 리더·코리더만, 가정 관리(승인·해제)는 관리자도 본다
     const me = S.month.me, leader = me.role === '리더' || me.role === '코리더', manager = me.admin || leader;
     const P = S.pending;
-    return `<p class="eyebrow">${esc(S.month.families.find(f => f.own).name)} 가정 · ${esc(me.person)}</p><h1>더보기</h1>
+    return `<p class="eyebrow">${solo() ? esc(me.person) : esc(S.month.families.find(f => f.own).name) + ' 가정 · ' + esc(me.person)}</p><h1>더보기</h1>
       ${leader ? statusCard() + shareCard() : ''}
-      ${manager ? `<section class="card"><h2>사랑방 가정 관리</h2>
+      ${manager ? `<section class="card"><h2>${esc(grp())} ${words().members} 관리</h2>
         ${!P ? '<p class="hint">불러오는 중…</p>' : `
-        ${P.requests.length ? P.requests.map(q => `<div class="req"><b>${q.newFamily ? '새로 온 가정 · ' : ''}${esc(q.person)} 님 → ${esc(q.familyName)}</b>
+        ${P.requests.length ? P.requests.map(q => `<div class="req"><b>${q.newFamily ? '새로 온 ' + words().one + ' · ' : ''}${esc(q.person)} 님${q.familyName !== q.person ? ' → ' + esc(q.familyName) : ''}</b>
             <small>${q.kids ? '자녀 ' + esc(q.kids) + ' · ' : ''}카카오 "${esc(q.nick)}" · ${esc(q.requestedAt)} 요청</small>
             <div class="row" style="justify-content:flex-start;margin-top:8px"><button class="btn small" data-act="approve" data-v="${esc(q.kakaoId)}">승인</button><button class="btn small ghost" data-act="reject" data-v="${esc(q.kakaoId)}">거절</button></div></div>`).join('')
           : '<p class="hint">확인할 신청이 없어요.</p>'}
         <ul class="items" style="margin-top:12px">${P.families.map(f => `<li style="grid-template-columns:1fr auto"><span>${esc(f.name)}</span><span>${f.linked.length ? f.linked.map(l => `${esc(l.person)}${l.kakaoId !== '' && l.person !== me.person ? ` <button class="link danger" data-act="unlink" data-v="${esc(l.kakaoId)}">해제</button>` : ''}`).join(', ') : '<span class="hint">아직 연결 없음</span>'}</span></li>`).join('')}</ul>`}
-        <p class="hint">휴대폰을 잃어버렸거나 가정을 잘못 고른 사람만 해제해요.</p></section>` : ''}
+        <p class="hint">휴대폰을 잃어버렸거나 ${solo() ? '이름' : '가정'}을 잘못 고른 사람만 해제해요.</p></section>` : ''}
       ${me.admin && !DEMO ? `<section class="card"><h2>데모로 둘러보기</h2><p class="hint">지어낸 예시 데이터로 리더·회원 화면을 눌러 봐요. 실제 데이터와 로그인은 그대로예요.</p>
         <a class="btn small ghost" href="?demo" target="_blank" rel="noopener" style="margin-top:8px;text-decoration:none">데모 열기</a></section>` : ''}
-      ${me.admin ? `<section class="card"><h2>기존 기도제목 가져오기</h2><p class="hint">지금 쓰는 구글 시트의 사랑방 탭을 붙여 넣어 이번 달 기도제목으로 옮겨요.</p>
+      ${me.admin && !solo() ? `<section class="card"><h2>기존 기도제목 가져오기</h2><p class="hint">지금 쓰는 구글 시트의 사랑방 탭을 붙여 넣어 이번 달 기도제목으로 옮겨요.</p>
         <button class="btn small ghost" data-act="tab" data-v="import" style="margin-top:8px">가져오기 열기</button></section>` : ''}
       <section class="card"><button class="btn ghost wide" data-act="logout">이 기기에서 로그아웃</button><p class="hint">다시 들어올 때 카카오로 로그인해요.</p></section>`;
   }
@@ -1134,10 +1171,10 @@ h3 { font-size: 1.02em; font-weight: 600; margin: 0; }
     const M = S.month, me = M.me, lead = me.role === '리더' || me.role === '코리더', on = tabOn();
     const role = lead ? me.role : me.admin ? '관리자' : '회원', rc = lead ? 'leader' : me.admin ? 'admin' : '';
     const menu = S.menu === 'badge' ? `<div class="menu" role="menu" aria-label="사랑방">
-        <p class="mlabel">사랑방</p><div class="mitem static"><b>${esc(M.room.name)}</b><small>${M.month.slice(0, 4)}년 편성 · ${M.families.length}가정</small></div>
+        <p class="mlabel">${esc(grp())}</p><div class="mitem static"><b>${esc(M.room.name)}</b><small>${M.dept && M.dept.name ? esc(M.dept.name) + ' · ' : ''}${M.month.slice(0, 4)}년 편성 · ${M.families.length}${words().count}</small></div>
         ${me.admin && !DEMO ? '<div class="mdiv"></div><a class="mitem" role="menuitem" href="?demo" target="_blank" rel="noopener"><span>데모로 둘러보기</span><small>예시 데이터</small></a>' : ''}</div>`
       : S.menu === 'settings' ? `<div class="menu" role="menu" aria-label="설정">
-        <button class="mitem" role="menuitem" data-act="tab" data-v="more"><span>우리 가정 정보</span></button>
+        <button class="mitem" role="menuitem" data-act="tab" data-v="more"><span>${solo() ? '내 정보' : '우리 가정 정보'}</span></button>
         <div class="mdiv"></div><button class="mitem" role="menuitem" data-act="logout"><span>이 기기에서 로그아웃</span></button></div>` : '';
     return `<div class="wrap">${brand}
       <nav class="topnav" aria-label="주 메뉴">${TABS.map(([k, l]) => `<button class="${on === k ? 'on' : ''}" data-act="tab" data-v="${k}" ${on === k ? 'aria-current="page"' : ''}>${l}</button>`).join('')}</nav>
@@ -1195,8 +1232,12 @@ h3 { font-size: 1.02em; font-weight: 600; margin: 0; }
       case 'login': return kakaoLogin(v);
       case 'retry': S.view = 'loading'; render(); return refreshMe();
       case 'demoreset': window.koideDemo && window.koideDemo.reset(); setToken(null); location.replace(location.pathname + location.search); return;
-      case 'logout': try { await api('logout'); } catch (err) { /* 이미 끝난 로그인 */ } setToken(null); S.view = 'login'; S.tab = 'home'; S.pending = null; S.hist = null; S.histTab = null; return render();
-      case 'pickroom': S.pick = { roomId: v }; S.view = 'family'; return render();
+      case 'logout': try { await api('logout'); } catch (err) { /* 이미 끝난 로그인 */ } setToken(null); S.view = 'login'; S.tab = 'home'; S.pending = null; S.hist = null; S.histTab = null;
+        // 한 기기를 여럿이 쓰면 앞사람이 보던 화면·쓰던 글이 다음 사람에게 남지 않게
+        Object.assign(S, { homeView: null, ex: null, draft: '', draftTgt: '', todayId: null, shareId: null, menu: null, imp: null }); S.openItems.clear(); S.openFams.clear();
+        return render();
+      case 'pickdept': pickDept(v); return render();
+      case 'pickroom': S.pick = { deptId: S.pick.deptId, roomId: v }; S.view = 'family'; return render();
       case 'pickfam': { S.pick.familyId = v; const ps = famPicked().name.split(' · '); if (ps.length > 1) S.view = 'who'; else { S.pick.person = ps[0]; S.view = 'consent'; } return render(); }
       case 'pickwho': S.pick.person = v; S.view = 'consent'; return render();
       case 'newfam': S.view = 'newfam'; return render();
@@ -1218,7 +1259,7 @@ h3 { font-size: 1.02em; font-weight: 600; margin: 0; }
       case 'confirm': return save(() => api('confirmSame'), ok => ok && toast('이번 달도 그대로라고 리더에게 알렸어요.'));
       case 'pray': {
         const f = S.month.families.find(x => x.id === v);
-        if (f.today >= 3) return toast('이 가정은 오늘 충분히 기도했어요. 내일 또 기도해 주세요.');
+        if (f.today >= 3) return toast('이 ' + words().one + '은 오늘 충분히 기도했어요. 내일 또 기도해 주세요.');
         return prayFor(f);
       }
       case 'scope': {
@@ -1323,7 +1364,8 @@ h3 { font-size: 1.02em; font-weight: 600; margin: 0; }
     e.preventDefault();
     const f = e.target;
     if (f.dataset.form === 'newfam') {
-      S.pick.newFamily = { a: $('#nf-a').value.trim(), b: $('#nf-b').value.trim(), kids: $('#nf-k').value.trim() };
+      const val = id => { const x = $(id); return x ? x.value.trim() : ''; };
+      S.pick.newFamily = { a: val('#nf-a'), b: val('#nf-b'), kids: val('#nf-k') };
       S.view = 'consent'; return render();
     }
     if (f.dataset.form === 'add') {
