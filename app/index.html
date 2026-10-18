@@ -310,7 +310,8 @@ body.praying .tabs { display: none; }
   .today-body { height: auto; overflow: visible; }
   .card.today .pray-hero { position: sticky; bottom: calc(var(--tabs-h, 0px) + 8px); z-index: 2; margin: 0 -.5em; padding: .5em; border-radius: 18px; transition: bottom .25s ease, background-color .15s, box-shadow .15s; }
   body.hide-bars .card.today .pray-hero { bottom: calc(env(safe-area-inset-bottom, 0px) + 8px); }
-  .card.today .pray-hero.stuck { background: var(--surface); box-shadow: 0 6px 22px -6px var(--shadow); }
+  /* 흰 판 대신 카드와 같은 연한 테마색을 반투명하게 깔고 뒤를 흐린다. 카드의 한 부분처럼 보이고, 뒤의 글자는 버튼과 겹쳐 읽히지 않는다 */
+  .card.today .pray-hero.stuck { background: color-mix(in srgb, var(--accent-soft) 72%, transparent); -webkit-backdrop-filter: blur(10px) saturate(1.2); backdrop-filter: blur(10px) saturate(1.2); }
 }
 @media (max-width: 999px) and (prefers-reduced-motion: reduce) { .card.today .pray-hero { transition: none; } }
 .today-acts { display: flex; gap: 8px; margin-top: 12px; }
