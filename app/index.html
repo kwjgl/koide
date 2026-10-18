@@ -300,11 +300,19 @@ body.praying .tabs { display: none; }
 .today-tag { display: inline-flex; align-items: center; gap: .35em; font-size: .78em; font-weight: 600; color: var(--on-accent); background: var(--accent); border-radius: 999px; padding: .3em .85em .3em .7em; margin: 0; }
 .today-tag svg { width: 1.15em; height: 1.15em; }
 .card.today h2 { font-family: var(--f-display, inherit); font-size: 1.6em; margin: .3em 0 .2em; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-/* 기도제목 칸은 가정마다 같은 높이로 두고 길면 칸 안에서 내려 읽는다. 그래야 기도했어요·다음 버튼이 가정마다 같은 자리에 있다.
-   휴대폰에서는 화면 높이에 맞춰 키운다(sizeToday).
+/* PC(오른쪽 고정 칸): 기도제목 칸은 가정마다 같은 높이로 두고 길면 칸 안에서 내려 읽는다. 그래야 기도했어요·다음 버튼이 가정마다 같은 자리에 있다.
    아래에 더 있으면 끝을 흐리게 해서 내려 볼 글이 있다는 걸 알린다 */
 .today-body { height: 20em; overflow-y: auto; overscroll-behavior: contain; }
 .today-body.below { -webkit-mask-image: linear-gradient(180deg, #000 calc(100% - 2.5em), transparent); mask-image: linear-gradient(180deg, #000 calc(100% - 2.5em), transparent); }
+/* 휴대폰·태블릿: 칸 안 스크롤이 화면 스크롤을 가로채지 않게 기도제목은 길이대로 다 펼치고, 기도했어요·다음 줄을 화면 아래(탭 바로 위)에 붙인다.
+   카드를 읽는 동안 버튼은 늘 같은 자리에 있고, 카드를 다 지나면 카드와 함께 올라간다. 붙어 있을 때(stuck)만 바탕을 깔아 뒤의 글과 겹치지 않게 한다 */
+@media (max-width: 999px) {
+  .today-body { height: auto; overflow: visible; }
+  .card.today .pray-hero { position: sticky; bottom: calc(var(--tabs-h, 0px) + 8px); z-index: 2; margin: 0 -.5em; padding: .5em; border-radius: 18px; transition: bottom .25s ease, background-color .15s, box-shadow .15s; }
+  body.hide-bars .card.today .pray-hero { bottom: calc(env(safe-area-inset-bottom, 0px) + 8px); }
+  .card.today .pray-hero.stuck { background: var(--surface); box-shadow: 0 6px 22px -6px var(--shadow); }
+}
+@media (max-width: 999px) and (prefers-reduced-motion: reduce) { .card.today .pray-hero { transition: none; } }
 .today-acts { display: flex; gap: 8px; margin-top: 12px; }
 .today-acts .btn { flex: 1; }
 .card.today .cord { border-top: 1px solid color-mix(in srgb, var(--accent) 20%, var(--line)); margin-top: 14px; padding-top: 12px; }
@@ -2095,7 +2103,6 @@ try { const p = JSON.parse(localStorage.getItem('koide-pref') || '{}'), d = docu
     document.querySelectorAll('#main textarea.field').forEach(autosize);
     const tb2 = $('.today-body');
     if (tb2) {
-      sizeToday(tb2);
       if (tbKeep && tbKeep.id === tb2.dataset.id) tb2.scrollTop = tbKeep.top;
       const fade = () => tb2.classList.toggle('below', tb2.scrollTop + tb2.clientHeight < tb2.scrollHeight - 2);
       fade(); tb2.addEventListener('scroll', fade, { passive: true });
@@ -2115,6 +2122,9 @@ try { const p = JSON.parse(localStorage.getItem('koide-pref') || '{}'), d = docu
     pop.hidden = !popOn; pop.innerHTML = popOn ? a2hsCard() : ''; document.body.classList.toggle('pop-open', popOn);
     // 쓰던 칸이 다시 그려져 사라지면 칸을 벗어났다는 신호(focusout)가 오지 않는다. 그래도 아래 메뉴가 다시 보이게
     if (!document.activeElement || !document.activeElement.matches('textarea, input, select')) hideTypingSoon();
+    // 기도했어요 줄은 아래 탭 바로 위에 붙는다: 탭 높이를 알려 주고, 지금 붙어 있는지 다시 본다
+    document.body.style.setProperty('--tabs-h', (app ? $('#tabs').offsetHeight : 0) + 'px');
+    stickToday();
   }
   const mineFam = () => S.month.families.find(f => f.own);
   const itemOf = id => mineFam().items.find(i => i.id === id);
@@ -2123,21 +2133,16 @@ try { const p = JSON.parse(localStorage.getItem('koide-pref') || '{}'), d = docu
   let queue = Promise.resolve(), waiting = 0;
   function setSaved(t) { S.saved = t; const sv = $('#saved'); if (sv) sv.textContent = t; }
   // 글을 쓰는 중이면 다시 그리지 않는다(쓰던 칸이 사라지지 않게). 다음에 그릴 때 맞춰진다
-  // 휴대폰: 기도제목 칸을 화면 높이에 맞춰, 기도했어요 줄이 아래 탭 바로 위에 오도록 키운다(9~20줄 사이).
-  //  주소창이 숨었다 나왔다 해도 칸이 출렁이지 않게 가장 작은 화면 높이(svh)로 잰다. 태블릿·PC는 CSS의 20em 그대로
-  function sizeToday(tb) {
-    tb.style.height = '';
-    if (innerWidth >= 640) return;
-    const probe = document.createElement('div'); probe.style.cssText = 'position:fixed;top:0;height:100svh;visibility:hidden';
-    document.body.appendChild(probe); const vh = probe.offsetHeight || innerHeight; probe.remove();
-    const r = tb.getBoundingClientRect(), row = tb.closest('.card').querySelector('.pray-row');
-    const tabs = $('#tabs'), tabsH = tabs && !tabs.hidden ? tabs.offsetHeight : 0;
-    const below = row.getBoundingClientRect().bottom - r.bottom, lh = parseFloat(getComputedStyle(tb).fontSize) * 1.55;
-    const h = vh - tabsH - 12 - (r.top + scrollY) - below;
-    tb.style.height = Math.round(Math.min(20 * lh, Math.max(9 * lh, h))) + 'px';
+  // 휴대폰·태블릿: 기도했어요 줄이 화면 아래에 붙어 있는 동안(stuck)만 바탕과 그림자를 깐다(CSS). PC는 붙지 않아서 늘 꺼진다
+  function stickToday() {
+    const h = $('.card.today .pray-hero'); if (!h) return;
+    const cs = getComputedStyle(h), lim = innerHeight - parseFloat(cs.bottom);
+    h.classList.toggle('stuck', cs.position === 'sticky' && h.getBoundingClientRect().bottom >= lim - 1);
   }
-  let sizedW = innerWidth;
-  addEventListener('resize', () => { if (innerWidth === sizedW) return; sizedW = innerWidth; const tb = $('.today-body'); if (tb) { sizeToday(tb); tb.dispatchEvent(new Event('scroll')); } });
+  addEventListener('scroll', stickToday, { passive: true });
+  addEventListener('resize', stickToday);
+  // 아래 탭이 숨었다 나오며 줄이 따라 움직인 뒤에도 다시 본다
+  addEventListener('transitionend', e => { if (e.target.matches && e.target.matches('.pray-hero')) stickToday(); });
   // 시작 화면은 보이기 시작한 때부터 매듭이 다 지어지고(약 0.8초) 이름을 알아볼 만큼(합쳐 1.3초, 움직임 줄이기면 0.6초) 둔다.
   //  앱을 누른 때부터 재면 아이폰이 앱을 띄우는 시간에 다 써 버려서 시작 화면이 거의 보이지 않았다
   function hideSplash() {
