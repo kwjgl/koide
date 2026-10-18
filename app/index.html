@@ -326,6 +326,43 @@ h3 { font-size: 1.02em; font-weight: 600; margin: 0; }
   .pray-table { font-size: 10pt; }
   .pray-table tr { break-inside: avoid; }
 }
+/* 내 기도(시안과 같게): 왼쪽 내 기도제목 목록, 오른쪽 새 기도제목 쓰기 */
+.notice { background: var(--surface); border: 1px solid var(--line); border-radius: 12px; padding: .8em 1em; margin: 0; font-size: .84em; line-height: 1.55; }
+.edit-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: .7em; }
+.edit-list .edit { margin: 0; padding: .8em; display: flex; flex-direction: column; gap: .5em; }
+.edit-list .edit fieldset { display: flex; flex-direction: column; gap: .5em; }
+.edit-list .edit-top { justify-content: space-between; flex-wrap: wrap; margin: 0; }
+.tgt-btn, .scope-btn { font-size: .76em; font-weight: 600; border-radius: 999px; padding: .3em .85em; min-height: 36px; display: inline-flex; align-items: center; gap: .3em; cursor: pointer; border: 1px solid var(--line); background: var(--surface-2); color: var(--ink); }
+.tgt-btn.open { border-color: var(--accent); color: var(--accent); }
+.tgt-btn.open .ic { transform: rotate(180deg); }
+.scope-btn.s-leader { color: var(--leader); border-color: var(--leader); background: var(--leader-soft); }
+.scope-btn.s-family { background: var(--surface); }
+.tgt-pick { display: flex; flex-direction: column; gap: .5em; background: var(--surface-2); border-radius: 10px; padding: .6em .65em; }
+.mchips { display: flex; flex-wrap: wrap; gap: .35em; }
+.mchip { font-size: .76em; border-radius: 999px; padding: .2em .8em; min-height: 34px; border: 1px solid var(--line); background: var(--surface); color: var(--ink); cursor: pointer; }
+.mchip.on { background: var(--accent); border-color: var(--accent); color: var(--on-accent); font-weight: 600; }
+.kid-form { display: flex; gap: .4em; }
+.kid-form .field { flex: 1; min-width: 0; min-height: 40px; font-size: .86em; }
+.edit-list .edit-foot { margin: 0; }
+.state { font-size: .74em; color: var(--ink-2); }
+.foot-acts { display: flex; gap: 1em; }
+.link.quiet { color: var(--ink-2); font-weight: 500; }
+.del-ask { display: flex; flex-direction: column; gap: .5em; padding: .7em .8em; border-radius: 10px; background: var(--warn-soft); }
+.del-ask p { margin: 0; font-size: .84em; }
+.btn.danger { background: var(--warn); border-color: var(--warn); color: var(--on-accent); }
+.dropped { display: flex; flex-direction: column; gap: .5em; padding: .8em .9em; border-radius: 12px; border: 1px dashed var(--line-strong); }
+.drop-row { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; align-items: start; gap: .5em; font-size: .84em; color: var(--ink-2); }
+.drop-row .tgt { font-size: .82em; font-weight: 600; padding: .2em .6em; border-radius: 999px; background: var(--surface-2); border: 1px solid var(--line); white-space: nowrap; }
+.drop-txt { margin: .15em 0 0; line-height: 1.5; overflow-wrap: anywhere; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+.undo { font-size: .9em; font-weight: 600; white-space: nowrap; color: var(--accent); background: var(--surface); border: 1px solid var(--line); border-radius: 999px; padding: .2em .8em; min-height: 32px; cursor: pointer; }
+.preview { border-top: 1px dashed var(--line-strong); padding-top: .8em; display: flex; flex-direction: column; gap: .6em; }
+.rm-x { flex: none; display: inline-grid; place-items: center; width: 32px; height: 32px; margin: -.2em -.3em 0 0; border: 0; border-radius: 50%; background: transparent; color: var(--ink-2); cursor: pointer; }
+.rm-x:hover, .rm-x:focus-visible { background: var(--warn-soft); color: var(--warn); }
+.coach { position: relative; margin-top: .3em; background: var(--ink); color: var(--page); border-radius: 12px; padding: .7em .8em; display: flex; align-items: flex-start; gap: .7em; font-size: .86em; line-height: 1.5; }
+.coach::before { content: ''; position: absolute; top: -6px; right: 2.6em; width: 12px; height: 12px; background: var(--ink); transform: rotate(45deg); border-radius: 2px; }
+.coach p { margin: 0; flex: 1; }
+.coach button { flex: none; font-weight: 600; font-size: .92em; color: var(--page); background: transparent; border: 1px solid color-mix(in srgb, var(--page) 45%, transparent); border-radius: 999px; padding: .2em .8em; min-height: 32px; cursor: pointer; }
+.page-top .saved { color: var(--accent); font-weight: 600; font-size: .76em; white-space: nowrap; }
 .cord { width: 100%; text-align: left; }
 /* 지난 기록 */
 .hist-chips { display: flex; gap: 6px; overflow-x: auto; padding: 2px 0 8px; margin: 10px 0 4px; scrollbar-width: none; }
@@ -493,6 +530,9 @@ h3 { font-size: 1.02em; font-weight: 600; margin: 0; }
     hands: svg('<path d="M8 2.5v10.5"/><path d="M8 2.5C6.7 3.8 6 5.6 6 7.6L3.4 10.4 5 13.5h3"/><path d="M8 2.5c1.3 1.3 2 3.1 2 5.1l2.6 2.8-1.6 3.1H8"/>'),
     book: svg('<rect x="3" y="2.5" width="10" height="11" rx="1.5"/><path d="M5.8 5.5h4.4M5.8 8h4.4M5.8 10.5h2.5"/>'),
     more: svg('<circle cx="3.5" cy="8" r=".9"/><circle cx="8" cy="8" r=".9"/><circle cx="12.5" cy="8" r=".9"/>'),
+    room: svg('<circle cx="8" cy="8" r="5.5"/><path d="M2.5 8h11M8 2.5c1.6 1.6 2.3 3.4 2.3 5.5S9.6 11.9 8 13.5M8 2.5C6.4 4.1 5.7 5.9 5.7 8s.7 3.9 2.3 5.5"/>'),
+    chev: svg('<path d="M4.5 6.5L8 10l3.5-3.5"/>'),
+    x: svg('<path d="M4 4l8 8M12 4l-8 8"/>'),
     lock: svg('<rect x="3" y="7" width="10" height="7" rx="1.5"/><path d="M5.5 7V5a2.5 2.5 0 0 1 5 0v2"/>'),
     people: svg('<circle cx="6" cy="5.5" r="2"/><path d="M2.5 13c0-2 1.6-3.5 3.5-3.5s3.5 1.5 3.5 3.5"/><circle cx="11.2" cy="6" r="1.6"/><path d="M10.5 9.6c1.8 0 3 1.3 3 3.1"/>'),
     gear: svg('<circle cx="8" cy="8" r="2"/><path d="M8 1.8v1.6M8 12.6v1.6M3.6 3.6l1.1 1.1M11.3 11.3l1.1 1.1M1.8 8h1.6M12.6 8h1.6M3.6 12.4l1.1-1.1M11.3 4.7l1.1-1.1"/>'),
@@ -565,7 +605,7 @@ h3 { font-size: 1.02em; font-weight: 600; margin: 0; }
   const todayLabel = () => { const d = new Date(); return (d.getMonth() + 1) + '월 ' + d.getDate() + '일 ' + '일월화수목금토'[d.getDay()]; };
   // 기도제목 줄(시안과 같게): 같은 대상은 칩 하나 아래로 묶고, 휴대폰에서는 3줄까지 보이고 '더 보기'로 펼친다.
   //  새 기도제목은 글 앞 작은 점, 공개 범위는 리더·목사님(보라 띠)·우리 가정만(회색 바탕 + 자물쇠)
-  const SCOPE_ICON = { leader: ICON.people, family: ICON.lock };
+  const SCOPE_ICON = { room: ICON.room, leader: ICON.people, family: ICON.lock };
   function itemBody(i, clamp) {
     const open = S.openItems.has(i.id);
     const dot = i.isNew ? '<i class="new-dot" title="이번 달 새 기도제목"></i><span class="sr">새 기도제목: </span>' : '';
@@ -623,24 +663,60 @@ h3 { font-size: 1.02em; font-weight: 600; margin: 0; }
   }
 
 
-  // 내 기도: 항목마다 대상·공개 범위·내용을 고치고, 칸을 벗어나면 저장
-  function mineView() {
-    const mine = S.month.families.find(f => f.own);
-    const targets = words().targets(mine.kids);
-    const tgtSel = (v, id) => `<select data-act="tgt" data-id="${id}" aria-label="대상">${[...new Set([v, ...targets])].map(t => `<option${t === v ? ' selected' : ''}>${esc(t)}</option>`).join('')}</select>`;
-    return `<p class="eyebrow">${solo() ? esc(S.me.person) : esc(mine.name) + ' 가정 · ' + esc(S.me.person)}</p><h1>내 기도 · ${Number(S.month.month.slice(5))}월</h1>
-      <p class="hint">바뀐 것만 고치면 돼요. 칸을 벗어나면 저장돼요. <span class="saved" id="saved">${S.saved || ''}</span></p>
-      ${mine.items.map(i => `<div class="edit s-${i.scope}"><fieldset ${i.pending ? 'disabled' : ''}>
-        <div class="edit-top">${tgtSel(i.target, i.id)}<button class="scope s-${i.scope}" data-act="scope" data-id="${i.id}">${scopeName(i.scope)}</button></div>
-        <textarea class="field" rows="2" data-id="${i.id}" aria-label="기도제목 내용">${esc(i.text)}</textarea>
-        <div class="edit-foot"><span>${i.pending ? '저장 중…' : i.isNew ? whoDid(i.editedBy) + ' 새로 씀' : i.same ? '지난달과 같음 · ' + whoDid(i.editedBy) + ' 씀' : whoDid(i.editedBy) + ' 고침' + (i.editedAt ? ' · ' + i.editedAt : '')}</span>
-          <span><button class="link" data-act="end" data-id="${i.id}">마치기</button><button class="link danger" data-act="del" data-id="${i.id}">지우기</button></span></div></fieldset></div>`).join('')}
-      <section class="card"><form data-form="add"><label class="f" for="add-t" style="margin-top:0">새 기도제목</label>
-        <div class="row" style="margin-bottom:8px">${tgtSel(S.draftTgt || words().self, 'new').replace('data-act="tgt" data-id="new"', 'id="add-tgt"')}</div>
-        <textarea id="add-t" class="field" rows="3" placeholder="이번 달 새로 생긴 기도제목">${esc(S.draft || '')}</textarea>
-        <button class="btn wide" type="submit" style="margin-top:8px">더하기</button></form></section>
-      <p class="hint">마치기: 이뤄졌거나 그만 올릴 때(지난 기록에 남아요) · 지우기: 잘못 썼을 때</p>`;
+  // 내 기도(시안과 같게): 왼쪽은 이번 달 내 기도제목(대상은 칩을 눌러 고르고, 공개 범위는 누를 때마다 바뀌고, 칸을 벗어나면 저장),
+  //  오른쪽(휴대폰은 아래)은 새 기도제목 쓰기: 큰 칸에 쭉 써서 '항목으로 나누기' → 미리보기에서 빼기 → 추가하기
+  const tipOn = () => { try { return !localStorage.getItem('koide-tip-scope'); } catch (e) { return false; } };
+  function editLi(i, first) {
+    const open = S.tgtOpen === i.id, targets = [...new Set([...words().targets(mineFam().kids), i.target])];
+    return `<li class="edit s-${i.scope}"><fieldset ${i.pending ? 'disabled' : ''}>
+      <div class="edit-top"><button class="tgt-btn${open ? ' open' : ''}" data-act="tgtopen" data-id="${esc(i.id)}" aria-expanded="${open}" aria-label="대상 고르기: 지금 ${esc(i.target)}">${esc(i.target)}${ICON.chev}</button>
+        <button class="scope-btn s-${i.scope}" data-act="scope" data-id="${esc(i.id)}" aria-label="공개 범위 바꾸기: ${scopeName(i.scope)}">${SCOPE_ICON[i.scope]}${scopeName(i.scope)}</button></div>
+      ${first && tipOn() ? `<div class="coach" role="note"><p>여기를 누르면 이 기도제목을 누가 볼지 바꿀 수 있어요. 누를 때마다 ${scopeName('room')} → 리더·목사님 → ${words().only} 순서로 바뀌어요.</p><button data-act="tipscope">알겠어요</button></div>` : ''}
+      ${open ? `<div class="tgt-pick" role="group" aria-label="기도 대상 고르기"><div class="mchips">${targets.map(o => `<button class="mchip${o === i.target ? ' on' : ''}" aria-pressed="${o === i.target}" data-act="tgtpick" data-id="${esc(i.id)}" data-v="${esc(o)}">${esc(o)}</button>`).join('')}</div>
+        <form class="kid-form" data-form="tgtcustom" data-id="${esc(i.id)}"><input class="field" name="t" placeholder="직접 쓰기 (예: 시어머니, 조카)" aria-label="대상 직접 쓰기" maxlength="10" autocomplete="off"><button class="btn small" type="submit">적용</button></form></div>` : ''}
+      <textarea class="field" rows="2" data-id="${esc(i.id)}" aria-label="기도제목 내용">${esc(i.text)}</textarea>
+      <div class="edit-foot"><span class="state">${i.pending ? '저장 중…' : i.isNew ? whoDid(i.editedBy) + ' 새로 씀' : i.same ? '지난달과 같음 · ' + whoDid(i.editedBy) + ' 씀' : whoDid(i.editedBy) + ' 고침' + (i.editedAt ? ' · ' + i.editedAt : '')}</span>
+        <span class="foot-acts"><button class="link" data-act="end" data-id="${esc(i.id)}">마치기</button><button class="link quiet" data-act="delask" data-id="${esc(i.id)}">지우기</button></span></div>
+      ${S.delAsk === i.id ? `<div class="del-ask" role="alert"><p>이 기도제목을 지울까요? 지난 기록에도 남지 않고 되돌릴 수 없어요.</p><div class="actions"><button class="btn small danger" data-act="del" data-id="${esc(i.id)}">지우기</button><button class="btn small ghost" data-act="delno">그대로 두기</button></div></div>` : ''}
+    </fieldset></li>`;
   }
+  function mineView() {
+    const mine = mineFam(), mm = Number(S.month.month.slice(5)), carried = mine.items.filter(i => i.same).length, ended = mine.ended || [];
+    const P = S.preview;
+    return `<div class="page-top"><div><p class="eyebrow">${solo() ? esc(S.me.person) : esc(mine.name) + ' 가정 · ' + esc(S.me.person)}</p><h1>내 기도 · ${mm}월 <span aria-hidden="true">✏️</span></h1></div><p class="saved" id="saved">${S.saved || ''}</p></div>
+      <div class="two-col"><div class="col">
+        ${carried ? `<p class="notice">${mm === 1 ? 12 : mm - 1}월 기도제목 ${carried}개가 그대로 넘어와 있어요. 바뀐 것만 고치면 돼요.</p>` : ''}
+        ${mine.items.length ? `<ul class="edit-list">${mine.items.map((i, k) => editLi(i, k === 0)).join('')}</ul>
+          <p class="hint">이뤄졌거나 그만 올릴 기도제목은 <b>마치기</b>(지난 기록에 남아요), 잘못 쓴 것은 <b>지우기</b>를 눌러요.</p>` : '<p class="notice">이번 달 기도제목이 아직 없어요. 새 기도제목을 써 주세요.</p>'}
+        ${ended.length ? `<div class="dropped"><p class="label">이번 달에 마친 기도제목</p>${ended.map(d => `<div class="drop-row"><span class="tgt">${esc(d.target)}</span><p class="drop-txt">${esc(d.text)}</p><button class="undo" data-act="reopen" data-id="${esc(d.id)}">되돌리기</button></div>`).join('')}</div>` : ''}
+        ${mine.status === 'same' ? '<button class="btn wide ghost" data-act="confirm">이번 달도 그대로예요</button>' : `<p class="hint">${mine.status === 'confirmed' ? '이번 달도 그대로라고 리더에게 알렸어요.' : '이번 달 기도제목을 손봤어요. 따로 제출할 필요 없어요.'}</p>`}
+      </div>
+      <div class="col side"><section class="card">
+        <label class="label" for="add-t">새 기도제목 쓰기</label>
+        <textarea id="add-t" class="field" rows="5" placeholder="지금처럼 쭉 써 주세요. 줄을 바꾸면 항목이 나뉘어요. ${solo() ? "'가족' 한 줄 쓰고 아래에 1. 2.로 써도, 카톡에 쓰던 '가족ㅡ' 형식으로 붙여 넣어도 돼요." : "'형제' 한 줄 쓰고 아래에 1. 2.로 써도, 카톡에 쓰던 '형제ㅡ' 형식으로 붙여 넣어도 돼요."}">${esc(S.draft || '')}</textarea>
+        <div class="actions"><button class="btn" data-act="split">항목으로 나누기</button><button class="link" data-act="sample">예시 넣어 보기</button></div>
+        ${P ? `<div class="preview"><p class="hint">${P.length}개 항목으로 나눴어요. 앞에 쓴 이름표로 대상을 붙였어요. 빼야 할 줄은 ×를 눌러요.</p>
+          <ul class="items">${P.map((x, k) => `<li class="item s-room"><span class="tgt">${esc(x.target)}</span><div class="item-body"><p class="txt">${esc(x.text)}</p></div><button class="rm-x" data-act="prevrm" data-v="${k}" aria-label="이 항목 빼기" title="빼기">${ICON.x}</button></li>`).join('')}</ul>
+          <div class="actions"><button class="btn" data-act="addparts">추가하기</button><button class="btn ghost" data-act="unsplit">다시 쓰기</button></div></div>` : ''}
+      </section></div></div>`;
+  }
+  function setTarget(id, target) {
+    const i = itemOf(id); S.tgtOpen = null; if (!i || i.target === target) return render();
+    i.target = target; i.same = false; render();
+    const body = { id, target, text: i.text, scope: i.scope };
+    save(() => api('saveItem', body));
+  }
+  // 새 기도제목 나누기: 가져오기와 같은 규칙(번호·글머리를 떼고, 형제ㅡ·이름표 줄로 대상을 정함). 이름표가 없는 줄은 글에서 대상을 짐작한다
+  function splitDraft(text) {
+    const mine = mineFam(), [a, b = ''] = solo() ? [S.me.person, ''] : mine.name.split(' · ');
+    const fam = { a, b, kids: [...mine.kids] };
+    const guess = t => { for (const k of mine.kids) if (t.includes(k)) return k;
+      if (solo()) return /가족|엄마|아빠|부모|동생|언니|오빠|누나|형/.test(t) ? '가족' : /친구/.test(t) ? '친구' : /학교|직장|회사|시험|취업/.test(t) ? '학교·직장' : '나';
+      return /남편|신랑/.test(t) ? '남편' : /아내|와이프/.test(t) ? '아내' : /부모님|어머니|아버지|시댁|친정|장인|장모|시어머니|시아버지/.test(t) ? '부모님' : '우리 가정'; };
+    const clean = text.split('\n').filter(l => !/위해\s*기도합니다/.test(l)).join('\n');
+    return splitItems(clean, fam, guess).map(x => ({ target: solo() && x.target === '우리 가정' ? '나' : x.target, text: x.text }));
+  }
+
 
   // 리더 현황: 이번 달 가정마다 손봄 / 그대로 확인 / 지난달 그대로. "미작성"처럼 탓하는 말은 쓰지 않는다
   const STATUS = { edited: '이번 달 손봄', confirmed: '그대로 확인', same: '지난달 그대로' };
@@ -1101,7 +1177,7 @@ h3 { font-size: 1.02em; font-weight: 600; margin: 0; }
   }
   // 기도제목 칸 → 항목들. 번호(1.)·글머리(-)는 떼고, 이름표가 있으면 대상을 바꾼다.
   //  "형제ㅡ…" 바로 다음 줄이 이름표 없이 이어지면 앞 항목에 붙이고, 이름표만 있는 줄 아래 줄들은 하나씩 그 대상의 항목이 된다
-  function splitItems(text, fam) {
+  function splitItems(text, fam, guess) {
     const out = []; let cur = null, open = false;
     text.split('\n').forEach(line => {
       let s = line.trim();
@@ -1113,7 +1189,7 @@ h3 { font-size: 1.02em; font-weight: 600; margin: 0; }
       if (lab && lab.head) { cur = lab.target; open = false; }
       else if (lab) { cur = lab.target; out.push({ target: cur, text: lab.rest }); open = true; }
       else if (open && !numbered && !bullet) out[out.length - 1].text += ' ' + s;
-      else { out.push({ target: cur || '우리 가정', text: s }); open = false; }
+      else { out.push({ target: cur || (guess ? guess(s) : '우리 가정'), text: s }); open = false; }
     });
     return out.filter(i => i.text);
   }
@@ -1186,7 +1262,7 @@ h3 { font-size: 1.02em; font-weight: 600; margin: 0; }
   function render() {
     const app = S.view === 'app';
     // 새 기도제목 칸에 쓰던 글은 다시 그려도 남긴다
-    const at = $('#add-t'); if (at) { S.draft = at.value; S.draftTgt = $('#add-tgt').value; }
+    const at = $('#add-t'); if (at) S.draft = at.value;
     $('#main').innerHTML = VIEWS[S.view]();
     if (app) writeCache();
     $('#tabs').hidden = !app;
@@ -1234,7 +1310,7 @@ h3 { font-size: 1.02em; font-weight: 600; margin: 0; }
       case 'demoreset': window.koideDemo && window.koideDemo.reset(); setToken(null); location.replace(location.pathname + location.search); return;
       case 'logout': try { await api('logout'); } catch (err) { /* 이미 끝난 로그인 */ } setToken(null); S.view = 'login'; S.tab = 'home'; S.pending = null; S.hist = null; S.histTab = null;
         // 한 기기를 여럿이 쓰면 앞사람이 보던 화면·쓰던 글이 다음 사람에게 남지 않게
-        Object.assign(S, { homeView: null, ex: null, draft: '', draftTgt: '', todayId: null, shareId: null, menu: null, imp: null }); S.openItems.clear(); S.openFams.clear();
+        Object.assign(S, { homeView: null, ex: null, draft: '', draftTgt: '', todayId: null, shareId: null, menu: null, imp: null, preview: null, tgtOpen: null, delAsk: null }); S.openItems.clear(); S.openFams.clear();
         return render();
       case 'pickdept': pickDept(v); return render();
       case 'pickroom': S.pick = { deptId: S.pick.deptId, roomId: v }; S.view = 'family'; return render();
@@ -1268,10 +1344,32 @@ h3 { font-size: 1.02em; font-weight: 600; margin: 0; }
         return save(() => api('saveItem', body));
       }
       case 'end': case 'del': {
-        if (b.dataset.act === 'del' && !confirm('이 기도제목을 지울까요? 되돌릴 수 없어요.')) return;
-        const f = mineFam(); f.items = f.items.filter(i => i.id !== id); render();
-        if (b.dataset.act === 'end') toast('마쳤어요. 지난 기록에는 남아요.');
+        const f = mineFam(), it = f.items.find(i => i.id === id); f.items = f.items.filter(i => i.id !== id); S.delAsk = null; S.tgtOpen = null;
+        if (b.dataset.act === 'end') { f.ended = [...(f.ended || []), it]; toast('마쳤어요. 지난 기록에는 남아요.'); }
+        render();
         return save(() => api(b.dataset.act === 'end' ? 'endItem' : 'deleteItem', { id }));
+      }
+      case 'reopen': {
+        const f = mineFam(), it = (f.ended || []).find(i => i.id === id); f.ended = f.ended.filter(i => i.id !== id); f.items.push(Object.assign({}, it, { pending: true })); render();
+        return save(() => api('reopenItem', { id }));
+      }
+      case 'delask': S.delAsk = id; return render();
+      case 'delno': S.delAsk = null; return render();
+      case 'tgtopen': S.tgtOpen = S.tgtOpen === id ? null : id; return render();
+      case 'tgtpick': return setTarget(id, v);
+      case 'tipscope': try { localStorage.setItem('koide-tip-scope', '1'); } catch (err) { /* 무시 */ } return render();
+      case 'sample': S.draft = solo() ? '나ㅡ졸업 논문 마감이 다가와요. 지치지 않고 끝까지 잘 마무리하도록\n\n가족ㅡ할머니가 다음 주에 수술을 받으세요. 수술이 잘 끝나고 회복이 빠르도록\n\n친구ㅡ교회에 처음 나온 친구가 공동체에 잘 적응하도록'
+          : '형제ㅡ연말이라 회사 일이 몰려서 마음에 여유가 없어요. 지치지 않고 지혜롭게 마무리할 수 있도록 기도해 주세요.\n\n자매ㅡ다음 주에 복직 준비 교육을 마쳐요. 끝까지 건강하게 마치고, 복직 전까지 쉼이 있는 시간을 보낼 수 있도록\n\n' + (mineFam().kids[0] || '아이') + 'ㅡ감기가 2주째 이어지고 있어요. 빨리 낫고 다시 즐겁게 지내도록\n\n함께- 시댁 식구들이 하나님을 믿을 수 있도록';
+        S.preview = null; { const at = $('#add-t'); if (at) at.value = S.draft; } return render();
+      case 'split': { S.draft = $('#add-t').value; const parts = splitDraft(S.draft); if (!parts.length) return toast('내용을 적어 주세요.'); S.preview = parts; return render(); }
+      case 'unsplit': S.preview = null; return render();
+      case 'prevrm': S.preview.splice(Number(v), 1); if (!S.preview.length) S.preview = null; return render();
+      case 'addparts': {
+        // 목록에 바로 넣고(서버의 답이 오기 전까지는 잠가 둠), 서버에는 하나씩 차례대로 저장한다
+        const parts = S.preview, f = mineFam(); S.preview = null; S.draft = ''; const at = $('#add-t'); if (at) at.value = '';
+        parts.forEach((x, k) => { f.items.push({ id: 'new' + Date.now() + k, target: x.target, text: x.text, scope: 'room', isNew: true, editedBy: S.me.person, pending: true });
+          save(() => api('saveItem', { target: x.target, text: x.text, scope: 'room' })); });
+        render(); return toast(parts.length + '개를 더했어요.');
       }
       case 'homeview': S.homeView = v; if (v === 'table' && !S.hist) loadHist(); return render();
       case 'exopen': if (!S.ex) S.ex = {}; S.ex.open = !S.ex.open; return render();
@@ -1350,10 +1448,9 @@ h3 { font-size: 1.02em; font-weight: 600; margin: 0; }
   document.addEventListener('change', e => {
     const t = e.target;
     if (t.dataset.imp) { const [fi, ii] = t.dataset.imp.split('.').map(Number); S.imp.families[fi].items[ii].target = t.value; return; }
-    if (t.matches('textarea[data-id]') || t.matches('select[data-act="tgt"]')) {
-      const id = t.dataset.id, i = itemOf(id), box = t.closest('.edit');
-      const text = box.querySelector('textarea').value, target = box.querySelector('select').value;
-      if (text === i.text && target === i.target) return;
+    if (t.matches('textarea[data-id]')) {
+      const id = t.dataset.id, i = itemOf(id), text = t.value.trim(), target = i.target;
+      if (!text || text === i.text) return;
       // 칸에는 이미 고친 글이 보이니 다시 그리지 않고 기억만 바꾼다(칸을 벗어나며 바로 누른 탭이 그대로 눌리게)
       Object.assign(i, { text, target });
       const body = { id, target, text, scope: i.scope };
@@ -1368,17 +1465,8 @@ h3 { font-size: 1.02em; font-weight: 600; margin: 0; }
       S.pick.newFamily = { a: val('#nf-a'), b: val('#nf-b'), kids: val('#nf-k') };
       S.view = 'consent'; return render();
     }
-    if (f.dataset.form === 'add') {
-      const text = $('#add-t').value.trim(); if (!text) return toast('내용을 적어 주세요.');
-      const target = $('#add-tgt').value;
-      // 목록에 바로 보이게 넣고(서버의 답이 오기 전까지는 고칠 수 없게 잠가 둠), 칸은 비워서 두 번 눌러도 하나만 생기게 한다
-      mineFam().items.push({ id: 'new' + Date.now(), target, text, scope: 'room', isNew: true, editedBy: S.me.person, pending: true });
-      S.draft = ''; S.draftTgt = ''; $('#add-t').value = ''; render(); toast('더했어요.');
-      return save(() => api('saveItem', { target, text, scope: 'room' }), ok => {
-        // 실패하면 쓴 글을 칸에 되돌려 놓는다(다시 그릴 때 칸의 글을 기억하므로 칸에 직접 넣는다)
-        if (!ok) { S.draft = text; S.draftTgt = target; const at = $('#add-t'); if (at) { at.value = text; $('#add-tgt').value = target; } }
-      });
-    }
+    if (f.dataset.form === 'tgtcustom') { const v = f.querySelector('input').value.trim(); if (v) setTarget(f.dataset.id, v); return; }
+
   });
 
   // 스크롤: 아래로 내리면 상단 바와 하단 바가 함께 숨고, 조금이라도 올리면 다시 보인다(메뉴가 열렸거나 기도하는 중에는 그대로)

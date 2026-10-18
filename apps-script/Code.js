@@ -39,7 +39,7 @@ const FIRST_DEPT = { id: 'D1', name: '청장년부', group: '사랑방', unit: '
 // ── 요청 받기 ─────────────────────────────────────────────
 
 // 서버 코드를 고칠 때마다 바꾼다. 웹 앱 주소를 열면 보여서, 새 버전으로 배포됐는지 확인할 수 있다
-const VERSION = '2026-10-20 부서·우리 가정을 위한 기도';
+const VERSION = '2026-10-20 마친 기도제목 되돌리기';
 function doGet() {
   return ContentService.createTextOutput('코이데 서버가 켜져 있어요. (버전: ' + VERSION + ')');
 }
@@ -75,6 +75,7 @@ const ACTIONS = {
   history: body => historyView_(member_(body), String(body.month || '')),
   saveItem: saveItem_,
   endItem: body => setItemState_(body, '마침'),
+  reopenItem: body => setItemState_(body, '이어짐'),
   deleteItem: deleteItem_,
   confirmSame: body => { const c = member_(body); setMonthly_(c.familyId, month_(), 'confirmed'); return monthView_(c); },
   pray: pray_,
@@ -376,7 +377,9 @@ function monthView_(c) {
       items: items.filter(i => i.familyId === f.id && (own || i.scope === 'room' || (i.scope === 'leader' && isLeader)))
         .sort((a, b) => a.order - b.order)
         .map(i => ({ id: i.id, target: i.target, text: i.text, scope: i.scope, same: yes_(i.same), isNew: !i.prevId && !yes_(i.same),
-          editedBy: own ? i.editedBy : '', editedAt: own ? fmtDay_(i.editedAt) : '' }))
+          editedBy: own ? i.editedBy : '', editedAt: own ? fmtDay_(i.editedAt) : '' })),
+      // 우리 가정이 이번 달에 마친 기도제목(내 기도에서 되돌릴 수 있게)
+      ended: own ? read_('items').filter(i => i.month === m && i.familyId === f.id && i.state === '마침').map(i => ({ id: i.id, target: i.target, text: i.text, scope: i.scope })) : []
     };
   });
   // 이번 달 사랑방의 다른 가정 중 몇 가정이 우리 가정을 위해 기도했는지(누가 했는지는 알리지 않는다)
