@@ -26,7 +26,8 @@ const SCHEMA = {
   sessions: ['로그인', [['hash', '로그인 표시'], ['kakaoId', '카카오ID'], ['nick', '닉네임'], ['expires', '만료']]],
   items: ['기도제목', [['id', '항목ID'], ['month', '월'], ['familyId', '가정ID'], ['roomId', '당시 사랑방'], ['target', '대상'], ['text', '내용'], ['scope', '공개범위'], ['state', '상태'], ['prevId', '이전 항목ID'], ['same', '지난달과 같음'], ['order', '순서'], ['editedAt', '수정일'], ['editedBy', '고친 사람']]],
   monthly: ['월별 상태', [['month', '월'], ['familyId', '가정ID'], ['status', '상태']]],
-  prayers: ['기도기록', [['at', '날짜시각'], ['by', '누른 가정ID'], ['familyId', '기도한 가정ID']]]
+  prayers: ['기도기록', [['at', '날짜시각'], ['by', '누른 가정ID'], ['familyId', '기도한 가정ID']]],
+  posts: ['카톡 공유', [['roomId', '사랑방ID'], ['familyId', '가정ID'], ['date', '올린 날'], ['by', '올린 사람']]]
 };
 const SCOPES = ['room', 'leader', 'family'];
 
@@ -72,6 +73,8 @@ const ACTIONS = {
   pending: body => pendingView_(leaderOrAdmin_(body)),
   approve: body => decide_(body, true),
   reject: body => decide_(body, false),
+  post: body => setPosted_(body, true),
+  unpost: body => setPosted_(body, false),
   unlink: unlink_,
   logout: logout_
 };
@@ -200,7 +203,22 @@ function pendingView_(c) {
     id: f.id, name: f.name,
     linked: links.filter(l => l.familyId === f.id && l.status === '연결').map(l => ({ kakaoId: String(l.kakaoId), person: l.person }))
   }));
-  return { requests, families };
+  // 카톡방에 올린 날: 가정마다 마지막으로 올린 날(yyyy-MM-dd)
+  const posts = {};
+  read_('posts').filter(p => p.roomId === c.roomId).forEach(p => { if (!posts[p.familyId] || p.date > posts[p.familyId]) posts[p.familyId] = p.date; });
+  return { requests, families, posts, today: today_() };
+}
+
+// 리더가 카톡용 문구를 복사하면 오늘 올린 것으로 적고, "올림 표시 지우기"면 오늘 적은 것을 지운다
+function setPosted_(body, on) {
+  const c = leaderOrAdmin_(body);
+  if (!canManage_(c, body.familyId)) throw fail_('bad', '우리 사랑방 가정이 아니에요.');
+  return withLock_(() => {
+    const today = read_('posts').filter(p => p.roomId === c.roomId && p.familyId === body.familyId && p.date === today_());
+    if (on && !today.length) append_('posts', { roomId: c.roomId, familyId: body.familyId, date: today_(), by: c.person });
+    if (!on) today.sort((a, b) => b._row - a._row).forEach(p => remove_('posts', p));
+    return pendingView_(c);
+  });
 }
 
 function decide_(body, ok) {
@@ -386,8 +404,9 @@ function sampleData() {
 function ss_() { return SpreadsheetApp.getActiveSpreadsheet(); }
 function SCHEMA_NAMES_() { return Object.keys(SCHEMA).map(k => SCHEMA[k][0]); }
 function sheet_(key) {
-  const sh = ss_().getSheetByName(SCHEMA[key][0]);
-  if (!sh) throw fail_('server', '"' + SCHEMA[key][0] + '" 시트가 없어요. setup을 먼저 실행해 주세요.');
+  let sh = ss_().getSheetByName(SCHEMA[key][0]);
+  // 새 버전에서 늘어난 시트(카톡 공유 등)는 처음 쓸 때 만든다. setup을 다시 실행하지 않아도 되게
+  if (!sh) { setup(); sh = ss_().getSheetByName(SCHEMA[key][0]); }
   return sh;
 }
 

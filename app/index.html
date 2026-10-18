@@ -47,6 +47,25 @@ h2 { font-size: 1.05em; margin: 0; }
 .row { display: flex; justify-content: space-between; align-items: center; gap: .6em; }
 .btn { display: inline-flex; align-items: center; justify-content: center; gap: .4em; min-height: 44px; padding: 0 1.1em; border-radius: 12px; border: 1px solid var(--accent); background: var(--accent); color: var(--on-accent); font-weight: 600; cursor: pointer; }
 .btn.ghost { background: transparent; color: var(--accent); }
+/* 리더: 이번 달 현황과 카톡방에 올릴 가정 */
+.big-num { font-size: 1.8em; font-weight: 600; margin: .2em 0 .3em; font-variant-numeric: tabular-nums; }
+.big-num small { font-size: .45em; color: var(--ink-2); font-weight: 400; }
+.bar { display: flex; height: 12px; border-radius: 999px; overflow: hidden; gap: 2px; }
+.seg.edited, .sw.edited { background: var(--accent); }
+.seg.confirmed, .sw.confirmed { background: color-mix(in srgb, var(--accent) 45%, var(--surface)); }
+.seg.same, .sw.same { background: var(--line-strong); }
+.legend { list-style: none; margin: .6em 0 0; padding: 0; display: flex; flex-wrap: wrap; gap: .3em 1em; font-size: .78em; color: var(--ink-2); }
+.sw { display: inline-block; width: .8em; height: .8em; border-radius: 3px; margin-right: .35em; vertical-align: -.05em; }
+.group { border-top: 1px solid var(--line); margin-top: 12px; padding-top: 10px; }
+.label { font-size: .82em; font-weight: 600; color: var(--ink-2); margin: 0 0 .3em; }
+.names { margin: 0 0 .5em; font-size: .92em; }
+.chips { display: flex; flex-wrap: wrap; gap: 6px; margin: 10px 0; }
+.chip-btn { font: inherit; font-size: .85em; min-height: 40px; border-radius: 999px; border: 1px solid var(--line); background: var(--surface); color: var(--ink); padding: .2em .9em; cursor: pointer; display: inline-flex; align-items: center; gap: .4em; }
+.chip-btn small { font-size: .8em; color: var(--ink-2); }
+.chip-btn.on { background: var(--ink); color: var(--page); border-color: var(--ink); }
+.chip-btn.on small { color: inherit; opacity: .8; }
+.share-text, .copybox { font: inherit; font-size: .88em; line-height: 1.6; background: var(--surface-2); border: 1px solid var(--line); border-radius: 10px; padding: .7em .85em; margin: 0 0 10px; white-space: pre-wrap; overflow-wrap: anywhere; }
+.copybox { -webkit-user-select: all; user-select: all; margin-top: 8px; }
 .btn.small { min-height: 36px; padding: 0 .8em; font-size: .88em; border-radius: 10px; }
 .btn.wide { width: 100%; }
 .btn:disabled { opacity: .5; cursor: default; }
@@ -299,11 +318,62 @@ textarea.field { resize: vertical; line-height: 1.55; }
       <p class="hint">마치기: 이뤄졌거나 그만 올릴 때(지난 기록에 남아요) · 지우기: 잘못 썼을 때</p>`;
   }
 
-  // 더보기: 내 정보, (리더) 연결 승인·해제, 로그아웃
+  // 리더 현황: 이번 달 가정마다 손봄 / 그대로 확인 / 지난달 그대로. "미작성"처럼 탓하는 말은 쓰지 않는다
+  const STATUS = { edited: '이번 달 손봄', confirmed: '그대로 확인', same: '지난달 그대로' };
+  const monthNum = () => Number(S.month.month.slice(5));
+  const md = d => Number(d.slice(5, 7)) + '/' + Number(d.slice(8, 10));
+  const remindText = () => monthNum() + '월 기도제목 앱에 한번 들어와 보세요. 바뀐 게 없으면 "이번 달도 그대로예요"만 눌러도 괜찮아요.\n' + location.origin + location.pathname;
+  // 카톡방 문구: 지금 카톡방 형식 그대로. 남편은 형제, 아내는 자매, 우리 가정은 함께로 바꾸고
+  //  형제 → 자매 → 자녀(가정에 적은 순서) → 그 밖(부모님 등) → 함께 순서. 사랑방 공개 항목만 담는다
+  const SHARE_LABEL = { '남편': '형제', '아내': '자매', '우리 가정': '함께' };
+  function shareText(f) {
+    const rank = t => t === '남편' ? 0 : t === '아내' ? 1 : f.kids.includes(t) ? 2 + f.kids.indexOf(t) / 100 : t === '우리 가정' ? 4 : 3;
+    const its = f.items.filter(i => i.scope === 'room' && !i.pending).sort((a, b) => rank(a.target) - rank(b.target));
+    return f.name.replace(' · ', ' ') + ' 가정을 위해 기도합니다' + (its.length ? '\n\n' + its.map(i => (SHARE_LABEL[i.target] || i.target) + 'ㅡ' + i.text).join('\n\n') : '');
+  }
+  // 자동 복사가 막힌 기기에서는 문구를 펼쳐서 길게 눌러 복사하게 한다
+  const copyNote = (key, text) => S.copied && S.copied.key === key && !S.copied.ok
+    ? `<p class="hint">자동 복사가 막혀 있어요. 아래 문구를 길게 눌러 복사하세요.</p><pre class="copybox">${esc(text)}</pre>` : '';
+  async function copy(key, text) {
+    let ok = false;
+    try { await navigator.clipboard.writeText(text); ok = true; } catch (e) { /* 막힌 기기 */ }
+    S.copied = { key, ok }; render();
+    if (ok) toast('복사했어요. 카톡에 붙여 넣으세요.');
+  }
+  function statusCard() {
+    const fams = S.month.families, by = k => fams.filter(f => f.status === k);
+    const e = by('edited').length, c = by('confirmed').length, s = by('same').length;
+    const group = (k, extra) => by(k).length ? `<div class="group"><p class="label">${STATUS[k]} · ${by(k).length}가정</p>
+      <p class="names">${by(k).map(f => esc(f.name)).join(', ')}</p>${extra || ''}</div>` : '';
+    return `<section class="card"><h2>${monthNum()}월 현황</h2>
+      <p class="big-num">${e + c}<small> / ${fams.length}가정 손봄·확인</small></p>
+      <div class="bar" role="img" aria-label="이번 달 손봄 ${e}, 그대로 확인 ${c}, 지난달 그대로 ${s}"><span class="seg edited" style="flex:${e}"></span><span class="seg confirmed" style="flex:${c}"></span><span class="seg same" style="flex:${s}"></span></div>
+      <ul class="legend"><li><i class="sw edited"></i>이번 달 손봄 ${e}</li><li><i class="sw confirmed"></i>그대로 확인 ${c}</li><li><i class="sw same"></i>지난달 그대로 ${s}</li></ul>
+      ${group('same', `<button class="btn small ghost" data-act="copyremind">안부 문구 복사</button>${copyNote('remind', remindText())}`)}${group('edited')}${group('confirmed')}</section>`;
+  }
+  // 카톡방에 올릴 가정: 올린 지 오래된 가정부터(아직 안 올린 가정이 맨 앞). 맨 앞 가정을 "차례"로 골라 둔다
+  function shareCard() {
+    const P = S.pending, title = '<h2><span aria-hidden="true">💬 </span>카톡방에 올릴 가정</h2>';
+    if (!P) return `<section class="card">${title}<p class="hint">불러오는 중…</p></section>`;
+    const posts = P.posts || {};
+    const order = S.month.families.slice().sort((a, b) => (posts[a.id] || '').localeCompare(posts[b.id] || '')), up = order[0];
+    if (!order.some(x => x.id === S.shareId)) S.shareId = up.id;  // 복사해서 순서가 바뀌어도 고른 가정은 그대로 둔다
+    const f = order.find(x => x.id === S.shareId), text = shareText(f);
+    return `<section class="card">${title}
+      <p class="hint">올린 지 오래된 가정부터 줄을 세우고 맨 앞 가정을 골라 뒀어요. 다른 가정을 골라도 돼요.</p>
+      <div class="chips">${order.map(x => `<button class="chip-btn${x.id === f.id ? ' on' : ''}" data-act="sharepick" data-id="${x.id}" aria-pressed="${x.id === f.id}">${esc(x.name)}<small>${x === up ? '차례' : posts[x.id] ? md(posts[x.id]) + ' 올림' : '아직'}</small></button>`).join('')}</div>
+      <pre class="share-text">${esc(text)}</pre>
+      <div class="row" style="justify-content:flex-start"><button class="btn small" data-act="copyshare" data-id="${f.id}">카톡용 복사</button>${posts[f.id] === P.today ? `<button class="link" data-act="unpost" data-id="${f.id}">올림 표시 지우기</button>` : ''}</div>
+      ${copyNote('share-' + f.id, text)}
+      <p class="hint">복사하면 오늘 올린 것으로 표시돼요. 복사만 하고 올리지 않았다면 "올림 표시 지우기"를 눌러요. 리더·목사님 항목과 우리 가정만 항목은 빠져요.</p></section>`;
+  }
+
+  // 더보기: (리더) 이번 달 현황·카톡방에 올릴 가정·연결 승인·해제, 로그아웃
   function moreView() {
     const me = S.month.me, leader = me.admin || me.role === '리더' || me.role === '코리더';
     const P = S.pending;
     return `<p class="eyebrow">${esc(S.month.families.find(f => f.own).name)} 가정 · ${esc(me.person)}</p><h1>더보기</h1>
+      ${leader ? statusCard() + shareCard() : ''}
       ${leader ? `<section class="card"><h2>사랑방 가정 관리</h2>
         ${!P ? '<p class="hint">불러오는 중…</p>' : `
         ${P.requests.length ? P.requests.map(q => `<div class="req"><b>${q.newFamily ? '새로 온 가정 · ' : ''}${esc(q.person)} 님 → ${esc(q.familyName)}</b>
@@ -325,6 +395,8 @@ textarea.field { resize: vertical; line-height: 1.55; }
     $('#badge').innerHTML = app ? `<span class="badge">${esc(S.month.room.name)} · ${esc(S.month.me.role)}</span>` : '';
     if (app) $('#tabs').innerHTML = [['home', '이번 달', ICON.home], ['mine', '내 기도', ICON.pen], ['more', '더보기', ICON.more]]
       .map(([k, l, ic]) => `<button class="${S.tab === k ? 'on' : ''}" data-act="tab" data-v="${k}" ${S.tab === k ? 'aria-current="page"' : ''}>${ic}${l}</button>`).join('');
+    // 쓰던 칸이 다시 그려져 사라지면 칸을 벗어났다는 신호(focusout)가 오지 않는다. 그래도 아래 메뉴가 다시 보이게
+    if (!document.activeElement || !document.activeElement.matches('textarea, input, select')) hideTypingSoon();
   }
   const mineFam = () => S.month.families.find(f => f.own);
   const itemOf = id => mineFam().items.find(i => i.id === id);
@@ -368,7 +440,7 @@ textarea.field { resize: vertical; line-height: 1.55; }
         S.busy = false; return render();
       }
       case 'tab':
-        S.tab = v; render(); window.scrollTo(0, 0);
+        S.tab = v; S.copied = null; render(); window.scrollTo(0, 0);
         if (v === 'more') { const me = S.month.me; if (me.admin || me.role === '리더' || me.role === '코리더') { try { S.pending = await api('pending'); render(); } catch (err) { oops(err); } } }
         return;
       case 'confirm': return save(() => api('confirmSame'), ok => ok && toast('이번 달도 그대로라고 리더에게 알렸어요.'));
@@ -388,6 +460,18 @@ textarea.field { resize: vertical; line-height: 1.55; }
         const f = mineFam(); f.items = f.items.filter(i => i.id !== id); render();
         if (b.dataset.act === 'end') toast('마쳤어요. 지난 기록에는 남아요.');
         return save(() => api(b.dataset.act === 'end' ? 'endItem' : 'deleteItem', { id }));
+      }
+      case 'copyremind': return copy('remind', remindText());
+      case 'sharepick': S.shareId = id; S.copied = null; return render();
+      // 카톡용 복사 = 오늘 올림. 화면은 먼저 바꾸고, 서버가 실패하면 되돌린다
+      case 'copyshare': case 'unpost': {
+        const P = S.pending, before = P.posts[id], on = b.dataset.act === 'copyshare';
+        if (on) copy('share-' + id, shareText(S.month.families.find(x => x.id === id)));
+        if (on) P.posts[id] = P.today; else { delete P.posts[id]; S.copied = null; }
+        render();
+        try { S.pending = await api(on ? 'post' : 'unpost', { familyId: id }); render(); }
+        catch (err) { if (before) P.posts[id] = before; else delete P.posts[id]; render(); oops(err); }
+        return;
       }
       case 'approve': case 'reject': case 'unlink':
         try { S.pending = await api(b.dataset.act, { kakaoId: v }); render(); toast(b.dataset.act === 'approve' ? '승인했어요.' : b.dataset.act === 'reject' ? '거절했어요.' : '연결을 해제했어요.'); } catch (err) { oops(err); }
@@ -429,8 +513,9 @@ textarea.field { resize: vertical; line-height: 1.55; }
 
   // 글을 쓰는 동안 숨긴 아래 메뉴는 조금 늦게 다시 보여 준다. 키보드가 내려가며 화면이 움직이는 사이에 누른 더하기가 메뉴에 가로채이지 않게
   let typingOff;
+  function hideTypingSoon() { clearTimeout(typingOff); typingOff = setTimeout(() => document.body.classList.remove('typing'), 600); }
   document.addEventListener('focusin', e => { if (e.target.matches('textarea, input, select')) { clearTimeout(typingOff); document.body.classList.add('typing'); } });
-  document.addEventListener('focusout', () => { clearTimeout(typingOff); typingOff = setTimeout(() => document.body.classList.remove('typing'), 600); });
+  document.addEventListener('focusout', hideTypingSoon);
 
   // 시작하다 막히면 "불러오는 중"에 멈춰 있지 않고 다시 해 보기 버튼을 보여 준다
   boot().catch(e => { S.view = 'error'; S.err = e; render(); });
