@@ -21,14 +21,36 @@
   --f-display: 'Gowun Batang', 'AppleMyungjo', 'Batang', serif;
   --f-body: 'IBM Plex Sans KR', 'Apple SD Gothic Neo', 'Malgun Gothic', sans-serif;
 }
-@media (prefers-color-scheme: dark) { :root {
+@media (prefers-color-scheme: dark) { :root:not([data-mode="light"]) {
   --page: #141B19; --surface: #1C2522; --surface-2: #232D2A;
   --ink: #E5ECE9; --ink-2: #9CAAA5; --line: #2D3935; --line-strong: #4A5853;
   --accent: #7CC2B7; --accent-mid: #3F7C73; --accent-soft: #1E3934; --on-accent: #0F1A18;
   --leader: #B6A8EA; --leader-soft: #2A2442; --private: #252E2B;
   --warn: #E2A563; --warn-soft: #3A2C1B; --shadow: rgba(0, 0, 0, .5); color-scheme: dark; } }
-/* 글씨: 휴대폰·태블릿 16px, PC 15px */
+/* 화면 모드: 기기 설정이면 기기를 따르고, '밝게'·'어둡게'를 고르면 그대로(data-mode) */
+:root[data-mode="dark"] {
+  --page: #141B19; --surface: #1C2522; --surface-2: #232D2A;
+  --ink: #E5ECE9; --ink-2: #9CAAA5; --line: #2D3935; --line-strong: #4A5853;
+  --accent: #7CC2B7; --accent-mid: #3F7C73; --accent-soft: #1E3934; --on-accent: #0F1A18;
+  --leader: #B6A8EA; --leader-soft: #2A2442; --private: #252E2B;
+  --warn: #E2A563; --warn-soft: #3A2C1B; --shadow: rgba(0, 0, 0, .5); color-scheme: dark; }
+/* 글씨: 휴대폰·태블릿 16px, PC 15px. 큰 글씨 모드는 약 1.2배 */
 @media (min-width: 1000px) { :root { --base: 15px; } }
+:root[data-big] { --base: 19px; }
+@media (min-width: 1000px) { :root[data-big] { --base: 18px; } }
+/* 색 테마(초록은 위 기본값). 시안의 THEMES와 같은 값: 밝은 화면 / 어두운 화면 */
+:root[data-accent="amber"] { --page:#F7F2EA;--surface:#FFFDF9;--surface-2:#F1EADF;--ink:#2A221B;--ink-2:#6E6155;--line:#E6DCCD;--line-strong:#C9B9A3;--accent:#A9561B;--accent-mid:#E2B07F;--accent-soft:#F6E3CF;--on-accent:#FFFFFF;--private:#EFE8DE; }
+@media (prefers-color-scheme: dark) { :root[data-accent="amber"]:not([data-mode="light"]) { --page:#1A1612;--surface:#231E19;--surface-2:#2B241E;--ink:#EEE6DC;--ink-2:#AE9F8E;--line:#3A3129;--line-strong:#5A4D41;--accent:#E9A066;--accent-mid:#8A5A32;--accent-soft:#3A2818;--on-accent:#1E140C;--private:#2E2721; } }
+:root[data-accent="amber"][data-mode="dark"] { --page:#1A1612;--surface:#231E19;--surface-2:#2B241E;--ink:#EEE6DC;--ink-2:#AE9F8E;--line:#3A3129;--line-strong:#5A4D41;--accent:#E9A066;--accent-mid:#8A5A32;--accent-soft:#3A2818;--on-accent:#1E140C;--private:#2E2721; }
+:root[data-accent="blue"] { --page:#F2F4F8;--surface:#FFFFFF;--surface-2:#EAEEF4;--ink:#1B2230;--ink-2:#5A6475;--line:#DCE2EB;--line-strong:#B6C0CF;--accent:#2F5D95;--accent-mid:#93AFD3;--accent-soft:#DCE6F3;--on-accent:#FFFFFF;--private:#E8EBF0; }
+@media (prefers-color-scheme: dark) { :root[data-accent="blue"]:not([data-mode="light"]) { --page:#12161D;--surface:#1A2029;--surface-2:#212833;--ink:#E4E9F0;--ink-2:#9AA5B5;--line:#2C3542;--line-strong:#485466;--accent:#8EB4E6;--accent-mid:#3C5B85;--accent-soft:#1D2C42;--on-accent:#0E1622;--private:#232A35; } }
+:root[data-accent="blue"][data-mode="dark"] { --page:#12161D;--surface:#1A2029;--surface-2:#212833;--ink:#E4E9F0;--ink-2:#9AA5B5;--line:#2C3542;--line-strong:#485466;--accent:#8EB4E6;--accent-mid:#3C5B85;--accent-soft:#1D2C42;--on-accent:#0E1622;--private:#232A35; }
+:root[data-accent="rose"] { --page:#F8F2F3;--surface:#FFFDFD;--surface-2:#F2E8EA;--ink:#2A1E21;--ink-2:#6E5B60;--line:#E8DADD;--line-strong:#CDB6BC;--accent:#A8435C;--accent-mid:#DDA2B1;--accent-soft:#F5DFE5;--on-accent:#FFFFFF;--private:#F0E7E9; }
+@media (prefers-color-scheme: dark) { :root[data-accent="rose"]:not([data-mode="light"]) { --page:#1A1416;--surface:#231B1E;--surface-2:#2B2226;--ink:#EEE3E6;--ink-2:#B09CA2;--line:#3A2D31;--line-strong:#5A464C;--accent:#E896AB;--accent-mid:#86475A;--accent-soft:#3B2029;--on-accent:#200E14;--private:#2E2428; } }
+:root[data-accent="rose"][data-mode="dark"] { --page:#1A1416;--surface:#231B1E;--surface-2:#2B2226;--ink:#EEE3E6;--ink-2:#B09CA2;--line:#3A2D31;--line-strong:#5A464C;--accent:#E896AB;--accent-mid:#86475A;--accent-soft:#3B2029;--on-accent:#200E14;--private:#2E2428; }
+:root[data-accent="ink"] { --page:#F4F4F2;--surface:#FFFFFF;--surface-2:#EDEDEA;--ink:#1D1D1B;--ink-2:#62625E;--line:#E0E0DC;--line-strong:#BDBDB7;--accent:#33332F;--accent-mid:#A3A39C;--accent-soft:#E6E6E1;--on-accent:#FFFFFF;--private:#ECECE8; }
+@media (prefers-color-scheme: dark) { :root[data-accent="ink"]:not([data-mode="light"]) { --page:#141414;--surface:#1D1D1C;--surface-2:#252524;--ink:#ECECE8;--ink-2:#A3A39E;--line:#30302E;--line-strong:#4D4D4A;--accent:#E2E2DC;--accent-mid:#6A6A65;--accent-soft:#2E2E2C;--on-accent:#141414;--private:#262625; } }
+:root[data-accent="ink"][data-mode="dark"] { --page:#141414;--surface:#1D1D1C;--surface-2:#252524;--ink:#ECECE8;--ink-2:#A3A39E;--line:#30302E;--line-strong:#4D4D4A;--accent:#E2E2DC;--accent-mid:#6A6A65;--accent-soft:#2E2E2C;--on-accent:#141414;--private:#262625; }
 * { box-sizing: border-box; }
 html, body { margin: 0; }
 body { background: var(--page); color: var(--ink); font-family: var(--f-body); font-size: var(--base); line-height: 1.55; -webkit-tap-highlight-color: transparent; }
@@ -60,6 +82,13 @@ button, input, textarea, select { font: inherit; color: inherit; }
 .mitem.static { cursor: default; flex-direction: column; align-items: flex-start; gap: .1em; }
 .mitem.static:hover { background: none; }
 .mitem small { font-size: .82em; color: var(--ink-2); }
+.swatches { display: flex; gap: .55em; margin: .2em .4em .4em; flex-wrap: wrap; }
+.swatch { width: 40px; height: 40px; border-radius: 50%; padding: 0; border: 2px solid transparent; background: none; cursor: pointer; display: grid; place-items: center; }
+.swatch i { width: 28px; height: 28px; border-radius: 50%; display: block; box-shadow: inset 0 0 0 1px rgba(0, 0, 0, .12); }
+.swatch.on { border-color: var(--ink); }
+.menu .seg { margin: 0 .3em .3em; }
+.card .swatches { margin: .6em 0 0; }
+.set-row { display: flex; justify-content: space-between; align-items: center; gap: 12px; }
 .mdiv { height: 1px; background: var(--line); margin: .35em .3em; }
 @media (max-width: 420px) { .brand-name { display: none; } }
 /* 스크롤을 내리면 상단 바와 하단 바가 함께 숨고, 조금이라도 올리면 다시 보인다 */
@@ -418,6 +447,13 @@ h3 { font-size: 1.02em; font-weight: 600; margin: 0; }
 .demo button { background: none; border: 0; color: inherit; text-decoration: underline; cursor: pointer; font-size: inherit; }
 .saved { font-size: .78em; color: var(--ink-2); }
 </style>
+<script>
+/* 화면 모드·색 테마·큰 글씨는 이 기기에만 기억한다. 화면이 그려지기 전에 먼저 입힌다 */
+try { const p = JSON.parse(localStorage.getItem('koide-pref') || '{}'), d = document.documentElement;
+  if (p.mode === 'light' || p.mode === 'dark') d.dataset.mode = p.mode;
+  if (p.accent && p.accent !== 'green') d.dataset.accent = p.accent;
+  if (p.big) d.dataset.big = ''; } catch (e) { /* 무시 */ }
+</script>
 </head>
 <body>
 <div id="demo" class="demo" hidden></div>
@@ -1314,6 +1350,7 @@ h3 { font-size: 1.02em; font-weight: 600; margin: 0; }
           ${isLeaderRole() ? menuCard('status', esc(grp()) + ' 현황', 'leader', me.role, '우리 ' + esc(grp()) + ' ' + words().members + '을 챙겨요', ['기도제목 올렸는지 보기', '안부 문구 복사', '카톡방에 올리기', '연결 승인']) : ''}
           ${me.admin ? menuCard('admin', '관리', 'admin', '관리자', (S.month.dept && S.month.dept.name ? esc(S.month.dept.name) : '부서') + ' 전체를 꾸려요', ['연결 승인·해제', ...(solo() ? [] : ['시트 가져오기']), ...(DEMO ? [] : ['데모로 둘러보기'])]) : ''}
           ${S.a2hs ? a2hsCard() : `<button class="card menu-card" data-act="a2hs"><span><b>홈 화면에 앱처럼 두기</b><small>아이콘을 눌러 바로 열 수 있게 해요</small></span>${ICON.chevR}</button>`}
+          ${settingsCard()}
           <button class="card menu-card" data-act="logout"><span><b>이 기기에서 로그아웃</b><small>다시 들어올 때 카카오로 로그인해요</small></span>${ICON.chevR}</button>
         </div></div>`;
   }
@@ -1337,6 +1374,30 @@ h3 { font-size: 1.02em; font-weight: 600; margin: 0; }
 
 
   const TABS = [['home', '이번 달', ICON.home], ['mine', '내 기도', ICON.pen], ['pray', '기도하기', ICON.hands], ['history', '지난 기록', ICON.book], ['more', '더보기', ICON.more]];
+  // 화면 모드·색 테마·큰 글씨: 이 기기에만 기억(head에서 먼저 입힌 값을 그대로 이어 쓴다)
+  const PREF = (() => { try { return JSON.parse(localStorage.getItem('koide-pref')) || {}; } catch (e) { return {}; } })();
+  const MODES = [['system', '기기 설정'], ['light', '밝게'], ['dark', '어둡게']];
+  const ACCENTS = [['green', '초록', '#2B6A62'], ['amber', '주황', '#C46A24'], ['blue', '파랑', '#2F5D95'], ['rose', '장미', '#A8435C'], ['ink', '먹색', '#3A3A36']];
+  function setPref(k, v) {
+    PREF[k] = v;
+    try { localStorage.setItem('koide-pref', JSON.stringify(PREF)); } catch (e) { /* 무시 */ }
+    const d = document.documentElement;
+    if (PREF.mode === 'light' || PREF.mode === 'dark') d.dataset.mode = PREF.mode; else delete d.dataset.mode;
+    if (PREF.accent && PREF.accent !== 'green') d.dataset.accent = PREF.accent; else delete d.dataset.accent;
+    if (PREF.big) d.dataset.big = ''; else delete d.dataset.big;
+  }
+  const themeControls = () => {
+    const mode = PREF.mode || 'system', accent = PREF.accent || 'green';
+    return `<div class="seg" style="--n:3" role="radiogroup" aria-label="화면 모드">${MODES.map(([k, l]) => `<button class="${mode === k ? 'on' : ''}" role="radio" aria-checked="${mode === k}" data-act="mode" data-v="${k}">${l}</button>`).join('')}</div>
+      <div class="swatches" role="radiogroup" aria-label="색 테마">${ACCENTS.map(([k, l, c]) => `<button class="swatch${accent === k ? ' on' : ''}" role="radio" aria-checked="${accent === k}" data-act="accent" data-v="${k}" aria-label="${l}" title="${l}"><i style="background:${c}"></i></button>`).join('')}</div>`;
+  };
+  const bigSwitch = () => `<button class="switch${PREF.big ? ' on' : ''}" role="switch" aria-checked="${!!PREF.big}" aria-label="큰 글씨 모드" data-act="big"><span></span></button>`;
+  function settingsCard() {
+    return `<section class="card"><p class="label">화면 모드 · 색 테마</p>${themeControls()}
+      <div class="mdiv" style="margin:14px 0"></div>
+      <div class="set-row"><div><p class="label" style="margin:0">큰 글씨 모드</p><p class="hint" style="margin:.2em 0 0">글씨를 조금 더 크게 보여 줘요.</p></div>${bigSwitch()}</div>
+      <p class="hint">이 기기에만 적용돼요.</p></section>`;
+  }
   const tabOn = () => ['import', 'status', 'admin'].includes(S.tab) ? 'more' : S.tab;
   // 상단 바: 로고(누르면 이번 달), PC에서는 메뉴, 사랑방 배지(누르면 사랑방 정보), 설정
   function topHtml() {
@@ -1348,6 +1409,8 @@ h3 { font-size: 1.02em; font-weight: 600; margin: 0; }
         <p class="mlabel">${esc(grp())}</p><div class="mitem static"><b>${esc(M.room.name)}</b><small>${M.dept && M.dept.name ? esc(M.dept.name) + ' · ' : ''}${M.month.slice(0, 4)}년 편성 · ${M.families.length}${words().count}</small></div>
         ${me.admin && !DEMO ? '<div class="mdiv"></div><a class="mitem" role="menuitem" href="?demo" target="_blank" rel="noopener"><span>데모로 둘러보기</span><small>예시 데이터</small></a>' : ''}</div>`
       : S.menu === 'settings' ? `<div class="menu" role="menu" aria-label="설정">
+        <p class="mlabel">화면 모드 · 색 테마</p>${themeControls()}<div class="mdiv"></div>
+        <div class="mitem static set-row" style="flex-direction:row;align-items:center"><span>큰 글씨 모드</span>${bigSwitch()}</div>
         <button class="mitem" role="menuitem" data-act="tab" data-v="more"><span>${solo() ? '내 정보' : '우리 가정 정보'}</span></button>
         <div class="mdiv"></div><button class="mitem" role="menuitem" data-act="logout"><span>이 기기에서 로그아웃</span></button></div>` : '';
     return `<div class="wrap">${brand}
@@ -1398,7 +1461,9 @@ h3 { font-size: 1.02em; font-weight: 600; margin: 0; }
 
   document.addEventListener('click', async e => {
     const b = e.target.closest('[data-act]');
-    if (S.menu && !(b && b.dataset.act === 'menu')) { S.menu = null; $('#topbar').innerHTML = topHtml(); }
+    // 메뉴 안에서 색·모드·큰 글씨를 바꿀 때는 메뉴를 열어 둔 채로 바로 보여 준다
+    const keep = e.target.closest('.menu') && (!b || ['mode', 'accent', 'big'].includes(b.dataset.act));
+    if (S.menu && !keep && !(b && b.dataset.act === 'menu')) { S.menu = null; $('#topbar').innerHTML = topHtml(); }
     if (!b) return;
     const v = b.dataset.v, id = b.dataset.id;
     switch (b.dataset.act) {
@@ -1460,6 +1525,8 @@ h3 { font-size: 1.02em; font-weight: 600; margin: 0; }
       case 'kidadd': { const x = $('#kid-name'), n = x.value.trim(); keepFam(); if (n && !S.famEdit.kids.includes(n)) S.famEdit.kids.push(n); render(); const y = $('#kid-name'); if (y) y.focus(); return; }
       case 'kiddel': keepFam(); S.famEdit.kids.splice(Number(v), 1); return render();
       case 'kidup': { keepFam(); const k = S.famEdit.kids, n = Number(v); [k[n - 1], k[n]] = [k[n], k[n - 1]]; return render(); }
+      case 'mode': case 'accent': setPref(b.dataset.act, v); return render();
+      case 'big': setPref('big', !PREF.big); return render();
       case 'a2hs': S.a2hs = !S.a2hs; return render();
       case 'a2hsos': S.a2hsOs = v; return render();
       case 'tipscope': try { localStorage.setItem('koide-tip-scope', '1'); } catch (err) { /* 무시 */ } return render();
