@@ -37,6 +37,8 @@ button, input, textarea, select { font: inherit; color: inherit; }
 .mark svg { width: 17px; height: 17px; }
 .badge { font-size: .8em; background: var(--surface-2); border: 1px solid var(--line); border-radius: 999px; padding: .25em .75em; color: var(--ink-2); }
 main { padding-bottom: calc(110px + env(safe-area-inset-bottom)); }
+html { scroll-padding-bottom: calc(80px + env(safe-area-inset-bottom)); }
+fieldset { border: 0; padding: 0; margin: 0; min-width: 0; }
 h1 { font-family: var(--f-display); font-size: 1.65em; line-height: 1.3; margin: .3em 0 .2em; }
 h2 { font-size: 1.05em; margin: 0; }
 .eyebrow { font-size: .8em; color: var(--ink-2); margin: 1em 0 0; }
@@ -92,7 +94,7 @@ textarea.field { resize: vertical; line-height: 1.55; }
 .tabs svg { width: 22px; height: 22px; }
 .req { background: var(--accent-soft); border-radius: 12px; padding: 12px; margin: 8px 0; }
 .req small { display: block; color: var(--ink-2); }
-.toast { position: fixed; left: 50%; bottom: 90px; transform: translateX(-50%); background: var(--ink); color: var(--page); padding: .6em 1em; border-radius: 10px; font-size: .88em; z-index: 20; max-width: calc(100% - 32px); }
+.toast { pointer-events: none; position: fixed; left: 50%; bottom: 90px; transform: translateX(-50%); background: var(--ink); color: var(--page); padding: .6em 1em; border-radius: 10px; font-size: .88em; z-index: 20; max-width: calc(100% - 32px); }
 .loading { text-align: center; color: var(--ink-2); padding: 48px 0; }
 .demo { background: var(--warn-soft); color: var(--warn); font-size: .8em; padding: .5em 16px; text-align: center; }
 .demo button { background: none; border: 0; color: inherit; text-decoration: underline; cursor: pointer; font-size: inherit; }
@@ -269,15 +271,15 @@ textarea.field { resize: vertical; line-height: 1.55; }
     const tgtSel = (v, id) => `<select data-act="tgt" data-id="${id}" aria-label="대상">${[...new Set([v, ...targets])].map(t => `<option${t === v ? ' selected' : ''}>${esc(t)}</option>`).join('')}</select>`;
     return `<p class="eyebrow">${esc(mine.name)} 가정 · ${esc(S.me.person)}</p><h1>내 기도 · ${Number(S.month.month.slice(5))}월</h1>
       <p class="hint">바뀐 것만 고치면 돼요. 칸을 벗어나면 저장돼요. <span class="saved" id="saved">${S.saved || ''}</span></p>
-      ${mine.items.map(i => `<div class="edit s-${i.scope}">
+      ${mine.items.map(i => `<div class="edit s-${i.scope}"><fieldset ${i.pending ? 'disabled' : ''}>
         <div class="edit-top">${tgtSel(i.target, i.id)}<button class="scope s-${i.scope}" data-act="scope" data-id="${i.id}">${SCOPE[i.scope]}</button></div>
         <textarea class="field" rows="2" data-id="${i.id}" aria-label="기도제목 내용">${esc(i.text)}</textarea>
-        <div class="edit-foot"><span>${i.isNew ? whoDid(i.editedBy) + ' 새로 씀' : i.same ? '지난달과 같음 · ' + whoDid(i.editedBy) + ' 씀' : whoDid(i.editedBy) + ' 고침' + (i.editedAt ? ' · ' + i.editedAt : '')}</span>
-          <span><button class="link" data-act="end" data-id="${i.id}">마치기</button><button class="link danger" data-act="del" data-id="${i.id}">지우기</button></span></div></div>`).join('')}
+        <div class="edit-foot"><span>${i.pending ? '저장 중…' : i.isNew ? whoDid(i.editedBy) + ' 새로 씀' : i.same ? '지난달과 같음 · ' + whoDid(i.editedBy) + ' 씀' : whoDid(i.editedBy) + ' 고침' + (i.editedAt ? ' · ' + i.editedAt : '')}</span>
+          <span><button class="link" data-act="end" data-id="${i.id}">마치기</button><button class="link danger" data-act="del" data-id="${i.id}">지우기</button></span></div></fieldset></div>`).join('')}
       <section class="card"><form data-form="add"><label class="f" for="add-t" style="margin-top:0">새 기도제목</label>
         <div class="row" style="margin-bottom:8px">${tgtSel(S.draftTgt || '우리 가정', 'new').replace('data-act="tgt" data-id="new"', 'id="add-tgt"')}</div>
         <textarea id="add-t" class="field" rows="3" placeholder="이번 달 새로 생긴 기도제목">${esc(S.draft || '')}</textarea>
-        <button class="btn wide" type="submit" style="margin-top:8px" ${S.adding ? 'disabled' : ''}>${S.adding ? '더하는 중…' : '더하기'}</button></form></section>
+        <button class="btn wide" type="submit" style="margin-top:8px">더하기</button></form></section>
       <p class="hint">마치기: 이뤄졌거나 그만 올릴 때(지난 기록에 남아요) · 지우기: 잘못 썼을 때</p>`;
   }
 
@@ -396,19 +398,22 @@ textarea.field { resize: vertical; line-height: 1.55; }
       S.view = 'consent'; return render();
     }
     if (f.dataset.form === 'add') {
-      if (S.adding) return;
       const text = $('#add-t').value.trim(); if (!text) return toast('내용을 적어 주세요.');
-      const body = { target: $('#add-tgt').value, text, scope: 'room' };
-      S.adding = true; render();
-      return save(() => api('saveItem', body), ok => {
-        S.adding = false;
-        if (ok) { S.draft = ''; S.draftTgt = ''; const at = $('#add-t'); if (at) at.value = ''; toast('더했어요.'); }
+      const target = $('#add-tgt').value;
+      // 목록에 바로 보이게 넣고(서버의 답이 오기 전까지는 고칠 수 없게 잠가 둠), 칸은 비워서 두 번 눌러도 하나만 생기게 한다
+      mineFam().items.push({ id: 'new' + Date.now(), target, text, scope: 'room', isNew: true, editedBy: S.me.person, pending: true });
+      S.draft = ''; S.draftTgt = ''; $('#add-t').value = ''; render(); toast('더했어요.');
+      return save(() => api('saveItem', { target, text, scope: 'room' }), ok => {
+        // 실패하면 쓴 글을 칸에 되돌려 놓는다(다시 그릴 때 칸의 글을 기억하므로 칸에 직접 넣는다)
+        if (!ok) { S.draft = text; S.draftTgt = target; const at = $('#add-t'); if (at) { at.value = text; $('#add-tgt').value = target; } }
       });
     }
   });
 
-  document.addEventListener('focusin', e => { if (e.target.matches('textarea, input, select')) document.body.classList.add('typing'); });
-  document.addEventListener('focusout', () => document.body.classList.remove('typing'));
+  // 글을 쓰는 동안 숨긴 아래 메뉴는 조금 늦게 다시 보여 준다. 키보드가 내려가며 화면이 움직이는 사이에 누른 더하기가 메뉴에 가로채이지 않게
+  let typingOff;
+  document.addEventListener('focusin', e => { if (e.target.matches('textarea, input, select')) { clearTimeout(typingOff); document.body.classList.add('typing'); } });
+  document.addEventListener('focusout', () => { clearTimeout(typingOff); typingOff = setTimeout(() => document.body.classList.remove('typing'), 600); });
 
   // 시작하다 막히면 "불러오는 중"에 멈춰 있지 않고 다시 해 보기 버튼을 보여 준다
   boot().catch(e => { S.view = 'error'; S.err = e; render(); });
