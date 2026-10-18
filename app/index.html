@@ -36,7 +36,7 @@ button, input, textarea, select { font: inherit; color: inherit; }
 .mark { width: 28px; height: 28px; border-radius: 50%; background: var(--accent); color: var(--on-accent); display: grid; place-items: center; }
 .mark svg { width: 17px; height: 17px; }
 .badge { font-size: .8em; background: var(--surface-2); border: 1px solid var(--line); border-radius: 999px; padding: .25em .75em; color: var(--ink-2); }
-main { padding-bottom: 96px; }
+main { padding-bottom: calc(110px + env(safe-area-inset-bottom)); }
 h1 { font-family: var(--f-display); font-size: 1.65em; line-height: 1.3; margin: .3em 0 .2em; }
 h2 { font-size: 1.05em; margin: 0; }
 .eyebrow { font-size: .8em; color: var(--ink-2); margin: 1em 0 0; }
@@ -86,6 +86,8 @@ textarea.field { resize: vertical; line-height: 1.55; }
 .wait { display: flex; align-items: center; gap: .6em; background: var(--accent-soft); border-radius: 12px; padding: .9em 1em; font-weight: 600; margin: 12px 0; }
 .tabs { position: fixed; left: 0; right: 0; bottom: 0; display: grid; grid-template-columns: repeat(3, 1fr); background: var(--surface); border-top: 1px solid var(--line); padding-bottom: env(safe-area-inset-bottom); z-index: 10; }
 .tabs button { min-height: 58px; border: 0; background: none; color: var(--ink-2); font-size: .8em; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px; cursor: pointer; }
+/* 휴대폰에서 글을 쓰는 동안은 키보드 위로 올라온 아래 메뉴가 버튼을 가리지 않게 숨긴다 */
+@media (pointer: coarse) { body.typing .tabs { display: none; } }
 .tabs button.on { color: var(--accent); font-weight: 600; }
 .tabs svg { width: 22px; height: 22px; }
 .req { background: var(--accent-soft); border-radius: 12px; padding: 12px; margin: 8px 0; }
@@ -121,7 +123,7 @@ textarea.field { resize: vertical; line-height: 1.55; }
   async function api(action, data) {
     const body = Object.assign({ action, token: getToken() }, data || {});
     let res;
-    if (DEMO) res = window.koideDemo.call(body);
+    if (DEMO) res = await window.koideDemo.call(body);
     else {
       // 본문을 글자로 보내면 브라우저가 미리 묻는 요청(CORS preflight) 없이 바로 보낸다. Apps Script는 그 요청을 받지 못한다
       // 한동안 안 쓰면 서버가 깨어나는 데 10~20초 걸린다. 4초가 넘으면 기다리는 이유를 알려 주고, 60초가 넘으면 그만 기다린다
@@ -266,16 +268,16 @@ textarea.field { resize: vertical; line-height: 1.55; }
     const targets = ['우리 가정', '남편', '아내', ...mine.kids, '부모님', '기타'];
     const tgtSel = (v, id) => `<select data-act="tgt" data-id="${id}" aria-label="대상">${[...new Set([v, ...targets])].map(t => `<option${t === v ? ' selected' : ''}>${esc(t)}</option>`).join('')}</select>`;
     return `<p class="eyebrow">${esc(mine.name)} 가정 · ${esc(S.me.person)}</p><h1>내 기도 · ${Number(S.month.month.slice(5))}월</h1>
-      <p class="hint">바뀐 것만 고치면 돼요. 칸을 벗어나면 저장돼요. <span class="saved" id="saved"></span></p>
+      <p class="hint">바뀐 것만 고치면 돼요. 칸을 벗어나면 저장돼요. <span class="saved" id="saved">${S.saved || ''}</span></p>
       ${mine.items.map(i => `<div class="edit s-${i.scope}">
         <div class="edit-top">${tgtSel(i.target, i.id)}<button class="scope s-${i.scope}" data-act="scope" data-id="${i.id}">${SCOPE[i.scope]}</button></div>
         <textarea class="field" rows="2" data-id="${i.id}" aria-label="기도제목 내용">${esc(i.text)}</textarea>
         <div class="edit-foot"><span>${i.isNew ? whoDid(i.editedBy) + ' 새로 씀' : i.same ? '지난달과 같음 · ' + whoDid(i.editedBy) + ' 씀' : whoDid(i.editedBy) + ' 고침' + (i.editedAt ? ' · ' + i.editedAt : '')}</span>
           <span><button class="link" data-act="end" data-id="${i.id}">마치기</button><button class="link danger" data-act="del" data-id="${i.id}">지우기</button></span></div></div>`).join('')}
       <section class="card"><form data-form="add"><label class="f" for="add-t" style="margin-top:0">새 기도제목</label>
-        <div class="row" style="margin-bottom:8px">${tgtSel('우리 가정', 'new').replace('data-act="tgt" data-id="new"', 'id="add-tgt"')}</div>
-        <textarea id="add-t" class="field" rows="3" placeholder="이번 달 새로 생긴 기도제목"></textarea>
-        <button class="btn wide" type="submit" style="margin-top:8px">더하기</button></form></section>
+        <div class="row" style="margin-bottom:8px">${tgtSel(S.draftTgt || '우리 가정', 'new').replace('data-act="tgt" data-id="new"', 'id="add-tgt"')}</div>
+        <textarea id="add-t" class="field" rows="3" placeholder="이번 달 새로 생긴 기도제목">${esc(S.draft || '')}</textarea>
+        <button class="btn wide" type="submit" style="margin-top:8px" ${S.adding ? 'disabled' : ''}>${S.adding ? '더하는 중…' : '더하기'}</button></form></section>
       <p class="hint">마치기: 이뤄졌거나 그만 올릴 때(지난 기록에 남아요) · 지우기: 잘못 썼을 때</p>`;
   }
 
@@ -297,6 +299,8 @@ textarea.field { resize: vertical; line-height: 1.55; }
 
   function render() {
     const app = S.view === 'app';
+    // 새 기도제목 칸에 쓰던 글은 다시 그려도 남긴다
+    const at = $('#add-t'); if (at) { S.draft = at.value; S.draftTgt = $('#add-tgt').value; }
     $('#main').innerHTML = VIEWS[S.view]();
     $('#tabs').hidden = !app;
     $('#badge').innerHTML = app ? `<span class="badge">${esc(S.month.room.name)} · ${esc(S.month.me.role)}</span>` : '';
@@ -305,9 +309,21 @@ textarea.field { resize: vertical; line-height: 1.55; }
   }
   const mineFam = () => S.month.families.find(f => f.own);
   const itemOf = id => mineFam().items.find(i => i.id === id);
-  // 서버가 돌려준 이번 달로 바꾸고 다시 그린다(내 기도에서 쓰던 칸은 그대로 두려고 저장 표시만 바꿀 때도 있다)
-  async function act(promise, after) {
-    try { S.month = await promise; if (after) after(); render(); } catch (e) { oops(e); }
+  // 저장: 서버는 2~4초 걸리므로 화면은 먼저 바꿔 두고(부르는 쪽에서), 서버에는 하나씩 차례대로 보낸다.
+  //  마지막 저장의 답이 오면 서버가 돌려준 이번 달로 맞추고, 실패하면 서버의 이번 달을 다시 받아 되돌린다
+  let queue = Promise.resolve(), waiting = 0;
+  function setSaved(t) { S.saved = t; const sv = $('#saved'); if (sv) sv.textContent = t; }
+  // 글을 쓰는 중이면 다시 그리지 않는다(쓰던 칸이 사라지지 않게). 다음에 그릴 때 맞춰진다
+  function paint() { const a = document.activeElement; if (a && $('#main').contains(a) && a.matches('textarea, input')) return; render(); }
+  function save(call, done) {
+    waiting++; setSaved('저장 중…');
+    queue = queue.then(call).then(
+      m => { if (done) done(true); if (--waiting === 0) { S.month = m; setSaved('저장됨'); } paint(); },
+      async e => {
+        if (done) done(false); waiting--; setSaved(''); oops(e);
+        try { S.month = await api('month'); } catch (e2) { /* 다음 저장 때 맞춰진다 */ }
+        paint();
+      });
   }
 
   document.addEventListener('click', async e => {
@@ -336,16 +352,24 @@ textarea.field { resize: vertical; line-height: 1.55; }
         S.tab = v; render(); window.scrollTo(0, 0);
         if (v === 'more') { const me = S.month.me; if (me.admin || me.role === '리더' || me.role === '코리더') { try { S.pending = await api('pending'); render(); } catch (err) { oops(err); } } }
         return;
-      case 'confirm': return act(api('confirmSame'), () => toast('이번 달도 그대로라고 리더에게 알렸어요.'));
+      case 'confirm': return save(() => api('confirmSame'), ok => ok && toast('이번 달도 그대로라고 리더에게 알렸어요.'));
       case 'pray': {
         const f = S.month.families.find(x => x.id === v); f.prayed++; render();
         try { const r = await api('pray', { familyId: v }); f.prayed = r.prayed; if (r.capped) toast('이 가정은 오늘 충분히 기도했어요. 내일 또 기도해 주세요.'); render(); }
         catch (err) { f.prayed--; render(); oops(err); }
         return;
       }
-      case 'scope': { const i = itemOf(id); return act(api('saveItem', { id, target: i.target, text: i.text, scope: NEXT_SCOPE[i.scope] })); }
-      case 'end': return act(api('endItem', { id }), () => toast('마쳤어요. 지난 기록에는 남아요.'));
-      case 'del': if (!confirm('이 기도제목을 지울까요? 되돌릴 수 없어요.')) return; return act(api('deleteItem', { id }));
+      case 'scope': {
+        const i = itemOf(id); i.scope = NEXT_SCOPE[i.scope]; render();
+        const body = { id, target: i.target, text: i.text, scope: i.scope };
+        return save(() => api('saveItem', body));
+      }
+      case 'end': case 'del': {
+        if (b.dataset.act === 'del' && !confirm('이 기도제목을 지울까요? 되돌릴 수 없어요.')) return;
+        const f = mineFam(); f.items = f.items.filter(i => i.id !== id); render();
+        if (b.dataset.act === 'end') toast('마쳤어요. 지난 기록에는 남아요.');
+        return save(() => api(b.dataset.act === 'end' ? 'endItem' : 'deleteItem', { id }));
+      }
       case 'approve': case 'reject': case 'unlink':
         try { S.pending = await api(b.dataset.act, { kakaoId: v }); render(); toast(b.dataset.act === 'approve' ? '승인했어요.' : b.dataset.act === 'reject' ? '거절했어요.' : '연결을 해제했어요.'); } catch (err) { oops(err); }
         return;
@@ -358,8 +382,10 @@ textarea.field { resize: vertical; line-height: 1.55; }
       const id = t.dataset.id, i = itemOf(id), box = t.closest('.edit');
       const text = box.querySelector('textarea').value, target = box.querySelector('select').value;
       if (text === i.text && target === i.target) return;
-      const sv = $('#saved'); if (sv) sv.textContent = '저장 중…';
-      act(api('saveItem', { id, target, text, scope: i.scope }), () => setTimeout(() => { const s2 = $('#saved'); if (s2) s2.textContent = '저장됨'; }, 0));
+      // 칸에는 이미 고친 글이 보이니 다시 그리지 않고 기억만 바꾼다(칸을 벗어나며 바로 누른 탭이 그대로 눌리게)
+      Object.assign(i, { text, target });
+      const body = { id, target, text, scope: i.scope };
+      save(() => api('saveItem', body));
     }
   });
   document.addEventListener('submit', async e => {
@@ -370,10 +396,19 @@ textarea.field { resize: vertical; line-height: 1.55; }
       S.view = 'consent'; return render();
     }
     if (f.dataset.form === 'add') {
+      if (S.adding) return;
       const text = $('#add-t').value.trim(); if (!text) return toast('내용을 적어 주세요.');
-      return act(api('saveItem', { target: $('#add-tgt').value, text, scope: 'room' }), () => toast('더했어요.'));
+      const body = { target: $('#add-tgt').value, text, scope: 'room' };
+      S.adding = true; render();
+      return save(() => api('saveItem', body), ok => {
+        S.adding = false;
+        if (ok) { S.draft = ''; S.draftTgt = ''; const at = $('#add-t'); if (at) at.value = ''; toast('더했어요.'); }
+      });
     }
   });
+
+  document.addEventListener('focusin', e => { if (e.target.matches('textarea, input, select')) document.body.classList.add('typing'); });
+  document.addEventListener('focusout', () => document.body.classList.remove('typing'));
 
   // 시작하다 막히면 "불러오는 중"에 멈춰 있지 않고 다시 해 보기 버튼을 보여 준다
   boot().catch(e => { S.view = 'error'; S.err = e; render(); });
