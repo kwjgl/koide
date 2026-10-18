@@ -167,6 +167,29 @@ body.praying .tabs { display: none; }
 .today-acts { display: flex; gap: 8px; margin-top: 12px; }
 .today-acts .btn { flex: 1; }
 .card.today .cord { border-top: 1px solid color-mix(in srgb, var(--accent) 20%, var(--line)); margin-top: 14px; padding-top: 12px; }
+/* 표 보기: 지금 구글 시트와 같은 모양(가정 | 기도제목). PC·태블릿은 넓게 */
+body.wide .wrap, body.wide .top { max-width: 1000px; }
+.tb-acts { display: flex; flex-wrap: wrap; gap: 8px; margin: 8px 0 12px; }
+.tb-lead { display: flex; align-items: center; gap: .5em; font-size: .9em; margin: 4px 0; cursor: pointer; }
+.tb-lead input { width: 20px; height: 20px; accent-color: var(--accent); }
+.tb-warn { font-size: .82em; color: var(--warn); margin: 0 0 8px; }
+.tb-wrap { overflow-x: auto; background: var(--surface); border: 1px solid var(--line); border-radius: 12px; }
+table.sheet { border-collapse: collapse; width: 100%; min-width: 520px; font-size: .9em; }
+table.sheet th, table.sheet td { border: 1px solid var(--line); padding: .55em .7em; text-align: left; vertical-align: top; }
+table.sheet th { background: var(--surface-2); font-weight: 600; }
+table.sheet td:first-child { width: 9em; font-weight: 600; white-space: nowrap; }
+table.sheet td div + div { margin-top: .35em; }
+.tb-rotate { display: none; }
+@media (max-width: 600px) and (orientation: portrait) { .tb-rotate { display: block; } }
+@media print {
+  body { background: #fff; }
+  .top, .demo, .tabs, .tb-acts, .tb-lead, .tb-warn, .tb-rotate, .hint, .toast { display: none !important; }
+  .wrap, body.wide .wrap { max-width: none; padding: 0; }
+  .tb-wrap { border: 0; overflow: visible; }
+  table.sheet { min-width: 0; font-size: 10pt; }
+  table.sheet th, table.sheet td { border-color: #999; }
+  table.sheet tr { break-inside: avoid; }
+}
 .cord { width: 100%; text-align: left; }
 /* 지난 기록 */
 .hist-chips { display: flex; gap: 6px; overflow-x: auto; padding: 2px 0 8px; margin: 10px 0 4px; scrollbar-width: none; }
@@ -358,7 +381,7 @@ body.praying .tabs { display: none; }
       <button class="btn wide" data-act="retry">승인됐는지 다시 확인</button>
       <p class="hint">${DEMO ? '데모: 로그아웃하고 "김도윤으로 들어가기"(리더) → 더보기에서 승인해 보세요.' : '보통 하루 안에 끝나요.'}</p>
       <button class="link" data-act="logout">로그아웃</button>`,
-    app: () => ({ home: homeView, mine: mineView, pray: prayView, history: historyView, more: moreView, import: importView })[S.tab]()
+    app: () => ({ home: homeView, mine: mineView, pray: prayView, history: historyView, more: moreView, import: importView, table: tableView })[S.tab]()
   };
   const famPicked = () => S.rooms.find(x => x.id === S.pick.roomId).families.find(f => f.id === S.pick.familyId);
   const consentList = () => `<ul class="consent">
@@ -373,7 +396,7 @@ body.praying .tabs { display: none; }
     const items = f => f.items.length ? `<ul class="items">${f.items.map(i => `<li class="s-${i.scope}"><span class="tgt">${esc(i.target)}</span><span>${esc(i.text)}${i.scope !== 'room' ? `<span class="scope-note">${SCOPE[i.scope]}</span>` : ''}</span></li>`).join('')}</ul>` : '<p class="hint">아직 올린 기도제목이 없어요.</p>';
     const ST = { same: '지난달 그대로', edited: '이번 달 손봄', confirmed: '그대로 확인' };
     const t = todayFam();
-    return `<p class="eyebrow">${esc(M.room.name)}</p><h1>${Number(M.month.slice(5))}월 기도제목 <span aria-hidden="true">🙏</span></h1>
+    return `<p class="eyebrow">${esc(M.room.name)}</p><div class="row"><h1>${Number(M.month.slice(5))}월 기도제목 <span aria-hidden="true">🙏</span></h1><button class="btn small ghost" data-act="table" data-v="month">표로 보기</button></div>
       ${t ? `<section class="card today" aria-label="지금 함께 기도할 가정"><p class="today-tag">${ICON.hands}지금 함께 기도할 가정</p><h2>${esc(t.name)}</h2>
         ${items(t)}${t.prayed ? `<p class="hint">이번 달 이 가정을 위해 ${t.prayed}번 기도했어요.</p>` : ''}
         <div class="today-acts"><button class="btn" data-act="pray" data-v="${esc(t.id)}" ${(t.today || 0) >= 3 ? 'disabled' : ''}>${(t.today || 0) >= 3 ? '오늘은 여기까지' : '기도했어요'}${t.today ? ` ${t.today}/3` : ''}</button>
@@ -476,7 +499,7 @@ body.praying .tabs { display: none; }
     if (tab === 'mine') return head + first + (H.mine.length ? H.mine.map(x => `<section class="card"><h2>${monthLabel(x.month, H.now)}${x.month === H.now ? ' <span class="own-tag">이번 달</span>' : ''}</h2>${histItems(x.items)}</section>`).join('')
       : '<p class="hint" style="margin-top:12px">아직 올린 기도제목이 없어요.</p>');
     return head + first + `<div class="hist-chips" role="radiogroup" aria-label="달">${H.months.map(m => `<button class="chip-btn${m === H.month ? ' on' : ''}" role="radio" aria-checked="${m === H.month}" data-act="histmonth" data-v="${m}">${monthLabel(m, H.now)}${m === H.now ? '<small>이번 달</small>' : ''}</button>`).join('')}</div>
-      <h2>${monthLabel(H.month, H.now)}${H.room ? ' · ' + esc(H.room) : ''}</h2>
+      <div class="row"><h2>${monthLabel(H.month, H.now)}${H.room ? ' · ' + esc(H.room) : ''}</h2>${H.families.length ? '<button class="btn small ghost" data-act="table" data-v="hist">표로 보기</button>' : ''}</div>
       ${H.families.length ? H.families.map(f => `<section class="card"><div class="row"><h2>${esc(f.name)}</h2>${f.own ? '<span class="own-tag">우리 가정</span>' : ''}</div>${histItems(f.items)}</section>`).join('')
         : '<p class="hint">이 달의 사랑방 기록을 찾지 못했어요.</p>'}`;
   }
@@ -484,6 +507,86 @@ body.praying .tabs { display: none; }
     try { S.hist = await api('history', month ? { month } : {}); }
     catch (e) { if (e.code === 'bad') toast('서버를 새 버전으로 배포하면 지난 기록을 볼 수 있어요.'); else oops(e); S.hist = S.hist || null; }
     if (S.tab === 'history') render();
+  }
+
+  // ── 표 보기·엑셀 내려받기 ──────────────────────────────
+  // 지금 구글 시트와 같은 모양: 제목 "○○ 사랑방 · 2026년 10월", 열은 가정 | 기도제목, 칸에는 "[대상] 내용"을 줄마다.
+  //  "우리 가정만" 항목은 어떤 경우에도 넣지 않는다. 리더·목사님 항목은 볼 수 있는 사람이 고를 때만(파일이 전달될 수 있다는 경고와 함께)
+  function tableData() {
+    const H = S.tableSrc === 'hist' && S.hist;
+    const room = H ? H.room : S.month.room.name, month = H ? H.month : S.month.month, fams = H ? H.families : S.month.families;
+    const canLead = fams.some(f => f.items.some(i => i.scope === 'leader')), lead = canLead && !!S.tableLead;
+    const rows = fams.map(f => ({ name: f.name, lines: f.items.filter(i => !i.pending && (i.scope === 'room' || (lead && i.scope === 'leader')))
+      .map(i => '[' + i.target + '] ' + i.text + (i.scope === 'leader' ? ' (리더·목사님)' : '') + (i.ended ? ' (마침)' : '')) }));
+    return { title: room + ' · ' + month.slice(0, 4) + '년 ' + Number(month.slice(5)) + '월', room, month, rows, canLead, lead };
+  }
+  function tableView() {
+    const T = tableData();
+    return `<p class="eyebrow">표 보기</p><h1>${esc(T.title)}</h1>
+      <div class="tb-acts"><button class="btn small ghost" data-act="tableback">← 돌아가기</button><button class="btn small ghost" data-act="tableprint">인쇄</button><button class="btn small" data-act="tablexlsx">엑셀 내려받기</button></div>
+      ${T.canLead ? `<label class="tb-lead"><input type="checkbox" data-act="tablelead" ${T.lead ? 'checked' : ''}> 리더·목사님 항목 포함</label>${T.lead ? '<p class="tb-warn">인쇄물이나 파일은 다른 사람에게 전달될 수 있어요. 꼭 필요할 때만 포함해 주세요.</p>' : ''}` : ''}
+      <p class="hint tb-rotate">휴대폰을 가로로 돌리면 더 넓게 보여요.</p>
+      <div class="tb-wrap"><table class="sheet"><thead><tr><th>가정</th><th>기도제목</th></tr></thead>
+        <tbody>${T.rows.map(r => `<tr><td>${esc(r.name)}</td><td>${r.lines.map(l => `<div>${esc(l)}</div>`).join('')}</td></tr>`).join('')}</tbody></table></div>
+      <p class="hint">"우리 가정만" 항목은 표와 파일에 들어가지 않아요.</p>`;
+  }
+  // 엑셀(xlsx) 파일을 브라우저에서 바로 만든다. xlsx는 XML 파일 몇 개를 zip으로 묶은 것이라, 압축 없이(stored) 묶는다
+  //  서식: 제목 굵게(가정·기도제목 두 칸 합침), 머리 행 회색, 칸 테두리, 기도제목 칸은 줄바꿈해서 보이게, 위 두 줄 고정
+  const xml = v => String(v).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c])).replace(/[\u0000-\u0008\u000B\u000C\u000E-\u001F]/g, '');
+  const CRC = (() => { const t = new Uint32Array(256); for (let n = 0; n < 256; n++) { let c = n; for (let k = 0; k < 8; k++) c = c & 1 ? 0xEDB88320 ^ (c >>> 1) : c >>> 1; t[n] = c >>> 0; } return t; })();
+  const crc32 = b => { let c = 0xFFFFFFFF; for (let i = 0; i < b.length; i++) c = CRC[(c ^ b[i]) & 255] ^ (c >>> 8); return (c ^ 0xFFFFFFFF) >>> 0; };
+  function zip(files) {
+    const enc = new TextEncoder(), parts = [], dir = []; let off = 0;
+    const head = (n, size) => { const b = new DataView(new ArrayBuffer(size)); return b; };
+    files.forEach(f => {
+      const name = enc.encode(f.name), data = enc.encode(f.data), crc = crc32(data);
+      const h = head(0, 30); [[0, 0x04034b50, 4], [4, 20, 2], [6, 0x0800, 2], [8, 0, 2], [10, 0, 2], [12, 0x21, 2], [14, crc, 4], [18, data.length, 4], [22, data.length, 4], [26, name.length, 2], [28, 0, 2]]
+        .forEach(([o, v, n]) => n === 4 ? h.setUint32(o, v, true) : h.setUint16(o, v, true));
+      const c = head(0, 46); [[0, 0x02014b50, 4], [4, 20, 2], [6, 20, 2], [8, 0x0800, 2], [10, 0, 2], [12, 0, 2], [14, 0x21, 2], [16, crc, 4], [20, data.length, 4], [24, data.length, 4], [28, name.length, 2], [30, 0, 2], [32, 0, 2], [34, 0, 2], [36, 0, 2], [38, 0, 4], [42, off, 4]]
+        .forEach(([o, v, n]) => n === 4 ? c.setUint32(o, v, true) : c.setUint16(o, v, true));
+      parts.push(new Uint8Array(h.buffer), name, data); dir.push(new Uint8Array(c.buffer), name);
+      off += 30 + name.length + data.length;
+    });
+    const size = dir.reduce((a, x) => a + x.length, 0), e = head(0, 22);
+    [[0, 0x06054b50, 4], [4, 0, 2], [6, 0, 2], [8, files.length, 2], [10, files.length, 2], [12, size, 4], [16, off, 4], [20, 0, 2]].forEach(([o, v, n]) => n === 4 ? e.setUint32(o, v, true) : e.setUint16(o, v, true));
+    return new Blob([...parts, ...dir, new Uint8Array(e.buffer)], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+  }
+  function xlsxBlob(T) {
+    const NS = 'http://schemas.openxmlformats.org/spreadsheetml/2006/main', R = 'http://schemas.openxmlformats.org/officeDocument/2006/relationships';
+    const cell = (ref, v, st) => `<c r="${ref}" t="inlineStr" s="${st}"><is><t xml:space="preserve">${xml(v)}</t></is></c>`;
+    // 한글은 한 글자가 두 칸쯤이라, 기도제목 칸(너비 90)에 한 줄에 45자쯤 들어간다고 보고 줄 높이를 미리 정한다
+    const height = lines => Math.max(1, lines.reduce((a, l) => a + Math.max(1, Math.ceil([...l].reduce((w, ch) => w + (ch.charCodeAt(0) > 255 ? 2 : 1), 0) / 88)), 0)) * 16 + 6;
+    const rows = T.rows.map((r, i) => `<row r="${i + 3}" ht="${height(r.lines)}" customHeight="1">${cell('A' + (i + 3), r.name, 3)}${cell('B' + (i + 3), r.lines.join('\n'), 4)}</row>`).join('');
+    const sheet = `<?xml version="1.0" encoding="UTF-8" standalone="yes"?><worksheet xmlns="${NS}" xmlns:r="${R}"><sheetViews><sheetView workbookViewId="0"><pane ySplit="2" topLeftCell="A3" activePane="bottomLeft" state="frozen"/></sheetView></sheetViews>
+<cols><col min="1" max="1" width="20" customWidth="1"/><col min="2" max="2" width="90" customWidth="1"/></cols>
+<sheetData><row r="1" ht="26" customHeight="1">${cell('A1', T.title, 1)}</row><row r="2">${cell('A2', '가정', 2)}${cell('B2', '기도제목', 2)}</row>${rows}</sheetData>
+<mergeCells count="1"><mergeCell ref="A1:B1"/></mergeCells><pageMargins left="0.5" right="0.5" top="0.6" bottom="0.6" header="0.3" footer="0.3"/></worksheet>`;
+    const styles = `<?xml version="1.0" encoding="UTF-8" standalone="yes"?><styleSheet xmlns="${NS}">
+<fonts count="3"><font><sz val="11"/><name val="맑은 고딕"/></font><font><b/><sz val="14"/><name val="맑은 고딕"/></font><font><b/><sz val="11"/><name val="맑은 고딕"/></font></fonts>
+<fills count="3"><fill><patternFill patternType="none"/></fill><fill><patternFill patternType="gray125"/></fill><fill><patternFill patternType="solid"><fgColor rgb="FFEEF2EF"/><bgColor indexed="64"/></patternFill></fill></fills>
+<borders count="2"><border><left/><right/><top/><bottom/><diagonal/></border><border><left style="thin"><color rgb="FFB9C4BF"/></left><right style="thin"><color rgb="FFB9C4BF"/></right><top style="thin"><color rgb="FFB9C4BF"/></top><bottom style="thin"><color rgb="FFB9C4BF"/></bottom><diagonal/></border></borders>
+<cellStyleXfs count="1"><xf numFmtId="0" fontId="0" fillId="0" borderId="0"/></cellStyleXfs>
+<cellXfs count="5"><xf numFmtId="0" fontId="0" fillId="0" borderId="0" xfId="0"/>
+<xf numFmtId="0" fontId="1" fillId="0" borderId="0" xfId="0" applyFont="1" applyAlignment="1"><alignment vertical="center"/></xf>
+<xf numFmtId="0" fontId="2" fillId="2" borderId="1" xfId="0" applyFont="1" applyFill="1" applyBorder="1" applyAlignment="1"><alignment horizontal="center" vertical="center"/></xf>
+<xf numFmtId="0" fontId="2" fillId="0" borderId="1" xfId="0" applyFont="1" applyBorder="1" applyAlignment="1"><alignment vertical="top" wrapText="1"/></xf>
+<xf numFmtId="0" fontId="0" fillId="0" borderId="1" xfId="0" applyBorder="1" applyAlignment="1"><alignment vertical="top" wrapText="1"/></xf></cellXfs>
+<cellStyles count="1"><cellStyle name="Normal" xfId="0" builtinId="0"/></cellStyles></styleSheet>`;
+    const sheetName = xml((Number(T.month.slice(5)) + '월 ' + T.room).replace(/[\[\]:*?\/\\]/g, ' ').slice(0, 31));
+    return zip([
+      { name: '[Content_Types].xml', data: `<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types"><Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/><Default Extension="xml" ContentType="application/xml"/><Override PartName="/xl/workbook.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet.main+xml"/><Override PartName="/xl/worksheets/sheet1.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.worksheet+xml"/><Override PartName="/xl/styles.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.styles+xml"/></Types>` },
+      { name: '_rels/.rels', data: `<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rId1" Type="${R}/officeDocument" Target="xl/workbook.xml"/></Relationships>` },
+      { name: 'xl/workbook.xml', data: `<?xml version="1.0" encoding="UTF-8" standalone="yes"?><workbook xmlns="${NS}" xmlns:r="${R}"><sheets><sheet name="${sheetName}" sheetId="1" r:id="rId1"/></sheets></workbook>` },
+      { name: 'xl/_rels/workbook.xml.rels', data: `<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rId1" Type="${R}/worksheet" Target="worksheets/sheet1.xml"/><Relationship Id="rId2" Type="${R}/styles" Target="styles.xml"/></Relationships>` },
+      { name: 'xl/styles.xml', data: styles },
+      { name: 'xl/worksheets/sheet1.xml', data: sheet }
+    ]);
+  }
+  function downloadXlsx() {
+    const T = tableData(), url = URL.createObjectURL(xlsxBlob(T)), a = document.createElement('a');
+    a.href = url; a.download = T.room + ' ' + T.month.slice(0, 4) + '년 ' + Number(T.month.slice(5)) + '월 기도제목.xlsx';
+    document.body.appendChild(a); a.click(); a.remove(); setTimeout(() => URL.revokeObjectURL(url), 10000);
+    toast('엑셀 파일을 내려받았어요.');
   }
 
   // ── 기도하기 ────────────────────────────────────────
@@ -827,6 +930,7 @@ body.praying .tabs { display: none; }
     const at = $('#add-t'); if (at) { S.draft = at.value; S.draftTgt = $('#add-tgt').value; }
     $('#main').innerHTML = VIEWS[S.view]();
     if (app) writeCache();
+    document.body.classList.toggle('wide', app && S.tab === 'table');
     $('#tabs').hidden = !app;
     $('#badge').innerHTML = app ? `<span class="badge">${esc(S.month.room.name)} · ${esc(S.month.me.role)}</span>` : '';
     if (app) $('#tabs').innerHTML = [['home', '이번 달', ICON.home], ['mine', '내 기도', ICON.pen], ['pray', '기도하기', ICON.hands], ['history', '지난 기록', ICON.book], ['more', '더보기', ICON.more]]
@@ -901,6 +1005,11 @@ body.praying .tabs { display: none; }
         if (b.dataset.act === 'end') toast('마쳤어요. 지난 기록에는 남아요.');
         return save(() => api(b.dataset.act === 'end' ? 'endItem' : 'deleteItem', { id }));
       }
+      case 'table': S.tableFrom = S.tab; S.tableSrc = v; S.tableLead = false; S.tab = 'table'; render(); return window.scrollTo(0, 0);
+      case 'tableback': S.tab = S.tableFrom || 'home'; render(); return window.scrollTo(0, 0);
+      case 'tablelead': S.tableLead = b.checked; return render();
+      case 'tableprint': return window.print();
+      case 'tablexlsx': return downloadXlsx();
       case 'histtab': S.histTab = v; return render();
       case 'histmonth': if (S.hist) S.hist.month = v; render(); return loadHist(v);
       case 'nexttoday': { const fams = roomFams(), i = fams.findIndex(f => f.id === S.todayId); pickToday(fams, i + 1, S.todayId); return render(); }
