@@ -39,7 +39,7 @@ const FIRST_DEPT = { id: 'D1', name: '청장년부', group: '사랑방', unit: '
 // ── 요청 받기 ─────────────────────────────────────────────
 
 // 서버 코드를 고칠 때마다 바꾼다. 웹 앱 주소를 열면 보여서, 새 버전으로 배포됐는지 확인할 수 있다
-const VERSION = '2026-10-20 마친 기도제목 되돌리기';
+const VERSION = '2026-10-20 우리 가정 정보 고치기';
 function doGet() {
   return ContentService.createTextOutput('코이데 서버가 켜져 있어요. (버전: ' + VERSION + ')');
 }
@@ -76,6 +76,7 @@ const ACTIONS = {
   saveItem: saveItem_,
   endItem: body => setItemState_(body, '마침'),
   reopenItem: body => setItemState_(body, '이어짐'),
+  saveFamily: saveFamily_,
   deleteItem: deleteItem_,
   confirmSame: body => { const c = member_(body); setMonthly_(c.familyId, month_(), 'confirmed'); return monthView_(c); },
   pray: pray_,
@@ -285,6 +286,24 @@ function importRoom_(body) {
     appendMany_('families', newFams); appendMany_('roster', newRoster); appendMany_('items', newItems);
     monthly.forEach(id => setMonthly_(id, m, 'same'));
     return { room: room.name, families: list.length, made, replaced, items: count };
+  });
+}
+
+// 우리 가정 정보 고치기: 부부 이름(1인 가정·개인 단위면 한 이름), 자녀(태어난 순서). 이름이 바뀌면 그 이름으로 연결된 사람도 함께 바꾼다
+function saveFamily_(body) {
+  const c = member_(body), one = c.dept && c.dept.unit === '개인';
+  const a = String(body.a || '').trim().slice(0, 10), b = one ? '' : String(body.b || '').trim().slice(0, 10);
+  if (!a) throw fail_('bad', '이름을 적어 주세요.');
+  const kids = one ? [] : (Array.isArray(body.kids) ? body.kids : []).map(k => String(k).trim().slice(0, 6)).filter(Boolean);
+  return withLock_(() => {
+    const fam = read_('families').find(f => f.id === c.familyId);
+    const [oa, ob = ''] = String(fam.name).split(' · ');
+    Object.assign(fam, { name: b ? a + ' · ' + b : a, kids: kids.join(', ') }); update_('families', fam);
+    read_('links').filter(l => l.familyId === fam.id && l.status !== '해제').forEach(l => {
+      const p = l.person === oa ? a : l.person === ob && b ? b : null;
+      if (p && p !== l.person) { l.person = p; update_('links', l); }
+    });
+    return monthView_(member_(body));
   });
 }
 
