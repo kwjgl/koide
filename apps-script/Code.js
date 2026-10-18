@@ -34,7 +34,7 @@ const SCOPES = ['room', 'leader', 'family'];
 // ── 요청 받기 ─────────────────────────────────────────────
 
 // 서버 코드를 고칠 때마다 바꾼다. 웹 앱 주소를 열면 보여서, 새 버전으로 배포됐는지 확인할 수 있다
-const VERSION = '2026-10-19 지난 기록';
+const VERSION = '2026-10-20 우리 가정을 위한 기도';
 function doGet() {
   return ContentService.createTextOutput('코이데 서버가 켜져 있어요. (버전: ' + VERSION + ')');
 }
@@ -362,7 +362,10 @@ function monthView_(c) {
           editedBy: own ? i.editedBy : '', editedAt: own ? fmtDay_(i.editedAt) : '' }))
     };
   });
-  return { month: m, room: { id: room.id, name: room.name }, me: { person: c.person, familyId: c.familyId, role: c.role, admin: c.admin }, families };
+  // 이번 달 사랑방의 다른 가정 중 몇 가정이 우리 가정을 위해 기도했는지(누가 했는지는 알리지 않는다)
+  const by = {}; read_('prayers').forEach(p => { if (p.familyId === c.familyId && p.by !== c.familyId && fmtMonth_(p.at) === m) by[p.by] = true; });
+  const received = { n: Object.keys(by).length, of: Math.max(0, families.length - 1) };
+  return { month: m, room: { id: room.id, name: room.name }, me: { person: c.person, familyId: c.familyId, role: c.role, admin: c.admin }, families, received };
 }
 
 // 월초 이월: 이번 달 기도제목이 없는 가정은 지난달 것(마치지 않은 것)을 이어 붙이고 "지난달과 같음"으로 둔다

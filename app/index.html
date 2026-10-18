@@ -92,6 +92,8 @@ main.wrap { padding-top: 14px; padding-bottom: calc(110px + env(safe-area-inset-
   main.wrap { padding-top: 28px; padding-bottom: 56px; }
   h1 { font-size: 2em; }
   .home-grid { grid-template-columns: minmax(0, 1fr) 340px; gap: 24px; }
+  /* 오른쪽 고정 칸이 화면보다 길면 그 칸 안에서 따로 스크롤한다(끝까지 내려야만 아래가 보이지 않게) */
+  .home-grid .side, .two-col .side { max-height: calc(100vh - 5.4em - env(safe-area-inset-top, 0px)); overflow-y: auto; overscroll-behavior: contain; scrollbar-width: thin; border-radius: 16px; }
   .home-grid .side { grid-column: 2; grid-row: 1; position: sticky; top: calc(4.4em + env(safe-area-inset-top, 0px)); }
   .home-grid .main { grid-column: 1; grid-row: 1; }
   .two-col { grid-template-columns: minmax(0, 1fr) 380px; gap: 24px; }
@@ -229,27 +231,100 @@ body.praying .tabs { display: none; }
 .today-acts { display: flex; gap: 8px; margin-top: 12px; }
 .today-acts .btn { flex: 1; }
 .card.today .cord { border-top: 1px solid color-mix(in srgb, var(--accent) 20%, var(--line)); margin-top: 14px; padding-top: 12px; }
-/* 표 보기: 지금 구글 시트와 같은 모양(가정 | 기도제목) */
-.tb-acts { display: flex; flex-wrap: wrap; gap: 8px; margin: 8px 0 12px; }
-.tb-lead { display: flex; align-items: center; gap: .5em; font-size: .9em; margin: 4px 0; cursor: pointer; }
-.tb-lead input { width: 20px; height: 20px; accent-color: var(--accent); }
-.tb-warn { font-size: .82em; color: var(--warn); margin: 0 0 8px; }
-.tb-wrap { overflow-x: auto; background: var(--surface); border: 1px solid var(--line); border-radius: 12px; }
-table.sheet { border-collapse: collapse; width: 100%; min-width: 520px; font-size: .9em; }
-table.sheet th, table.sheet td { border: 1px solid var(--line); padding: .55em .7em; text-align: left; vertical-align: top; }
-table.sheet th { background: var(--surface-2); font-weight: 600; }
-table.sheet td:first-child { width: 9em; font-weight: 600; white-space: nowrap; }
-table.sheet td div + div { margin-top: .35em; }
-.tb-rotate { display: none; }
-@media (max-width: 600px) and (orientation: portrait) { .tb-rotate { display: block; } }
+/* ── 시안 부품: 카드, 기도제목 줄, 기도했어요 버튼, 상태 표시 (prototype/index.html과 같은 규칙) ── */
+.card { display: flex; flex-direction: column; gap: .7em; min-width: 0; padding: 1em; }
+.hint { font-size: .78em; margin: 0; line-height: 1.55; }
+.label { font-size: .74em; margin: 0; letter-spacing: .03em; }
+h3 { font-size: 1.02em; font-weight: 600; margin: 0; }
+.card > .items, .card .items { margin: 0; gap: .6em; }
+.items > li.item { display: flex; gap: .6em; align-items: flex-start; }
+.item.s-leader { border-left: 3px solid var(--leader); padding-left: .6em; }
+.item.s-family { background: var(--private); border-radius: 10px; padding: .45em .6em; }
+.today .item.s-family { background: var(--surface); }
+.items .tgt { flex: none; font-size: .72em; font-weight: 600; padding: .25em .65em; border-radius: 999px; background: var(--surface-2); color: var(--ink-2); border: 1px solid var(--line); margin-top: .15em; white-space: nowrap; }
+.today .tgt { background: var(--surface); }
+.items > li.item.grp { flex-wrap: wrap; }
+.sub { list-style: none; margin: 0; padding: 0; flex: 1 1 12em; min-width: 0; display: flex; flex-direction: column; gap: .45em; }
+.sub > li { display: flex; gap: .45em; }
+.sub > li::before { content: "·"; color: var(--ink-2); font-weight: 700; }
+.sub > li.s-leader { border-left: 3px solid var(--leader); padding-left: .6em; }
+.sub > li.s-family { background: var(--private); border-radius: 10px; padding: .45em .6em; }
+.sub > li.s-leader::before, .sub > li.s-family::before { content: none; }
+.item-body { min-width: 0; flex: 1; display: flex; flex-direction: column; gap: .2em; }
+.item-foot { display: flex; flex-wrap: wrap; align-items: center; gap: .2em .9em; }
+.new-dot { display: inline-block; width: .45em; height: .45em; border-radius: 50%; background: var(--accent); vertical-align: .2em; margin-right: .4em; }
+.sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+.txt { margin: 0; line-height: 1.55; overflow-wrap: anywhere; }
+.txt.clamp { display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; }
+.more-txt { background: none; border: 0; padding: .1em 0; font-size: .74em; font-weight: 600; color: var(--accent); cursor: pointer; align-self: flex-start; min-height: 28px; }
+/* 태블릿·PC는 긴 문장도 접지 않고 전부 보여준다 (휴대폰만 3줄 접기) */
+@media (min-width: 640px) { .txt.clamp { display: block; -webkit-line-clamp: unset; overflow: visible; } .more-txt { display: none; } }
+.b-scope { font-size: .72em; font-weight: 600; display: inline-flex; gap: .25em; align-items: center; }
+.b-scope.leader { color: var(--leader); }
+.b-scope.family { color: var(--ink-2); }
+.pray { align-self: flex-start; display: inline-flex; gap: .4em; align-items: center; font-size: .84em; font-weight: 600; border: 1px solid transparent; color: var(--accent); background: var(--accent-soft); border-radius: 999px; padding: .4em 1.05em .4em .85em; min-height: 44px; cursor: pointer; white-space: nowrap; transition: background .2s, color .2s; }
+.pray .ic { width: 1.25em; height: 1.25em; }
+.pray:hover { border-color: var(--accent-mid); }
+.pray.on { background: var(--accent); color: var(--on-accent); }
+.pray:disabled { cursor: default; }
+.pray.small { min-height: 38px; font-size: .78em; padding: .3em .9em; }
+.pray-hero { display: flex; flex-direction: column; gap: .5em; }
+.pray.hero { align-self: stretch; justify-content: center; gap: .5em; min-height: 54px; font-size: 1em; border-radius: 14px; background: var(--accent); color: var(--on-accent); box-shadow: 0 3px 10px var(--shadow); }
+.pray.hero .ic { width: 1.45em; height: 1.45em; }
+.pray.hero.on { background: var(--surface); color: var(--accent); border-color: var(--accent-mid); box-shadow: none; }
+.pray-done { margin: 0; font-size: .84em; color: var(--accent); font-weight: 600; text-align: center; }
+.pray-n { min-width: 1.5em; padding: 0 .4em; border-radius: 999px; background: var(--on-accent); color: var(--accent); font-size: .82em; font-variant-numeric: tabular-nums; text-align: center; }
+.pray.hero.on .pray-n { background: var(--accent); color: var(--on-accent); }
+.received { display: flex; gap: .5em; align-items: center; margin: 0; padding: .55em .8em; border-radius: 10px; background: var(--accent-soft); color: var(--accent); font-size: .84em; font-weight: 600; line-height: 1.45; }
+.received .ic { width: 1.3em; height: 1.3em; }
+.received.r-plain { background: transparent; color: var(--ink-2); font-weight: 500; padding-inline: .1em; }
+.received.r-deep { background: var(--accent); color: var(--on-accent); }
+.fam-head { display: flex; justify-content: space-between; align-items: center; gap: .6em; }
+.chip-status { font-size: .72em; font-weight: 600; padding: .3em .75em; border-radius: 999px; white-space: nowrap; }
+.st-same { background: var(--surface-2); color: var(--ink-2); }
+.st-edited { background: var(--accent-soft); color: var(--accent); }
+.st-confirmed { border: 1px solid var(--accent); color: var(--accent); }
+.me-tag { font-size: .68em; color: var(--accent); font-weight: 600; margin-left: .4em; }
+.actions { display: flex; gap: .5em; flex-wrap: wrap; align-items: center; }
+.link { font-size: .8em; padding: .35em 0; min-height: 36px; align-self: flex-start; }
+.card.today { background: linear-gradient(180deg, var(--accent-soft) 0%, color-mix(in srgb, var(--accent-soft) 35%, var(--surface)) 100%); border-color: transparent; box-shadow: inset 0 4px 0 var(--accent), 0 6px 18px -10px var(--shadow); padding-top: 1.25em; }
+.today-tag { align-self: flex-start; }
+.card.today h2 { font-family: var(--f-display); font-size: 1.75em; font-weight: 700; line-height: 1.25; margin: .1em 0 0; }
+/* 사랑방 가정 줄: 제목과 범례, 오른쪽에 카드 | 표 */
+.section-row { display: flex; justify-content: space-between; align-items: center; gap: .6em; margin-top: .2em; }
+.section-row .section-title { margin: 0 .2em !important; }
+.sr-title { display: flex; align-items: baseline; gap: .6em; flex-wrap: wrap; }
+.sr-legend { font-size: .74em; color: var(--ink-2); white-space: nowrap; }
+.seg2 { display: grid; grid-template-columns: repeat(2, 1fr); gap: 3px; padding: 3px; background: var(--surface-2); border-radius: 10px; border: 1px solid var(--line); }
+.seg2 button { font-size: .8em; border: 0; border-radius: 8px; padding: .3em 1em; min-height: 34px; background: transparent; color: var(--ink-2); cursor: pointer; }
+.seg2 button.on { background: var(--surface); color: var(--ink); font-weight: 600; box-shadow: 0 1px 3px var(--shadow); }
+/* 표 보기: 지금 구글 시트처럼 가정 | 기도제목 한 장 */
+.table-wrap { overflow-x: auto; margin: 0 -.2em; }
+.pray-table { width: 100%; border-collapse: collapse; font-size: .9em; table-layout: fixed; }
+.pray-table th, .pray-table td { border-top: 1px solid var(--line); padding: .6em .5em; text-align: left; vertical-align: top; }
+.pray-table thead th { font-size: .78em; color: var(--ink-2); font-weight: 600; border-top: 0; background: var(--surface-2); }
+.pray-table thead th:first-child, .pray-table tbody th { width: 5.2em; }
+.pray-table tbody th { font-weight: 600; word-break: keep-all; line-height: 1.45; }
+.pray-table tbody th .me-tag { display: block; margin: .2em 0 0; }
+.pray-table td { overflow-wrap: anywhere; }
+.t-items { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: .35em; line-height: 1.5; }
+.t-items b { font-weight: 600; color: var(--accent); margin-right: .2em; }
+.t-items li.s-leader { border-left: 3px solid var(--leader); padding-left: .5em; }
+.t-items li.s-family { background: var(--private); border-radius: 8px; padding: .2em .5em; }
+.export { display: flex; flex-direction: column; gap: .55em; background: var(--surface-2); border-radius: 12px; padding: .8em; }
+.export .seg { margin: 0; background: var(--surface); }
+.check { display: flex; align-items: center; gap: .5em; font-size: .92em; cursor: pointer; }
+.check input { width: 1.2em; height: 1.2em; accent-color: var(--accent); }
+.warn-text { color: var(--warn); }
 @media print {
   body { background: #fff; }
-  .topbar, .demo, .tabs, .tb-acts, .tb-lead, .tb-warn, .tb-rotate, .hint, .toast { display: none !important; }
+  .topbar, .demo, .tabs, .toast, .home-grid .side, .home-grid .main > :not(.print-area), .page-top-r, .export, .print-hide { display: none !important; }
+  .home-grid { display: block; }
   .wrap { max-width: none; padding: 0; }
-  .tb-wrap { border: 0; overflow: visible; }
-  table.sheet { min-width: 0; font-size: 10pt; }
-  table.sheet th, table.sheet td { border-color: #999; }
-  table.sheet tr { break-inside: avoid; }
+  .print-area { border: 0; padding: 0; }
+  .table-wrap { overflow: visible; }
+  .pray-table { font-size: 10pt; }
+  .pray-table tr { break-inside: avoid; }
 }
 .cord { width: 100%; text-align: left; }
 /* 지난 기록 */
@@ -306,7 +381,7 @@ table.sheet td div + div { margin-top: .35em; }
   const writeCache = () => { try { localStorage.setItem(CACHE, JSON.stringify({ me: S.me, month: S.month })); } catch (e) { /* 무시 */ } };
 
   // 화면 상태
-  const S = { view: 'loading', me: null, rooms: null, pick: {}, month: null, tab: 'home', pending: null, busy: false };
+  const S = { openItems: new Set(), openFams: new Set(), view: 'loading', me: null, rooms: null, pick: {}, month: null, tab: 'home', pending: null, busy: false };
 
   // ── 서버 부르기: 데모는 브라우저 안의 서버 코드, 실제는 Apps Script 웹 앱 ──
   async function api(action, data) {
@@ -398,6 +473,8 @@ table.sheet td div + div { margin-top: .35em; }
     hands: svg('<path d="M8 2.5v10.5"/><path d="M8 2.5C6.7 3.8 6 5.6 6 7.6L3.4 10.4 5 13.5h3"/><path d="M8 2.5c1.3 1.3 2 3.1 2 5.1l2.6 2.8-1.6 3.1H8"/>'),
     book: svg('<rect x="3" y="2.5" width="10" height="11" rx="1.5"/><path d="M5.8 5.5h4.4M5.8 8h4.4M5.8 10.5h2.5"/>'),
     more: svg('<circle cx="3.5" cy="8" r=".9"/><circle cx="8" cy="8" r=".9"/><circle cx="12.5" cy="8" r=".9"/>'),
+    lock: svg('<rect x="3" y="7" width="10" height="7" rx="1.5"/><path d="M5.5 7V5a2.5 2.5 0 0 1 5 0v2"/>'),
+    people: svg('<circle cx="6" cy="5.5" r="2"/><path d="M2.5 13c0-2 1.6-3.5 3.5-3.5s3.5 1.5 3.5 3.5"/><circle cx="11.2" cy="6" r="1.6"/><path d="M10.5 9.6c1.8 0 3 1.3 3 3.1"/>'),
     gear: svg('<circle cx="8" cy="8" r="2"/><path d="M8 1.8v1.6M8 12.6v1.6M3.6 3.6l1.1 1.1M11.3 11.3l1.1 1.1M1.8 8h1.6M12.6 8h1.6M3.6 12.4l1.1-1.1M11.3 4.7l1.1-1.1"/>'),
     knot: svg('<path d="M.5 8.5h3.8c1.2 0 1.7-1.5 1.7-2.8C6 3.7 7.3 2.5 9 2.5s3 1.2 3 3.1-1.8 3.1-4 3.3"/><path d="M5.6 10.1C7.6 9 9.6 8.5 15.5 8.5"/>'),
     check: '<svg viewBox="0 0 16 16" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3.5 8.5l3 3 6-7"/></svg>'
@@ -445,7 +522,7 @@ table.sheet td div + div { margin-top: .35em; }
       <button class="btn wide" data-act="retry">승인됐는지 다시 확인</button>
       <p class="hint">${DEMO ? '데모: 로그아웃하고 "김도윤으로 들어가기"(리더) → 더보기에서 승인해 보세요.' : '보통 하루 안에 끝나요.'}</p>
       <button class="link" data-act="logout">로그아웃</button>`,
-    app: () => ({ home: homeView, mine: mineView, pray: prayView, history: historyView, more: moreView, import: importView, table: tableView })[S.tab]()
+    app: () => ({ home: homeView, mine: mineView, pray: prayView, history: historyView, more: moreView, import: importView })[S.tab]()
   };
   const famPicked = () => S.rooms.find(x => x.id === S.pick.roomId).families.find(f => f.id === S.pick.familyId);
   const consentList = () => `<ul class="consent">
@@ -456,26 +533,63 @@ table.sheet td div + div { margin-top: .35em; }
 
   // 이번 달: 우리 가정 + 사랑방 가정마다 기도제목과 "기도했어요"
   const todayLabel = () => { const d = new Date(); return (d.getMonth() + 1) + '월 ' + d.getDate() + '일 ' + '일월화수목금토'[d.getDay()]; };
-  function homeView() {
-    const M = S.month, mine = M.families.find(f => f.own), others = M.families.filter(f => !f.own);
-    const items = f => f.items.length ? `<ul class="items">${f.items.map(i => `<li class="s-${i.scope}"><span class="tgt">${esc(i.target)}</span><span>${esc(i.text)}${i.scope !== 'room' ? `<span class="scope-note">${SCOPE[i.scope]}</span>` : ''}</span></li>`).join('')}</ul>` : '<p class="hint">아직 올린 기도제목이 없어요.</p>';
-    const ST = { same: '지난달 그대로', edited: '이번 달 손봄', confirmed: '그대로 확인' };
-    const t = todayFam();
-    return `<div class="page-top"><div><p class="eyebrow">${esc(M.room.name)}</p><h1>${Number(M.month.slice(5))}월 기도제목 <span aria-hidden="true">🙏</span></h1></div>
-        <div class="page-top-r"><p class="date">${todayLabel()}</p><button class="btn small ghost" data-act="table" data-v="month">표로 보기</button></div></div>
-      <div class="home-grid"><div class="col side">${t ? `<section class="card today" aria-label="지금 함께 기도할 가정"><p class="today-tag">${ICON.hands}지금 함께 기도할 가정</p><h2>${esc(t.name)}</h2>
-        ${items(t)}${t.prayed ? `<p class="hint">이번 달 이 가정을 위해 ${t.prayed}번 기도했어요.</p>` : ''}
-        <div class="today-acts"><button class="btn" data-act="pray" data-v="${esc(t.id)}" ${(t.today || 0) >= 3 ? 'disabled' : ''}>${(t.today || 0) >= 3 ? '오늘은 여기까지' : '기도했어요'}${t.today ? ` ${t.today}/3` : ''}</button>
-          <button class="btn ghost" data-act="nexttoday">다음 가정${t.today ? '으로' : ''}</button></div>
-        <p class="hint">앱을 열 때마다 이번 달 아직 기도하지 않은 가정부터 돌아가며 나와요.</p>
-        ${cordHtml(t.id)}</section>` : ''}</div>
-      <div class="col main"><section class="card"><div class="row"><div><p class="hint" style="margin:0">우리 가정</p><h2>${esc(mine.name)}</h2></div><span class="chip ${mine.status}">${ST[mine.status]}</span></div>
-        ${items(mine)}
-        <div class="row" style="justify-content:flex-start;margin-top:12px"><button class="btn small" data-act="tab" data-v="mine">고치기</button>${mine.status === 'same' ? '<button class="btn small ghost" data-act="confirm">이번 달도 그대로예요</button>' : ''}</div></section>
-      <h2 class="section-title">사랑방 가정 ${others.length}</h2>
-      <div class="fam-grid">${others.map(f => `<section class="card"><div class="row"><h2>${esc(f.name)}</h2>
-          <button class="pray-btn${f.prayed ? ' on' : ''}" data-act="pray" data-v="${esc(f.id)}">기도했어요${f.prayed ? ' ' + f.prayed : ''}</button></div>${items(f)}</section>`).join('')}</div></div></div>`;
+  // 기도제목 줄(시안과 같게): 같은 대상은 칩 하나 아래로 묶고, 휴대폰에서는 3줄까지 보이고 '더 보기'로 펼친다.
+  //  새 기도제목은 글 앞 작은 점, 공개 범위는 리더·목사님(보라 띠)·우리 가정만(회색 바탕 + 자물쇠)
+  const SCOPE_ICON = { leader: ICON.people, family: ICON.lock };
+  function itemBody(i, clamp) {
+    const open = S.openItems.has(i.id);
+    const dot = i.isNew ? '<i class="new-dot" title="이번 달 새 기도제목"></i><span class="sr">새 기도제목: </span>' : '';
+    const tog = clamp ? `<button class="more-txt" data-act="itemtoggle" data-id="${esc(i.id)}" aria-expanded="${open}">${open ? '접기' : '더 보기'}</button>` : '';
+    const scope = i.scope !== 'room' ? `<span class="b-scope ${i.scope}">${SCOPE_ICON[i.scope]}${SCOPE[i.scope]}</span>` : '';
+    return `<div class="item-body"><p class="txt${clamp && !open ? ' clamp' : ''}">${dot}${esc(i.text)}</p>${tog || scope ? `<div class="item-foot">${scope}${tog}</div>` : ''}</div>`;
   }
+  function itemList(items, clamp) {
+    const groups = [];
+    items.filter(i => !i.pending).forEach(i => { const g = groups.find(x => x.target === i.target); g ? g.items.push(i) : groups.push({ target: i.target, items: [i] }); });
+    return `<ul class="items">${groups.map(g => g.items.length === 1 ? `<li class="item s-${g.items[0].scope}"><span class="tgt">${esc(g.target)}</span>${itemBody(g.items[0], clamp)}</li>`
+      : `<li class="item grp"><span class="tgt">${esc(g.target)}</span><ul class="sub">${g.items.map(i => `<li class="s-${i.scope}">${itemBody(i, clamp)}</li>`).join('')}</ul></li>`).join('')}</ul>`;
+  }
+  // 기도했어요: 오늘 횟수(N/3)를 함께. 하루 3번이 되면 '오늘은 여기까지'
+  function prayBtn(f, small, hero) {
+    const t = f.today || 0, on = t > 0;
+    if (t >= 3) return `<button class="pray on${small ? ' small' : ''}${hero ? ' hero' : ''}" disabled aria-label="오늘은 이 가정을 위해 3번 기도했어요. 내일 또 누를 수 있어요">${ICON.check}${hero ? '오늘은 여기까지, 내일 또 만나요' : '오늘은 여기까지'}<span class="pray-n" aria-hidden="true">3/3</span></button>`;
+    return `<button class="pray${small ? ' small' : ''}${hero ? ' hero' : ''}${on ? ' on' : ''}" data-act="pray" data-v="${esc(f.id)}" aria-label="기도했어요${on ? ` (오늘 ${t}번 기도함, 하루 3번까지)` : ''}">${on ? ICON.check : ICON.hands}기도했어요${on ? `<span class="pray-n" aria-hidden="true">${t}/3</span>` : ''}</button>`;
+  }
+  const STATUS_LABEL = { same: '지난달 그대로', edited: '이번 달 손봄', confirmed: '그대로 확인' };
+  // 우리 가정 카드의 한 줄: 이번 달 몇 가정이 우리 가정을 위해 기도했는지에 따라(누가 했는지는 보이지 않는다)
+  function receivedLine() {
+    const R = S.month.received || { n: 0, of: 0 };
+    const [k, t] = !R.n ? ['plain', '우리 가정 기도제목이 사랑방 가족들 화면에 돌아가며 나오고 있어요'] : R.n * 2 >= R.of ? ['deep', '사랑방 가족들이 함께 우리 가정을 위해 기도하고 있어요'] : ['soft', '사랑방 가족이 우리 가정을 위해 기도했어요'];
+    return `<p class="received r-${k}">${ICON.hands}<span>${t}</span></p>`;
+  }
+  function famCard(f) {
+    const its = f.items.filter(i => !i.pending), open = S.openFams.has(f.id), more = its.length - 4;
+    return `<article class="card"><div class="fam-head"><h3>${esc(f.name)}</h3>${prayBtn(f, true)}</div>
+      ${its.length ? itemList(open ? its : its.slice(0, 4), true) : '<p class="hint">아직 올린 기도제목이 없어요.</p>'}
+      ${more > 0 ? `<button class="link" data-act="famtoggle" data-id="${esc(f.id)}" aria-expanded="${open}">${open ? '접기' : '더 보기 · ' + more + '개'}</button>` : ''}</article>`;
+  }
+  function homeView() {
+    const M = S.month, mine = M.families.find(f => f.own), others = M.families.filter(f => !f.own), t = todayFam();
+    return `<div class="page-top"><div><p class="eyebrow">${esc(M.room.name)}</p><h1>${Number(M.month.slice(5))}월 기도제목 <span aria-hidden="true">🙏</span></h1></div><p class="date">${todayLabel()}</p></div>
+      <div class="home-grid"><div class="col side">${t ? `<section class="card today" aria-label="지금 함께 기도할 가정"><p class="today-tag">${ICON.hands}지금 함께 기도할 가정</p><h2>${esc(t.name)}</h2>
+          ${t.items.length ? itemList(S.openFams.has(t.id) ? t.items : t.items.slice(0, 4), false) : '<p class="hint">아직 올린 기도제목이 없어요. 이 가정을 떠올리며 기도해요.</p>'}
+          ${t.items.length > 4 ? `<button class="link" data-act="famtoggle" data-id="${esc(t.id)}" aria-expanded="${S.openFams.has(t.id)}">${S.openFams.has(t.id) ? '접기' : '더 보기 · ' + (t.items.length - 4) + '개'}</button>` : ''}
+          <div class="pray-hero">${t.prayed ? `<p class="pray-done">이번 달 ${esc(t.name)} 가정을 위해 ${t.prayed}번 기도했어요</p>` : ''}${prayBtn(t, false, true)}
+            <div class="actions"><button class="btn${t.today ? '' : ' ghost'}" data-act="nexttoday">다음 가정${t.today ? '으로' : ''}</button></div></div>
+          <p class="hint">앱을 열 때마다 이번 달 아직 기도하지 않은 가정부터 돌아가며 나와요.</p>
+          ${cordHtml(t.id)}</section>` : ''}</div>
+      <div class="col main">
+        <section class="card" aria-label="우리 가정"><div class="fam-head"><div><p class="label">우리 가정</p><h3>${esc(mine.name)}</h3></div><span class="chip-status st-${mine.status}">${STATUS_LABEL[mine.status]}</span></div>
+          ${receivedLine()}
+          ${mine.items.length ? itemList(mine.items, true) : '<p class="hint">아직 올린 기도제목이 없어요.</p>'}
+          <div class="actions"><button class="btn" data-act="tab" data-v="mine">고치기</button>${mine.status === 'same' ? '<button class="btn ghost" data-act="confirm">이번 달도 그대로예요</button>' : ''}</div>
+          ${mine.status === 'confirmed' ? '<p class="hint">이번 달도 그대로라고 리더에게 알렸어요.</p>' : ''}</section>
+        <div class="section-row"><div class="sr-title"><h2 class="section-title">사랑방 가정 ${others.length}</h2><span class="sr-legend"><i class="new-dot"></i>이번 달 새 기도제목</span></div>
+          <div class="seg2" role="tablist" aria-label="보기 방식">${[['card', '카드'], ['table', '표']].map(([k, l]) => `<button class="${(S.homeView || 'card') === k ? 'on' : ''}" role="tab" aria-selected="${(S.homeView || 'card') === k}" data-act="homeview" data-v="${k}">${l}</button>`).join('')}</div></div>
+        ${S.homeView === 'table' ? tableCard() : `<div class="fam-grid">${others.map(famCard).join('')}</div>`}
+      </div></div>`;
+  }
+
 
   // 내 기도: 항목마다 대상·공개 범위·내용을 고치고, 칸을 벗어나면 저장
   function mineView() {
@@ -565,36 +679,62 @@ table.sheet td div + div { margin-top: .35em; }
     if (tab === 'mine') return head + first + (H.mine.length ? H.mine.map(x => `<section class="card"><h2>${monthLabel(x.month, H.now)}${x.month === H.now ? ' <span class="own-tag">이번 달</span>' : ''}</h2>${histItems(x.items)}</section>`).join('')
       : '<p class="hint" style="margin-top:12px">아직 올린 기도제목이 없어요.</p>');
     return head + first + `<div class="hist-chips" role="radiogroup" aria-label="달">${H.months.map(m => `<button class="chip-btn${m === H.month ? ' on' : ''}" role="radio" aria-checked="${m === H.month}" data-act="histmonth" data-v="${m}">${monthLabel(m, H.now)}${m === H.now ? '<small>이번 달</small>' : ''}</button>`).join('')}</div>
-      <div class="row"><h2>${monthLabel(H.month, H.now)}${H.room ? ' · ' + esc(H.room) : ''}</h2>${H.families.length ? '<button class="btn small ghost" data-act="table" data-v="hist">표로 보기</button>' : ''}</div>
+      <div class="row"><h2>${monthLabel(H.month, H.now)}${H.room ? ' · ' + esc(H.room) : ''}</h2></div>
       ${H.families.length ? `<div class="fam-grid wide" style="margin-top:12px">${H.families.map(f => `<section class="card"><div class="row"><h2>${esc(f.name)}</h2>${f.own ? '<span class="own-tag">우리 가정</span>' : ''}</div>${histItems(f.items)}</section>`).join('')}</div>`
         : '<p class="hint">이 달의 사랑방 기록을 찾지 못했어요.</p>'}`;
   }
   async function loadHist(month) {
     try { S.hist = await api('history', month ? { month } : {}); }
     catch (e) { if (e.code === 'bad') toast('서버를 새 버전으로 배포하면 지난 기록을 볼 수 있어요.'); else oops(e); S.hist = S.hist || null; }
-    if (S.tab === 'history') render();
+    render();
   }
 
   // ── 표 보기·엑셀 내려받기 ──────────────────────────────
-  // 지금 구글 시트와 같은 모양: 제목 "○○ 사랑방 · 2026년 10월", 열은 가정 | 기도제목, 칸에는 "[대상] 내용"을 줄마다.
-  //  "우리 가정만" 항목은 어떤 경우에도 넣지 않는다. 리더·목사님 항목은 볼 수 있는 사람이 고를 때만(파일이 전달될 수 있다는 경고와 함께)
-  function tableData() {
-    const H = S.tableSrc === 'hist' && S.hist;
-    const room = H ? H.room : S.month.room.name, month = H ? H.month : S.month.month, fams = H ? H.families : S.month.families;
-    const canLead = fams.some(f => f.items.some(i => i.scope === 'leader')), lead = canLead && !!S.tableLead;
-    const rows = fams.map(f => ({ name: f.name, lines: f.items.filter(i => !i.pending && (i.scope === 'room' || (lead && i.scope === 'leader')))
-      .map(i => '[' + i.target + '] ' + i.text + (i.scope === 'leader' ? ' (리더·목사님)' : '') + (i.ended ? ' (마침)' : '')) }));
-    return { title: room + ' · ' + month.slice(0, 4) + '년 ' + Number(month.slice(5)) + '월', room, month, rows, canLead, lead };
+  // 이번 달 화면의 [카드 | 표]에서 표를 고르면 지금 구글 시트처럼 가정 | 기도제목 한 장으로 보인다.
+  //  엑셀은 이번 달 / 월 고르기 / 올해 전체(달마다 탭 하나). 각자 볼 수 있는 범위만 담고, "우리 가정만" 항목은 어떤 경우에도 넣지 않는다.
+  //  리더·목사님 항목은 볼 수 있는 사람이 고를 때만, 파일이 전달될 수 있다는 경고와 함께
+  const isLead = () => S.month.me.role === '리더' || S.month.me.role === '코리더';
+  function tableCard() {
+    const M = S.month, E = S.ex || (S.ex = { open: false, period: 'this', month: null, lead: false });
+    const months = S.hist ? S.hist.months.filter(m => m < M.month) : [];
+    const panel = !E.open ? '' : `<div class="export">
+        <div class="seg" style="--n:3" role="radiogroup" aria-label="기간">${[['this', '이번 달'], ['pick', '월 고르기'], ['year', M.month.slice(0, 4) + '년 전체']].map(([k, l]) => `<button class="${E.period === k ? 'on' : ''}" role="radio" aria-checked="${E.period === k}" data-act="experiod" data-v="${k}">${l}</button>`).join('')}</div>
+        ${E.period === 'pick' ? (months.length ? `<div class="chips">${months.map(m => `<button class="chip-btn${E.month === m ? ' on' : ''}" data-act="exmonth" data-v="${m}" aria-pressed="${E.month === m}">${monthLabel(m, M.month)}</button>`).join('')}</div>` : `<p class="hint">${S.hist ? '아직 지난 달 기록이 없어요. 다음 달부터 고를 수 있어요.' : '달 목록을 불러오는 중…'}</p>`) : ''}
+        ${isLead() ? `<label class="check"><input type="checkbox" data-act="exlead"${E.lead ? ' checked' : ''}> 리더·목사님 항목도 넣기</label>${E.lead ? '<p class="hint warn-text">파일은 다른 사람에게 전달될 수 있어요. 꼭 필요할 때만 넣으세요.</p>' : ''}` : ''}
+        <p class="hint">"우리 가정만" 항목은 어떤 경우에도 파일에 넣지 않아요.${E.period === 'year' ? ' 1년 치는 달마다 탭 하나씩 나눠 담아요.' : ''}</p>
+        <div class="actions"><button class="btn" data-act="exdo" ${S.busy ? 'disabled' : ''}>${S.busy ? '만드는 중…' : '내려받기 (.xlsx)'}</button></div></div>`;
+    return `<section class="card print-area"><div class="row"><p class="label">${esc(M.room.name)} · ${M.month.slice(0, 4)}년 ${Number(M.month.slice(5))}월</p>
+        <span class="actions print-hide"><button class="link" data-act="exprint">인쇄</button><button class="btn small ghost" data-act="exopen" aria-expanded="${E.open}">엑셀로 내려받기</button></span></div>
+      ${panel}
+      <div class="table-wrap"><table class="pray-table"><thead><tr><th scope="col">가정</th><th scope="col">기도제목</th></tr></thead>
+        <tbody>${M.families.map(f => { const its = f.items.filter(i => !i.pending);
+          return `<tr><th scope="row">${f.name.split(' · ').map(esc).join('<br>')}${f.own ? '<span class="me-tag">우리 가정</span>' : ''}</th>
+            <td>${its.length ? `<ul class="t-items">${its.map(i => `<li class="s-${i.scope}"><b>${esc(i.target)}</b> ${esc(i.text)}${i.scope !== 'room' ? ` <span class="b-scope ${i.scope}">${SCOPE[i.scope]}</span>` : ''}</li>`).join('')}</ul>` : '<span class="hint">아직 올린 기도제목이 없어요</span>'}</td></tr>`; }).join('')}</tbody>
+      </table></div></section>`;
   }
-  function tableView() {
-    const T = tableData();
-    return `<p class="eyebrow">표 보기</p><h1>${esc(T.title)}</h1>
-      <div class="tb-acts"><button class="btn small ghost" data-act="tableback">← 돌아가기</button><button class="btn small ghost" data-act="tableprint">인쇄</button><button class="btn small" data-act="tablexlsx">엑셀 내려받기</button></div>
-      ${T.canLead ? `<label class="tb-lead"><input type="checkbox" data-act="tablelead" ${T.lead ? 'checked' : ''}> 리더·목사님 항목 포함</label>${T.lead ? '<p class="tb-warn">인쇄물이나 파일은 다른 사람에게 전달될 수 있어요. 꼭 필요할 때만 포함해 주세요.</p>' : ''}` : ''}
-      <p class="hint tb-rotate">휴대폰을 가로로 돌리면 더 넓게 보여요.</p>
-      <div class="tb-wrap"><table class="sheet"><thead><tr><th>가정</th><th>기도제목</th></tr></thead>
-        <tbody>${T.rows.map(r => `<tr><td>${esc(r.name)}</td><td>${r.lines.map(l => `<div>${esc(l)}</div>`).join('')}</td></tr>`).join('')}</tbody></table></div>
-      <p class="hint">"우리 가정만" 항목은 표와 파일에 들어가지 않아요.</p>`;
+  // 파일 한 장(탭)에 들어갈 표: 제목, 가정 | "[대상] 내용"을 줄마다
+  function sheetOf(room, month, fams, lead) {
+    return { room, month, title: room + ' · ' + month.slice(0, 4) + '년 ' + Number(month.slice(5)) + '월',
+      rows: fams.map(f => ({ name: f.name, lines: f.items.filter(i => !i.pending && (i.scope === 'room' || (lead && i.scope === 'leader')))
+        .map(i => '[' + i.target + '] ' + i.text + (i.scope === 'leader' ? ' (리더·목사님)' : '') + (i.ended ? ' (마침)' : '')) })) };
+  }
+  async function exportXlsx() {
+    const M = S.month, E = S.ex, lead = isLead() && E.lead, sheets = [];
+    if (E.period === 'this') sheets.push(sheetOf(M.room.name, M.month, M.families, lead));
+    else {
+      if (!S.hist) S.hist = await api('history', {});
+      const list = E.period === 'pick' ? [E.month] : S.hist.months.filter(m => m.slice(0, 4) === M.month.slice(0, 4)).sort();
+      if (!list[0]) return toast('내려받을 달을 골라 주세요.');
+      for (const m of list) {
+        if (m === M.month) { sheets.push(sheetOf(M.room.name, m, M.families, lead)); continue; }
+        const H = await api('history', { month: m });
+        sheets.push(sheetOf(H.room, m, H.families, lead));
+      }
+    }
+    const url = URL.createObjectURL(xlsxBlob(sheets)), a = document.createElement('a'), first = sheets[0], last = sheets[sheets.length - 1];
+    a.href = url; a.download = first.room + ' ' + (sheets.length > 1 ? first.month.slice(0, 4) + '년 ' + Number(first.month.slice(5)) + '~' + Number(last.month.slice(5)) + '월' : first.month.slice(0, 4) + '년 ' + Number(first.month.slice(5)) + '월') + ' 기도제목.xlsx';
+    document.body.appendChild(a); a.click(); a.remove(); setTimeout(() => URL.revokeObjectURL(url), 10000);
+    toast('엑셀 파일을 내려받았어요.');
   }
   // 엑셀(xlsx) 파일을 브라우저에서 바로 만든다. xlsx는 XML 파일 몇 개를 zip으로 묶은 것이라, 압축 없이(stored) 묶는다
   //  서식: 제목 굵게(가정·기도제목 두 칸 합침), 머리 행 회색, 칸 테두리, 기도제목 칸은 줄바꿈해서 보이게, 위 두 줄 고정
@@ -617,16 +757,16 @@ table.sheet td div + div { margin-top: .35em; }
     [[0, 0x06054b50, 4], [4, 0, 2], [6, 0, 2], [8, files.length, 2], [10, files.length, 2], [12, size, 4], [16, off, 4], [20, 0, 2]].forEach(([o, v, n]) => n === 4 ? e.setUint32(o, v, true) : e.setUint16(o, v, true));
     return new Blob([...parts, ...dir, new Uint8Array(e.buffer)], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
   }
-  function xlsxBlob(T) {
+  function xlsxBlob(sheets) {
     const NS = 'http://schemas.openxmlformats.org/spreadsheetml/2006/main', R = 'http://schemas.openxmlformats.org/officeDocument/2006/relationships';
     const cell = (ref, v, st) => `<c r="${ref}" t="inlineStr" s="${st}"><is><t xml:space="preserve">${xml(v)}</t></is></c>`;
     // 한글은 한 글자가 두 칸쯤이라, 기도제목 칸(너비 90)에 한 줄에 45자쯤 들어간다고 보고 줄 높이를 미리 정한다
     const height = lines => Math.max(1, lines.reduce((a, l) => a + Math.max(1, Math.ceil([...l].reduce((w, ch) => w + (ch.charCodeAt(0) > 255 ? 2 : 1), 0) / 88)), 0)) * 16 + 6;
-    const rows = T.rows.map((r, i) => `<row r="${i + 3}" ht="${height(r.lines)}" customHeight="1">${cell('A' + (i + 3), r.name, 3)}${cell('B' + (i + 3), r.lines.join('\n'), 4)}</row>`).join('');
+    const sheetXml = T => { const rows = T.rows.map((r, i) => `<row r="${i + 3}" ht="${height(r.lines)}" customHeight="1">${cell('A' + (i + 3), r.name, 3)}${cell('B' + (i + 3), r.lines.join('\n'), 4)}</row>`).join('');
     const sheet = `<?xml version="1.0" encoding="UTF-8" standalone="yes"?><worksheet xmlns="${NS}" xmlns:r="${R}"><sheetViews><sheetView workbookViewId="0"><pane ySplit="2" topLeftCell="A3" activePane="bottomLeft" state="frozen"/></sheetView></sheetViews>
 <cols><col min="1" max="1" width="20" customWidth="1"/><col min="2" max="2" width="90" customWidth="1"/></cols>
 <sheetData><row r="1" ht="26" customHeight="1">${cell('A1', T.title, 1)}</row><row r="2">${cell('A2', '가정', 2)}${cell('B2', '기도제목', 2)}</row>${rows}</sheetData>
-<mergeCells count="1"><mergeCell ref="A1:B1"/></mergeCells><pageMargins left="0.5" right="0.5" top="0.6" bottom="0.6" header="0.3" footer="0.3"/></worksheet>`;
+<mergeCells count="1"><mergeCell ref="A1:B1"/></mergeCells><pageMargins left="0.5" right="0.5" top="0.6" bottom="0.6" header="0.3" footer="0.3"/></worksheet>`; return sheet; };
     const styles = `<?xml version="1.0" encoding="UTF-8" standalone="yes"?><styleSheet xmlns="${NS}">
 <fonts count="3"><font><sz val="11"/><name val="맑은 고딕"/></font><font><b/><sz val="14"/><name val="맑은 고딕"/></font><font><b/><sz val="11"/><name val="맑은 고딕"/></font></fonts>
 <fills count="3"><fill><patternFill patternType="none"/></fill><fill><patternFill patternType="gray125"/></fill><fill><patternFill patternType="solid"><fgColor rgb="FFEEF2EF"/><bgColor indexed="64"/></patternFill></fill></fills>
@@ -638,22 +778,17 @@ table.sheet td div + div { margin-top: .35em; }
 <xf numFmtId="0" fontId="2" fillId="0" borderId="1" xfId="0" applyFont="1" applyBorder="1" applyAlignment="1"><alignment vertical="top" wrapText="1"/></xf>
 <xf numFmtId="0" fontId="0" fillId="0" borderId="1" xfId="0" applyBorder="1" applyAlignment="1"><alignment vertical="top" wrapText="1"/></xf></cellXfs>
 <cellStyles count="1"><cellStyle name="Normal" xfId="0" builtinId="0"/></cellStyles></styleSheet>`;
-    const sheetName = xml((Number(T.month.slice(5)) + '월 ' + T.room).replace(/[\[\]:*?\/\\]/g, ' ').slice(0, 31));
+    const names = sheets.map(T => xml((T.month.slice(0, 4) + '년 ' + Number(T.month.slice(5)) + '월').replace(/[\[\]:*?\/\\]/g, ' ').slice(0, 31)));
     return zip([
-      { name: '[Content_Types].xml', data: `<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types"><Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/><Default Extension="xml" ContentType="application/xml"/><Override PartName="/xl/workbook.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet.main+xml"/><Override PartName="/xl/worksheets/sheet1.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.worksheet+xml"/><Override PartName="/xl/styles.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.styles+xml"/></Types>` },
+      { name: '[Content_Types].xml', data: `<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types"><Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/><Default Extension="xml" ContentType="application/xml"/><Override PartName="/xl/workbook.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet.main+xml"/>${sheets.map((_, k) => `<Override PartName="/xl/worksheets/sheet${k + 1}.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.worksheet+xml"/>`).join('')}<Override PartName="/xl/styles.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.styles+xml"/></Types>` },
       { name: '_rels/.rels', data: `<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rId1" Type="${R}/officeDocument" Target="xl/workbook.xml"/></Relationships>` },
-      { name: 'xl/workbook.xml', data: `<?xml version="1.0" encoding="UTF-8" standalone="yes"?><workbook xmlns="${NS}" xmlns:r="${R}"><sheets><sheet name="${sheetName}" sheetId="1" r:id="rId1"/></sheets></workbook>` },
-      { name: 'xl/_rels/workbook.xml.rels', data: `<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rId1" Type="${R}/worksheet" Target="worksheets/sheet1.xml"/><Relationship Id="rId2" Type="${R}/styles" Target="styles.xml"/></Relationships>` },
+      { name: 'xl/workbook.xml', data: `<?xml version="1.0" encoding="UTF-8" standalone="yes"?><workbook xmlns="${NS}" xmlns:r="${R}"><sheets>${names.map((n, k) => `<sheet name="${n}" sheetId="${k + 1}" r:id="rId${k + 1}"/>`).join('')}</sheets></workbook>` },
+      { name: 'xl/_rels/workbook.xml.rels', data: `<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">${sheets.map((_, k) => `<Relationship Id="rId${k + 1}" Type="${R}/worksheet" Target="worksheets/sheet${k + 1}.xml"/>`).join('')}<Relationship Id="rId${sheets.length + 1}" Type="${R}/styles" Target="styles.xml"/></Relationships>` },
       { name: 'xl/styles.xml', data: styles },
-      { name: 'xl/worksheets/sheet1.xml', data: sheet }
+      ...sheets.map((T, k) => ({ name: 'xl/worksheets/sheet' + (k + 1) + '.xml', data: sheetXml(T) }))
     ]);
   }
-  function downloadXlsx() {
-    const T = tableData(), url = URL.createObjectURL(xlsxBlob(T)), a = document.createElement('a');
-    a.href = url; a.download = T.room + ' ' + T.month.slice(0, 4) + '년 ' + Number(T.month.slice(5)) + '월 기도제목.xlsx';
-    document.body.appendChild(a); a.click(); a.remove(); setTimeout(() => URL.revokeObjectURL(url), 10000);
-    toast('엑셀 파일을 내려받았어요.');
-  }
+
 
   // ── 기도하기 ────────────────────────────────────────
   // 조용한 화면에서 한 장씩 넘기며 기도한다. 순서는 우리 사랑방 가정 → 우리 가정 → 하나님의 나라.
@@ -991,7 +1126,7 @@ table.sheet td div + div { margin-top: .35em; }
   }
 
   const TABS = [['home', '이번 달', ICON.home], ['mine', '내 기도', ICON.pen], ['pray', '기도하기', ICON.hands], ['history', '지난 기록', ICON.book], ['more', '더보기', ICON.more]];
-  const tabOn = () => S.tab === 'table' ? (S.tableFrom || 'home') : S.tab === 'import' ? 'more' : S.tab;
+  const tabOn = () => S.tab === 'import' ? 'more' : S.tab;
   // 상단 바: 로고(누르면 이번 달), PC에서는 메뉴, 사랑방 배지(누르면 사랑방 정보), 설정
   function topHtml() {
     const brand = `<button class="brand"${S.view === 'app' ? ' data-act="tab" data-v="home"' : ''} aria-label="코이데 홈"><span class="brand-mark">${ICON.knot}</span><span class="brand-name">코이데</span></button>`;
@@ -1019,6 +1154,7 @@ table.sheet td div + div { margin-top: .35em; }
     if (app) writeCache();
     $('#tabs').hidden = !app;
     $('#topbar').innerHTML = topHtml();
+    document.querySelectorAll('.txt.clamp').forEach(p => { if (p.scrollHeight <= p.clientHeight + 2) { p.classList.remove('clamp'); const b = p.parentElement.querySelector('.more-txt'); if (b) { const f = b.parentElement; b.remove(); if (!f.children.length) f.remove(); } } });
     // 하단 바: 글자 없이 아이콘만(이름은 화면 제목과 aria-label로). 표 보기·가져오기는 연 곳의 탭을 켠다
     const on = tabOn();
     if (app) $('#tabs').innerHTML = TABS.map(([k, l, ic]) => `<button class="${k === 'pray' ? 'pray-tab ' : ''}${on === k ? 'on' : ''}" data-act="tab" data-v="${k}" aria-label="${l}" title="${l}" ${on === k ? 'aria-current="page"' : ''}>${ic}</button>`).join('');
@@ -1095,11 +1231,15 @@ table.sheet td div + div { margin-top: .35em; }
         if (b.dataset.act === 'end') toast('마쳤어요. 지난 기록에는 남아요.');
         return save(() => api(b.dataset.act === 'end' ? 'endItem' : 'deleteItem', { id }));
       }
-      case 'table': S.tableFrom = S.tab; S.tableSrc = v; S.tableLead = false; S.tab = 'table'; render(); return window.scrollTo(0, 0);
-      case 'tableback': S.tab = S.tableFrom || 'home'; render(); return window.scrollTo(0, 0);
-      case 'tablelead': S.tableLead = b.checked; return render();
-      case 'tableprint': return window.print();
-      case 'tablexlsx': return downloadXlsx();
+      case 'homeview': S.homeView = v; if (v === 'table' && !S.hist) loadHist(); return render();
+      case 'exopen': if (!S.ex) S.ex = {}; S.ex.open = !S.ex.open; return render();
+      case 'experiod': S.ex.period = v; if (v !== 'this' && !S.hist) loadHist(); return render();
+      case 'exmonth': S.ex.month = v; return render();
+      case 'exlead': S.ex.lead = b.checked; return render();
+      case 'exprint': return window.print();
+      case 'exdo': S.busy = true; render(); try { await exportXlsx(); } catch (err) { oops(err); } S.busy = false; return render();
+      case 'itemtoggle': S.openItems.has(id) ? S.openItems.delete(id) : S.openItems.add(id); return render();
+      case 'famtoggle': S.openFams.has(id) ? S.openFams.delete(id) : S.openFams.add(id); return render();
       case 'histtab': S.histTab = v; return render();
       case 'histmonth': if (S.hist) S.hist.month = v; render(); return loadHist(v);
       case 'nexttoday': { const fams = roomFams(), i = fams.findIndex(f => f.id === S.todayId); pickToday(fams, i + 1, S.todayId); return render(); }
