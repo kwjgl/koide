@@ -236,6 +236,8 @@ textarea.field { resize: vertical; line-height: 1.55; overflow-y: hidden; }
 body.praying { overflow: hidden; }
 body.praying .tabs { display: none; }
 .pss-top { display: flex; justify-content: space-between; align-items: center; gap: 8px; max-width: 640px; width: 100%; margin: 0 auto; flex-wrap: wrap; }
+/* 기도제목이 길어 내려 읽어도 끝내기·남은 시간·음악은 늘 위에 보이게 붙여 둔다(아래 버튼 줄과 짝) */
+.pss-top { position: sticky; top: calc(-1 * max(16px, env(safe-area-inset-top))); z-index: 2; padding: max(10px, env(safe-area-inset-top)) 0 10px; margin-top: calc(-1 * max(16px, env(safe-area-inset-top))); background: linear-gradient(var(--page) 75%, transparent); }
 .pss-step { font-size: .86em; color: var(--ink-2); font-variant-numeric: tabular-nums; display: inline-flex; align-items: center; gap: .6em; }
 .pss-timer { display: inline-flex; align-items: center; gap: .3em; color: var(--accent); font-weight: 600; }
 .pss-ring { width: 22px; height: 22px; transform: rotate(-90deg); }
@@ -480,7 +482,18 @@ h3 { font-size: 1.02em; font-weight: 600; margin: 0; }
 .demo button { background: none; border: 0; color: inherit; text-decoration: underline; cursor: pointer; font-size: inherit; }
 .saved { font-size: .78em; color: var(--ink-2); }
 /* 홈 화면에 두기 */
+/* 홈 화면에 두기: 화면 위에 뜨는 창. 휴대폰은 아래에서 올라오고, 넓은 화면은 가운데 */
+.pop { position: fixed; inset: 0; z-index: 40; display: flex; align-items: flex-end; justify-content: center; }
+.pop[hidden] { display: none; }
+.pop-scrim { position: absolute; inset: 0; background: rgb(0 0 0 / .4); animation: pop-fade .2s ease-out; }
+.pop-sheet { position: relative; width: 100%; max-width: 480px; max-height: 85vh; overflow-y: auto; border-radius: 18px 18px 0 0; padding: 1.1em 1.1em max(1.1em, env(safe-area-inset-bottom)); box-shadow: 0 -6px 24px rgb(0 0 0 / .18); animation: pop-up .25s ease-out; }
+@media (min-width: 640px) { .pop { align-items: center; } .pop-sheet { border-radius: 18px; } }
+@keyframes pop-up { from { transform: translateY(24px); opacity: 0; } }
+@keyframes pop-fade { from { opacity: 0; } }
+@media (prefers-reduced-motion: reduce) { .pop-scrim, .pop-sheet { animation: none; } }
+body.pop-open { overflow: hidden; }
 .a2hs { border: 1px dashed color-mix(in srgb, var(--accent) 45%, var(--line)); }
+.a2hs.pop-sheet { border: 0; background: var(--surface); }
 .a2hs .row { justify-content: space-between; align-items: center; }
 .a2hs p { margin: 0; word-break: keep-all; }
 .a2hs-steps { margin: 0; padding-left: 1.3em; display: flex; flex-direction: column; gap: .25em; font-size: .92em; }
@@ -498,6 +511,7 @@ try { const p = JSON.parse(localStorage.getItem('koide-pref') || '{}'), d = docu
 <header class="topbar" id="topbar"></header>
 <main id="main" class="wrap"><p class="loading">불러오는 중…</p></main>
 <div id="pss" class="pss" role="dialog" aria-modal="true" hidden></div>
+<div id="pop" class="pop" hidden></div>
 <nav id="tabs" class="tabs" hidden></nav>
 <div id="toast" class="toast" role="status" hidden></div>
 <script src="config.js"></script>
@@ -766,19 +780,21 @@ try { const p = JSON.parse(localStorage.getItem('koide-pref') || '{}'), d = docu
     const os = S.a2hsOs;
     const how = os === 'ios' ? ['사파리에서 이 화면을 열어요', '아래쪽 공유 버튼(네모에 위 화살표)을 눌러요', '"홈 화면에 추가"를 눌러요']
       : ['크롬에서 이 화면을 열어요', '오른쪽 위 점 세 개를 눌러요', '"홈 화면에 추가" 또는 "앱 설치"를 눌러요'];
-    return `<section class="card a2hs" aria-label="홈 화면에 두기">
-      <div class="row"><p class="label">휴대폰 홈 화면에 코이데를 두세요</p><button class="link" data-act="a2hsclose">알겠어요</button></div>
+    // 화면 위에 뜨는 창(휴대폰은 아래에서 올라옴). 바깥이나 ×를 누르면 이번만 닫고, '알겠어요'는 다시 띄우지 않는다
+    return `<div class="pop-scrim" data-act="a2hshide"></div>
+      <section class="card a2hs pop-sheet" role="dialog" aria-modal="true" aria-labelledby="a2hs-t">
+      <div class="row"><p class="label" id="a2hs-t">휴대폰 홈 화면에 코이데를 두세요</p><button class="icon-btn sm" data-act="a2hshide" aria-label="닫기">${ICON.x}</button></div>
       <p>앱처럼 아이콘을 눌러 바로 열 수 있어요. 링크를 찾지 않아도 돼요.</p>
       ${installAsk ? '<button class="btn" data-act="a2hsinstall">바로 설치하기</button>' : ''}
       <div class="seg2" role="tablist" aria-label="휴대폰 종류">${[['ios', '아이폰'], ['android', '안드로이드']].map(([k, l]) => `<button class="${os === k ? 'on' : ''}" role="tab" aria-selected="${os === k}" data-act="a2hsos" data-v="${k}">${l}</button>`).join('')}</div>
       <ol class="a2hs-steps">${how.map(x => `<li>${x}</li>`).join('')}</ol>
+      <button class="btn ghost" data-act="a2hsclose">알겠어요</button>
     </section>`;
   }
 
   function homeView() {
     const M = S.month, mine = M.families.find(f => f.own), others = M.families.filter(f => !f.own), t = todayFam();
     return `<div class="page-top"><div><p class="eyebrow">${esc(M.room.name)}</p><h1>${Number(M.month.slice(5))}월 기도제목 <span aria-hidden="true">🙏</span></h1></div><p class="date">${todayLabel()}</p></div>
-      ${a2hsCard()}
       <div class="home-grid"><div class="col side">${t ? `<section class="card today" aria-label="지금 함께 기도할 ${words().one}"><p class="today-tag">${ICON.hands}지금 함께 기도할 ${words().one}</p><h2>${esc(t.name)}</h2>
           <div class="today-body" data-id="${esc(t.id)}" tabindex="0" aria-label="${esc(t.name)} 기도제목">${t.items.length ? itemList(t.items, false) : `<p class="hint">아직 올린 기도제목이 없어요. 이 ${words().one}을 떠올리며 기도해요.</p>`}</div>
           <div class="pray-hero"><div class="pray-row">${prayBtn(t, false, true)}<button class="btn next${t.today ? '' : ' ghost'}" data-act="nexttoday">다음 ${words().one}${t.today ? '으로' : ''}</button></div>
@@ -1525,6 +1541,9 @@ try { const p = JSON.parse(localStorage.getItem('koide-pref') || '{}'), d = docu
     P.hidden = !praying; P.innerHTML = S.ps ? psHtml() : meeting ? meetHtml() : ''; P.setAttribute('aria-label', S.ps ? '기도하기' : meeting ? '모임 모드' : '');
     P.classList.toggle('meet', meeting);
     document.body.classList.toggle('praying', praying);
+    // 홈 화면에 두기 창: 앱 화면에서만, 기도하기·모임 모드 중에는 띄우지 않는다
+    const pop = $('#pop'), popOn = app && !praying && S.a2hs && !STANDALONE;
+    pop.hidden = !popOn; pop.innerHTML = popOn ? a2hsCard() : ''; document.body.classList.toggle('pop-open', popOn);
     // 쓰던 칸이 다시 그려져 사라지면 칸을 벗어났다는 신호(focusout)가 오지 않는다. 그래도 아래 메뉴가 다시 보이게
     if (!document.activeElement || !document.activeElement.matches('textarea, input, select')) hideTypingSoon();
   }
@@ -1581,7 +1600,8 @@ try { const p = JSON.parse(localStorage.getItem('koide-pref') || '{}'), d = docu
       case 'pickdept': pickDept(v); return render();
       case 'a2hsclose': S.a2hs = false; try { localStorage.setItem(A2HS_OFF, '1'); } catch (err) { /* 이번 화면에서만 */ } return render();
       case 'a2hsos': S.a2hsOs = v; return render();
-      case 'a2hsopen': S.a2hs = true; S.tab = 'home'; render(); return window.scrollTo(0, 0);
+      case 'a2hsopen': S.a2hs = true; return render();
+      case 'a2hshide': S.a2hs = false; return render();
       case 'a2hsinstall': if (installAsk) { installAsk.prompt(); const r = await installAsk.userChoice; installAsk = null; if (r.outcome === 'accepted') S.a2hs = false; render(); } return;
       case 'pickroom': S.pick = { deptId: S.pick.deptId, roomId: v }; S.view = 'family'; return render();
       case 'pickfam': { S.pick.familyId = v; const ps = famPicked().name.split(' · '); if (ps.length > 1) S.view = 'who'; else { S.pick.person = ps[0]; S.view = 'consent'; } return render(); }
@@ -1725,6 +1745,7 @@ try { const p = JSON.parse(localStorage.getItem('koide-pref') || '{}'), d = docu
   });
   // 모임 모드: PC나 TV에 띄웠을 때 키보드 왼쪽·오른쪽 화살표로 넘기고, Esc로 닫는다
   document.addEventListener('keydown', e => {
+    if (e.key === 'Escape' && !$('#pop').hidden) { S.a2hs = false; return render(); }
     if (S.meet == null || S.ps || S.view !== 'app') return;
     if (e.key === 'Escape') { S.meet = null; wakeOff(); render(); }
     else if (e.key === 'ArrowRight') meetGo(S.meet + 1);
