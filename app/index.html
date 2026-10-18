@@ -116,7 +116,12 @@ textarea.field { resize: vertical; line-height: 1.55; }
   const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
   const TOKEN = 'koide-token';
   const getToken = () => { try { return localStorage.getItem(TOKEN); } catch (e) { return null; } };
-  const setToken = t => { try { t ? localStorage.setItem(TOKEN, t) : localStorage.removeItem(TOKEN); } catch (e) { /* 무시 */ } };
+  // 로그인 표시가 바뀌면(로그인·로그아웃) 기억해 둔 화면도 지운다. 다른 사람의 기도제목이 남지 않게
+  const setToken = t => { try { t ? localStorage.setItem(TOKEN, t) : localStorage.removeItem(TOKEN); localStorage.removeItem(CACHE); } catch (e) { /* 무시 */ } };
+  // 지난번 이번 달 화면: 앱을 열 때 서버를 기다리지 않고 먼저 보여 준다
+  const CACHE = 'koide-cache';
+  const readCache = () => { try { return JSON.parse(localStorage.getItem(CACHE)); } catch (e) { return null; } };
+  const writeCache = () => { try { localStorage.setItem(CACHE, JSON.stringify({ me: S.me, month: S.month })); } catch (e) { /* 무시 */ } };
 
   // 화면 상태
   const S = { view: 'loading', me: null, rooms: null, pick: {}, month: null, tab: 'home', pending: null, busy: false };
@@ -157,6 +162,9 @@ textarea.field { resize: vertical; line-height: 1.55; }
     }
     if (q.get('error')) { toast('카카오 로그인을 취소했어요.'); history.replaceState(null, '', location.pathname); }
     if (!getToken()) { S.view = 'login'; return render(); }
+    // 지난번 화면이 기억돼 있으면 먼저 보여 주고, 서버에서 새로 받아 조용히 바꾼다
+    const c = readCache();
+    if (c && c.me && c.month) { S.me = c.me; S.month = c.month; S.view = 'app'; render(); return refreshMe(true); }
     await refreshMe();
   }
   function loadDemo() {
@@ -166,14 +174,22 @@ textarea.field { resize: vertical; line-height: 1.55; }
       a.onerror = bad; document.head.appendChild(a);
     });
   }
-  async function refreshMe() {
+  // quiet: 기억해 둔 화면을 보여 주는 중이라 "불러오는 중"이나 오류 화면으로 바꾸지 않는다
+  async function refreshMe(quiet) {
     try {
-      S.me = await api('me');
-      if (!S.me.link) { S.view = 'room'; S.pick = {}; S.rooms = await api('rooms'); }
+      let r;
+      // start가 없는 예전 서버 코드여도 열리게 예전 방식(me → month)으로 이어 간다
+      try { r = await api('start'); } catch (e) { if (e.code !== 'bad') throw e; r = { me: await api('me') }; }
+      S.me = r.me;
+      if (!S.me.link) { S.view = 'room'; S.pick = {}; S.rooms = r.rooms || await api('rooms'); }
       else if (S.me.link.status === '요청') S.view = 'wait';
-      else { S.view = 'app'; await loadMonth(); }
-    } catch (e) { if (e.code !== 'login') { S.view = 'error'; S.err = e; } }
-    render();
+      else { const m = r.month || await api('month'); if (!waiting) S.month = m; S.view = 'app'; }
+    } catch (e) {
+      if (e.code === 'login') return;
+      if (quiet) return oops(e);
+      S.view = 'error'; S.err = e;
+    }
+    quiet ? paint() : render();
   }
   async function loadMonth() { S.month = await api('month'); }
 
@@ -304,6 +320,7 @@ textarea.field { resize: vertical; line-height: 1.55; }
     // 새 기도제목 칸에 쓰던 글은 다시 그려도 남긴다
     const at = $('#add-t'); if (at) { S.draft = at.value; S.draftTgt = $('#add-tgt').value; }
     $('#main').innerHTML = VIEWS[S.view]();
+    if (app) writeCache();
     $('#tabs').hidden = !app;
     $('#badge').innerHTML = app ? `<span class="badge">${esc(S.month.room.name)} · ${esc(S.month.me.role)}</span>` : '';
     if (app) $('#tabs').innerHTML = [['home', '이번 달', ICON.home], ['mine', '내 기도', ICON.pen], ['more', '더보기', ICON.more]]

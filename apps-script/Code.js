@@ -54,6 +54,13 @@ function doPost(e) {
 const ACTIONS = {
   login: login_,
   me: body => meInfo_(who_(body)),
+  // 앱을 열 때 한 번에: 나 + (연결됐으면 이번 달, 연결 전이면 사랑방 목록). 서버와 두 번 이야기하던 것을 한 번으로
+  start: body => {
+    const w = who_(body), me = meInfo_(w);
+    if (!w.link) return { me, rooms: roomsWithFamilies_() };
+    if (w.link.status === '연결') return { me, month: monthView_(memberFrom_(w)) };
+    return { me };
+  },
   rooms: body => { who_(body); return roomsWithFamilies_(); },
   requestLink: requestLink_,
   month: body => monthView_(member_(body)),
