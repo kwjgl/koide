@@ -3275,7 +3275,7 @@ try { const p = JSON.parse(localStorage.getItem('koide-pref') || '{}'), d = docu
   //  NEED_SERVER: 이 화면이 바라는 서버 버전(서버 VERSION 앞 날짜). 서버 코드를 고쳐 배포해야 하는 기능을 넣을 때 함께 올린다
   const NEED_SERVER = '2026-10-22';
   const DOC = 'https://github.com/kwjgl/pray-for/blob/main/docs/';
-  async function loadOps() { try { S.ops = await api('ops'); S.opsErr = null; } catch (e) { S.ops = null; S.opsErr = e.code === 'bad' ? 'old' : e.code === 'forbidden' ? null : e.message; } render(); }
+  async function loadOps() { try { S.ops = await api('ops'); S.opsErr = null; } catch (e) { S.ops = null; S.opsErr = e.code === 'bad' ? 'old' : e.code === 'forbidden' ? null : e.message; S.opsWhy = e.message || ''; } render(); }
   const opsWhen = iso => { const d = new Date(iso); return isNaN(d) ? '' : `${d.getMonth() + 1}월 ${d.getDate()}일 ${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`; };
   function opsProblems() {
     const O = S.ops;
@@ -3284,10 +3284,12 @@ try { const p = JSON.parse(localStorage.getItem('koide-pref') || '{}'), d = docu
     return [O.errors.n ? `최근 7일 서버 오류 ${O.errors.n}번` : '', O.admins < 2 ? '관리자가 한 명뿐이에요' : ''].filter(Boolean);
   }
   function opsCard() {
+    // 불러오기 전에는 그리지 않는다(맨 아래에 있다가 문제가 있으면 위로 뛰어오르지 않게)
+    if (!S.ops && !S.opsErr) return '';
     const O = S.ops, probs = opsProblems(), open = S.opsOpen !== undefined ? S.opsOpen : probs.length > 0, old = probs[0] === '서버가 옛 버전이에요';
     const sum = !O && !S.opsErr ? '불러오는 중…' : probs.length ? probs.join(' · ') : S.opsErr && !old ? S.opsErr : `모두 괜찮아요 · 서버 ${O.version.slice(0, 10)}`;
     const row = (k, v) => `<div class="ops-row"><span class="ops-k">${k}</span><div>${v}</div></div>`;
-    const ver = row('버전', `<span>서버 <b>${O ? esc(O.version) : '옛 버전'}</b></span><small>이 화면은 ${NEED_SERVER} 이후 서버가 필요해요</small>${old ? `<p class="warn-text">Apps Script를 새 버전으로 배포해 주세요. 배포 관리 › 연필 › 새 버전이에요. <a href="${DOC}setup.md" target="_blank" rel="noopener">배포 순서</a></p>` : ''}`);
+    const ver = row('버전', `<span>서버 <b>${O ? esc(O.version) : '옛 버전'}</b></span><small>이 화면은 ${NEED_SERVER} 이후 서버가 필요해요${!O && S.opsWhy ? ` · 서버의 답: ${esc(S.opsWhy)}` : ''}</small>${old ? `<p class="warn-text">Apps Script를 새 버전으로 배포해 주세요. 배포 관리 › 연필 › 새 버전이에요. <a href="${DOC}setup.md" target="_blank" rel="noopener">배포 순서</a></p>` : ''}`);
     const body = !open ? '' : !O ? (old ? `<div class="ops-rows">${ver}</div>` : '') : `<div class="ops-rows">${ver}
       ${row('새 달', `${Number(O.month.month.slice(5))}월 · ${O.month.opened ? opsWhen(O.month.opened) + '에 처음 열림' : O.month.carried || O.month.waiting ? '' : '지난달 기도제목이 없어서 넘어올 것이 없어요'}<small>${O.month.opened || O.month.carried ? `지난달에서 넘어온 기도제목 ${O.month.carried}개` : '다음 달부터 여기에 보여요'}</small>
         ${O.month.waiting ? `<p class="hint">아직 아무도 열지 않은 ${esc(grp())} ${O.month.waiting}곳은 처음 열 때 넘어와요.</p><button class="btn small ghost" data-act="opsmonth" ${S.busy ? 'disabled' : ''}>지금 모두 넘기기</button>` : ''}`)}
