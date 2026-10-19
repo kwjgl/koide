@@ -268,11 +268,8 @@ h2 { font-size: 1.05em; margin: 0; }
 .ab-cols { display: grid; gap: 12px; align-items: start; }
 .ab-cols .col { display: flex; flex-direction: column; gap: 12px; min-width: 0; }
 @media (min-width: 900px) { .ab-cols { grid-template-columns: 1fr 1fr; gap: 16px; } }
-.ab-cord { width: 100%; max-width: 340px; height: auto; display: block; margin: 0 auto; }
-.ab-seg { fill: none; stroke: var(--accent); stroke-width: 2.5; stroke-linecap: round; }
-.ab-seg.loose { stroke: var(--line-strong); }
-.ab-knot { fill: var(--accent); }
-.ab-slot { fill: var(--surface); stroke: var(--line-strong); stroke-width: 1.5; }
+.ab-ex { max-width: 340px; margin: 0 auto; }
+.ab-ex .cord-head { display: none; }
 .ab-go { align-self: flex-start; display: inline-flex; align-items: center; gap: .15em; font-size: .85em; }
 .ab-go svg { width: 14px; height: 14px; }
 .ab-keep, .ab-und, .ab-credit { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; }
@@ -286,9 +283,6 @@ h2 { font-size: 1.05em; margin: 0; }
 .ab-und .plain { word-break: keep-all; }
 .ab-und .ab-go { margin-top: .2em; }
 .ab-n { width: 1.8em; height: 1.8em; border-radius: 50%; background: var(--accent-soft); color: var(--accent); display: grid; place-items: center; font-weight: 600; font-size: .85em; }
-.ab-months { display: grid; grid-template-columns: repeat(auto-fill, minmax(7.2em, 1fr)); gap: 6px; }
-.ab-months span { display: flex; flex-direction: column; padding: .45em .6em; border: 1px solid var(--line); border-radius: 10px; font-size: .8em; line-height: 1.35; word-break: keep-all; }
-.ab-months small { color: var(--ink-2); font-size: .85em; }
 .ab-blank { background: var(--accent-soft); color: var(--accent); border-radius: 4px; padding: 0 .3em; font-weight: 600; }
 @media (max-width: 420px) { .ab-keep li, .ab-credit li { grid-template-columns: 1fr; gap: .15em; } }
 @media (prefers-reduced-motion: reduce) { .ab-mark svg path { animation: none; stroke-dashoffset: 0; } }
@@ -1351,7 +1345,7 @@ try { const p = JSON.parse(localStorage.getItem('koide-pref') || '{}'), d = docu
   const consentList = () => `<ul class="consent">
       <li><b>무엇을</b><span>${solo() ? '이름, 내가 쓴 기도제목' : '가정 이름, 자녀 이름, 우리 가정이 쓴 기도제목'}, 카카오 회원번호와 닉네임</span></li>
       <li><b>어디에</b><span>교회가 관리하는 비공개 구글 시트 한 곳</span></li>
-      <li><b>누가 보나</b><span>기도제목마다 고른 공개 범위대로만 보여요. 시트를 관리하는 관리자는 모두 볼 수 있어요</span></li>
+      <li><b>누가 보나</b><span>기도제목마다 고른 공개 범위대로만 보여요. 시트는 교회가 맡긴 관리자만 열 수 있고, 앱을 돌보는 데에만 써요</span></li>
       <li><b>얼마나</b><span>교회를 떠나면 1년 뒤 내용을 지우고 개수만 남겨요. 언제든 ${solo() ? '내' : '우리 가정'} 기록을 지워 달라고 할 수 있어요</span></li>
       <li><b>사용 기록</b><span>앱을 좋게 만들기 위해 이름 없는 사용 기록을 남겨요. "기도하기를 열었다"처럼 누른 것과 숫자만이고, 이름과 기도제목은 넣지 않아요</span></li></ul>`;
 
@@ -2774,12 +2768,11 @@ try { const p = JSON.parse(localStorage.getItem('koide-pref') || '{}'), d = docu
   // 코이데 소개(더보기, 시안과 같게): 앱 이름의 뜻과 앱이 왜 이렇게 생겼는지. 문단마다 그 뜻이 담긴 기능으로 가는 링크를 둔다
   const aboutLink = (label, tab, h) => `<button class="link ab-go" data-act="aboutgo" data-v="${tab}"${h ? ` data-h="${h}"` : ''}>${label}${ICON.chevR}</button>`;
   function aboutCord() {
-    const on = [1, 1, 0, 1, 1, 0], W = 300, x = i => 10 + i * (W - 20) / (on.length - 1);
-    const segs = on.slice(1).map((b, i) => { const a = on[i], x1 = x(i), x2 = x(i + 1), sag = a && b ? 0 : 14;
-      return `<path class="ab-seg${sag ? ' loose' : ''}" d="M${x1} 24Q${(x1 + x2) / 2} ${24 + sag * 2} ${x2} 24"/>`; }).join('');
-    const knots = on.map((b, i) => b ? `<circle class="ab-knot" cx="${x(i)}" cy="24" r="6"/>` : `<circle class="ab-slot" cx="${x(i)}" cy="24" r="5"/>`).join('');
-    return `<svg class="ab-cord" viewBox="0 0 ${W} 56" role="img" aria-label="매듭이 지어진 곳은 끈이 팽팽하고, 아직인 곳은 끈이 처져 있어요">${segs}${knots}</svg>`;
+    const slots = ['김', '박', '이', '정', '최', '한'].map((n, i) => ({ key: i, short: n, name: n, on: [1, 1, 0, 1, 1, 0][i] }));
+    return cordView({ slots, head: '기도의 끈 예시', cls: 'ab-ex', count: () => '', done: '',
+      say: k => `${k.name}, ${k.on ? '매듭이 지어짐' : '아직 기도하지 않음'}` });
   }
+
   function aboutView() {
     const g = esc(grp()), fam = words().one, mine = words().mine, staff = staffMe();
     const UNDERSTAND = [
@@ -2790,14 +2783,11 @@ try { const p = JSON.parse(localStorage.getItem('koide-pref') || '{}'), d = docu
       ['어떤 마음으로', '겸손히, 믿음으로, 끈기 있게 기다리며 기도해요. 몇 달째 이어지는 기도는 기도 타임라인에서 보고, 이뤄졌거나 그만 올릴 기도제목은 "마치기"로 맡겨 둬요.', aboutLink('지난 기록 › 타임라인', 'history', 'timeline')]
     ];
     const KEEP = [
-      ['겸손', '다른 사람이 누구를 위해 몇 번 기도했는지는 보이지 않아요. 순위도 없어요. 끈이 이어진 모습만 보여요.'],
-      ['한 ' + fam + '도 빠지지 않게', `"지금 함께 기도할 ${fam}"은 아직 기도하지 않은 ${fam}부터 차례로 나와요.`],
-      ['정한 사람만', `기도제목마다 고른 공개 범위(${g} · 리더·목사님 · ${esc(words().only)})대로만 보여요.`],
-      ['기다림', '바뀐 게 없으면 기도제목이 다음 달로 그대로 넘어가요. "이번 달도 그대로예요"만 눌러도 괜찮아요.']
+      ['경쟁하지 않아요', '다른 사람이 누구를 위해 몇 번 기도했는지는 보이지 않고, 순위도 없어요. 끈이 이어진 모습만 보여 줄 뿐이에요.'],
+      ['모두를 위해 기도해요', `"지금 함께 기도할 ${fam}"은 아직 기도하지 않은 ${fam}부터 차례로 나와요.`],
+      ['목적에 따라 다르게 써요', `기도제목마다 고른 공개 범위(${g} · 리더·목사님 · ${esc(words().only)})대로만 보여요.`],
+      ['잠잠하게 응답을 기다려요', '바뀐 게 없으면 기도제목이 다음 달로 그대로 넘어가요. "이번 달도 그대로예요"만 눌러도 괜찮아요.']
     ];
-    // 올해(이번 그림 해) 열두 달 주제: 9월부터 8월까지
-    const now = S.month.month, y0 = Number(now.slice(5)) >= 9 ? Number(now.slice(0, 4)) : Number(now.slice(0, 4)) - 1;
-    const months = Array.from({ length: 12 }, (_, i) => { const mo = (i + 8) % 12 + 1, yy = mo >= 9 ? y0 : y0 + 1; return { mo, t: SCENES[sceneKey(yy + '-' + String(mo).padStart(2, '0'))].title.replace(/^\d+월 /, '') }; });
     return `<button class="link back" data-act="tab" data-v="more">${ICON.chevL}더보기</button>
     <div class="about">
       <section class="card ab-hero">
@@ -2811,11 +2801,11 @@ try { const p = JSON.parse(localStorage.getItem('koide-pref') || '{}'), d = docu
         <div class="col">
           <section class="card"><p class="label">기도의 끈</p>
             ${aboutCord()}
-            <p class="plain">${g} ${fam}마다 매듭 자리가 하나 있어요. 그 ${fam}을 위해 기도하면 매듭이 지어지고, 이웃한 두 ${fam}을 다 기도하면 그 사이 끈이 팽팽해져요. 처진 곳이 아직 기도하지 않은 ${fam}이에요.</p>
+            <p class="plain">${g} ${fam}마다 매듭 자리가 하나 있어요. 그 ${fam}을 위해 기도하면 매듭이 지어지고, 이웃한 두 ${fam}을 위해 기도하면 끈이 팽팽해져요. 모든 ${fam}을 위해 기도하면 기도의 끈(리본)이 완성된답니다.</p>
             ${aboutLink('이번 달 › 기도의 끈 보기', 'home')}</section>
           <section class="card"><p class="label">코이데가 지키는 것</p>
             <ul class="ab-keep">${KEEP.map(([t, d]) => `<li><b>${t}</b><span>${d}</span></li>`).join('')}</ul></section>
-          <section class="card"><p class="label">내 기도제목은 어디에</p>${consentList()}</section>
+          <section class="card"><p class="label">기도제목은 이렇게 지켜요</p>${consentList()}</section>
         </div>
         <div class="col">
           <section class="card"><p class="label">코이데는 기도를 이렇게 이해해요</p>
@@ -2823,8 +2813,6 @@ try { const p = JSON.parse(localStorage.getItem('koide-pref') || '{}'), d = docu
             <p class="hint">웨스트민스터 대요리문답이 풀어 쓴 기도의 뜻을 쉬운 말로 옮겼어요.</p></section>
           ${staff ? '' : `<section class="card"><p class="label">이달의 그림</p>
             <p class="plain">달마다 그 달 주제의 그림이 하나씩 있어요. 기도한 날마다 그림이 조금씩 채워지고, 나만 봐요. 남과 비교하지 않고 줄어들지도 않아요.</p>
-            <div class="ab-months">${months.map(m => `<span><small>${m.mo}월</small>${esc(m.t)}</span>`).join('')}</div>
-            <p class="hint">${y0}년 9월부터 열두 달 주제예요. 해마다 새 주제로 바뀌어요.</p>
             ${aboutLink('지난 기록 › 달마다 모은 그림', 'history', 'pray')}</section>`}
           <section class="card"><p class="label">만든 곳 · 의견 보내기</p>
             <p class="plain">${esc(josa(S.month.dept.name, '이/가'))} 함께 만들어 가고 있어요. 불편한 점이나 바라는 점은 ${g} 리더에게 카톡으로 알려 주세요.</p></section>
