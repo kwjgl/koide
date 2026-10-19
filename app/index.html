@@ -1013,6 +1013,15 @@ body.pop-open { overflow: hidden; }
 .mrow > .ic, .mrow > .ops-chev { color: var(--ink-2); flex: none; }
 .mrow[aria-expanded="true"] .ops-chev { transform: rotate(180deg); }
 .mset { display: flex; flex-direction: column; gap: 12px; padding: .2em 0 .9em; }
+.together .itemlist, .together ul { margin-top: .4em; }
+.tog-list { list-style: none; margin: 0; padding: 0; }
+.tog-list li { display: flex; flex-wrap: wrap; justify-content: space-between; gap: .3em .8em; padding: .55em 0; border-top: 1px solid var(--line); }
+.tog-list li:first-child { border-top: 0; }
+.tog-list li > div { flex: 1; min-width: 12em; }
+.tog-list small { display: block; color: var(--ink-2); font-size: .82em; }
+.tog-list .tgt { font-size: .8em; font-weight: 600; background: var(--surface-2); border-radius: 999px; padding: .1em .55em; }
+.tog-list.ended li > div { color: var(--ink-2); }
+.tog-form { margin-top: .6em; flex-basis: 100%; }
 .chg-list { list-style: none; margin: 0; padding: 0; }
 .chg-list li { display: flex; flex-direction: column; gap: .1em; padding: .55em 0; border-top: 1px solid var(--line); font-size: .92em; }
 .chg-list li:first-child { border-top: 0; }
@@ -1643,6 +1652,7 @@ try { const p = JSON.parse(localStorage.getItem('koide-pref') || '{}'), d = docu
           <p class="hint">앱을 열 때마다 이번 달 아직 기도하지 않은 ${words().one}부터 돌아가며 나와요.</p>
           ${cordHtml(t.id)}</section>` : ''}${artCard()}</div>
       <div class="col main">
+        ${togetherCard()}
         ${mineCard()}
         <div class="section-row"><div class="sr-title"><h2 class="section-title">${esc(grp())} ${words().members} ${others.length}</h2><span class="sr-legend"><i class="new-dot"></i>이번 달 새 기도제목</span></div>
           <div class="sr-tools"><button class="btn small ghost meet-btn" data-act="meet" title="모임 때 한 ${words().one}씩 크게 보기">${ICON.screen}모임 모드</button>
@@ -1694,6 +1704,7 @@ try { const p = JSON.parse(localStorage.getItem('koide-pref') || '{}'), d = docu
         ${signalCard(M.signals, true)}
         ${topicFlowCard(loadTopics())}
         ${topicDictCard(S.topics)}
+        ${togetherEditCard()}
         ${serveCard()}
       </div></div>`;
   }
@@ -2675,7 +2686,7 @@ try { const p = JSON.parse(localStorage.getItem('koide-pref') || '{}'), d = docu
         body = `<p class="eyebrow">${words().mine}</p><h2>${esc(m.name)}</h2>${m.items.length ? `<ul>${m.items.map(i => li(i.target, i.text)).join('')}</ul>` : '<p class="hint">이번 달 기도제목이 아직 없어요.</p>'}`; }
       // 하나님 나라: 오늘의 간구 문장 하나와 성경의 기도 하나만 보여 주고, 남은 시간은 "내 말로 이어서" 기도한다
       else { const t = topicOf(id), d = prayToday(t), line = ([x, r]) => `<li><span>${esc(x)}${r ? `<small class="pss-ref">${esc(r)}</small>` : ''}</span></li>`;
-        body = `<p class="pss-lp">${t.lines.map(n => LORDS_PRAYER[n]).join(' ')}</p><p class="eyebrow">하나님 나라</p><h2>${t.name}</h2><ul>${line(d.a.map(locG))}${line(d.b.map(locG))}</ul><p class="pss-next">${esc(locG(d.next))}</p>`; }
+        body = `<p class="pss-lp">${t.lines.map(n => LORDS_PRAYER[n]).join(' ')}</p><p class="eyebrow">하나님 나라</p><h2>${t.name}</h2><ul>${line(d.a.map(locG))}${line(d.b.map(locG))}</ul>${t.k === 'church' && !S.grp && (S.month.together || []).length ? `<p class="label serve-who">이번 달 함께 기도해요</p><ul>${S.month.together.map(i => li(i.target, i.text)).join('')}</ul>` : ''}<p class="pss-next">${esc(locG(d.next))}</p>`; }
       pray = `<button class="pss-pray${ready ? ' ready' : ''}" data-act="psextra">${ICON.hands.replace('<svg', '<svg width="20" height="20"')} 기도했어요</button>`;
     }
     const cd = ps.cd ? `<div class="pss-cd" role="status"><span><b id="pss-cd">${ps.cd}</b>초 뒤 ${last ? '마쳐요' : '다음 장으로 넘어가요'}</span><button data-act="psstay">머무르기</button></div>` : '';
@@ -3362,6 +3373,7 @@ try { const p = JSON.parse(localStorage.getItem('koide-pref') || '{}'), d = docu
     const staffN = P && P.staff ? P.staff.length : null;
     const rows = {
       people: [
+        fold('together', '함께 기도해요', (S.month.together || []).length ? `이번 달 ${(S.month.together || []).length}개` : '부서 기도제목 쓰기', togetherEditCard()),
         staffN === null ? '' : fold('staff', '교역자', staffN ? P.staff.map(x => esc(x.label)).join(' · ') : '아직 없어요', staffCard()),
         fold('invite', '초대 링크 · QR', I ? `${esc(S.month.dept.name)} 전체 · ${esc(grp())} ${I.rooms.length}곳` : '불러오는 중…', inviteCard()),
         fold('groups', '교회 안 모임', G ? (G.length ? G.length + '개' : '아직 없어요') : '불러오는 중…', groupsAllCard())
@@ -3454,6 +3466,38 @@ try { const p = JSON.parse(localStorage.getItem('koide-pref') || '{}'), d = docu
         <section class="card mrows folds">${fold('chgall', '변경 기록', '모든 부서 · 누가 언제 무엇을 바꿨는지', changesCard(true))}</section>
       </div></div>`;
   }
+  // ── 함께 기도해요(부서 기도제목): 교역자·부서 관리자·전체 관리자가 쓰고, 회원은 이번 달 화면과 기도하기 › 우리 교회에서 본다 ──
+  const canTogether = () => !!(S.month && S.month.me && (S.month.me.staff || S.month.me.admin || S.op) && !S.grp);
+  function togetherCard() {
+    const L = (S.month && S.month.together) || [];
+    if (S.grp || (!L.length && !canTogether())) return '';
+    return `<section class="card together"><div class="row"><p class="label" style="margin:0">함께 기도해요 · ${esc((S.month.dept && S.month.dept.name) || '')}</p>${canTogether() && !S.op ? `<button class="link" data-act="togmanage">${L.length ? '고치기' : '쓰기'}</button>` : ''}</div>
+      ${L.length ? itemList(L.map(i => Object.assign({ scope: 'dept' }, i)), false) : '<p class="hint">이번 달 함께 기도할 제목을 써 보세요. 회원 모두의 이번 달 화면과 기도하기에 나와요.</p>'}</section>`;
+  }
+  async function loadTogether() {
+    if (S.togLoading) return; S.togLoading = true;
+    try { S.tog = await api('together'); } catch (e) { S.tog = { err: e.code === 'bad' ? '서버를 새 버전으로 배포하면 쓸 수 있어요.' : e.message }; }
+    S.togLoading = false; render();
+  }
+  function togetherEditCard() {
+    const T = S.tog;
+    if (!T) { setTimeout(loadTogether); return `<section class="card"><h2>함께 기도해요</h2><p class="hint">불러오는 중…</p></section>`; }
+    if (T.err) return `<section class="card"><h2>함께 기도해요</h2><p class="hint">${esc(T.err)}</p></section>`;
+    const E = S.togEdit;
+    const row = i => E === i.id ? `<li><form class="plain-form tog-form" data-form="togsave" data-v="${esc(i.id)}">
+        <input class="field" name="t" maxlength="10" value="${esc(i.target)}" aria-label="대상" placeholder="함께"><textarea class="field" name="x" rows="2" maxlength="300" aria-label="내용">${esc(i.text)}</textarea>
+        <div class="actions"><button class="btn small" type="submit" ${S.busy ? 'disabled' : ''}>저장</button><button class="btn small ghost" type="button" data-act="togedit" data-v="">취소</button></div></form></li>`
+      : `<li><div><span class="tgt">${esc(i.target)}</span> ${esc(i.text)}<small>${esc(i.by || '')}${i.at ? ' · ' + esc(i.at) : ''}</small></div>
+        <span class="foot-acts"><button class="link" data-act="togedit" data-v="${esc(i.id)}">고치기</button><button class="link quiet" data-act="togstate" data-v="${esc(i.id)}" data-op="end">마치기</button><button class="link quiet" data-act="togstate" data-v="${esc(i.id)}" data-op="delete">지우기</button></span></li>`;
+    return `<section class="card"><h2>함께 기도해요</h2>
+      ${T.list.length ? `<ul class="tog-list">${T.list.map(row).join('')}</ul>` : '<p class="hint">아직 이번 달 함께 기도할 제목이 없어요.</p>'}
+      <form class="plain-form tog-form" data-form="togsave"><p class="label" style="margin:0">더하기</p>
+        <input class="field" name="t" maxlength="10" placeholder="대상 (예: 수련회, 선교, 새가족) · 비우면 함께" aria-label="대상">
+        <textarea class="field" name="x" rows="2" maxlength="300" placeholder="예) 11월 가을 수련회를 잘 준비하고, 모든 가정이 함께하도록" aria-label="내용"></textarea>
+        <div class="actions"><button class="btn small" type="submit" ${S.busy ? 'disabled' : ''}>더하기</button></div></form>
+      ${T.ended.length ? `<p class="label">이번 달 마친 제목</p><ul class="tog-list ended">${T.ended.map(i => `<li><div><span class="tgt">${esc(i.target)}</span> ${esc(i.text)}</div><span class="foot-acts"><button class="link quiet" data-act="togstate" data-v="${esc(i.id)}" data-op="reopen">다시 이어가기</button></span></li>`).join('')}</ul>` : ''}
+      <p class="hint">${esc(S.month.dept.name)} 회원 모두의 이번 달 화면과 기도하기 › 하나님 나라 › 우리 교회에 나와요. 마치기 전까지 다음 달로 그대로 이어져요.</p></section>`;
+  }
   // ── 자율 모임 (설계서 13장): 회원 누구나 만드는 모임. 한 모임 12명, 한 사람 세 곳(원래 소그룹 포함), 모임장은 한 모임만 ──
   //  S.grp: 지금 보는 모임ID. 모임으로 바꾸면 이번 달·내 기도·기도하기·지난 기록이 그 모임 것이 되고, 내 소그룹 화면(S.home)은 비켜 둔다
   const GJOIN = 'koide-gjoin', G_MAX = 12, PLACES = 3;
@@ -3536,7 +3580,7 @@ try { const p = JSON.parse(localStorage.getItem('koide-pref') || '{}'), d = docu
     if (S.grp) { S.month = S.home || S.month; S.grp = null; S.home = null; }
     if (!S.op) S.home = S.month;
     S.op = id; try { localStorage.setItem(OP_KEY, id); } catch (e) { /* 이번만 */ }
-    Object.assign(S, { pending: null, ops: null, opsErr: null, rost: null, an: null, rgData: null, menu: null, rostSel: null, rostOpen: null, eraseAsk: null, qrOpen: null, adminTab: 'manage', tab: 'admin' });
+    Object.assign(S, { pending: null, ops: null, opsErr: null, rost: null, an: null, rgData: null, menu: null, rostSel: null, rostOpen: null, eraseAsk: null, qrOpen: null, tog: null, togEdit: null, adminTab: 'manage', tab: 'admin' });
     try { S.month = await api('opsCtx'); }
     catch (e) {
       S.op = null; try { localStorage.removeItem(OP_KEY); } catch (er) { /* 무시 */ }
@@ -3548,7 +3592,7 @@ try { const p = JSON.parse(localStorage.getItem('koide-pref') || '{}'), d = docu
   }
   async function leaveOps() {
     S.op = null; try { localStorage.removeItem(OP_KEY); } catch (e) { /* 무시 */ }
-    Object.assign(S, { pending: null, ops: null, rost: null, an: null, rgData: null, menu: null });
+    Object.assign(S, { pending: null, ops: null, rost: null, an: null, rgData: null, menu: null, tog: null, togEdit: null });
     if (!(S.me && S.me.link && S.me.link.status === '연결')) { S.view = 'login'; return render(); }
     S.month = S.home || await api('month'); S.home = null; S.tab = 'more'; render(); window.scrollTo(0, 0);
   }
@@ -3637,7 +3681,7 @@ try { const p = JSON.parse(localStorage.getItem('koide-pref') || '{}'), d = docu
   }
   // ── 관리 › 운영 (설계서 S7): ① 앱 상태 ② 개인정보 요청. 할 일이 있는 카드만 관리 탭 위로 올라온다 ──
   //  NEED_SERVER: 이 화면이 바라는 서버 버전(서버 VERSION 앞 날짜). 서버 코드를 고쳐 배포해야 하는 기능을 넣을 때 함께 올린다
-  const NEED_SERVER = '2026-10-28';
+  const NEED_SERVER = '2026-10-29';
   const DOC = 'https://github.com/kwjgl/pray-for/blob/main/docs/';
   async function loadOps() { try { S.ops = await api('ops'); S.opsErr = null; } catch (e) { S.ops = null; S.opsErr = e.code === 'bad' ? 'old' : e.code === 'forbidden' ? null : e.message; S.opsWhy = e.message || ''; } render(); }
   const opsWhen = iso => { const d = new Date(iso); return isNaN(d) ? '' : `${d.getMonth() + 1}월 ${d.getDate()}일 ${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`; };
@@ -4208,6 +4252,13 @@ try { const p = JSON.parse(localStorage.getItem('koide-pref') || '{}'), d = docu
       case 'church': S.menu = null; return enterChurch();
       case 'churchtab': S.churchTab = v; render(); if (v === 'analysis') { track('화면 보기', { screen: '교회 분석' }); loadChurchAnalysis(); } return;
       case 'setopen': S.setOpen = !S.setOpen; return render();
+      case 'togmanage': if (S.month.me.staff) { S.tab = 'home'; render(); const c = $('[data-form="togsave"]'); if (c) c.scrollIntoView({ block: 'center' }); return; } S.fold = Object.assign({}, S.fold, { together: true }); S.tab = 'admin'; render(); window.scrollTo(0, 0); return loadAdmin();
+      case 'togedit': S.togEdit = v || null; return render();
+      case 'togstate': {
+        const op = b.dataset.op; if (op === 'delete' && !confirm('이 제목을 지울까요? 잘못 쓴 것만 지우고, 다 기도한 것은 "마치기"를 눌러요.')) return;
+        try { S.tog = await api('togetherState', { id: v, op }); S.month.together = S.tog.list; toast(op === 'end' ? '마쳤어요. 다음 달로 넘어가지 않아요.' : op === 'reopen' ? '다시 이어가요.' : '지웠어요.'); } catch (err) { oops(err); }
+        return render();
+      }
       case 'dpclose': case 'dpreopen': case 'dperase': {
         const a = b.dataset.act, n = b.dataset.n;
         if (a === 'dpclose' && !confirm(`${josa(n, '을/를')} 닫을까요? 그 부서 사람은 다시 열 때까지 들어오지 못해요. 기록은 남아요.`)) return;
@@ -4596,6 +4647,13 @@ try { const p = JSON.parse(localStorage.getItem('koide-pref') || '{}'), d = docu
     if (f.dataset.form === 'staffsave') {
       keepStaff(); const E = S.staffEdit; S.busy = true; render();
       try { S.pending = await api('saveStaff', { familyId: E.familyId, a: E.a, b: E.b, title: E.title || STAFF_TITLES[0], label: E.label, serve: E.serve !== false }); S.staffEdit = null; toast('교역자를 저장했어요.'); } catch (err) { oops(err); }
+      S.busy = false; return render();
+    }
+    if (f.dataset.form === 'togsave') {
+      const x = f.elements.x.value.trim(), t = f.elements.t.value.trim(); if (!x) return toast('내용을 적어 주세요.');
+      S.busy = true; render();
+      try { S.tog = await api('togetherSave', Object.assign({ text: x, target: t }, f.dataset.v ? { id: f.dataset.v } : {})); S.month.together = S.tog.list; S.togEdit = null; toast(f.dataset.v ? '고쳤어요.' : '더했어요.'); }
+      catch (err) { oops(err); }
       S.busy = false; return render();
     }
     if (f.dataset.form === 'typename') {
