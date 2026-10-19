@@ -58,6 +58,13 @@ const SCHEMA = {
   // 노트 보관(설계서 13장 '나 · 기도 노트'): 개인 기도 노트를 다른 기기와 이어 두려고 맡긴 것. 내용은 휴대폰에서 비밀 문구로 잠근 글이라
   //  서버와 시트를 여는 사람은 읽을 수 없다. 한 칸에 다 들어가지 않으면 조각으로 나눠 여러 줄에 둔다. 판은 맡길 때마다 1씩 는다
   vault: ['노트 보관', [['kakaoId', '카카오ID'], ['part', '조각'], ['data', '잠긴 내용'], ['at', '맡긴 시각'], ['salt', '소금'], ['rev', '판']]],
+  // 기도문장(설계서 S7 › ③): 하나님 나라 기도 문장 중 교역자·관리자가 고친 주제만. 주제는 church·nation 같은 키, 감사와 찬양은 thanks,
+  //  절기 문장은 season:lent처럼. 묶음 a(간구 문장)·b(성경의 기도, 장절)·next(내 말로 이어서). 상태 '뺌'은 돌아가는 순서에서 빠진다.
+  //  한 주제에 줄이 하나도 없으면 앱에 들어 있는 기본 문장을 쓴다(기본으로 되돌리기 = 그 주제 줄을 모두 지우기)
+  prayText: ['기도문장', [['topic', '주제'], ['kind', '묶음'], ['order', '순서'], ['text', '내용'], ['ref', '장절'], ['status', '상태'], ['by', '고친 사람'], ['at', '고친 날']]],
+  // 입장 코드(설계서 S0 '카카오톡을 쓰지 않는 분'): 리더가 그 사람 이름으로 만든 일회용 코드. 코드는 화면에 한 번만 보이고 시트에는 바꾼 값(해시)만.
+  //  7일 안에 한 번 쓰면 '씀', 같은 사람에게 새 코드를 만들면 예전 것은 '막힘'
+  codes: ['입장코드', [['hash', '코드 표시'], ['familyId', '가정ID'], ['person', '사람'], ['by', '만든 사람'], ['at', '만든 날'], ['expires', '만료'], ['status', '상태']]],
   invites: ['초대링크', [['token', '링크 값'], ['deptId', '부서ID'], ['roomId', '사랑방ID'], ['at', '만든 날'], ['status', '상태']]],
   // 의견함(설계서 S7 › ⑥): 이름을 밝히지 않으면 가정ID와 사람을 남기지 않는다. 13개월 뒤 지운다
   // 운영 관리자(설계서 13장): 부서에 속하지 않고, 기도제목 내용을 보지 않고 맡은 부서를 꾸리는 사람. 범위는 부서ID들(쉼표) 또는 '전체'.
@@ -79,7 +86,7 @@ const FIRST_DEPT = { id: 'D1', name: '청장년부', group: '사랑방', unit: '
 // ── 요청 받기 ─────────────────────────────────────────────
 
 // 서버 코드를 고칠 때마다 바꾼다. 웹 앱 주소를 열면 보여서, 새 버전으로 배포됐는지 확인할 수 있다
-const VERSION = '2026-10-30 노트 이어 두기';
+const VERSION = '2026-11-01 입장 코드';
 function doGet() {
   return ContentService.createTextOutput('코이데 서버가 켜져 있어요. (버전: ' + VERSION + ')');
 }
@@ -194,6 +201,12 @@ const ACTIONS = {
   groups: body => groupsAll_(adminOrStaff_(body)),
   rosterSave: rosterSave_,
   // 나 · 기도 노트 이어 두기: 카카오로 로그인한 사람이면 누구나(교회에 연결되지 않아도). 잠긴 글만 주고받는다
+  // 하나님 나라 기도 문장: 로그인한 사람은 읽고, 교역자·관리자가 주제마다 고친다
+  prayText: body => { auth_(body.token); return read_('prayText').map(r => ({ topic: r.topic, kind: r.kind, order: Number(r.order) || 0, text: String(r.text), ref: String(r.ref || ''), status: r.status || '' })); },
+  prayTextSave: body => { const c = staffOrAdmin_(body); return withLock_(() => prayTextSave_(c, body)); },
+  // 카카오톡이 없는 분: 리더가 일회용 코드를 만들고(codeMake), 그분은 코드로 들어온다(codeLogin, 로그인 없이 부를 수 있는 일)
+  codeMake: body => { const c = leaderOrAdmin_(body); return withLock_(() => codeMake_(c, body)); },
+  codeLogin: body => withLock_(() => codeLogin_(body)),
   noteGet: body => noteGet_(auth_(body.token)),
   notePut: body => { const a = auth_(body.token); return withLock_(() => notePut_(a, body)); },
   noteDel: body => { const a = auth_(body.token); return withLock_(() => noteDel_(a)); }
@@ -2130,6 +2143,53 @@ function renameLegacy_(ss, key) {
   if (!LEGACY_SHEETS_[key] || ss.getSheetByName(SCHEMA[key][0])) return;
   const old = LEGACY_SHEETS_[key].map(n => ss.getSheetByName(n)).filter(Boolean)[0];
   if (old) old.setName(SCHEMA[key][0]);
+}
+// ── 입장 코드 ─────────────────────────────────────────────────────────
+const CODE_ABC_ = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789', CODE_DAYS_ = 7;
+const codeNorm_ = s => String(s || '').toUpperCase().replace(/[^A-Z0-9]/g, '');
+function codeMake_(c, body) {
+  const familyId = String(body.familyId || ''), person = String(body.person || '').trim();
+  if (!canManage_(c, familyId)) throw fail_('forbidden', '우리 소그룹 사람에게만 만들 수 있어요.');
+  const fam = read_('families').find(f => f.id === familyId);
+  if (!fam || fam.status !== '활동') throw fail_('bad', '활동 중인 가정이 아니에요.');
+  if (String(fam.name).split(' · ').indexOf(person) < 0) throw fail_('bad', '그 가정에 없는 이름이에요.');
+  read_('codes').filter(x => x.familyId === familyId && x.person === person && x.status === '대기').forEach(x => { x.status = '막힘'; update_('codes', x); });
+  const raw = Utilities.getUuid().replace(/-/g, '') + Utilities.getUuid().replace(/-/g, '');
+  let code = '';
+  for (let i = 0; i < 8; i++) code += CODE_ABC_[parseInt(raw.substr(i * 4, 4), 16) % CODE_ABC_.length];
+  const expires = new Date(Date.now() + CODE_DAYS_ * 864e5);
+  append_('codes', { hash: hash_('code:' + code), familyId, person, by: c.person, at: new Date(), expires, status: '대기' });
+  logChange_(c, '입장 코드 만듦', fam.name + ' · ' + person);
+  return { code: code.slice(0, 4) + '-' + code.slice(4), person, family: fam.name, until: fmtDay_(expires) };
+}
+function codeLogin_(body) {
+  // 아무나 맞혀 보지 못하게 10분에 30번까지만 받는다(앱 전체)
+  const cache = CacheService.getScriptCache(), n = Number(cache.get('codeTry') || 0);
+  if (n >= 30) throw fail_('busy', '잠시 뒤에 다시 넣어 주세요.');
+  cache.put('codeTry', String(n + 1), 600);
+  const code = codeNorm_(body.code), wrong = () => fail_('bad', '코드가 맞지 않거나 기한이 지났어요. 리더에게 새 코드를 받아 주세요.');
+  if (code.length !== 8) throw wrong();
+  const row = read_('codes').find(x => x.hash === hash_('code:' + code));
+  if (!row || row.status !== '대기' || new Date(row.expires) < new Date()) throw wrong();
+  row.status = '씀'; update_('codes', row);
+  // 카카오 회원번호 대신 이 연결만의 무작위 값. 해제는 다른 연결처럼 리더가 한다
+  const kakaoId = 'code-' + Utilities.getUuid().replace(/-/g, '').slice(0, 16);
+  append_('links', { kakaoId, nick: '코드로 들어옴', familyId: row.familyId, person: row.person, status: '연결', requestedAt: new Date(), approvedBy: row.by });
+  const token = Utilities.getUuid() + Utilities.getUuid();
+  append_('sessions', { hash: hash_(token), kakaoId, nick: row.person, expires: new Date(Date.now() + SESSION_DAYS * 864e5) });
+  return { token, nick: row.person };
+}
+
+// 한 주제의 문장을 통째로 바꾼다. 빈 목록이면 그 주제는 기본 문장으로 돌아간다
+function prayTextSave_(c, body) {
+  const topic = String(body.topic || '');
+  if (!/^(season:)?[a-z]{2,20}$/.test(topic)) throw fail_('bad', '주제를 알 수 없어요.');
+  const rows = Array.isArray(body.rows) ? body.rows.slice(0, 40) : [];
+  const clean = rows.map((r, i) => ({ topic, kind: ['a', 'b', 'next'].indexOf(r.kind) >= 0 ? r.kind : 'a', order: i, text: String(r.text || '').trim().slice(0, 300), ref: String(r.ref || '').trim().slice(0, 30), status: r.status === '뺌' ? '뺌' : '', by: c.person, at: new Date() })).filter(r => r.text);
+  read_('prayText').filter(r => r.topic === topic).sort((x, y) => y._row - x._row).forEach(r => remove_('prayText', r));
+  clean.forEach(r => append_('prayText', r));
+  logChange_(c, clean.length ? '기도 문장 고침' : '기도 문장 기본으로', String(body.name || topic));
+  return ACTIONS.prayText(body);
 }
 // ── 나 · 기도 노트 이어 두기 ────────────────────────────────────────────
 const NOTE_PART_ = 40000, NOTE_MAX_ = 2000000;
