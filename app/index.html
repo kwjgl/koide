@@ -692,7 +692,6 @@ h3 { font-size: 1.02em; font-weight: 600; margin: 0; }
 .icon-btn.sm { width: 36px; height: 36px; }
 .ok { color: var(--accent); }
 .link.back { display: inline-flex; align-items: center; gap: .2em; margin-bottom: .2em; }
-.cord { width: 100%; text-align: left; }
 /* 지난 기록 */
 .seg.fit { display: inline-grid; grid-template-columns: repeat(var(--n, 3), auto); margin-top: 14px; }
 .seg.fit button { padding-left: 1.4em; padding-right: 1.4em; }
@@ -704,18 +703,82 @@ h3 { font-size: 1.02em; font-weight: 600; margin: 0; }
 .items li.ended { color: var(--ink-2); }
 .end-tag { font-size: .72em; font-weight: 600; color: var(--ink-2); border: 1px solid var(--line-strong); border-radius: 999px; padding: .05em .5em; margin-left: .4em; white-space: nowrap; }
 .own-tag { font-size: .72em; font-weight: 600; color: var(--accent); background: var(--accent-soft); border-radius: 999px; padding: .15em .6em; }
+/* 기도의 끈(시안과 같게): 자리마다 매듭, 이웃한 두 자리가 다 지어지면 그 사이 끈이 팽팽, 다 이으면 양 끝 리본 */
+.cord { width: 100%; text-align: left; display: flex; flex-direction: column; gap: .3em; }
 .cord-head { display: flex; justify-content: space-between; align-items: baseline; gap: .6em; }
-.cord-n { font-size: .78em; color: var(--ink-2); margin: 0; }
-.cord-n b { color: var(--accent); }
-.cord-svg { width: 100%; max-width: 440px; height: auto; display: block; margin: 4px auto 0; overflow: visible; }
-.cord-svg .seg-l { fill: none; stroke: var(--line-strong); stroke-width: 1.5; stroke-linecap: round; }
-.cord-svg .seg-l.tight { stroke: var(--accent); stroke-width: 3; }
-.cord-svg .knot { fill: var(--surface); stroke: var(--line-strong); stroke-width: 1.5; }
-.cord-svg .knot.on { fill: var(--accent); stroke: var(--accent); }
-.cord-svg .knot.cur { stroke: var(--ink); stroke-width: 2.5; }
-.cord-svg .hit { fill: transparent; cursor: pointer; }
-.cord-svg text { font-size: 10px; fill: var(--ink-2); }
-.cord-done { margin: 6px 0 0; font-weight: 600; color: var(--accent); font-size: .9em; }
+.cord-n { font-size: .78em; color: var(--ink-2); margin: 0; text-align: right; }
+.cord-n b { color: var(--accent); font-weight: 700; }
+.cord-wrap { position: relative; padding: 0 18px; max-width: 520px; width: 100%; margin: 0 auto; box-sizing: border-box; }
+.cord-line { position: absolute; left: 18px; top: 3px; width: calc(100% - 36px); height: 26px; overflow: visible; pointer-events: none; }
+.cord-seg { fill: none; stroke: var(--line-strong); stroke-width: 1.5; stroke-linecap: round; }
+.cord-seg.tight { stroke: var(--accent); stroke-width: 3; }
+.cord-seg.pull { animation: cord-pull .7s ease-out; }
+@keyframes cord-pull { from { stroke: var(--line-strong); stroke-width: 1.5; } }
+.cord-end { position: absolute; top: 3px; width: 18px; height: 26px; overflow: visible; pointer-events: none; }
+.cord-end.l { left: 0; } .cord-end.r { right: 0; }
+.cord-end path { fill: none; stroke: var(--line-strong); stroke-width: 1.5; stroke-linecap: round; }
+.cord-end.bow path { stroke: var(--accent); stroke-width: 2.2; stroke-linejoin: round; }
+.cord-end.bow .loop { fill: var(--accent-soft); }
+.cord-end.bow.new { animation: knot-tie .7s .3s cubic-bezier(.3,1.6,.5,1) both; transform-origin: center; }
+.cord-knots { position: relative; display: grid; }
+.knot { display: flex; flex-direction: column; align-items: center; gap: 3px; background: none; border: 0; padding: 0 0 2px; font: inherit; color: var(--ink-2); min-height: 44px; min-width: 0; }
+button.knot { cursor: pointer; }
+.knot-g { width: 32px; height: 32px; display: grid; place-items: center; border-radius: 50%; }
+.knot-g svg { width: 32px; height: 32px; overflow: visible; }
+.knot-g .slot { fill: var(--surface); stroke: var(--line-strong); stroke-width: 1.5; }
+.knot-g .tie { fill: none; stroke: var(--accent); stroke-width: 3; stroke-linecap: round; stroke-linejoin: round; }
+.knot-l { font-size: .7em; font-weight: 600; line-height: 1; margin-top: -4px; max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.knot.on .knot-l { color: var(--accent); }
+.knot.cur .knot-g { background: color-mix(in srgb, var(--accent-soft) 85%, transparent); box-shadow: 0 0 0 1.5px var(--accent-mid); }
+.knot.cur .knot-l { color: var(--ink); }
+.knot.new .knot-g svg { animation: knot-tie .6s cubic-bezier(.3,1.6,.5,1); }
+@keyframes knot-tie { 0% { transform: scale(.3) rotate(-60deg); opacity: .3; } 100% { transform: none; opacity: 1; } }
+@media (prefers-reduced-motion: reduce) { .cord-seg.pull, .knot.new .knot-g svg, .cord-end.bow.new { animation: none; } }
+/* 누름 표시: 휴대폰의 기본 눌림 색을 꺼 두어서, 누르는 동안 살짝 작아지게 한다(new·classic은 자체 눌림이 있다) */
+:root:not([data-style="neu"]):not([data-style="skeu"]) :is(.btn, .pray, .chip-btn, .mchip, .seg button, .seg2 button, button.knot, .tabs button, .icon-btn, .badge-btn, .pss-nav button, .pss-x, .pss-music, .ps-big, .sr-item, .room-sum, .td-word, .switch):not(:disabled) { transition: transform .12s ease, background-color .2s, color .2s, border-color .2s, box-shadow .2s; }
+:root:not([data-style="neu"]):not([data-style="skeu"]) :is(.btn, .pray, .chip-btn, .mchip, .seg button, .seg2 button, button.knot, .tabs button, .icon-btn, .badge-btn, .pss-nav button, .pss-x, .pss-music, .ps-big, .sr-item, .room-sum, .td-word, .switch):not(:disabled):active { transform: scale(.96); }
+/* 부드럽게 넘어가기: 새로 그린 쪽이 들어온다(탭은 옆으로, 큰 화면은 아래에서, 장 넘기기는 옆으로) */
+.vt-in-r { animation: vt-in-r .3s cubic-bezier(.2, .8, .2, 1) both; }
+.vt-in-l { animation: vt-in-l .3s cubic-bezier(.2, .8, .2, 1) both; }
+.vt-up { animation: vt-up .34s cubic-bezier(.2, .8, .2, 1) both; }
+.vt-fade { animation: vt-fade .24s ease-out both; }
+@keyframes vt-in-r { from { opacity: 0; transform: translateX(24px); } }
+@keyframes vt-in-l { from { opacity: 0; transform: translateX(-24px); } }
+@keyframes vt-up { from { opacity: 0; transform: translateY(28px); } }
+@keyframes vt-fade { from { opacity: 0; } }
+@media (prefers-reduced-motion: reduce) { .vt-in-r, .vt-in-l, .vt-up, .vt-fade { animation: none; } }
+/* 기도했어요 효과: 아이콘이 톡, 메인 버튼은 빛이 한 번 번진다 */
+@keyframes pray-pop { 0% { transform: scale(.6); } 60% { transform: scale(1.2); } 100% { transform: scale(1); } }
+.pray.flash .ic { animation: pray-pop .35s ease-out; }
+.pray.hero.flash { animation: pray-glow .9s ease-out; }
+@keyframes pray-glow { 0% { box-shadow: 0 0 0 0 var(--accent-mid); } 100% { box-shadow: 0 0 0 14px transparent; } }
+@media (prefers-reduced-motion: reduce) { .pray.hero.flash, .pray.flash .ic { animation: none; } }
+.fx-spark { position: fixed; z-index: 80; pointer-events: none; font-size: 20px; line-height: 1; font-family: 'Apple Color Emoji', 'Segoe UI Symbol', sans-serif; }
+/* 다 이었을 때: 양쪽에서 끈이 들어와 가운데에서 리본으로 묶이고 꽃가루가 내린다 */
+.fx-kusu { position: fixed; inset: 0; z-index: 90; pointer-events: auto; background: rgba(10, 18, 16, .18); overflow: hidden; display: flex; flex-direction: column; align-items: center; cursor: pointer; }
+.fx-kusu.out { opacity: 0; transition: opacity .4s; }
+.kusu-bow { width: min(78vw, 320px); height: auto; margin-top: 18vh; overflow: visible; }
+.kusu-bow path { fill: none; stroke: var(--accent); stroke-width: 5; stroke-linecap: round; stroke-linejoin: round; stroke-dasharray: 1; stroke-dashoffset: 1; animation: bow-draw .55s ease-out forwards; }
+.kusu-bow .bow-in { animation-duration: .5s; }
+.kusu-bow .bow-loop { fill: var(--accent-soft); fill-opacity: 0; animation-name: bow-draw, bow-fill; animation-duration: .55s, .4s; animation-delay: .45s, .9s; }
+.kusu-bow .bow-tail { animation-delay: .8s; animation-duration: .35s; }
+.kusu-bow circle { fill: var(--accent); transform-box: fill-box; transform-origin: center; transform: scale(0); animation: bow-knot .35s .95s cubic-bezier(.3,1.6,.5,1) forwards; }
+@keyframes bow-draw { to { stroke-dashoffset: 0; } }
+@keyframes bow-fill { to { fill-opacity: 1; } }
+@keyframes bow-knot { to { transform: scale(1); } }
+.kusu-banner { margin-top: 28px; background: var(--surface); color: var(--ink); border: 2px solid var(--accent); border-radius: 14px; padding: .8em 1.2em; display: flex; align-items: center; gap: .6em;
+  box-shadow: 0 14px 40px -12px rgba(0,0,0,.4); transform-origin: top center; animation: kusu-banner .6s 1.1s cubic-bezier(.3,1.3,.5,1) both; font-size: 1.05em; text-align: center; }
+.kusu-banner > div { display: flex; flex-direction: column; gap: .35em; }
+.kusu-banner b { font-family: var(--f-display, inherit); line-height: 1.4; }
+.kusu-banner small { font-size: .72em; color: var(--ink-2); }
+.kusu-banner span { font-size: 1.6em; }
+.kusu-close { margin-top: 1em; font: inherit; font-size: .8em; color: var(--ink-2); background: var(--surface); border: 1px solid var(--line); border-radius: 999px; padding: .3em 1em; min-height: 36px; opacity: 0; animation: kusu-fade .3s 1.7s forwards; }
+.kusu-conf { position: absolute; top: 28vh; width: 9px; height: 13px; border-radius: 2px; }
+@keyframes kusu-banner { from { transform: scaleY(0); opacity: 0; } to { transform: scaleY(1); opacity: 1; } }
+@keyframes kusu-fade { to { opacity: 1; } }
+.fx-kusu.calm .kusu-bow path, .fx-kusu.calm .kusu-bow circle { animation: none; stroke-dashoffset: 0; transform: none; }
+.fx-kusu.calm .kusu-bow .bow-loop { fill-opacity: 1; }
+.fx-kusu.calm .kusu-banner, .fx-kusu.calm .kusu-close { animation: none; opacity: 1; }
 .req { background: var(--accent-soft); border-radius: 12px; padding: 12px; margin: 8px 0; }
 .req small { display: block; color: var(--ink-2); }
 .toast { pointer-events: none; position: fixed; left: 50%; bottom: 90px; transform: translateX(-50%); background: var(--ink); color: var(--page); padding: .6em 1em; border-radius: 10px; font-size: .88em; z-index: 20; max-width: calc(100% - 32px); }
@@ -1243,7 +1306,7 @@ try { const p = JSON.parse(localStorage.getItem('koide-pref') || '{}'), d = docu
   function prayBtn(f, small, hero) {
     const t = f.today || 0, on = t > 0;
     if (t >= 3) return `<button class="pray on${small ? ' small' : ''}${hero ? ' hero' : ''}" disabled aria-label="오늘은 이 ${words().one}을 위해 3번 기도했어요. 내일 또 누를 수 있어요">${ICON.check}오늘은 여기까지<span class="pray-n" aria-hidden="true">3/3</span></button>`;
-    return `<button class="pray${small ? ' small' : ''}${hero ? ' hero' : ''}${on ? ' on' : ''}" data-act="pray" data-v="${esc(f.id)}" aria-label="기도했어요${on ? ` (오늘 ${t}번 기도함, 하루 3번까지)` : ''}">${on ? ICON.check : ICON.hands}기도했어요${on ? `<span class="pray-n" aria-hidden="true">${t}/3</span>` : ''}</button>`;
+    return `<button class="pray${small ? ' small' : ''}${hero ? ' hero' : ''}${on ? ' on' : ''}${S.flash === f.id ? ' flash' : ''}" data-act="pray" data-v="${esc(f.id)}" aria-label="기도했어요${on ? ` (오늘 ${t}번 기도함, 하루 3번까지)` : ''}">${on ? ICON.check : ICON.hands}기도했어요${on ? `<span class="pray-n" aria-hidden="true">${t}/3</span>` : ''}</button>`;
   }
   const STATUS_LABEL = { same: '지난달 그대로', edited: '이번 달 손봄', confirmed: '그대로 확인' };
   // 우리 가정 카드의 한 줄: 이번 달 몇 가정이 우리 가정을 위해 기도했는지에 따라(누가 했는지는 보이지 않는다)
@@ -2160,33 +2223,94 @@ try { const p = JSON.parse(localStorage.getItem('koide-pref') || '{}'), d = docu
   }
   const fmtTime = t => Math.floor(t / 60) + ':' + String(t % 60).padStart(2, '0');
   // 끈 그림: 매듭 자리마다 { id, label, on, title }. 이웃한 두 자리가 다 지어지면 그 사이 끈이 팽팽해진다. act가 있으면 매듭을 누를 수 있다
-  function cordSvg(slots, aria, act, cur) {
-    const n = slots.length, W = 300, x = i => n === 1 ? W / 2 : 12 + i * (W - 24) / (n - 1);
-    const segs = slots.slice(1).map((f, i) => { const t = slots[i].on && f.on, a = x(i), b = x(i + 1);
-      return `<path class="seg-l${t ? ' tight' : ''}" d="M${a} 12 Q${(a + b) / 2} ${t ? 12 : 22} ${b} 12"/>`; }).join('');
-    const knots = slots.map((f, i) => `<circle class="knot${f.on ? ' on' : ''}${f.id === cur ? ' cur' : ''}" cx="${x(i)}" cy="12" r="${f.on ? 6 : 4}"/><text x="${x(i)}" y="34" text-anchor="middle">${esc(f.label)}</text>`
-      + (act ? `<circle class="hit" cx="${x(i)}" cy="18" r="16" data-act="${act}" data-v="${esc(f.id)}"><title>${esc(f.title)}</title></circle>` : '')).join('');
-    return `<svg class="cord-svg" viewBox="-4 0 ${W + 8} 40" role="img" aria-label="${esc(aria)}">${segs}${knots}</svg>`;
+  // 기도의 끈(시안과 같게): 자리마다 매듭 하나. 기도하면 매듭이 지어지고, 이웃한 두 자리가 다 지어지면 그 사이 끈이 팽팽해진다.
+  //  느슨하게 처진 곳이 아직 기도하지 않은 곳이다. 다 이으면 양 끝이 리본으로 묶인다. 방금 이은 자리(nwKey)는 매듭이 묶이고 끈이 당겨진다
+  const KNOT_SVG = '<svg viewBox="0 0 32 32" aria-hidden="true"><path class="tie" d="M0 16H8.5C11 16 12 13 12 10.5C12 6.5 14.5 4 18 4S24 6.5 24 10.2 21 16 16.5 16.4"/><path class="tie" d="M11 19.2C15 17 19 16 32 16"/></svg>';
+  const SLOT_SVG = '<svg viewBox="0 0 32 32" aria-hidden="true"><circle class="slot" cx="16" cy="16" r="4.5"/></svg>';
+  //  slots = [{ key, short, name, on, cur }], act: 매듭을 누르면 할 일(없으면 누를 수 없음), say: 매듭마다 읽어 줄 말
+  function cordView({ slots, nwKey, act, say, head, count, done, cls }) {
+    const N = slots.length, on = slots.map(x => x.on), all = on.every(Boolean);
+    const nw = calm() ? -1 : slots.findIndex(x => x.key === nwKey);
+    const x = i => +((i + .5) * 100 / N).toFixed(2);
+    const seg = (x1, x2, tight, pull) => {
+      const m = +((x1 + x2) / 2).toFixed(2), loose = `M${x1} 13Q${m} 21 ${x2} 13`, taut = `M${x1} 13Q${m} 13 ${x2} 13`;
+      return `<path class="cord-seg${tight ? ' tight' : ''}${pull ? ' pull' : ''}" vector-effect="non-scaling-stroke" d="${tight && !pull ? taut : loose}">${pull
+        ? `<animate attributeName="d" dur=".6s" begin="indefinite" fill="freeze" calcMode="spline" keyTimes="0;1" keySplines=".2 .8 .3 1" values="${loose};${taut}"/>` : ''}</path>`;
+    };
+    const segs = [seg(0, x(0), all, all && nw >= 0)];
+    for (let i = 0; i < N - 1; i++) { const tight = on[i] && on[i + 1]; segs.push(seg(x(i), x(i + 1), tight, tight && (i === nw || i + 1 === nw))); }
+    segs.push(seg(x(N - 1), 100, all, all && nw >= 0));
+    const end = side => all
+      ? `<svg class="cord-end ${side} bow${nw >= 0 ? ' new' : ''}" viewBox="0 0 18 26" aria-hidden="true"><path d="${side === 'l' ? 'M9 13H18' : 'M0 13H9'}"/><path class="loop" d="M9 13C4 4 -1 8 1.5 12.5S7 14 9 13ZM9 13C14 4 19 8 16.5 12.5S11 14 9 13Z"/><path d="M9 13L5.5 22M9 13L12.5 22"/></svg>`
+      : `<svg class="cord-end ${side}" viewBox="0 0 18 26" aria-hidden="true"><path d="${side === 'l' ? 'M18 13C12 18 8 18 4 16' : 'M0 13C6 18 10 18 14 16'}"/></svg>`;
+    const tag = act ? 'button' : 'span';
+    const knots = slots.map((k, i) => `<${tag} class="knot${k.on ? ' on' : ''}${k.cur ? ' cur' : ''}${i === nw ? ' new' : ''}"${act ? ` data-act="${act}" data-v="${esc(k.key)}"` : ''} aria-label="${esc(say(k))}" title="${esc(k.name)}"><span class="knot-g">${k.on ? KNOT_SVG : SLOT_SVG}</span><span class="knot-l">${esc(k.short)}</span></${tag}>`).join('');
+    return `<div class="cord${cls ? ' ' + cls : ''}" role="group" aria-label="${esc(head)}">
+      <div class="cord-head"><p class="label" style="margin:0">${esc(head)}</p><p class="cord-n">${all ? `${done} <span aria-hidden="true">🙌</span>` : count(on.filter(Boolean).length, N)}</p></div>
+      <div class="cord-wrap">${end('l')}<svg class="cord-line" viewBox="0 0 100 26" preserveAspectRatio="none" aria-hidden="true">${segs.join('')}</svg>${end('r')}
+        <div class="cord-knots" style="grid-template-columns:repeat(${N},minmax(0,1fr))">${knots}</div></div></div>`;
   }
-  // 기도의 끈: 이번 달 내가 기도한 가정에 매듭. 나만 본다
-  //  cur: 지금 카드에 있는 가정(테두리 표시). 매듭을 누르면 그 가정이 '지금 함께 기도할 가정'으로 온다
+  // 기도의 끈(이번 달, 나만 봄): 사랑방 가정마다 매듭. cur: 지금 카드에 있는 가정. 매듭을 누르면 그 가정이 '지금 함께 기도할 가정'으로 온다
   function cordHtml(cur) {
-    const fams = roomFams(), n = fams.length; if (!n) return '';
-    const k = fams.filter(f => f.prayed > 0).length;
-    const slots = fams.map(f => ({ id: f.id, label: f.name.slice(0, 1), on: f.prayed > 0, title: `${f.name}${solo() ? '' : ' 가정'}, ${f.prayed > 0 ? '이번 달 ' + f.prayed + '번 기도함' : '아직 기도하지 않음'}` }));
-    return `<div class="cord"><div class="cord-head"><p class="label" style="margin:0">기도의 끈</p><p class="cord-n">${n}${words().count} 중 <b>${k}${words().count}</b>과 이어졌어요</p></div>
-      ${cordSvg(slots, `이번 달 ${n}${words().count} 중 ${k}${words().count}을 위해 기도했어요`, cur !== undefined && 'cordpick', cur)}
-      ${k === n ? `<p class="cord-done">${esc(grp())} ${solo() ? '식구 모두와' : '모든 가정과'} 이어졌어요 <span aria-hidden="true">🙌</span></p>` : ''}</div>`;
+    const fams = roomFams(); if (!fams.length) return '';
+    const slots = fams.map(f => ({ key: f.id, short: f.name.slice(0, 1), name: f.name, on: f.prayed > 0, cur: f.id === cur, n: f.prayed }));
+    return cordView({ slots, nwKey: S.cordNew, act: cur !== undefined && 'cordpick', head: '기도의 끈',
+      say: k => `${k.name}${solo() ? '' : ' 가정'}, ${k.on ? `이번 달 ${k.n}번 기도함` : '아직 기도하지 않음'}${k.cur ? ', 지금 보는 ' + words().one : ''}`,
+      count: (n, N) => `${N}${words().count} 중 <b>${n}${words().count}</b>과 이어졌어요`, done: `${grp()} ${solo() ? '식구 모두와' : '모든 가정과'} 이어졌어요` });
   }
-  // 청장년부 기도의 끈(목사님·장로님): 사랑방마다 매듭 자리. 이번 주에 그 사랑방 가정을 위해 기도하면 매듭이 지어지고,
-  //  다 지어지면 리본으로 묶인다. 매듭을 누르면 그 사랑방을 오늘의 사랑방으로 골라 기도하러 간다
+  // 청장년부 기도의 끈(목사님·장로님): 사랑방마다 매듭. 이번 주에 그 사랑방 가정을 위해 기도하면 매듭이 지어진다.
+  //  매듭을 누르면 그 사랑방을 오늘의 사랑방으로 골라 기도하러 간다
   function roomCordHtml() {
-    const rooms = S.month.rooms || [], n = rooms.length; if (!n) return '';
-    const k = rooms.filter(r => r.week).length, short = r => r.name.replace(new RegExp('\\s*' + grp() + '$'), '');
-    const slots = rooms.map(r => ({ id: r.id, label: short(r), on: r.week, title: `${r.name}, ${r.week ? '이번 주에 기도함' : '이번 주에 아직 기도하지 않음'}` }));
-    return `<div class="cord"><div class="cord-head"><p class="label" style="margin:0">${esc(S.month.dept.name)} 기도의 끈</p><p class="cord-n">이번 주 ${n}곳 중 <b>${k}곳</b>과 이어졌어요</p></div>
-      ${cordSvg(slots, `이번 주 ${grp()} ${n}곳 중 ${k}곳을 위해 기도했어요`, 'roomknot')}
-      ${k === n ? `<p class="cord-done">이번 주 모든 ${esc(grp())}과 이어졌어요 <span aria-hidden="true">🎀</span></p>` : ''}</div>`;
+    const rooms = S.month.rooms || []; if (!rooms.length) return '';
+    const short = r => r.name.replace(new RegExp('\\s*' + grp() + '$'), '');
+    const slots = rooms.map(r => ({ key: r.id, short: short(r), name: r.name, on: !!r.week }));
+    return cordView({ slots, nwKey: S.roomNew, act: 'roomknot', head: S.month.dept.name + ' 기도의 끈',
+      say: k => `${k.name}, ${k.on ? '이번 주에 기도함' : '이번 주에 아직 기도하지 않음'}`,
+      count: (n, N) => `이번 주 ${N}곳 중 <b>${n}곳</b>과 이어졌어요`, done: `이번 주 모든 ${grp()}과 이어졌어요` });
+  }
+  // 기도 효과: 메인 기도 버튼은 작은 빛이 퍼지고, 이번 달 사랑방 모든 가정을 위해 기도하면 끈이 리본으로 묶이며 꽃가루가 내린다
+  const calm = () => !!(window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches);
+  function popBurst(el) {
+    if (!el || calm()) return;
+    const r = el.getBoundingClientRect(), cx = r.left + r.width / 2, cy = r.top + r.height / 2, shapes = ['✦', '♥', '✧', '•'];
+    for (let i = 0; i < 14; i++) {
+      const sp = document.createElement('span');
+      sp.className = 'fx-spark'; sp.textContent = shapes[i % shapes.length];
+      sp.style.left = cx + 'px'; sp.style.top = cy + 'px'; sp.style.color = ['var(--accent)', '#E9A93A', '#E07A7A'][i % 3];
+      document.body.appendChild(sp);
+      const a = (Math.PI * 2 * i) / 14 + Math.random() * .3, d = 70 + Math.random() * 60;
+      sp.animate([{ transform: 'translate(-50%,-50%) scale(.4)', opacity: 1 },
+        { transform: `translate(calc(-50% + ${Math.cos(a) * d}px), calc(-50% + ${Math.sin(a) * d - 10}px)) scale(1)`, opacity: 0 }],
+        { duration: 650 + Math.random() * 200, easing: 'cubic-bezier(.2,.7,.3,1)' }).onfinish = () => sp.remove();
+    }
+  }
+  function kusudama() {
+    document.querySelector('.fx-kusu')?.remove();
+    const wrap = document.createElement('div'), mo = Number(S.month.month.slice(5));
+    wrap.className = 'fx-kusu' + (calm() ? ' calm' : ''); wrap.setAttribute('role', 'status');
+    const colors = ['var(--accent)', 'var(--accent-mid)', '#E9B949', '#E07A7A', '#7FB3E0', '#F2EBDD'];
+    wrap.innerHTML = `<svg class="kusu-bow" viewBox="0 0 240 100" aria-hidden="true">
+        <path class="bow-in" pathLength="1" d="M-40 60C25 38 70 66 112 50"/><path class="bow-in" pathLength="1" d="M280 60C215 38 170 66 128 50"/>
+        <path class="bow-loop" pathLength="1" d="M120 50C96 16 64 26 75 50S108 62 120 50Z"/><path class="bow-loop" pathLength="1" d="M120 50C144 16 176 26 165 50S132 62 120 50Z"/>
+        <path class="bow-tail" pathLength="1" d="M117 54C111 67 104 79 94 91"/><path class="bow-tail" pathLength="1" d="M123 54C129 67 136 79 146 91"/>
+        <circle cx="120" cy="50" r="8"/></svg>
+      <div class="kusu-banner"><div><b>${mo}월 ${esc(grp())} ${solo() ? '식구 모두와' : '모든 가정과'}<br>기도로 이어졌어요</b><small>기도의 끈이 리본으로 묶였어요</small></div><span>🙌</span></div>
+      <button class="kusu-close" aria-label="닫기">닫기</button>`;
+    document.body.appendChild(wrap);
+    const close = () => { wrap.classList.add('out'); setTimeout(() => wrap.remove(), 400); };
+    wrap.addEventListener('click', close); setTimeout(close, 5200);
+    if (calm()) return;
+    setTimeout(() => {
+      for (let i = 0; i < 70; i++) {
+        const c = document.createElement('i');
+        c.className = 'kusu-conf'; c.style.left = (50 + (Math.random() - .5) * 16) + 'vw'; c.style.background = colors[i % colors.length];
+        if (i % 4 === 0) c.style.borderRadius = '50%';
+        wrap.appendChild(c);
+        const dx = (Math.random() - .5) * 90, rot = (Math.random() - .5) * 900;
+        c.animate([{ transform: 'translate(0,0) rotate(0)', opacity: 1 }, { transform: `translate(${dx}vw, ${70 + Math.random() * 40}vh) rotate(${rot}deg)`, opacity: .9 }],
+          { duration: 1800 + Math.random() * 1600, delay: Math.random() * 250, easing: 'cubic-bezier(.15,.6,.35,1)', fill: 'forwards' });
+      }
+    }, 1000);
   }
   function prayView() {
     const staffRoom = staffMe() && PSET.kinds.includes('room') ? psRoomId() : null, roomReady = !staffRoom || !!loadRoom(staffRoom);
@@ -2333,12 +2457,16 @@ try { const p = JSON.parse(localStorage.getItem('koide-pref') || '{}'), d = docu
   const wakeOn = () => { try { navigator.wakeLock.request('screen').then(w => { wake = w; }).catch(() => {}); } catch (e) { /* 안 되는 기기 */ } };
   const wakeOff = () => { try { if (wake) wake.release(); } catch (e) { /* 무시 */ } wake = null; };
   // '기도했어요': 화면은 먼저 늘리고 서버에는 뒤에서 적는다. 서버가 돌려준 이번 달·오늘 횟수로 맞춘다
-  function prayFor(f) {
+  function prayFor(f, hero) {
     artBump(f);
-    f.today = (f.today || 0) + 1; f.prayed++; S.myp = null;
+    const before = !staffMe() && roomFams().every(x => x.prayed > 0);
+    if (!f.prayed) S.cordNew = f.id;
+    f.today = (f.today || 0) + 1; f.prayed++; S.myp = null; S.flash = f.id;
     // 목사님·장로님: 그 사랑방 매듭을 이번 주 기도한 것으로(청장년부 기도의 끈)
-    if (staffMe() && S.room && S.room.families.indexOf(f) >= 0) { const r = (S.month.rooms || []).find(x => x.id === S.room.room.id); if (r) r.week = true; }
-    render();
+    if (staffMe() && S.room && S.room.families.indexOf(f) >= 0) { const r = (S.month.rooms || []).find(x => x.id === S.room.room.id); if (r && !r.week) { r.week = true; S.roomNew = r.id; } }
+    render(); S.flash = null; S.cordNew = null; S.roomNew = null;
+    if (hero) popBurst($('.pray.hero'));
+    if (!before && !staffMe() && roomFams().every(x => x.prayed > 0)) setTimeout(kusudama, hero ? 450 : 100);
     api('pray', { familyId: f.id }).then(r => {
       const g = famById(f.id) || f;
       if (r.today != null) { g.today = r.today; g.prayed = r.prayed; }
@@ -2874,7 +3002,41 @@ try { const p = JSON.parse(localStorage.getItem('koide-pref') || '{}'), d = docu
     else if (v === 'app' && ONBOARD.indexOf(lastView) > 0) track('첫접속 단계', { step: 'app', done: true });
     lastView = v;
   }
+  // 부드럽게 넘어가기(시안과 같은 움직임): 그리기 전에 지난 화면과 비교해 어떤 바뀜인지 정하고, 새로 그린 쪽이 들어오게 한다.
+  //  탭 이동은 옆으로(오른쪽 탭이면 오른쪽에서), 기도하기·모임 모드·크게 보기·앨범은 아래에서 올라오고, 장 넘기기와 '다음 가정'은 옆으로.
+  //  그리기는 그 자리에서 끝나서(스크롤 맞추기 등) 기존 흐름은 그대로다. 움직임 줄이기를 켠 기기에서는 움직이지 않는다
+  let lastSig = null;
+  function viewSig() {
+    const o = S.view !== 'app' ? '' : S.ps ? 'ps' : S.meet != null ? 'meet' : S.album ? 'album' : S.bigView ? 'big' : '';
+    return { o, view: S.view, scr: S.tab + '/' + (S.openRoom || ''), tab: TABS.findIndex(x => x[0] === tabOn()),
+      page: o === 'ps' ? (S.ps.done ? 1e3 : S.ps.i) : o === 'meet' ? S.meet : 0, sub: [S.histTab, S.adminTab, S.homeView].join('/'), today: S.todayId };
+  }
+  function vtKind(a, b) {
+    if (!a || a.view !== b.view) return a && b.view === 'app' ? 'fade' : '';
+    if (a.o !== b.o) return !a.o ? 'open' : !b.o ? 'close' : 'fade';
+    if (b.o) return a.page === b.page ? '' : b.page > a.page ? 'next' : 'prev';
+    if (a.scr !== b.scr) return b.tab > a.tab ? 'fwd' : b.tab < a.tab ? 'back' : 'fade';
+    if (a.sub !== b.sub) return 'fade';
+    if (a.today !== b.today && S.tab === 'home') return 'today';
+    return '';
+  }
+  const vtAnim = (el, cls) => { if (!el) return; el.classList.remove(cls); void el.offsetWidth; el.classList.add(cls); el.addEventListener('animationend', () => el.classList.remove(cls), { once: true }); };
   function render() {
+    const sig = viewSig(), kind = vtKind(lastSig, sig);
+    lastSig = sig;
+    draw();
+    document.querySelectorAll('.cord-line animate').forEach(a => { try { a.beginElement(); } catch (e) { /* 지원하지 않으면 바로 팽팽 */ } });
+    if (!kind || calm()) return;
+    const sheet = S.ps || S.meet != null ? $('#pss') : $('#bigv').firstElementChild;
+    if (kind === 'fwd') vtAnim($('#main'), 'vt-in-r');
+    else if (kind === 'back') vtAnim($('#main'), 'vt-in-l');
+    else if (kind === 'fade') vtAnim($('#main'), 'vt-fade');
+    else if (kind === 'open') vtAnim(sheet, 'vt-up');
+    else if (kind === 'next') vtAnim($('#pss .pss-body, #pss .m-body'), 'vt-in-r');
+    else if (kind === 'prev') vtAnim($('#pss .pss-body, #pss .m-body'), 'vt-in-l');
+    else if (kind === 'today') vtAnim($('.card.today'), 'vt-in-r');
+  }
+  function draw() {
     trackView(S.view);
     const app = S.view === 'app';
     // 새 기도제목 칸에 쓰던 글은 다시 그려도 남긴다
@@ -3033,7 +3195,7 @@ try { const p = JSON.parse(localStorage.getItem('koide-pref') || '{}'), d = docu
       case 'pray': {
         const f = famById(v);
         if (f.today >= 3) return toast('이 ' + words().one + '은 오늘 충분히 기도했어요. 내일 또 기도해 주세요.');
-        return prayFor(f);
+        return prayFor(f, b.classList.contains('hero'));
       }
       case 'scope': {
         const i = itemOf(id); i.scope = nextScope(i.scope); render();
