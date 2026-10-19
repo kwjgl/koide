@@ -53,7 +53,7 @@ const FIRST_DEPT = { id: 'D1', name: '청장년부', group: '사랑방', unit: '
 // ── 요청 받기 ─────────────────────────────────────────────
 
 // 서버 코드를 고칠 때마다 바꾼다. 웹 앱 주소를 열면 보여서, 새 버전으로 배포됐는지 확인할 수 있다
-const VERSION = '2026-10-19 연도 개편 마법사';
+const VERSION = '2026-10-19 개편 안내';
 function doGet() {
   return ContentService.createTextOutput('코이데 서버가 켜져 있어요. (버전: ' + VERSION + ')');
 }
@@ -509,7 +509,25 @@ function monthView_(c) {
   // 이번 달 사랑방의 다른 가정 중 몇 가정이 우리 가정을 위해 기도했는지(누가 했는지는 알리지 않는다)
   const by = {}; read_('prayers').forEach(p => { if (p.familyId === c.familyId && p.by !== c.familyId && fmtMonth_(p.at) === m) by[p.by] = true; });
   const received = { n: Object.keys(by).length, of: Math.max(0, families.length - 1) };
-  return { month: m, term: termNow_(c.deptId), dept: c.dept, room: { id: room.id, name: room.name }, me: { person: c.person, familyId: c.familyId, role: c.role, admin: c.admin }, families, received, serve: serveView_(c.deptId) };
+  return { month: m, term: termNow_(c.deptId), shift: shift_(c), dept: c.dept, room: { id: room.id, name: room.name }, me: { person: c.person, familyId: c.familyId, role: c.role, admin: c.admin }, families, received, serve: serveView_(c.deptId) };
+}
+
+// 개편 안내(설계서 6장): 예약한 새 편성의 우리 가정 사랑방을 회원 안내 시작일부터, 새 리더에게는 맡을 가정 명단을 리더 미리 보기 시작일부터.
+//  새 편성이 시작된 달에는 시작했다는 것(화면이 한 번만 보여 준다). 기도제목 내용은 보내지 않는다
+function shift_(c) {
+  const d = c.deptId, now = termNow_(d), today = today_(), cur = termRow_(d, now);
+  if (cur && cur.start === month_()) return { started: now, room: (read_('rooms').find(r => r.id === c.roomId) || {}).name || '' };
+  const next = String(Number(now) + 1), t = termRow_(d, next);
+  if (!t || today < String(t.memberFrom).slice(0, 10) && today < String(t.leaderFrom).slice(0, 10)) return null;
+  const roster = read_('roster').filter(r => String(r.year) === next), mine = roster.find(r => r.familyId === c.familyId);
+  if (!mine) return null;
+  const fams = read_('families'), room = (read_('rooms').find(r => r.id === mine.roomId) || {}).name || '';
+  const out = { start: t.start, year: next, room };
+  if ((mine.role === '리더' || mine.role === '코리더') && today >= String(t.leaderFrom).slice(0, 10)) {
+    out.lead = mine.role;
+    out.families = roster.filter(r => r.roomId === mine.roomId).map(r => (fams.find(f => f.id === r.familyId) || {}).name).filter(Boolean);
+  } else if (today < String(t.memberFrom).slice(0, 10)) return null;
+  return out;
 }
 
 // 사랑방 가정들의 이번 달 카드. isLeader면 리더·목사님 항목까지, 기도했어요 횟수는 보는 사람 본인 것

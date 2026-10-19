@@ -1130,7 +1130,7 @@ try { const p = JSON.parse(localStorage.getItem('koide-pref') || '{}'), d = docu
     if (staffMe()) return staffHomeView();
     const M = S.month, others = M.families.filter(f => !f.own), t = todayFam();
     return `<div class="page-top"><div><p class="eyebrow">${esc(M.room.name)}</p><h1>${Number(M.month.slice(5))}월 기도제목 <span aria-hidden="true">🙏</span></h1></div><p class="date">${todayLabel()}</p></div>
-      <div class="home-grid"><div class="col side">${t ? `<section class="card today" aria-label="지금 함께 기도할 ${words().one}"><p class="today-tag">${ICON.hands}지금 함께 기도할 ${words().one}</p><h2>${esc(t.name)}</h2>
+      ${shiftCard()}<div class="home-grid"><div class="col side">${t ? `<section class="card today" aria-label="지금 함께 기도할 ${words().one}"><p class="today-tag">${ICON.hands}지금 함께 기도할 ${words().one}</p><h2>${esc(t.name)}</h2>
           <div class="today-body" data-id="${esc(t.id)}" tabindex="0" aria-label="${esc(t.name)} 기도제목">${t.items.length ? itemList(t.items, false) : `<p class="hint">아직 올린 기도제목이 없어요. 이 ${words().one}을 떠올리며 기도해요.</p>`}</div>
           <div class="pray-hero"><div class="pray-row">${prayBtn(t, false, true)}<button class="btn next${t.today ? '' : ' ghost'}" data-act="nexttoday">다음 ${words().one}</button></div>
             ${t.prayed ? `<p class="pray-done">이번 달 ${esc(t.name)}${solo() ? ' 님' : ' 가정'}을 위해 ${t.prayed}번 기도했어요</p>` : ''}</div>
@@ -1144,6 +1144,18 @@ try { const p = JSON.parse(localStorage.getItem('koide-pref') || '{}'), d = docu
         ${S.homeView === 'table' ? tableCard() : `<div class="fam-grid">${others.map(famCard).join('')}</div>`}
         ${serveCard()}
       </div></div>`;
+  }
+  // 개편 안내: 새 리더에게는 맡을 가정 명단, 회원에게는 "12월부터 ○○ 사랑방이에요", 바뀐 달에는 한 번 "올해는 ○○ 사랑방이에요"
+  function shiftCard() {
+    const X = S.month.shift; if (!X) return '';
+    const g = esc(grp()), key = 'koide-shift-' + (X.started || '');
+    if (X.started) {
+      try { if (localStorage.getItem(key)) return ''; } catch (e) { /* 늘 보여 준다 */ }
+      return `<section class="notice" style="margin-bottom:12px"><b>${X.started}년 편성이 시작됐어요.</b> 올해는 <b>${esc(X.room)}</b>이에요. 아래가 새 ${g} ${words().members}이에요. <button class="link" data-act="shiftok" data-v="${key}">알겠어요</button></section>`;
+    }
+    const when = Number(X.start.slice(5)) + '월부터';
+    return `<section class="notice" style="margin-bottom:12px"><b>${when} ${esc(X.room)}이에요.</b>${X.lead ? ` ${X.year}년에 ${esc(X.lead)}로 섬기게 돼요. 맡을 ${words().members}: ${X.families.map(esc).join(', ')}.` : ''}
+      <span class="hint">그때까지는 지금 ${g}이 그대로예요. 새 ${g}의 기도제목은 ${when} 보여요.</span></section>`;
   }
   // 우리 가정 카드(회원과 목사님·장로님 홈에 같이 나온다)
   function mineCard() {
@@ -2442,6 +2454,7 @@ try { const p = JSON.parse(localStorage.getItem('koide-pref') || '{}'), d = docu
       case 'famtoggle': S.openFams.has(id) ? S.openFams.delete(id) : S.openFams.add(id); return render();
       case 'servetoggle': S.serveOpen = !S.serveOpen; return render();
       case 'histtab': S.histTab = v; return render();
+      case 'shiftok': try { localStorage.setItem(v, '1'); } catch (err) { /* 이번 화면에서만 */ } S.month.shift = null; return render();
       case 'rgopen': if (!S.rgData) return; rgStart(); S.tab = 'reorg'; render(); return window.scrollTo(0, 0);
       case 'rgback': S.rg.step--; S.rg.msg = ''; render(); return window.scrollTo(0, 0);
       case 'rgmatch': {
