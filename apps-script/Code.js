@@ -58,7 +58,7 @@ const FIRST_DEPT = { id: 'D1', name: '청장년부', group: '사랑방', unit: '
 // ── 요청 받기 ─────────────────────────────────────────────
 
 // 서버 코드를 고칠 때마다 바꾼다. 웹 앱 주소를 열면 보여서, 새 버전으로 배포됐는지 확인할 수 있다
-const VERSION = '2026-10-19 한 해 앨범';
+const VERSION = '2026-10-20 소그룹 이름';
 function doGet() {
   return ContentService.createTextOutput('코이데 서버가 켜져 있어요. (버전: ' + VERSION + ')');
 }
@@ -118,6 +118,7 @@ const ACTIONS = {
   reorgSave: reorgSave_,
   reorgCancel: body => reorgCancel_(adminOf_(body)),
   analysis: body => analysisView_(adminOf_(body)),
+  saveGroup: saveGroup_,
   topics: body => topicFlow_(staffOrAdmin_(body)),
   topicWord: topicWord_,
   myPrayers: body => myPrayers_(member_(body)),
@@ -1173,6 +1174,25 @@ function activeRooms_(deptId) {
   return read_('rooms').filter(r => (!deptId || deptOfRoom_(r.id).id === deptId)
     && (roster.some(x => x.roomId === r.id && activeRow_(x)) || !roster.some(x => x.roomId === r.id)));
 }
+// 관리자: 우리 부서의 소그룹 이름(사랑방, 셀, 목장, 순, 구역, 조 …)을 바꾼다. 앱 곳곳의 말이 이 이름을 따른다.
+//  rename이면 이름 끝에 예전 소그룹 이름이 붙은 소그룹(2-20 사랑방)도 새 이름(2-20 셀)으로 바꾼다
+function saveGroup_(body) {
+  const c = adminOf_(body), name = String(body.group || '').trim();
+  if (!/^[가-힣A-Za-z0-9]{1,6}$/.test(name)) throw fail_('bad', '소그룹 이름은 띄어쓰기 없이 6글자까지 써 주세요.');
+  return withLock_(() => {
+    const d = read_('depts').find(x => x.id === c.deptId);
+    if (!d) throw fail_('bad', '부서를 찾지 못했어요.');
+    const old = d.group || '사랑방';
+    if (old !== name) { d.group = name; update_('depts', d); }
+    let renamed = 0;
+    if (body.rename && old !== name) {
+      const re = new RegExp('\\s*' + old.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + '$');
+      read_('rooms').filter(r => r.deptId === c.deptId && re.test(r.name)).forEach(r => { r.name = r.name.replace(re, ' ' + name).trim(); update_('rooms', r); renamed++; });
+    }
+    return { group: name, renamed, month: monthView_(member_(body)) };
+  });
+}
+
 // 화면에 주는 부서: 소그룹 이름과 단위로 화면의 말이 바뀐다
 function deptInfo_(d) { return { id: d.id, name: d.name, group: d.group || '사랑방', unit: d.unit === '개인' ? '개인' : '가정' }; }
 function deptById_(id) { const all = depts_(); return all.find(d => d.id === id) || all[0] || FIRST_DEPT; }

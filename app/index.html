@@ -737,6 +737,24 @@ button.knot { cursor: pointer; }
 /* 누름 표시: 휴대폰의 기본 눌림 색을 꺼 두어서, 누르는 동안 살짝 작아지게 한다(new·classic은 자체 눌림이 있다) */
 :root:not([data-style="neu"]):not([data-style="skeu"]) :is(.btn, .pray, .chip-btn, .mchip, .seg button, .seg2 button, button.knot, .tabs button, .icon-btn, .badge-btn, .pss-nav button, .pss-x, .pss-music, .ps-big, .sr-item, .room-sum, .td-word, .switch):not(:disabled) { transition: transform .12s ease, background-color .2s, color .2s, border-color .2s, box-shadow .2s; }
 :root:not([data-style="neu"]):not([data-style="skeu"]) :is(.btn, .pray, .chip-btn, .mchip, .seg button, .seg2 button, button.knot, .tabs button, .icon-btn, .badge-btn, .pss-nav button, .pss-x, .pss-music, .ps-big, .sr-item, .room-sum, .td-word, .switch):not(:disabled):active { transform: scale(.96); }
+/* 누름 움직임: 스위치 동그라미가 미끄러지고, 선택 표시가 옆으로 옮겨 가고, 여러 개 고르는 버튼은 톡 */
+.switch.sw-to-on { animation: sw-track-on .22s ease both; }
+.switch.sw-to-off { animation: sw-track-off .22s ease both; }
+.switch.sw-to-on > span { animation: sw-knob-on .26s cubic-bezier(.3, 1.35, .5, 1) both; }
+.switch.sw-to-off > span { animation: sw-knob-off .26s cubic-bezier(.3, 1.35, .5, 1) both; }
+@keyframes sw-track-on { from { background: var(--line-strong); } }
+@keyframes sw-track-off { from { background: var(--accent); } }
+@keyframes sw-knob-on { 0% { left: 3px; } 45% { width: 28px; } 100% { left: 23px; width: 22px; } }
+@keyframes sw-knob-off { 0% { left: 23px; } 45% { width: 28px; left: 3px; } 100% { left: 3px; width: 22px; } }
+.seg-pill { position: absolute; z-index: 0; pointer-events: none; transform-origin: left center; }
+.seg > button, .seg2 > button { position: relative; z-index: 1; }
+.seg > button.seg-moving, .seg2 > button.seg-moving { background: transparent !important; box-shadow: none !important; transition: none !important; }
+.tap-pop { animation: tap-pop .3s cubic-bezier(.3, 1.6, .5, 1); }
+@keyframes tap-pop { 40% { transform: scale(1.07); } }
+/* 접고 펼치기: 펼칠 때 내용이 살짝 내려오며 나타난다 */
+details[open] > :not(summary) { animation: reveal .22s ease-out; }
+@keyframes reveal { from { opacity: 0; transform: translateY(-6px); } }
+@media (prefers-reduced-motion: reduce) { .switch.sw-to-on, .switch.sw-to-off, .switch > span, .tap-pop, details[open] > :not(summary) { animation: none !important; } }
 /* 부드럽게 넘어가기: 새로 그린 쪽이 들어온다(탭은 옆으로, 큰 화면은 아래에서, 장 넘기기는 옆으로) */
 .vt-in-r { animation: vt-in-r .2s cubic-bezier(.2, .8, .2, 1) both; }
 .vt-in-l { animation: vt-in-l .2s cubic-bezier(.2, .8, .2, 1) both; }
@@ -886,8 +904,8 @@ body.pop-open { overflow: hidden; }
 :root[data-style="neu"] .btn:not(.ghost):not(:disabled) { box-shadow: var(--raise-sm); }
 :root[data-style="neu"] .btn.ghost, :root[data-style="neu"] .mchip, :root[data-style="neu"] .chip-btn, :root[data-style="neu"] .scope-btn, :root[data-style="neu"] .tgt-btn,
 :root[data-style="neu"] .choice, :root[data-style="neu"] .icon-btn.sm, :root[data-style="neu"] .swatch, :root[data-style="neu"] .rm-x { background-color: var(--card); border-color: transparent; box-shadow: var(--raise-sm); }
-:root[data-style="neu"] .mchip.on, :root[data-style="neu"] .chip-btn.open, :root[data-style="neu"] .swatch.on { box-shadow: var(--press); border-color: transparent; }
-:root[data-style="neu"] .mchip.on { background: var(--page); color: var(--accent); }
+:root[data-style="neu"] .mchip.on, :root[data-style="neu"] .chip-btn.open, :root[data-style="neu"] .chip-btn.on, :root[data-style="neu"] .swatch.on { box-shadow: var(--press); border-color: transparent; }
+:root[data-style="neu"] .mchip.on, :root[data-style="neu"] .chip-btn.on { background: var(--page); color: var(--accent); font-weight: 600; }
 :root[data-style="neu"] .btn:not(:disabled):active, :root[data-style="neu"] .pray:active, :root[data-style="neu"] .mchip:active, :root[data-style="neu"] .choice:active { box-shadow: var(--press); }
 :root[data-style="neu"] .seg, :root[data-style="neu"] .seg2 { border: 0; background: var(--surface-2); box-shadow: var(--press); padding: 4px; gap: 5px; }
 :root[data-style="neu"] .seg button.on, :root[data-style="neu"] .seg2 button.on { background: var(--surface); box-shadow: var(--raise-sm); }
@@ -936,7 +954,7 @@ body.pop-open { overflow: hidden; }
 :root[data-style="skeu"] .btn.ghost, :root[data-style="skeu"] .pray:not(.hero):not(.on), :root[data-style="skeu"] .mchip, :root[data-style="skeu"] .chip-btn, :root[data-style="skeu"] .scope-btn, :root[data-style="skeu"] .tgt-btn, :root[data-style="skeu"] .badge-btn,
 :root[data-style="skeu"] .choice, :root[data-style="skeu"] .icon-btn.sm, :root[data-style="skeu"] .pss-nav button:not(.pss-pray), :root[data-style="skeu"] .pss-x, :root[data-style="skeu"] .pss-music {
   background-image: linear-gradient(180deg, rgba(255,255,255,.3), rgba(255,255,255,0) 60%, rgba(0,0,0,.06)); background-color: var(--surface); border: 1px solid color-mix(in srgb, var(--line-strong) 85%, #000 10%); box-shadow: inset 0 1px 0 rgba(255,255,255,.7), 0 1px 2px rgba(0,0,0,.15); }
-:root[data-style="skeu"] .mchip.on, :root[data-style="skeu"] .chip-btn.open { background: color-mix(in srgb, var(--surface-2) 80%, #000 6%); box-shadow: inset 0 2px 4px rgba(0,0,0,.2); color: var(--accent); border-color: color-mix(in srgb, var(--line-strong) 70%, #000 20%); }
+:root[data-style="skeu"] .mchip.on, :root[data-style="skeu"] .chip-btn.open, :root[data-style="skeu"] .chip-btn.on { background: color-mix(in srgb, var(--surface-2) 80%, #000 6%); box-shadow: inset 0 2px 4px rgba(0,0,0,.2); color: var(--accent); border-color: color-mix(in srgb, var(--line-strong) 70%, #000 20%); }
 :root[data-style="skeu"] .btn:not(:disabled):active, :root[data-style="skeu"] .pray:active, :root[data-style="skeu"] .mchip:active { box-shadow: inset 0 2px 5px rgba(0,0,0,.3); }
 /* 이름표·입력칸은 종이에 찍힌 듯 */
 :root[data-style="skeu"] .tgt, :root[data-style="skeu"] .chip-status, :root[data-style="skeu"] .role-tag { box-shadow: inset 0 1px 2px rgba(0,0,0,.15), 0 1px 0 rgba(255,255,255,.6); }
@@ -988,7 +1006,7 @@ body.pop-open { overflow: hidden; }
   background: var(--glass-soft); border-color: color-mix(in srgb, var(--surface) 65%, transparent); }
 :root[data-style="glass"] .field, :root[data-style="glass"] .kid-form input { background: var(--glass-strong); border-color: color-mix(in srgb, var(--line-strong) 60%, transparent); }
 :root[data-style="glass"] .seg button.on, :root[data-style="glass"] .seg2 button.on { background: var(--glass-strong); box-shadow: inset 0 1px 0 var(--neu-hi), 0 2px 8px -3px var(--shadow); }
-:root[data-style="glass"] .mchip.on { background: color-mix(in srgb, var(--accent-soft) 70%, transparent); color: var(--ink); border-color: color-mix(in srgb, var(--accent) 55%, transparent); }
+:root[data-style="glass"] .mchip.on, :root[data-style="glass"] .chip-btn.on { background: color-mix(in srgb, var(--accent-soft) 70%, transparent); color: var(--ink); border-color: color-mix(in srgb, var(--accent) 55%, transparent); }
 :root[data-style="glass"] .btn:not(.ghost), :root[data-style="glass"] .pray.hero { box-shadow: inset 0 1px 0 rgba(255, 255, 255, .3), 0 8px 20px -10px var(--accent); }
 :root[data-style="glass"] .item.s-family, :root[data-style="glass"] .sub > li.s-family { background: color-mix(in srgb, var(--private) 60%, transparent); }
 /* 유리 흐림을 못 쓰는 브라우저는 반투명 대신 거의 불투명하게 해서 글이 읽히게 */
@@ -1166,6 +1184,13 @@ try { const p = JSON.parse(localStorage.getItem('koide-pref') || '{}'), d = docu
   const words = () => UNIT[dept().unit] || UNIT.가정;
   const solo = () => dept().unit === '개인';
   const grp = () => dept().group || '사랑방';
+  // 소그룹 이름 뒤의 조사를 받침에 맞춘다: gj('을/를') → 사랑방을, 조를
+  const josa = (w, pair) => { const c = w.charCodeAt(w.length - 1) - 0xAC00, [a, b] = pair.split('/'); return w + (c >= 0 && c < 11172 && c % 28 ? a : b); };
+  const gj = pair => josa(grp(), pair);
+  // '(으)로': 받침이 없거나 ㄹ 받침이면 '로'
+  const euro = w => { const c = w.charCodeAt(w.length - 1) - 0xAC00; return w + (c >= 0 && c < 11172 && c % 28 && c % 28 !== 8 ? '으로' : '로'); };
+  // 기도 문장처럼 미리 적어 둔 글 속의 '사랑방'도 소그룹 이름으로
+  const locG = x => typeof x === 'string' ? x.replace(/사랑방/g, grp()) : x;
   function pickDept(id) { S.pick = { deptId: id }; S.rooms = S.depts.find(d => d.id === id).rooms; S.view = 'room'; }
 
   // ── 화면 ──
@@ -1402,7 +1427,7 @@ try { const p = JSON.parse(localStorage.getItem('koide-pref') || '{}'), d = docu
     return `<div class="page-top"><div><p class="eyebrow">${esc(M.dept.name)} 전체 · ${esc(M.me.label || M.me.person)}</p><h1>${Number(M.month.slice(5))}월 기도제목 <span aria-hidden="true">🙏</span></h1></div><p class="date">${todayLabel()}</p></div>
       <div class="home-grid"><div class="col side">
         <section class="card"><div class="stats">${stat(rooms.length, grp())}${stat(sum('n'), words().count)}${stat(sum('edited') + sum('confirmed'), '이번 달 손봄·확인')}</div></section>
-        ${rooms.length ? `<section class="card">${roomCordHtml()}<p class="hint">매듭을 누르면 그 ${esc(grp())}을 위해 기도하러 가요.</p></section>` : ''}
+        ${rooms.length ? `<section class="card">${roomCordHtml()}<p class="hint">매듭을 누르면 그 ${esc(gj('을/를'))} 위해 기도하러 가요.</p></section>` : ''}
         ${mineCard()}
       </div><div class="col main">
         <h2 class="section-title">${esc(grp())}별 이번 달 현황</h2>
@@ -1412,7 +1437,7 @@ try { const p = JSON.parse(localStorage.getItem('koide-pref') || '{}'), d = docu
             <span class="bar" role="img" aria-label="이번 달 손봄 ${r.edited}, 그대로 확인 ${r.confirmed}, 지난달 그대로 ${same}"><span class="bseg edited" style="flex:${r.edited}"></span><span class="bseg confirmed" style="flex:${r.confirmed}"></span><span class="bseg same" style="flex:${same}"></span></span>
             <span class="hint">손봄 ${r.edited} · 그대로 확인 ${r.confirmed} · 지난달 그대로 ${same}${r.fresh ? ` · 새 기도제목 ${r.fresh}` : ''}</span></button>`; }).join('')}</div>
           <ul class="legend"><li><i class="sw edited"></i>이번 달 손봄</li><li><i class="sw confirmed"></i>그대로 확인</li><li><i class="sw same"></i>지난달 그대로</li></ul>`
-        : `<p class="hint">아직 ${esc(grp())}이 없어요.</p>`}
+        : `<p class="hint">아직 ${esc(gj('이/가'))} 없어요.</p>`}
         ${signalCard(M.signals, true)}
         ${topicFlowCard(loadTopics())}
         ${topicDictCard(S.topics)}
@@ -1440,7 +1465,7 @@ try { const p = JSON.parse(localStorage.getItem('koide-pref') || '{}'), d = docu
     const r = (S.month.rooms || []).find(x => x.id === S.openRoom) || {}, R = loadRoom(S.openRoom);
     return `<button class="link back" data-act="roomclose">${ICON.chevL}${esc(S.month.dept.name)} 전체로</button>
       <div class="page-top"><div><p class="eyebrow">${esc(S.month.dept.name)}</p><h1>${esc(r.name || '')}</h1></div><p class="date">${todayLabel()}</p></div>
-      ${!R ? '<p class="loading">불러오는 중…</p>' : `<section class="card">${cordHtml()}<div class="actions"><button class="btn" data-act="roomknot" data-v="${esc(r.id)}">${ICON.hands}이 ${esc(grp())}을 위해 기도하기</button></div>
+      ${!R ? '<p class="loading">불러오는 중…</p>' : `<section class="card">${cordHtml()}<div class="actions"><button class="btn" data-act="roomknot" data-v="${esc(r.id)}">${ICON.hands}이 ${esc(gj('을/를'))} 위해 기도하기</button></div>
         <p class="hint">리더·목사님 항목까지 보여요. "${esc(words().only)}" 항목은 보이지 않아요.</p></section>
         ${R.families.length ? `<div class="fam-grid">${R.families.map(famCard).join('')}</div>${famTlCard(R.families)}` : `<p class="hint">이 ${esc(grp())}에는 아직 ${words().members}이 없어요.</p>`}`}`;
   }
@@ -2291,7 +2316,7 @@ try { const p = JSON.parse(localStorage.getItem('koide-pref') || '{}'), d = docu
     const slots = rooms.map(r => ({ key: r.id, short: short(r), name: r.name, on: !!r.week }));
     return cordView({ slots, nwKey: S.roomNew, act: 'roomknot', head: S.month.dept.name + ' 기도의 끈',
       say: k => `${k.name}, ${k.on ? '이번 주에 기도함' : '이번 주에 아직 기도하지 않음'}`,
-      count: (n, N) => `이번 주 ${N}곳 중 <b>${n}곳</b>과 이어졌어요`, done: `이번 주 모든 ${grp()}과 이어졌어요` });
+      count: (n, N) => `이번 주 ${N}곳 중 <b>${n}곳</b>과 이어졌어요`, done: `이번 주 모든 ${gj('과/와')} 이어졌어요` });
   }
   // 기도 효과: 메인 기도 버튼은 작은 빛이 퍼지고, 이번 달 사랑방 모든 가정을 위해 기도하면 끈이 리본으로 묶이며 꽃가루가 내린다
   const calm = () => !!(window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches);
@@ -2397,7 +2422,7 @@ try { const p = JSON.parse(localStorage.getItem('koide-pref') || '{}'), d = docu
         body = `<p class="eyebrow">${words().mine}</p><h2>${esc(m.name)}</h2>${m.items.length ? `<ul>${m.items.map(i => li(i.target, i.text)).join('')}</ul>` : '<p class="hint">이번 달 기도제목이 아직 없어요.</p>'}`; }
       // 하나님 나라: 오늘의 간구 문장 하나와 성경의 기도 하나만 보여 주고, 남은 시간은 "내 말로 이어서" 기도한다
       else { const t = topicOf(id), d = prayToday(t), line = ([x, r]) => `<li><span>${esc(x)}${r ? `<small class="pss-ref">${esc(r)}</small>` : ''}</span></li>`;
-        body = `<p class="pss-lp">${t.lines.map(n => LORDS_PRAYER[n]).join(' ')}</p><p class="eyebrow">하나님 나라</p><h2>${t.name}</h2><ul>${line(d.a)}${line(d.b)}</ul><p class="pss-next">${esc(d.next)}</p>`; }
+        body = `<p class="pss-lp">${t.lines.map(n => LORDS_PRAYER[n]).join(' ')}</p><p class="eyebrow">하나님 나라</p><h2>${t.name}</h2><ul>${line(d.a.map(locG))}${line(d.b.map(locG))}</ul><p class="pss-next">${esc(locG(d.next))}</p>`; }
       pray = `<button class="pss-pray${ready ? ' ready' : ''}" data-act="psextra">${ICON.hands.replace('<svg', '<svg width="20" height="20"')} 기도했어요</button>`;
     }
     const cd = ps.cd ? `<div class="pss-cd" role="status"><span><b id="pss-cd">${ps.cd}</b>초 뒤 ${last ? '마쳐요' : '다음 장으로 넘어가요'}</span><button data-act="psstay">머무르기</button></div>` : '';
@@ -2624,21 +2649,21 @@ try { const p = JSON.parse(localStorage.getItem('koide-pref') || '{}'), d = docu
     const head = `<button class="link back" data-act="tab" data-v="admin">${ICON.chevL}관리</button><p class="eyebrow">관리자</p><h1>기존 기도제목 가져오기</h1>`;
     if (I && I.done) return `${head}<section class="card"><h2>${esc(I.done.room)}을 가져왔어요</h2>
       <p>${I.done.families}가정 · 기도제목 ${I.done.items}개${I.done.made ? ` · 새로 만든 가정 ${I.done.made}` : ''}${I.done.replaced ? ` · 바꾼 가정 ${I.done.replaced}` : ''}</p>
-      <p class="hint">모두 "사랑방 공개"로 들어갔어요. 가정마다 내 기도에서 공개 범위를 바꿀 수 있어요.</p>
-      <button class="btn wide" data-act="impreset" style="margin-top:12px">다음 사랑방 붙여 넣기</button></section>`;
-    if (!I) return `${head}<p class="hint">구글 시트에서 사랑방 탭 하나를 통째로 복사해(Ctrl+A → Ctrl+C) 아래에 붙여 넣어요. 한 번에 사랑방 하나씩 가져와요.</p>
+      <p class="hint">모두 "${esc(grp())} 공개"로 들어갔어요. 가정마다 내 기도에서 공개 범위를 바꿀 수 있어요.</p>
+      <button class="btn wide" data-act="impreset" style="margin-top:12px">다음 ${esc(grp())} 붙여 넣기</button></section>`;
+    if (!I) return `${head}<p class="hint">구글 시트에서 ${esc(grp())} 탭 하나를 통째로 복사해(Ctrl+A → Ctrl+C) 아래에 붙여 넣어요. 한 번에 ${esc(grp())} 하나씩 가져와요.</p>
       <textarea id="imp-t" class="field" rows="8" placeholder="여기에 붙여 넣기"></textarea>
       <button class="btn wide" data-act="impparse" style="margin-top:8px">나눠 보기</button>
       <p class="hint">붙여 넣은 내용은 이 화면과 교회 구글 시트에만 들어가요.</p>`;
     const n = I.families.reduce((a, f) => a + f.items.length, 0);
-    return `${head}<label class="f" for="imp-room">사랑방 이름</label><input id="imp-room" class="field" value="${esc(I.room)}">
+    return `${head}<label class="f" for="imp-room">${esc(grp())} 이름</label><input id="imp-room" class="field" value="${esc(I.room)}">
       <p class="hint">${I.families.length}가정 · 기도제목 ${n}개로 나눴어요. 대상이 틀리면 고르고, 빼야 할 줄은 빼기를 눌러요.</p>
       ${I.families.map((f, fi) => `<section class="card"><h2>${esc(famName(f))}</h2>${f.kids.length ? `<p class="hint">자녀: ${f.kids.map(esc).join(', ')}</p>` : ''}
         ${f.items.map((it, ii) => `<div class="edit"><div class="edit-top"><select data-imp="${fi}.${ii}" aria-label="대상">${[...new Set([it.target, '우리 가정', '남편', '아내', ...f.kids, '부모님', '기타'])].map(t => `<option${t === it.target ? ' selected' : ''}>${esc(t)}</option>`).join('')}</select>
           <button class="link danger" data-act="impdrop" data-v="${fi}.${ii}" style="margin-left:auto">빼기</button></div><p style="margin:0;font-size:.92em">${esc(it.text)}</p></div>`).join('')}</section>`).join('')}
       <button class="btn wide" data-act="impgo" ${S.busy ? 'disabled' : ''}>${S.busy ? '가져오는 중…' : '이번 달 기도제목으로 가져오기'}</button>
       <button class="link" data-act="impreset" style="margin-top:8px">다시 붙여 넣기</button>
-      <p class="hint">코이데에 이미 있는 가정은 이번 달 기도제목이 가져온 것으로 바뀌어요. 공개 범위는 모두 "사랑방 공개"로 들어가요.</p>`;
+      <p class="hint">코이데에 이미 있는 가정은 이번 달 기도제목이 가져온 것으로 바뀌어요. 공개 범위는 모두 "${esc(grp())} 공개"로 들어가요.</p>`;
   }
 
   // 더보기: (리더) 이번 달 현황·카톡방에 올릴 가정·연결 승인·해제, 로그아웃
@@ -2791,7 +2816,7 @@ try { const p = JSON.parse(localStorage.getItem('koide-pref') || '{}'), d = docu
     const nav = (next, label, off) => `<div class="actions" style="margin-top:12px">${rg.step > 1 ? '<button class="btn ghost" data-act="rgback">이전</button>' : ''}<button class="btn" data-act="${next}"${off ? ' disabled' : ''}>${label}</button></div>`;
     if (rg.step === 1) return `${head}${stepper}<section class="card">
         <label class="label" for="rg-text">교회에서 받은 ${D.next}년 편성표를 그대로 붙여 넣으세요</label>
-        <p class="hint">한 줄에 "${esc(grp())} 이름 + ${solo() ? '이름' : '가정 이름'}"이면 돼요. 엑셀에서 두 칸을 복사해 붙여도 되고, ${solo() ? '' : '"홍길동/김영희", "김영희 홍길동"처럼 '}표기가 달라도 괜찮아요. ${esc(grp())} 이름이 지금과 같으면 그대로 이어지고, 바뀐 이름은 새 ${esc(grp())}이 돼요.</p>
+        <p class="hint">한 줄에 "${esc(grp())} 이름 + ${solo() ? '이름' : '가정 이름'}"이면 돼요. 엑셀에서 두 칸을 복사해 붙여도 되고, ${solo() ? '' : '"홍길동/김영희", "김영희 홍길동"처럼 '}표기가 달라도 괜찮아요. ${esc(grp())} 이름이 지금과 같으면 그대로 이어지고, 바뀐 이름은 새 ${esc(gj('이/가'))} 돼요.</p>
         <textarea id="rg-text" class="field rg-text" rows="10" placeholder="1-1 ${esc(grp())}&#9;${solo() ? '홍길동' : '홍길동/김영희'}">${esc(rg.text)}</textarea>
         ${rg.msg ? `<p class="hint warn-text">${esc(rg.msg)}</p>` : ''}
         ${nav('rgmatch', '맞춰 보기')}</section>`;
@@ -2824,7 +2849,7 @@ try { const p = JSON.parse(localStorage.getItem('koide-pref') || '{}'), d = docu
         <label class="label" for="rg-l-${k}">리더</label><select id="rg-l-${k}" class="field" data-rg="leaders" data-room="${esc(n)}"><option value="">아직 안 정함</option>${rooms[n].map(i => `<option value="${i}"${rg.leaders[n] === i ? ' selected' : ''}>${esc(rgLabel(i))}</option>`).join('')}</select>
         <label class="label" for="rg-c-${k}" style="margin-top:8px">코리더 · 없으면 비워 두세요</label><select id="rg-c-${k}" class="field" data-rg="co" data-room="${esc(n)}"><option value="">없음</option>${rooms[n].map(i => `<option value="${i}"${rg.co[n] === i ? ' selected' : ''}>${esc(rgLabel(i))}</option>`).join('')}</select>
       </section>`).join('')}</div>
-      <p class="hint">리더를 정하지 않은 ${esc(grp())}은 바뀐 뒤 관리 화면에서 정할 수 있어요.</p>${nav('rgnext', '다음: 확인과 예약')}`;
+      <p class="hint">리더를 정하지 않은 ${esc(gj('은/는'))} 바뀐 뒤 관리 화면에서 정할 수 있어요.</p>${nav('rgnext', '다음: 확인과 예약')}`;
     // 4. 미리보기(구성과 이동만, 기도제목 내용은 바뀌는 날부터)와 날짜
     const from = i => rgSame(i) ? (res.rows[i].ex.room || '') : '';
     const moves = [...res.rows.map((r, i) => ({ name: rgLabel(i), from: from(i) || '새 ' + words().one, to: r.room })),
@@ -2844,7 +2869,7 @@ try { const p = JSON.parse(localStorage.getItem('koide-pref') || '{}'), d = docu
       <section class="card"><p class="label">날짜</p><div class="rg-dates">
         <label>바뀌는 날<select class="field" data-rg="start">${months.map(m => `<option value="${m}"${rg.start === m ? ' selected' : ''}>${monName(m)} 1일</option>`).join('')}</select></label>
         <label>새 리더에게 맡을 ${words().one} 명단 보여 주기<input class="field" type="date" data-rg="lf" value="${rg.lf}" max="${dayAdd(rg.start + '-01', -1)}"></label>
-        <label>회원에게 "${Number(rg.start.slice(5))}월부터 ○○ ${esc(grp())}이에요" 안내하기<input class="field" type="date" data-rg="mf" value="${rg.mf}" max="${dayAdd(rg.start + '-01', -1)}"></label></div>
+        <label>회원에게 "${Number(rg.start.slice(5))}월부터 ○○ ${esc(gj('이에요/예요'))}" 안내하기<input class="field" type="date" data-rg="mf" value="${rg.mf}" max="${dayAdd(rg.start + '-01', -1)}"></label></div>
         <p class="hint">바뀌는 날 0시에 새 편성이 저절로 적용돼요. 그 전까지는 ${D.now}년 편성이 그대로이고, 예약은 언제든 고치거나 취소할 수 있어요. 카카오 연결과 기도 기록은 그대로 따라가요.</p></section>
       ${rg.msg ? `<p class="hint warn-text">${esc(rg.msg)}</p>` : ''}
       ${nav('rgsave', S.busy ? '예약하는 중…' : `${monName(rg.start)} 1일에 바뀌도록 예약`, S.busy)}`;
@@ -2858,6 +2883,7 @@ try { const p = JSON.parse(localStorage.getItem('koide-pref') || '{}'), d = docu
     if (tab === 'analysis') return head + analysisView();
     return `${head}
       <div class="two-col"><div class="col">${manageCard()}</div><div class="col side">
+        ${groupCard()}
         ${reorgCard()}
         ${staffCard()}
         ${solo() ? '' : `<section class="card"><h2>기존 기도제목 가져오기</h2><p class="hint">지금 쓰는 구글 시트의 ${esc(grp())} 탭을 붙여 넣어 이번 달 기도제목으로 옮겨요.</p>
@@ -2865,6 +2891,17 @@ try { const p = JSON.parse(localStorage.getItem('koide-pref') || '{}'), d = docu
         ${DEMO ? '' : `<section class="card"><h2>데모로 둘러보기</h2><p class="hint">지어낸 예시 데이터로 리더·회원 화면을 눌러 봐요. 실제 데이터와 로그인은 그대로예요.</p>
           <a class="btn small ghost" href="?demo" target="_blank" rel="noopener" style="text-decoration:none;align-self:flex-start">데모 열기</a></section>`}
       </div></div>`;
+  }
+  // 소그룹 이름(관리자): 우리 부서에서 소그룹을 부르는 말. 앱 곳곳의 말과 조사가 이 이름을 따른다
+  const GROUP_PRESETS = ['사랑방', '셀', '목장', '순', '구역', '조', '소그룹'];
+  function groupCard() {
+    const cur = grp(), pick = S.grpPick || cur, rooms = S.month.rooms || [], ex = (rooms[0] && rooms[0].name) || ('2-20 ' + cur);
+    const after = ex.endsWith(cur) ? ex.slice(0, -cur.length).trim() + ' ' + pick : ex;
+    return `<section class="card"><h2>소그룹 이름</h2><p class="hint">우리 ${esc(S.month.dept.name)}에서 소그룹을 부르는 말을 골라요. 앱 곳곳의 ${esc(gj('이/가'))} 이 이름으로 바뀌어요. 모두에게 똑같이 보여요.</p>
+      <div class="mchips" role="radiogroup" aria-label="소그룹 이름">${[...new Set([...GROUP_PRESETS, cur, pick])].map(g => `<button class="mchip${pick === g ? ' on' : ''}" role="radio" aria-checked="${pick === g}" data-act="grppick" data-v="${esc(g)}">${esc(g)}</button>`).join('')}</div>
+      <form class="kid-form" data-form="grpcustom" style="margin-top:8px"><input class="field" name="g" placeholder="직접 쓰기 (예: 가정교회, 다락방)" aria-label="소그룹 이름 직접 쓰기" maxlength="6" autocomplete="off"><button class="btn small ghost" type="submit">쓰기</button></form>
+      ${pick !== cur ? `<label class="check"><input type="checkbox" id="grp-rename"${S.grpRename === false ? '' : ' checked'}> 이름 끝의 "${esc(cur)}"도 함께 바꾸기 <span class="hint">(예: ${esc(ex)} → ${esc(after)})</span></label>
+        <div class="actions"><button class="btn" data-act="grpsave" ${S.busy ? 'disabled' : ''}>${esc(euro(pick))} 바꾸기</button><button class="btn ghost" data-act="grppick" data-v="${esc(cur)}">그대로 두기</button></div>` : ''}</section>`;
   }
   // 분석 ① 우리 공동체(설계서 10장): 부서 단위 합계만. 가정 이름·가정별 숫자·순위는 없고, 사랑방은 늘 같은 순서
   //  색은 주 색 하나의 진하기로만 나누고 칸마다 숫자를 적어 색만으로 읽지 않게 한다
@@ -3052,6 +3089,7 @@ try { const p = JSON.parse(localStorage.getItem('koide-pref') || '{}'), d = docu
     const t0 = performance.now();
     draw();
     document.querySelectorAll('.cord-line animate').forEach(a => { try { a.beginElement(); } catch (e) { /* 지원하지 않으면 바로 팽팽 */ } });
+    playTapFx();
     // 그리는 데 오래 걸린 화면(그림·표가 많은 화면, 느린 휴대폰)은 이미 늦었으니 움직임 없이 바로 보여 준다
     if (!kind || calm() || performance.now() - t0 > 50) return;
     const sheet = S.ps || S.meet != null ? $('#pss') : $('#bigv').firstElementChild;
@@ -3062,6 +3100,43 @@ try { const p = JSON.parse(localStorage.getItem('koide-pref') || '{}'), d = docu
     else if (kind === 'next') vtAnim($('#pss .pss-body, #pss .m-body'), 'vt-in-r');
     else if (kind === 'prev') vtAnim($('#pss .pss-body, #pss .m-body'), 'vt-in-l');
     else if (kind === 'today') vtAnim($('.card.today'), 'vt-in-r');
+  }
+  // 누름 움직임: 화면을 통째로 다시 그려서 작은 바뀜(스위치, 고르는 버튼)이 움직이지 않으니, 누르기 직전 모습을 기억했다가
+  //  새로 그린 뒤 그 자리에서 움직인다. 스위치는 동그라미가 미끄러지고, 하나만 고르는 버튼은 선택 표시가 옆으로 옮겨 가고,
+  //  여러 개를 고르는 버튼은 톡 튄다
+  let tapPending = null;
+  const tapKey = b => `[data-act="${b.dataset.act}"]` + (b.dataset.v != null ? `[data-v="${CSS.escape(b.dataset.v)}"]` : '');
+  function tapFx(b) {
+    tapPending = null;
+    if (calm()) return;
+    const key = tapKey(b), at = Date.now();
+    if (b.classList.contains('switch')) tapPending = { kind: 'switch', key, on: !b.classList.contains('on'), at };
+    else if (b.closest('.seg, .seg2')) {
+      const old = b.classList.contains('on') ? null : b.parentElement.querySelector(':scope > button.on');
+      tapPending = old ? { kind: 'slide', key, old: tapKey(old), rect: old.getBoundingClientRect(), at } : { kind: 'pop', key, at };
+    } else if (b.hasAttribute('aria-pressed')) tapPending = { kind: 'pop', key, at };
+  }
+  function playTapFx() {
+    const P = tapPending; tapPending = null;
+    if (!P || Date.now() - P.at > 800) return;
+    const el = document.querySelector(P.key); if (!el) return;
+    const once = (x, cls) => { x.classList.add(cls); x.addEventListener('animationend', () => x.classList.remove(cls), { once: true }); };
+    if (P.kind === 'switch') return once(el, P.on ? 'sw-to-on' : 'sw-to-off');
+    if (P.kind === 'pop') return once(el, 'tap-pop');
+    // 선택 표시 옮기기: 새 버튼의 바탕을 잠깐 비우고, 같은 모양의 판을 지난 자리에서 새 자리로 미끄러뜨린다
+    const g = el.parentElement, nr = el.getBoundingClientRect(), gr = g.getBoundingClientRect(), r = P.rect;
+    // 여러 개를 고르는 줄이라 지난 것도 그대로 켜져 있으면 옮기지 않고 톡
+    const prev = document.querySelector(P.old);
+    if (prev && prev.classList.contains('on')) return once(el, 'tap-pop');
+    if (!el.classList.contains('on') || Math.abs(r.top - nr.top) > 4 || !nr.width) return;
+    const cs = getComputedStyle(el), pill = document.createElement('span');
+    pill.className = 'seg-pill';
+    Object.assign(pill.style, { left: (nr.left - gr.left) + 'px', top: (nr.top - gr.top) + 'px', width: nr.width + 'px', height: nr.height + 'px',
+      background: cs.backgroundColor, backgroundImage: cs.backgroundImage, boxShadow: cs.boxShadow, borderRadius: cs.borderRadius });
+    if (getComputedStyle(g).position === 'static') g.style.position = 'relative';
+    g.prepend(pill); el.classList.add('seg-moving');
+    pill.animate([{ transform: `translateX(${r.left - nr.left}px) scaleX(${(r.width / nr.width).toFixed(3)})` }, { transform: 'none' }],
+      { duration: 240, easing: 'cubic-bezier(.3, 1.25, .5, 1)' }).onfinish = () => { pill.remove(); el.classList.remove('seg-moving'); };
   }
   function draw() {
     trackView(S.view);
@@ -3163,6 +3238,7 @@ try { const p = JSON.parse(localStorage.getItem('koide-pref') || '{}'), d = docu
     const keep = e.target.closest('.menu') && (!b || ['mode', 'accent', 'style', 'big'].includes(b.dataset.act));
     if (S.menu && !keep && !(b && b.dataset.act === 'menu')) { S.menu = null; $('#topbar').innerHTML = topHtml(); }
     if (!b) return;
+    tapFx(b);
     const v = b.dataset.v, id = b.dataset.id;
     switch (b.dataset.act) {
       case 'menu': S.menu = S.menu === v ? null : v; $('#topbar').innerHTML = topHtml(); return;
@@ -3204,6 +3280,14 @@ try { const p = JSON.parse(localStorage.getItem('koide-pref') || '{}'), d = docu
       case 'album': S.album = v; render(); return track('화면 보기', { screen: '한 해 앨범' });
       case 'albumclose': S.album = null; return render();
       case 'bigclose': S.bigView = null; render(); if (document.fullscreenElement) document.exitFullscreen().catch(() => {}); return;
+      case 'grppick': S.grpPick = v; return render();
+      case 'grpsave': {
+        const rename = !!($('#grp-rename') || {}).checked; S.grpRename = rename; S.busy = true; render();
+        try { const r = await api('saveGroup', { group: S.grpPick, rename }); S.month = r.month; S.grpPick = null; S.topics = null; S.myp = null; S.hist = null;
+          toast(`이제 ${euro(r.group)} 불러요.` + (r.renamed ? ` 이름 ${r.renamed}개도 바꿨어요.` : '')); }
+        catch (err) { oops(err); }
+        S.busy = false; return render();
+      }
       case 'tdtopic': S.tdTopic = v; return render();
       case 'tdmore': S.tdMore = !S.tdMore; return render();
       case 'tdrm': { const [t, w] = v.split('|'); if (confirm(t + '에서 "' + w + '"을(를) 뺄까요?')) topicWord(t, w, true); return; }
@@ -3301,7 +3385,7 @@ try { const p = JSON.parse(localStorage.getItem('koide-pref') || '{}'), d = docu
         S.busy = false; render(); return window.scrollTo(0, 0);
       }
       case 'rgcancel':
-        if (!confirm('예약한 새 편성을 취소할까요? 예약 때 새로 만든 ' + grp() + '과 ' + words().one + '도 지워져요.')) return;
+        if (!confirm('예약한 새 편성을 취소할까요? 예약 때 새로 만든 ' + gj('과/와') + ' ' + words().one + '도 지워져요.')) return;
         try { S.rgData = await api('reorgCancel'); toast('예약을 취소했어요.'); } catch (err) { oops(err); }
         return render();
       case 'tlgo': {
@@ -3369,13 +3453,13 @@ try { const p = JSON.parse(localStorage.getItem('koide-pref') || '{}'), d = docu
       case 'meetclose': track('모임 모드 마침', { cards: meetFams().length + 1, seen: S.meetSeen }); S.meet = null; wakeOff(); return render();
       case 'impparse': {
         const r = readSheet($('#imp-t').value);
-        if (!r.families.length) return toast('가정을 찾지 못했어요. 시트의 사랑방 탭을 통째로 복사해 주세요.');
+        if (!r.families.length) return toast('가정을 찾지 못했어요. 시트의 ' + grp() + ' 탭을 통째로 복사해 주세요.');
         S.imp = r; render(); return window.scrollTo(0, 0);
       }
       case 'impdrop': { const [fi, ii] = v.split('.').map(Number); S.imp.families[fi].items.splice(ii, 1); return render(); }
       case 'impreset': S.imp = null; render(); return window.scrollTo(0, 0);
       case 'impgo': {
-        const room = $('#imp-room').value.trim(); if (!room) return toast('사랑방 이름을 적어 주세요.');
+        const room = $('#imp-room').value.trim(); if (!room) return toast(grp() + ' 이름을 적어 주세요.');
         S.busy = true; render();
         try { S.imp = { done: await api('importRoom', { roomName: room, families: S.imp.families }) }; S.month = await api('month'); }
         catch (err) { oops(err); }
@@ -3473,6 +3557,7 @@ try { const p = JSON.parse(localStorage.getItem('koide-pref') || '{}'), d = docu
       try { S.sr = await api('search', { q }); track('화면 보기', { screen: '검색' }); } catch (err) { oops(err); }
       return render();
     }
+    if (f.dataset.form === 'grpcustom') { const v = f.querySelector('input').value.trim(); if (v) { S.grpPick = v; render(); } return; }
     if (f.dataset.form === 'tdadd') { const v = f.querySelector('input').value.trim(); if (v) topicWord(f.dataset.topic, v, false); return; }
     if (f.dataset.form === 'tgtcustom') { const v = f.querySelector('input').value.trim(); if (v) setTarget(f.dataset.id, v); return; }
 
