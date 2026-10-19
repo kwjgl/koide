@@ -450,7 +450,12 @@ h3 { font-size: 1.02em; font-weight: 600; margin: 0; }
 .an-heat td { text-align: center; padding: .55em .2em; border-radius: 4px; color: var(--ink); min-width: 2.2em; }
 .an-heat td[data-dark] { color: var(--on-accent); font-weight: 600; }
 .an-heat td.an-na { background: transparent; color: var(--ink-2); }
-.an-heat tbody th small { display: block; font-weight: 400; font-size: .85em; }
+.an-heat th small { display: block; font-weight: 400; font-size: .85em; }
+.td-etc { list-style: none; margin: .3em 0 0; padding: 0; display: flex; flex-direction: column; gap: .4em; font-size: .9em; }
+.td-etc li { display: flex; gap: .5em; align-items: baseline; }
+.td-etc .tgt { flex: none; font-size: .78em; }
+.td-words { display: flex; flex-wrap: wrap; gap: 6px; margin: 10px 0 0; }
+.td-word { font: inherit; font-size: .82em; border: 1px solid var(--line); background: var(--surface-2); color: var(--ink); border-radius: 999px; padding: .25em .75em; min-height: 32px; cursor: pointer; }
 .an-head { margin: 22px 2px 10px !important; display: flex; align-items: baseline; gap: .6em; }
 .an-sub { margin-top: .4em !important; padding-top: .9em; border-top: 1px solid var(--line); }
 .an-hbars { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: .45em; font-size: .86em; }
@@ -1255,6 +1260,7 @@ try { const p = JSON.parse(localStorage.getItem('koide-pref') || '{}'), d = docu
           <ul class="legend"><li><i class="sw edited"></i>이번 달 손봄</li><li><i class="sw confirmed"></i>그대로 확인</li><li><i class="sw same"></i>지난달 그대로</li></ul>`
         : `<p class="hint">아직 ${esc(grp())}이 없어요.</p>`}
         ${signalCard(M.signals, true)}
+        ${topicFlowCard(loadTopics())}
         ${serveCard()}
       </div></div>`;
   }
@@ -2347,6 +2353,7 @@ try { const p = JSON.parse(localStorage.getItem('koide-pref') || '{}'), d = docu
     return `${head}
       <div class="two-col"><div class="col">${manageCard()}</div><div class="col side">
         ${reorgCard()}
+        ${topicDictCard(loadTopics())}
         ${staffCard()}
         ${solo() ? '' : `<section class="card"><h2>기존 기도제목 가져오기</h2><p class="hint">지금 쓰는 구글 시트의 ${esc(grp())} 탭을 붙여 넣어 이번 달 기도제목으로 옮겨요.</p>
           <button class="btn small ghost" data-act="tab" data-v="import">가져오기 열기</button></section>`}
@@ -2388,6 +2395,7 @@ try { const p = JSON.parse(localStorage.getItem('koide-pref') || '{}'), d = docu
       <section class="card an-sec"><p class="label">기도하는 때 <small class="hint">최근 4주</small></p>
         ${tsum ? `<div class="an-scroll"><table class="an-heat an-time"><thead><tr><th></th>${AN_SLOT.map(x => `<th scope="col">${x}</th>`).join('')}</tr></thead><tbody>${timeRows}</tbody></table></div>` : '<p class="hint">최근 4주에 누른 "기도했어요"가 아직 없어요.</p>'}
         <p class="hint">새벽 5~9시 · 오전 ~12시 · 오후 ~18시 · 저녁 ~22시 · 밤</p></section>
+      ${topicFlowCard(A.topics || { err: '서버 코드를 새 버전으로 배포하면 볼 수 있어요.' })}
     </div></div>${appStatsView(A.app)}`;
   }
   // 분석 ② 앱 개선(만드는 쪽): 교회 전체 합계. 계속 쓰는지, 어디서 막히는지, 무엇을 쓰는지
@@ -2411,6 +2419,41 @@ try { const p = JSON.parse(localStorage.getItem('koide-pref') || '{}'), d = docu
         <p class="label an-sub">쓰는 환경 <small class="hint">이번 달 기기</small></p>
         <div class="stats an-tiles">${tile(pc(P.env.phone), '휴대폰')}${tile(pc(P.env.tablet), '태블릿')}${tile(pc(P.env.pc), 'PC')}${tile(pc(P.env.app), '홈 화면 앱')}${tile(pc(P.env.dark), '어두운 화면')}${tile(pc(P.env.big), '큰 글씨')}</div></section>
     </div></div>`;
+  }
+  // 기도 주제 흐름(목사님·관리자): 부서 기도제목을 주제사전 키워드로 나눈 최근 6개월 비중. 한 기도제목에 주제가 여럿 붙을 수 있다
+  function loadTopics() {
+    if (S.topics || S.topicsLoading) return S.topics;
+    S.topicsLoading = true;
+    api('topics').then(r => { S.topics = r; S.topicsLoading = false; paint(); })
+      .catch(err => { S.topicsLoading = false; S.topics = { err: err.code === 'bad' ? '서버 코드를 새 버전으로 배포하면 볼 수 있어요.' : err.message }; paint(); });
+    return null;
+  }
+  function topicFlowCard(T) {
+    const head = `<p class="label">기도 주제 흐름 <small class="hint">최근 6개월 · 기도제목 중 %</small></p>`;
+    if (!T || T.err) return `<section class="card an-sec">${head}<p class="hint">${T ? esc(T.err) : '불러오는 중…'}</p></section>`;
+    const mon = mm => Number(mm.slice(5)) + '월', pct = (k, n) => n ? Math.round(k / n * 100) : null;
+    const rows = T.topics.map(t => `<tr><th scope="row">${esc(t)}</th>${T.flow.map(f => { const v = pct(f.counts[t], f.n);
+      return v == null ? '<td class="an-na">·</td>' : `<td ${heatAttr(v, 60)} title="${mon(f.month)} ${esc(t)} ${f.counts[t]}개 (${v}%)">${v}</td>`; }).join('')}</tr>`).join('');
+    return `<section class="card an-sec">${head}
+      <div class="an-scroll"><table class="an-heat"><thead><tr><th></th>${T.flow.map(f => `<th scope="col">${mon(f.month)}<small>${f.n}개</small></th>`).join('')}</tr></thead><tbody>${rows}</tbody></table></div>
+      <p class="hint">설교와 기도회 주제를 정할 때 참고해요.</p></section>`;
+  }
+  // 관리 탭: 주제사전 다듬기. 이번 달 '기타'로 빠진 사랑방 공개 기도제목(가정 이름 없이)을 보고 키워드를 더하거나 뺀다
+  function topicDictCard(T) {
+    if (!T || T.err || !T.dict) return '';
+    const cur = T.dict.some(d => d.topic === S.tdTopic) ? S.tdTopic : T.dict[0].topic;
+    return `<section class="card"><h2>주제 사전</h2><p class="hint">기도제목에 이 낱말이 있으면 주제를 붙여요. 목사님·관리자의 주제 흐름에만 쓰여요.</p>
+      <p class="label" style="margin-top:12px">이번 달 기타로 빠진 기도제목 · ${T.etc.length}</p>
+      ${T.etc.length ? `<ul class="td-etc">${T.etc.slice(0, S.tdMore ? 999 : 5).map(x => `<li><span class="tgt">${esc(x.target)}</span>${esc(x.text)}</li>`).join('')}</ul>${T.etc.length > 5 ? `<button class="link" data-act="tdmore">${S.tdMore ? '접기' : '모두 보기'}</button>` : ''}` : '<p class="hint">모두 주제가 붙었어요.</p>'}
+      <p class="label" style="margin-top:12px">키워드 더하기</p>
+      <div class="mchips">${T.dict.map(d => `<button class="mchip${d.topic === cur ? ' on' : ''}" data-act="tdtopic" data-v="${esc(d.topic)}" aria-pressed="${d.topic === cur}">${esc(d.topic)}</button>`).join('')}</div>
+      <form class="kid-form" data-form="tdadd" data-topic="${esc(cur)}" style="margin-top:8px"><input class="field" name="w" placeholder="예: 학술지" aria-label="${esc(cur)}에 더할 키워드" maxlength="10" autocomplete="off"><button class="btn small" type="submit">더하기</button></form>
+      <p class="td-words">${(T.dict.find(d => d.topic === cur) || { words: [] }).words.map(w => `<button class="td-word" data-act="tdrm" data-v="${esc(cur)}|${esc(w)}" aria-label="${esc(w)} 빼기">${esc(w)} ×</button>`).join('')}</p></section>`;
+  }
+  async function topicWord(topic, word, remove) {
+    try { S.topics = await api('topicWord', { topic, word, remove }); if (S.an) S.an.topics = S.topics; toast(remove ? word + '을(를) 뺐어요.' : word + '을(를) ' + topic + '에 더했어요.'); }
+    catch (err) { oops(err); }
+    render();
   }
   async function loadAnalysis() {
     S.anErr = '';
@@ -2609,6 +2652,9 @@ try { const p = JSON.parse(localStorage.getItem('koide-pref') || '{}'), d = docu
         } catch (err) { oops(err); }
         S.busy = false; return render();
       }
+      case 'tdtopic': S.tdTopic = v; return render();
+      case 'tdmore': S.tdMore = !S.tdMore; return render();
+      case 'tdrm': { const [t, w] = v.split('|'); if (confirm(t + '에서 "' + w + '"을(를) 뺄까요?')) topicWord(t, w, true); return; }
       case 'admintab':
         S.adminTab = v; render();
         if (v === 'analysis') { track('화면 보기', { screen: '분석' }); loadAnalysis(); }
@@ -2862,6 +2908,7 @@ try { const p = JSON.parse(localStorage.getItem('koide-pref') || '{}'), d = docu
       catch (err) { oops(err); }
       S.busy = false; return render();
     }
+    if (f.dataset.form === 'tdadd') { const v = f.querySelector('input').value.trim(); if (v) topicWord(f.dataset.topic, v, false); return; }
     if (f.dataset.form === 'tgtcustom') { const v = f.querySelector('input').value.trim(); if (v) setTarget(f.dataset.id, v); return; }
 
   });

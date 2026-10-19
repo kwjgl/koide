@@ -43,7 +43,10 @@ const SCHEMA = {
   // 사용기록(설계서 10장): 행동과 숫자·선택지만. 이름·기도제목·가정ID는 넣지 않고, 기기ID는 기기마다 무작위 값이다
   usage: ['사용기록', [['at', '날짜시각'], ['device', '기기ID'], ['deptId', '부서ID'], ['event', '사건'], ['data', '덧붙임']]],
   // 접속 기록(설계서 10장): 그달 앱을 한 번이라도 연 가정. 날짜·시각 없이 달과 가정만 한 줄(분석의 '앱에 들어온 가정')
-  visits: ['접속 기록', [['month', '월'], ['familyId', '가정ID']]]
+  visits: ['접속 기록', [['month', '월'], ['familyId', '가정ID']]],
+  // 주제사전(설계서 10장 주제 자동 분류): 주제마다 키워드를 쉼표로. 기도제목 내용에 키워드가 있으면 그 주제(여럿 가능), 없으면 기타.
+  //  분류는 저장하지 않고 볼 때마다 해서, 사전을 고치면 지난 달까지 다시 분류된다. 비어 있으면 처음 읽을 때 기본 사전을 넣는다
+  topics: ['주제사전', [['topic', '주제'], ['words', '키워드'], ['order', '순서']]]
 };
 const SCOPES = ['room', 'leader', 'family'];
 // 교역자의 공개 범위: dept(부서 공개, 섬기는 분들 카드에 나옴) / family(우리 가정만)
@@ -55,7 +58,7 @@ const FIRST_DEPT = { id: 'D1', name: '청장년부', group: '사랑방', unit: '
 // ── 요청 받기 ─────────────────────────────────────────────
 
 // 서버 코드를 고칠 때마다 바꾼다. 웹 앱 주소를 열면 보여서, 새 버전으로 배포됐는지 확인할 수 있다
-const VERSION = '2026-10-19 분석 탭 ②';
+const VERSION = '2026-10-19 기도 주제 흐름';
 function doGet() {
   return ContentService.createTextOutput('코이데 서버가 켜져 있어요. (버전: ' + VERSION + ')');
 }
@@ -114,7 +117,9 @@ const ACTIONS = {
   reorg: body => reorgView_(adminOf_(body)),
   reorgSave: reorgSave_,
   reorgCancel: body => reorgCancel_(adminOf_(body)),
-  analysis: body => analysisView_(adminOf_(body))
+  analysis: body => analysisView_(adminOf_(body)),
+  topics: body => topicFlow_(staffOrAdmin_(body)),
+  topicWord: topicWord_
 };
 
 // ── 로그인 ───────────────────────────────────────────────
@@ -780,8 +785,63 @@ function analysisView_(c) {
     weeks,
     rooms: rooms.map(r => ({ name: r.name, vals: months.map(mm => { const f = famsAt(mm).filter(x => x.roomId === r.id).map(x => x.familyId); return pct(f.filter(id => done(id, mm)).length, f.length); }) })),
     time,
+    topics: topicFlow_(c),
     app: appStats_(m, seen)
   };
+}
+
+// ── 기도 주제 흐름 (목사님·관리자, 설계서 10장) ─────────────────
+const DEFAULT_TOPICS_ = [
+  ['건강', '건강, 수술, 회복, 병원, 검사, 치료, 통증, 알레르기, 체중, 입덧, 감기, 허리, 무릎, 재활'],
+  ['직장·진로', '직장, 회사, 복직, 이직, 취업, 사업, 구조조정, 승진, 야근, 면접, 업무'],
+  ['자녀·양육', '자녀, 육아, 어린이집, 유치원, 학교, 입학, 발달, 사춘기, 한글'],
+  ['임신·출산', '임신, 출산, 태아, 난임, 산후'],
+  ['학업·연구', '시험, 공부, 논문, 연구, 학위, 수업, 자격증, 실험, 학술지, 투고'],
+  ['가정·생활', '결혼, 부부, 부모님, 이사, 전세, 영주권, 비자, 여행, 가족 시간'],
+  ['신앙', '신앙, 말씀, 큐티, 예배, 거룩, 전도, 경건']
+];
+function topicDict_() {
+  if (!read_('topics').length) appendMany_('topics', DEFAULT_TOPICS_.map(([topic, words], i) => ({ topic, words, order: i + 1 })));
+  return read_('topics').sort((a, b) => a.order - b.order).map(t => ({ row: t, topic: t.topic, words: String(t.words).split(/\s*,\s*/).filter(Boolean) }));
+}
+function classify_(dict, text) {
+  const hit = dict.filter(d => d.words.some(w => String(text).indexOf(w) >= 0)).map(d => d.topic);
+  return hit.length ? hit : ['기타'];
+}
+function staffOrAdmin_(body) {
+  const c = member_(body);
+  if (!c.staff && !c.admin) throw fail_('forbidden', '목사님·관리자만 볼 수 있어요.');
+  return c;
+}
+// 부서의 최근 6개월 기도제목을 주제로 나눠 센다(합계만, 이름 없이). 우리 가정만 항목도 개수에는 넣고 내용은 내보내지 않는다.
+//  관리자에게는 이번 달 '기타'로 빠진 사랑방 공개 항목의 내용(가정 이름 없이)과 사전을 함께 준다(키워드 다듬기용)
+function topicFlow_(c) {
+  const m = month_(), months = [m];
+  while (months.length < 6) months.unshift(prevMonth_(months[0]));
+  const dict = topicDict_(), names = dict.map(d => d.topic).concat('기타');
+  const rooms = roomIdsOfDept_(c.deptId), items = read_('items').filter(i => months.indexOf(i.month) >= 0 && rooms.indexOf(i.roomId) >= 0);
+  const flow = months.map(mm => {
+    const list = items.filter(i => i.month === mm), counts = {};
+    names.forEach(t => { counts[t] = 0; });
+    list.forEach(i => classify_(dict, i.text).forEach(t => { counts[t]++; }));
+    return { month: mm, n: list.length, counts };
+  });
+  const out = { months, topics: names, flow };
+  if (c.admin) {
+    out.dict = dict.map(d => ({ topic: d.topic, words: d.words }));
+    out.etc = items.filter(i => i.month === m && i.scope === 'room' && classify_(dict, i.text)[0] === '기타').map(i => ({ target: i.target, text: i.text }));
+  }
+  return out;
+}
+// 관리자: 주제사전에 키워드를 더하거나 뺀다
+function topicWord_(body) {
+  const c = adminOf_(body), word = String(body.word || '').trim(), dict = topicDict_(), d = dict.find(x => x.topic === body.topic);
+  if (!d) throw fail_('bad', '모르는 주제예요.');
+  if (!word || word.length > 10 || /[,\n]/.test(word)) throw fail_('bad', '키워드는 쉼표 없이 10글자까지 써 주세요.');
+  const words = body.remove ? d.words.filter(w => w !== word) : d.words.indexOf(word) >= 0 ? d.words : d.words.concat(word);
+  d.row.words = words.join(', ');
+  update_('topics', d.row);
+  return topicFlow_(c);
 }
 
 // ── 분석 ② 앱 개선 (만드는 쪽, 설계서 10장) ─────────────────────
