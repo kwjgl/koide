@@ -58,7 +58,7 @@ const FIRST_DEPT = { id: 'D1', name: '청장년부', group: '사랑방', unit: '
 // ── 요청 받기 ─────────────────────────────────────────────
 
 // 서버 코드를 고칠 때마다 바꾼다. 웹 앱 주소를 열면 보여서, 새 버전으로 배포됐는지 확인할 수 있다
-const VERSION = '2026-10-19 그림 모으기';
+const VERSION = '2026-10-19 한 해 앨범';
 function doGet() {
   return ContentService.createTextOutput('코이데 서버가 켜져 있어요. (버전: ' + VERSION + ')');
 }
@@ -864,7 +864,10 @@ function myPrayers_(c) {
   const artMonths = [m]; while (artMonths.length < 24) artMonths.unshift(prevMonth_(artMonths[0]));
   return { months, unit: c.staff ? 'room' : 'family', rows: rows.map(r => ({ id: r.id, name: r.name,
     cells: months.map(mm => mine.filter(p => r.fams.indexOf(p.familyId) >= 0 && fmtMonth_(p.at) === mm).length) })),
-    art: c.staff ? undefined : artNums_(c, artMonths).filter(a => a.hero || a.month === m) };
+    art: c.staff ? undefined : artNums_(c, artMonths).filter(a => a.hero || a.month === m),
+    // 한 해 마무리 앨범: 해마다 내가 기도한 다른 가정 수
+    artYears: c.staff ? undefined : (() => { const y = {}; mine.filter(p => p.familyId !== c.familyId).forEach(p => { const k = fmtMonth_(p.at).slice(0, 4); (y[k] = y[k] || {})[p.familyId] = 1; });
+      Object.keys(y).forEach(k => { y[k] = Object.keys(y[k]).length; }); return y; })() };
 }
 
 // ── 기도 주제 흐름 (목사님·관리자, 설계서 10장) ─────────────────

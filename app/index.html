@@ -238,6 +238,16 @@ h2 { font-size: 1.05em; margin: 0; }
 
 
 .art-card { display: flex; flex-direction: column; gap: 10px; }
+/* 한 해 마무리 앨범 */
+.pss.album { z-index: 70; }
+.album-body { max-width: 720px; width: 100%; margin: 0 auto; display: flex; flex-direction: column; gap: .9em; text-align: center; padding-bottom: 24px; }
+.album-body h2 { font-family: var(--f-display, inherit); font-size: clamp(1.6em, 6vmin, 2.4em); margin: 0; }
+.album-body > p { margin: 0; }
+.album-stats { grid-template-columns: repeat(4, 1fr); }
+.album-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 240px), 1fr)); gap: 14px; text-align: left; }
+.album-item { margin: 0; display: flex; flex-direction: column; gap: .4em; }
+.album-item figcaption { font-size: .84em; font-weight: 600; }
+.coll-year > .btn { margin: .8em 0 .4em; }
 /* 지난 기록 검색 */
 .hist-q { margin: 6px 0 4px; max-width: 420px; }
 .sr-list { list-style: none; margin: 8px 0 0; padding: 0; display: flex; flex-direction: column; gap: 6px; }
@@ -1753,7 +1763,24 @@ try { const p = JSON.parse(localStorage.getItem('koide-pref') || '{}'), d = docu
       return `<article class="coll-item${a.month === now ? ' now' : ''}"><p class="coll-m">${esc(t)} <span>${a.month === now ? '모으는 중' : '완성'}</span></p>${sceneHtml(a.month, n)}</article>`; };
     return `<section class="card"><p class="label">달마다 모은 그림</p>${years.map((y, k) => { const L = list.filter(a => a.month.startsWith(y)).reverse(), days = L.reduce((s, a) => s + a.hero, 0);
       return `<details class="coll-year"${k ? '' : ' open'}><summary><b>${y}년</b><span>그림 ${L.length}장 · ${days}일 기도</span></summary>
-        <div class="coll">${k ? '' : `<article class="coll-item next"><p class="coll-m">${Number(next.slice(5))}월 · ? <span>곧 열려요</span></p><div class="ps-locked" aria-hidden="true"></div><p class="hint">다음 달 그림은 ${Number(next.slice(5))}월 1일에 열려요.</p></article>`}${L.map(item).join('')}</div></details>`; }).join('')}</section>`;
+        <div class="coll">${k ? '' : `<article class="coll-item next"><p class="coll-m">${Number(next.slice(5))}월 · ? <span>곧 열려요</span></p><div class="ps-locked" aria-hidden="true"></div><p class="hint">다음 달 그림은 ${Number(next.slice(5))}월 1일에 열려요.</p></article>`}${L.map(item).join('')}</div>
+        ${albumOpen(y) ? `<button class="btn small ghost" data-act="album" data-v="${y}">${y}년 한 해 앨범</button>` : `<p class="hint">${y}년 한 해 앨범은 12월 20일에 열려요.</p>`}</details>`; }).join('')}</section>`;
+  }
+  // 한 해 앨범은 지난해는 언제든, 올해는 12월 20일부터 연다
+  const albumOpen = y => { const d = new Date(); return +y < d.getFullYear() || (+y === d.getFullYear() && d.getMonth() === 11 && d.getDate() >= 20); };
+  // 한 해 마무리 앨범: 그해 그림을 한 화면에 모으고 "N일 기도했어요, N가정을 기억했어요"
+  function albumHtml() {
+    const P = S.myp, y = S.album; if (!P || !P.art) return '';
+    const L = P.art.filter(a => a.month.startsWith(y)), days = L.reduce((s, a) => s + a.hero, 0), hearts = L.reduce((s, a) => s + a.hearts, 0);
+    const fams = (P.artYears || {})[y] || 0, years = [...new Set(P.art.map(a => a.month.slice(0, 4)))].filter(albumOpen).sort().reverse();
+    const stat = (n, l) => `<div class="stat"><b>${n}</b><span>${l}</span></div>`;
+    return `<div class="pss album" role="dialog" aria-modal="true" aria-label="${y}년 나의 기도 앨범">
+      <div class="pss-top">${years.length > 1 ? `<div class="seg2" role="tablist" aria-label="연도">${years.map(v => `<button class="${v === y ? 'on' : ''}" role="tab" aria-selected="${v === y}" data-act="album" data-v="${v}">${v}년</button>`).join('')}</div>` : '<span></span>'}
+        <button class="pss-x" data-act="albumclose">닫기</button></div>
+      <div class="album-body"><p class="eyebrow">한 해 마무리</p><h2>${y}년 나의 기도 앨범</h2>
+        <p>${y === new Date().getFullYear() + '' ? '올해' : y + '년에'} ${days}일 기도했어요. ${fams}${words().count}을 기억했어요.</p>
+        <section class="card"><div class="stats album-stats">${stat(days, '기도한 날')}${stat(fams, '기억한 ' + words().one)}${stat(hearts, '같은 날 기도')}${stat(L.length, '모은 그림')}</div></section>
+        <div class="album-grid">${L.map(a => `<figure class="album-item">${sceneHtml(a.month, artN(a))}<figcaption>${esc(SCENES[sceneKey(a.month)].title)}</figcaption></figure>`).join('')}</div></div></div>`;
   }
   // 나의 기도(설계서 10장 '누구를 위해 기도했나'): 내가 누른 기도했어요를 최근 6개월, 가정마다(목사님은 사랑방마다). 나만 본다
   function loadMyPrayers() {
@@ -2873,7 +2900,7 @@ try { const p = JSON.parse(localStorage.getItem('koide-pref') || '{}'), d = docu
     if (app) $('#tabs').innerHTML = TABS.map(([k, l, ic]) => `<button class="${k === 'pray' ? 'pray-tab ' : ''}${on === k ? 'on' : ''}" data-act="tab" data-v="${k}" aria-label="${l}" title="${l}" ${on === k ? 'aria-current="page"' : ''}>${ic}</button>`).join('');
     // 기도하는 화면은 아래 탭까지 덮는 전체 화면
     //  모임 모드도 같은 자리에 띄운다
-    $('#bigv').innerHTML = app && S.bigView ? bigHtml() : '';
+    $('#bigv').innerHTML = app && S.bigView ? bigHtml() : app && S.album ? albumHtml() : '';
     S.artFx = null;
     const P = $('#pss'), meeting = app && !S.ps && S.meet != null, praying = app && !!S.ps || meeting;
     P.hidden = !praying; P.innerHTML = S.ps ? psHtml() : meeting ? meetHtml() : ''; P.setAttribute('aria-label', S.ps ? '기도하기' : meeting ? '모임 모드' : '');
@@ -2985,6 +3012,8 @@ try { const p = JSON.parse(localStorage.getItem('koide-pref') || '{}'), d = docu
         if (el.requestFullscreen) el.requestFullscreen().then(() => screen.orientation && screen.orientation.lock && screen.orientation.lock('landscape')).catch(() => {});
         return track('화면 보기', { screen: '그림 크게' });
       }
+      case 'album': S.album = v; render(); return track('화면 보기', { screen: '한 해 앨범' });
+      case 'albumclose': S.album = null; return render();
       case 'bigclose': S.bigView = null; render(); if (document.fullscreenElement) document.exitFullscreen().catch(() => {}); return;
       case 'tdtopic': S.tdTopic = v; return render();
       case 'tdmore': S.tdMore = !S.tdMore; return render();
