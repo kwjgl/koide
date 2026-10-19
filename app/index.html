@@ -291,6 +291,7 @@ html.tg-open { overflow: hidden; }
 @media (max-width: 420px) { .tg-tip { flex-direction: column; align-items: stretch; } .tg-tip .btn { align-self: flex-end; } }
 /* 코이데 소개 */
 /* 코이데 소개 영상: 화면 전체, 테마색을 따른다. 자막은 늘 나온다 */
+.note-link { display: inline-flex; margin-top: 10px; }
 .ab-play { display: inline-flex; align-items: center; gap: .5em; margin-top: .4em; }
 .ab-play svg { width: 18px; height: 18px; }
 html.iv-open { overflow: hidden; }
@@ -1647,6 +1648,7 @@ try { const p = JSON.parse(localStorage.getItem('koide-pref') || '{}'), d = docu
           <button class="choice" data-act="login" data-v="최운영">데모: 최운영으로 들어가기 (운영 지원 · 가정 없음)</button></div>
           <p class="hint">데모 모드에서는 카카오 대신 이 버튼으로 사람을 골라 들어가요.</p>`
         : `<button class="kakao" data-act="login">${ICON.bubble}카카오로 시작하기</button>${iosSafari() ? '<p class="hint">아이폰에서 \'접속 정보를 확인해 주세요\'가 나오면, 카톡 채팅방에서 이 링크를 눌러 열거나 설정 → iCloud → 비공개 릴레이를 끄고 다시 해 주세요.</p>' : ''}`}
+      <a class="link note-link" href="note.html">로그인 없이 나만 보는 기도 노트 쓰기 ›</a>
       <p class="hint name-note">코이데는 '교제'를 뜻하는 코이노니아와 '간구'를 뜻하는 데에시스에서 영감을 얻은 이름이에요. 서로의 기도를 나누고, 함께 기도하는 공동체를 뜻해요. 우리를 잇는 끈은 성령의 교통하심(코이노니아)이에요.</p>`,
     dept: () => `${steps(1)}<p class="eyebrow">처음 한 번만 확인할게요</p><h1>어느 부서인가요?</h1>
       <div class="choices">${(S.depts || []).map(d => `<button class="choice" data-act="pickdept" data-v="${esc(d.id)}">${esc(d.name)}</button>`).join('')}</div>`,
@@ -3131,6 +3133,7 @@ try { const p = JSON.parse(localStorage.getItem('koide-pref') || '{}'), d = docu
     return `<div class="page-top"><div><p class="eyebrow">${solo() ? esc(me.person) : famWho(mine.name, me.person)}</p><h1>더보기</h1></div></div>
       <div class="fam-grid" style="margin-top:12px">
         <div class="col"><p class="more-h">나</p>
+          <section class="card mrows">${row('note', '', '나 · 기도 노트', '나만 보는 기도제목과 감사 기록. 이 휴대폰에만 저장돼요')}</section>
           ${S.grp ? groupMoreCard() + `<section class="card mrows">${row('gback', '', esc(S.home ? S.home.room.name : '내 소그룹') + '으로 돌아가기', '내 원래 화면')}</section>` : famInfoCard() + myGroupsCard()}
           ${me.staff && !S.grp ? `<section class="card"><p class="label">섬기는 곳</p><h3>${esc(S.month.dept && S.month.dept.name || '')} · ${esc(me.label || me.role)}</h3>
             <p class="hint">${(S.month.serve || []).some(s => s.familyId === me.familyId) ? '회원의 이번 달 화면 맨 아래 "섬기는 분들"과 기도하기 마지막 장에 나와요. ' + esc(S.month.dept && S.month.dept.name || '부서') + ' 공개로 쓴 기도제목만 보여요.' : '섬기는 분들 카드에는 나오지 않아요(관리자가 정해요).'}${me.admin ? ' 관리자도 함께 맡고 있어요.' : ''}</p></section>` : ''}
@@ -4086,6 +4089,7 @@ try { const p = JSON.parse(localStorage.getItem('koide-pref') || '{}'), d = docu
     const role = S.grp ? me.role : lead || me.staff ? me.role : me.admin ? '관리자' : '회원', rc = S.grp ? (me.role === '모임장' ? 'leader' : '') : lead || me.staff ? 'leader' : me.admin ? 'admin' : '';
     const H = S.grp ? S.home : M, gAsks = myGroups().reduce((a, g) => a + (g.asks || 0), 0);
     const places = !S.me || !S.me.link || S.me.link.status !== '연결' ? '' : `<div class="mdiv"></div><p class="mlabel">함께하는 곳</p>
+        <a class="mitem" role="menuitem" href="note.html"><span>나 · 기도 노트</span><small>나만 봐요 · 이 휴대폰에만</small></a>
         <button class="mitem${S.grp ? '' : ' on'}" role="menuitem" data-act="gback"><span>${esc(H ? H.room.name : '')}</span><small>${S.grp ? '내 ' + (H && H.dept ? esc(H.dept.group || '소그룹') : '소그룹') : '지금 보는 곳'}</small></button>
         ${myGroups().map(g => `<button class="mitem${S.grp === g.id ? ' on' : ''}" role="menuitem" ${g.wait ? 'disabled' : `data-act="gopen" data-v="${esc(g.id)}"`}><span>${esc(g.name)}</span><small>${g.wait ? '승인을 기다려요' : S.grp === g.id ? '지금 보는 곳' : g.role + (g.asks ? ' · 신청 ' + g.asks : '')}</small></button>`).join('')}`;
     const menu = S.menu === 'badge' ? `<div class="menu" role="menu" aria-label="사랑방">
@@ -4133,7 +4137,15 @@ try { const p = JSON.parse(localStorage.getItem('koide-pref') || '{}'), d = docu
     return '';
   }
   const vtAnim = (el, cls) => { if (!el) return; el.classList.remove(cls); void el.offsetWidth; el.classList.add(cls); el.addEventListener('animationend', () => el.classList.remove(cls), { once: true }); };
+  // 기도 노트(note.html)의 '사랑방에 나누기': 글만 넘겨받아 내 기도의 쓰기 칸에 넣는다. 공개 범위를 고르고 저장해야 나눠진다
+  function takeShare() {
+    let x = null; try { x = JSON.parse(localStorage.getItem('koide-share') || 'null'); localStorage.removeItem('koide-share'); } catch (e) { return; }
+    if (!x || !x.text || Date.now() - (x.at || 0) > 864e5) return;
+    S.grp = null; S.tab = 'mine'; S.draft = (S.draft ? S.draft + '\n\n' : '') + x.text;
+    setTimeout(() => toast('기도 노트에서 옮겨 적었어요. 항목으로 나누기 → 공개 범위를 고르고 추가해 주세요.'), 300);
+  }
   function render() {
+    if (S.view === 'app' && !S.op && S.month) { try { if (localStorage.getItem('koide-share')) takeShare(); } catch (e) { /* 무시 */ } }
     const sig = viewSig(), kind = vtKind(lastSig, sig);
     lastSig = sig;
     const t0 = performance.now(), y0 = scrollY;
@@ -4367,6 +4379,7 @@ try { const p = JSON.parse(localStorage.getItem('koide-pref') || '{}'), d = docu
       case 'tourre':
         try { localStorage.removeItem(TOUR_KEY()); localStorage.removeItem(TIPS_KEY()); ['scope', 'end', 'write'].forEach(k => localStorage.removeItem('koide-tip-' + k)); } catch (e) { /* 무시 */ }
         return Tour.open();
+      case 'note': location.href = 'note.html'; return;
       case 'ivid': {
         const w = words(), k = sceneKey(S.month.month), sc = SCENES[k], all = sc.props.length;
         const art = staffMe() ? [] : [[2, 1, 0], [8, 3, 1], [15, 5, 3], [24, all, 5]].map(([hero, props, hearts]) => sceneSvg(k, { hero, props: Math.min(props, all), hearts }));

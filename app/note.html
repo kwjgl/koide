@@ -1,0 +1,433 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#2B6A62">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="코이데">
+<title>코이데 기도 노트</title>
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Gowun+Batang:wght@700&family=IBM+Plex+Sans+KR:wght@400;500;600&display=swap">
+<style>
+/* 코이데 기도 노트(개인용 시범판): 공동체 앱(index.html)과 같은 폴더·같은 홈 화면 앱 안의 '나' 공간. 같은 색·글꼴.
+   기록은 이 기기에만 저장하고 서버로 보내지 않는다. 공동체로는 '사랑방에 나누기'(글만 넘겨 내 기도에서 고르고 저장)와 '공동체로' 링크로 오간다 */
+:root {
+  --page: #F3F5F2; --surface: #FFFFFF; --surface-2: #EEF2EF;
+  --ink: #1B2523; --ink-2: #5B6965; --line: #DDE4E0; --line-strong: #B9C4BF;
+  --accent: #2B6A62; --accent-mid: #8DBDB5; --accent-soft: #DCEBE7; --on-accent: #FFFFFF;
+  --warm: #9A5A14; --warm-soft: #F5E8D6; --shadow: rgba(20, 35, 32, .14);
+  --f-display: 'Gowun Batang', 'AppleMyungjo', 'Batang', serif;
+  --f-body: 'IBM Plex Sans KR', 'Apple SD Gothic Neo', 'Malgun Gothic', sans-serif;
+}
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) {
+  --page: #141B19; --surface: #1C2522; --surface-2: #232D2A;
+  --ink: #E5ECE9; --ink-2: #9CAAA5; --line: #2D3935; --line-strong: #4A5853;
+  --accent: #7CC2B7; --accent-mid: #3F7C73; --accent-soft: #1E3934; --on-accent: #0F1A18;
+  --warm: #E2A563; --warm-soft: #3A2C1B; --shadow: rgba(0, 0, 0, .5); color-scheme: dark; } }
+:root[data-theme="dark"] {
+  --page: #141B19; --surface: #1C2522; --surface-2: #232D2A;
+  --ink: #E5ECE9; --ink-2: #9CAAA5; --line: #2D3935; --line-strong: #4A5853;
+  --accent: #7CC2B7; --accent-mid: #3F7C73; --accent-soft: #1E3934; --on-accent: #0F1A18;
+  --warm: #E2A563; --warm-soft: #3A2C1B; --shadow: rgba(0, 0, 0, .5); color-scheme: dark; }
+* { box-sizing: border-box; }
+html { -webkit-text-size-adjust: 100%; text-size-adjust: 100%; }
+body { margin: 0; background: var(--page); color: var(--ink); font-family: var(--f-body); font-size: 16px; line-height: 1.55; }
+button, input, textarea { font: inherit; color: inherit; }
+.wrap { max-width: 640px; margin: 0 auto; padding: calc(12px + env(safe-area-inset-top, 0px)) 16px calc(96px + env(safe-area-inset-bottom, 0px)); }
+.space { display: flex; justify-content: space-between; align-items: center; gap: 8px; margin-bottom: 10px; }
+.space a { color: var(--accent); font-weight: 600; font-size: .86em; text-decoration: none; min-height: 36px; display: inline-flex; align-items: center; }
+.pilot { font-size: .74em; color: var(--warm); background: var(--warm-soft); border-radius: 999px; padding: .3em .9em; display: inline-block; margin-bottom: 10px; }
+.top { display: flex; justify-content: space-between; align-items: flex-end; gap: 12px; margin-bottom: 12px; }
+.eyebrow { margin: 0; font-size: .8em; color: var(--ink-2); }
+h1 { font-family: var(--f-display); font-size: 1.6em; margin: .1em 0 0; line-height: 1.3; word-break: keep-all; text-wrap: balance; }
+h2 { font-family: var(--f-display); font-size: 1.15em; margin: 0; }
+.card { background: var(--surface); border: 1px solid var(--line); border-radius: 16px; padding: 1em; display: flex; flex-direction: column; gap: .7em; margin-bottom: 12px; }
+.label { margin: 0; font-size: .8em; font-weight: 600; color: var(--ink-2); }
+.hint { margin: 0; font-size: .82em; color: var(--ink-2); word-break: keep-all; }
+.plain { margin: 0; word-break: keep-all; }
+.row { display: flex; justify-content: space-between; align-items: center; gap: 10px; }
+.btn { white-space: nowrap; flex: none; border: 0; border-radius: 999px; background: var(--accent); color: var(--on-accent); font-weight: 600; padding: .65em 1.2em; min-height: 44px; cursor: pointer; }
+.btn.ghost { background: var(--surface); color: var(--accent); border: 1.5px solid var(--accent-mid); }
+.btn.small { padding: .35em .9em; min-height: 36px; font-size: .88em; }
+.btn.wide { width: 100%; }
+.btn:disabled { opacity: .45; cursor: default; }
+.link { background: none; border: 0; padding: .3em 0; color: var(--accent); font-weight: 600; cursor: pointer; min-height: 36px; }
+.link.quiet { color: var(--ink-2); font-weight: 500; }
+.field { width: 100%; min-width: 0; flex: 1; border: 1px solid var(--line-strong); border-radius: 12px; background: var(--surface); padding: .7em .8em; }
+textarea.field { min-height: 5.5em; resize: vertical; }
+.field:focus { outline: 2px solid var(--accent-mid); border-color: var(--accent); }
+.chips { display: flex; flex-wrap: wrap; gap: 6px; }
+.chip { border: 1px solid var(--line-strong); background: var(--surface); border-radius: 999px; padding: .35em .85em; min-height: 36px; cursor: pointer; font-size: .9em; }
+.chip.on { background: var(--accent); color: var(--on-accent); border-color: var(--accent); }
+.chip.add { border-style: dashed; color: var(--accent); }
+.tag { display: inline-block; font-size: .76em; font-weight: 600; color: var(--accent); background: var(--accent-soft); border-radius: 999px; padding: .1em .65em; margin-right: .4em; }
+.days { font-size: .76em; color: var(--ink-2); }
+/* 오늘 */
+.today-item { border: 1px solid var(--line); border-radius: 14px; padding: .8em .9em; display: flex; flex-direction: column; gap: .5em; background: var(--surface); }
+.today-item.on { background: var(--accent-soft); border-color: var(--accent-mid); }
+.today-item p { margin: 0; word-break: keep-all; }
+.pray-btn { align-self: flex-start; display: inline-flex; align-items: center; gap: .4em; border-radius: 999px; border: 1.5px solid var(--accent); background: var(--surface); color: var(--accent); font-weight: 600; padding: .45em 1em; min-height: 40px; cursor: pointer; }
+.pray-btn.on { background: var(--accent); color: var(--on-accent); }
+.pray-btn svg { width: 16px; height: 16px; }
+/* 내가 기도하는 사람들의 끈 */
+.cord { display: grid; gap: 0; align-items: start; }
+.cord svg { width: 100%; height: 46px; display: block; overflow: visible; }
+.cord .seg { fill: none; stroke-width: 2.5; stroke-linecap: round; }
+.cord .seg.loose { stroke: var(--line-strong); }
+.cord .seg.taut { stroke: var(--accent); }
+.cord .slot { fill: var(--surface); stroke: var(--line-strong); stroke-width: 1.5; }
+.cord .knot { fill: var(--accent-soft); stroke: var(--accent); stroke-width: 2.5; }
+.cord-names { display: grid; text-align: center; font-size: .72em; color: var(--ink-2); margin-top: -4px; }
+.cord-names span.on { color: var(--accent); font-weight: 600; }
+/* 노트 */
+.group h3 { margin: .3em 0 0; font-size: .86em; color: var(--ink-2); font-weight: 600; }
+.note { border-top: 1px solid var(--line); padding-top: .7em; display: flex; flex-direction: column; gap: .35em; }
+.note:first-of-type { border-top: 0; padding-top: 0; }
+.note p { margin: 0; word-break: keep-all; white-space: pre-wrap; }
+.note .acts { display: flex; gap: 14px; }
+/* 돌아보기 */
+.weeks { display: grid; grid-template-columns: repeat(7, 1fr); gap: 5px; }
+.weeks i { aspect-ratio: 1; border-radius: 6px; background: var(--surface-2); display: grid; place-items: center; font-style: normal; font-size: .68em; color: var(--ink-2); }
+.weeks i.on { background: var(--accent); color: var(--on-accent); }
+.weeks i.today { outline: 2px solid var(--accent-mid); }
+.thanks li { list-style: none; border-left: 3px solid var(--warm); padding: .2em 0 .2em .7em; margin-bottom: .7em; }
+.thanks { margin: 0; padding: 0; }
+.thanks small { display: block; color: var(--ink-2); font-size: .76em; }
+.thanks q { display: block; color: var(--ink-2); font-size: .82em; quotes: none; margin-top: .2em; }
+.stats { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; text-align: center; }
+.stats b { display: block; font-family: var(--f-display); font-size: 1.6em; line-height: 1.1; }
+.stats span { font-size: .76em; color: var(--ink-2); }
+/* 아래 탭 */
+.tabs { position: fixed; left: 0; right: 0; bottom: 0; background: var(--surface); border-top: 1px solid var(--line); display: grid; grid-template-columns: repeat(5, 1fr); padding: 6px 4px calc(6px + env(safe-area-inset-bottom, 0px)); z-index: 10; }
+.tabs button { background: none; border: 0; display: flex; flex-direction: column; align-items: center; gap: 2px; font-size: .7em; color: var(--ink-2); min-height: 48px; cursor: pointer; }
+.tabs button svg { width: 22px; height: 22px; }
+.tabs button.on { color: var(--accent); font-weight: 600; }
+.tabs .mid svg { width: 26px; height: 26px; }
+/* 기도하기 판 */
+.sheet-back { position: fixed; inset: 0; background: color-mix(in srgb, var(--ink) 45%, transparent); z-index: 30; display: grid; place-items: end center; padding: 16px; }
+.sheet { width: min(480px, 100%); background: var(--surface); border-radius: 20px; padding: 18px; display: flex; flex-direction: column; gap: 12px; max-height: calc(100dvh - 32px); overflow: auto; }
+@media (min-width: 640px) { .sheet-back { place-items: center; } }
+.ps { position: fixed; inset: 0; z-index: 40; background: var(--page); display: flex; flex-direction: column; }
+.ps-top { display: flex; justify-content: space-between; align-items: center; padding: calc(12px + env(safe-area-inset-top, 0px)) 16px 8px; }
+.ps-body { flex: 1; display: grid; place-items: center; padding: 16px; text-align: center; overflow: auto; }
+.ps-body .in { max-width: 30em; display: flex; flex-direction: column; gap: 14px; align-items: center; }
+.ps-text { font-family: var(--f-display); font-size: clamp(1.25rem, 4.5vw, 1.7rem); line-height: 1.6; margin: 0; word-break: keep-all; white-space: pre-wrap; }
+.ps-nav { display: grid; grid-template-columns: 1fr 1.4fr 1fr; gap: 10px; padding: 12px 16px calc(16px + env(safe-area-inset-bottom, 0px)); }
+.bar { height: 3px; background: var(--line); margin: 0 16px; border-radius: 2px; overflow: hidden; }
+.bar b { display: block; height: 100%; background: var(--accent); }
+.toast { position: fixed; left: 50%; bottom: calc(84px + env(safe-area-inset-bottom, 0px)); transform: translateX(-50%); background: var(--ink); color: var(--page); padding: .55em 1.1em; border-radius: 999px; font-size: .88em; z-index: 50; }
+.empty { text-align: center; padding: 1.4em 1em; }
+.notice { background: var(--warm-soft); color: var(--ink); border-radius: 14px; padding: .8em .9em; font-size: .86em; word-break: keep-all; }
+.notice b { color: var(--warm); }
+.mrow { display: flex; justify-content: space-between; align-items: center; gap: 10px; background: none; border: 0; border-top: 1px solid var(--line); padding: .8em 0; width: 100%; text-align: left; cursor: pointer; }
+.mrow:first-of-type { border-top: 0; padding-top: 0; }
+.mrow small { display: block; color: var(--ink-2); font-size: .8em; }
+.seg { display: grid; grid-auto-flow: column; grid-auto-columns: 1fr; border: 1px solid var(--line-strong); border-radius: 999px; overflow: hidden; }
+.seg button { background: var(--surface); border: 0; padding: .5em .3em; min-height: 40px; cursor: pointer; font-size: .9em; }
+.seg button.on { background: var(--accent); color: var(--on-accent); font-weight: 600; }
+.people li { display: flex; justify-content: space-between; align-items: center; padding: .4em 0; border-top: 1px solid var(--line); list-style: none; }
+.people { margin: 0; padding: 0; }
+.people li:first-child { border-top: 0; }
+@media (prefers-reduced-motion: no-preference) { .today-item, .card { transition: background .2s, border-color .2s; } }
+</style>
+</head>
+<body>
+<div id="root"></div>
+<script>
+(() => {
+  // ── 저장: 이 기기에만. 서버로 보내지 않는다 ─────────────────────────────
+  const KEY = 'koide-note-v1';
+  const blank = () => ({ v: 1, started: false, name: '', people: [], items: [], prays: [], thanks: [], today: null, mode: '' });
+  let D;
+  try { D = Object.assign(blank(), JSON.parse(localStorage.getItem(KEY) || 'null') || {}); } catch (e) { D = blank(); }
+  let canSave = true;
+  function save() { try { localStorage.setItem(KEY, JSON.stringify(D)); } catch (e) { canSave = false; } }
+  if (navigator.storage && navigator.storage.persist) navigator.storage.persist().catch(() => {});
+
+  const $ = s => document.querySelector(s);
+  const esc = s => String(s == null ? '' : s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]);
+  const uid = () => Date.now().toString(36) + Math.random().toString(36).slice(2, 6);
+  const dkey = (d = new Date()) => d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
+  const TODAY = () => dkey();
+  const dateLabel = k => { const [y, m, d] = k.split('-').map(Number), w = '일월화수목금토'[new Date(y, m - 1, d).getDay()]; return `${m}월 ${d}일 ${w}요일`; };
+  const short = k => { const [, m, d] = k.split('-').map(Number); return `${m}월 ${d}일`; };
+  const daysSince = k => Math.max(1, Math.round((new Date(TODAY()) - new Date(k)) / 864e5) + 1);
+  const ICON = {
+    sun: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><circle cx="12" cy="12" r="4"/><path d="M12 2.5v2M12 19.5v2M2.5 12h2M19.5 12h2M5.3 5.3l1.4 1.4M17.3 17.3l1.4 1.4M5.3 18.7l1.4-1.4M17.3 6.7l1.4-1.4"/></svg>',
+    pen: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 20h4L19 9l-4-4L4 16z"/><path d="M14 6l4 4"/></svg>',
+    hands: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 21V9.5c0-1.6-.8-3-2-4L8 4v6"/><path d="M12 21V9.5c0-1.6.8-3 2-4L16 4v6"/><path d="M8 10l-3 5 4 6M16 10l3 5-4 6"/></svg>',
+    book: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 5.5C6 4.5 9 4.5 12 6c3-1.5 6-1.5 8-.5V19c-2-1-5-1-8 .5-3-1.5-6-1.5-8-.5z"/><path d="M12 6v13.5"/></svg>',
+    more: '<svg viewBox="0 0 24 24" fill="currentColor"><circle cx="5" cy="12" r="1.6"/><circle cx="12" cy="12" r="1.6"/><circle cx="19" cy="12" r="1.6"/></svg>',
+    check: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg>'
+  };
+
+  // ── 기도 대상: 나, 내가 기도하는 사람들, 교회, 나라·세상 ─────────────────
+  const FIXED = [['me', '나'], ['church', '교회'], ['world', '나라·세상']];
+  const targetName = t => t.startsWith('p:') ? ((D.people.find(p => p.id === t.slice(2)) || {}).name || '떠난 이름') : (FIXED.find(f => f[0] === t) || [, '나'])[1];
+  const targets = () => [['me', '나'], ...D.people.map(p => ['p:' + p.id, p.name]), ['church', '교회'], ['world', '나라·세상']];
+  const open = () => D.items.filter(i => !i.done);
+  const lastPrayed = id => D.prays.filter(p => p.item === id).reduce((m, p) => p.d > m ? p.d : m, '');
+  const prayedToday = id => D.prays.some(p => p.item === id && p.d === TODAY());
+
+  // 오늘 기도할 제목: 하루에 3개를 정해 두고(그날은 바뀌지 않게), 오래 기도하지 않은 것부터
+  function todaySet() {
+    const t = TODAY(), live = open().map(i => i.id);
+    if (!D.today || D.today.d !== t) {
+      const pick = open().slice().sort((a, b) => (lastPrayed(a.id) || '0').localeCompare(lastPrayed(b.id) || '0') || a.created.localeCompare(b.created)).slice(0, 3).map(i => i.id);
+      D.today = { d: t, ids: pick }; save();
+    }
+    D.today.ids = D.today.ids.filter(id => live.indexOf(id) >= 0);
+    if (D.today.ids.length < 3) {
+      const more = open().filter(i => D.today.ids.indexOf(i.id) < 0).sort((a, b) => (lastPrayed(a.id) || '0').localeCompare(lastPrayed(b.id) || '0')).slice(0, 3 - D.today.ids.length).map(i => i.id);
+      if (more.length) { D.today.ids.push(...more); save(); }
+    }
+    return D.today.ids.map(id => D.items.find(i => i.id === id)).filter(Boolean);
+  }
+  function togglePray(id) {
+    const t = TODAY(), k = D.prays.findIndex(p => p.item === id && p.d === t);
+    if (k >= 0) D.prays.splice(k, 1); else D.prays.push({ d: t, item: id });
+    save();
+  }
+
+  const S = { tab: D.started ? 'today' : 'start', edit: null, draftT: 'me', done: null, ps: null, toast: '', pick: null };
+
+  // ── 화면 ─────────────────────────────────────────────────────────────
+  function cordHtml() {
+    const nodes = [['me', '나'], ...D.people.map(p => ['p:' + p.id, p.name])];
+    if (nodes.length < 2) return '';
+    const on = nodes.map(([t]) => D.items.some(i => i.target === t && prayedToday(i.id)));
+    const N = nodes.length, W = 100 * N, x = k => 50 + k * 100;
+    let s = '';
+    for (let k = 0; k < N - 1; k++) { const both = on[k] && on[k + 1]; s += `<path class="seg ${both ? 'taut' : 'loose'}" d="M${x(k)} 18Q${x(k) + 50} ${both ? 18 : 34} ${x(k + 1)} 18"/>`; }
+    nodes.forEach((n, k) => { s += on[k] ? `<circle class="knot" cx="${x(k)}" cy="18" r="10"/>` : `<circle class="slot" cx="${x(k)}" cy="18" r="8"/>`; });
+    return `<section class="card"><div class="row"><p class="label">내가 기도하는 사람들</p><span class="hint">${on.filter(Boolean).length} / ${N}</span></div>
+      <div class="cord"><svg viewBox="0 0 ${W} 44" preserveAspectRatio="none" aria-label="오늘 기도한 사람은 매듭이 지어져요">${s}</svg>
+      <div class="cord-names" style="grid-template-columns:repeat(${N},1fr)">${nodes.map(([, n], k) => `<span class="${on[k] ? 'on' : ''}">${esc(n)}</span>`).join('')}</div></div>
+      <p class="hint">오늘 그 사람을 위해 기도하면 매듭이 지어지고, 이웃한 두 사람을 다 기도하면 끈이 팽팽해져요.</p></section>`;
+  }
+  function todayView() {
+    const set = todaySet(), all = open(), done = set.filter(i => prayedToday(i.id)).length;
+    const head = `<header class="top"><div><p class="eyebrow">${dateLabel(TODAY())}</p><h1>오늘의 기도</h1></div></header>`;
+    if (!all.length) return head + `<section class="card empty"><h2>아직 기도제목이 없어요</h2><p class="hint">나와 가족, 친구, 교회를 위한 기도제목을 써 보세요. 이 휴대폰에만 저장돼요.</p><button class="btn" data-a="tab" data-v="note">기도제목 쓰기</button></section>` + thanksQuick();
+    return head + `<section class="card"><div class="row"><p class="label">오늘 기도할 제목</p><span class="hint">${done} / ${set.length}</span></div>
+      ${set.map(i => { const on = prayedToday(i.id); return `<div class="today-item${on ? ' on' : ''}"><p><span class="tag">${esc(targetName(i.target))}</span>${esc(i.text)}</p>
+        <div class="row"><span class="days">${daysSince(i.created)}일째 기도하고 있어요</span><button class="pray-btn${on ? ' on' : ''}" data-a="pray" data-v="${i.id}" aria-pressed="${on}">${on ? ICON.check + '기도했어요' : '기도했어요'}</button></div></div>`; }).join('')}
+      ${done === set.length ? `<p class="hint">오늘 기도할 제목을 다 기도했어요.${all.length > set.length ? ' 다른 기도제목도 함께 기도해 볼까요?' : ''}</p>` : ''}
+      <button class="btn ghost" data-a="psopen" data-v="${done === set.length ? 'all' : 'today'}">${done === set.length && all.length > set.length ? '모든 기도제목으로 기도하기' : '한 장씩 기도하기'}</button></section>
+      ${cordHtml()}${thanksQuick()}`;
+  }
+  function thanksQuick() {
+    const t = D.thanks.filter(x => x.date === TODAY());
+    return `<section class="card"><p class="label">오늘 감사한 것</p>
+      ${t.length ? `<ul class="thanks">${t.map(x => `<li>${esc(x.text)}</li>`).join('')}</ul>` : ''}
+      <form data-f="thanks" class="row" style="align-items:stretch"><input class="field" id="th-in" maxlength="200" placeholder="한 줄이면 충분해요" aria-label="오늘 감사한 것" value="${esc(S.thDraft || '')}"><button class="btn small" type="submit">남기기</button></form></section>`;
+  }
+  function noteView() {
+    const T = targets(), groups = T.map(([t, n]) => [t, n, open().filter(i => i.target === t)]).filter(g => g[2].length);
+    const e = S.edit && D.items.find(i => i.id === S.edit);
+    const form = `<section class="card"><p class="label">${e ? '기도제목 고치기' : '새 기도제목'}</p>
+      <form data-f="item"><textarea class="field" id="it-text" maxlength="1000" placeholder="무엇을 위해 기도할까요?" aria-label="기도제목">${esc(S.draft != null ? S.draft : e ? e.text : '')}</textarea>
+        <p class="label" style="margin-top:10px">누구를 위해</p>
+        <div class="chips" role="radiogroup" aria-label="누구를 위해">${T.map(([t, n]) => `<button type="button" class="chip${S.draftT === t ? ' on' : ''}" role="radio" aria-checked="${S.draftT === t}" data-a="tgt" data-v="${t}">${esc(n)}</button>`).join('')}<button type="button" class="chip add" data-a="addperson">+ 사람</button></div>
+        <div class="row" style="margin-top:12px;justify-content:flex-end">${e ? '<button type="button" class="btn ghost small" data-a="editcancel">취소</button>' : ''}<button class="btn" type="submit">${e ? '고치기' : '더하기'}</button></div></form></section>`;
+    return `<header class="top"><div><p class="eyebrow">나만 보는 노트</p><h1>기도 노트</h1></div><span class="hint">${open().length}개</span></header>${form}
+      ${groups.length ? `<section class="card group">${groups.map(([t, n, L]) => `<h3>${esc(n)}</h3>${L.map(i => `<div class="note"><p>${esc(i.text)}</p>
+        <div class="row"><span class="days">${short(i.created)}부터 · ${daysSince(i.created)}일째${lastPrayed(i.id) ? ' · 마지막 기도 ' + short(lastPrayed(i.id)) : ''}</span>
+        <span class="acts"><button class="link quiet" data-a="edit" data-v="${i.id}">고치기</button><button class="link quiet" data-a="share" data-v="${i.id}">나누기</button><button class="link" data-a="done" data-v="${i.id}">마치기</button></span></div></div>`).join('')}`).join('')}</section>` : '<p class="hint" style="text-align:center">위에 첫 기도제목을 써 보세요.</p>'}`;
+  }
+  function lookView() {
+    const t = new Date(), days = [];
+    for (let k = 27; k >= 0; k--) { const d = new Date(t); d.setDate(t.getDate() - k); days.push(dkey(d)); }
+    const prayedDays = new Set(D.prays.map(p => p.d)), month = TODAY().slice(0, 7);
+    const mDays = [...prayedDays].filter(d => d.startsWith(month)).length;
+    const doneL = D.items.filter(i => i.done).sort((a, b) => b.done.date.localeCompare(a.done.date));
+    const longest = open().slice().sort((a, b) => a.created.localeCompare(b.created)).slice(0, 3);
+    const thanks = D.thanks.slice().sort((a, b) => b.date.localeCompare(a.date));
+    return `<header class="top"><div><p class="eyebrow">나만 보는 기록</p><h1>돌아보기</h1></div></header>
+      <section class="card"><div class="stats"><div><b>${mDays}</b><span>이번 달 기도한 날</span></div><div><b>${thanks.length}</b><span>감사·응답 기록</span></div><div><b>${doneL.length}</b><span>마친 기도</span></div></div>
+        <p class="label">최근 4주</p><div class="weeks" aria-label="최근 4주 중 기도한 날">${days.map(d => `<i class="${prayedDays.has(d) ? 'on' : ''}${d === TODAY() ? ' today' : ''}" title="${short(d)}">${Number(d.slice(8))}</i>`).join('')}</div>
+        <p class="hint">남과 견주지 않는 나만의 기록이에요. 빈 날이 있어도 괜찮아요.</p></section>
+      <section class="card"><p class="label">감사와 응답</p>${thanks.length ? `<ul class="thanks">${thanks.map(x => { const it = x.item && D.items.find(i => i.id === x.item); return `<li><small>${short(x.date)}${x.kind === 'answer' ? ' · 응답' : ''}</small>${esc(x.text)}${it ? `<q>기도제목: ${esc(it.text)}</q>` : ''}</li>`; }).join('')}</ul>` : '<p class="hint">기도제목을 "응답받았어요"로 마치거나, 오늘 화면에서 감사한 것을 남기면 여기에 모여요.</p>'}</section>
+      ${longest.length ? `<section class="card"><p class="label">오래 이어 온 기도</p>${longest.map(i => `<p class="plain"><span class="tag">${esc(targetName(i.target))}</span>${esc(i.text)} <span class="days">· ${daysSince(i.created)}일째</span></p>`).join('')}</section>` : ''}
+      ${doneL.length ? `<section class="card"><p class="label">마친 기도</p>${doneL.map(i => `<div class="note"><p><span class="tag">${esc(targetName(i.target))}</span>${esc(i.text)}</p><span class="days">${short(i.created)} ~ ${short(i.done.date)} · ${i.done.how === 'answer' ? '응답받았어요' : '맡겨 두었어요'}</span>
+        <button class="link quiet" data-a="undone" data-v="${i.id}" style="align-self:flex-start">다시 기도하기</button></div>`).join('')}</section>` : ''}`;
+  }
+  function moreView() {
+    const mode = D.mode || '';
+    return `<header class="top"><div><p class="eyebrow">${D.name ? esc(D.name) : '코이데 기도 노트'}</p><h1>더보기</h1></div></header>
+      <div class="notice"><b>이 기록은 이 휴대폰에만 있어요.</b> 서버로 보내지 않아서 아무도 볼 수 없지만, 휴대폰을 바꾸거나 브라우저 기록을 지우면 사라져요. 아이폰은 홈 화면에 두지 않고 7일 넘게 열지 않으면 지워질 수 있어요. 가끔 백업을 내려받아 두세요.</div>
+      <section class="card" style="margin-top:12px"><p class="label">내가 기도하는 사람들</p>
+        ${D.people.length ? `<ul class="people">${D.people.map(p => `<li><span>${esc(p.name)}</span><span><button class="link quiet" data-a="renperson" data-v="${p.id}">이름 바꾸기</button> <button class="link quiet" data-a="delperson" data-v="${p.id}">빼기</button></span></li>`).join('')}</ul>` : '<p class="hint">가족, 친구처럼 늘 기도하는 사람을 더해 두면 기도제목의 대상으로 고를 수 있고, 오늘 화면에 끈이 생겨요.</p>'}
+        <button class="btn ghost small" data-a="addperson" style="align-self:flex-start">+ 사람 더하기</button></section>
+      <section class="card"><p class="label">백업</p>
+        <button class="mrow" data-a="backup"><span><b>백업 파일 내려받기</b><small>기도 노트를 파일 하나로 저장해요. 다른 사람에게 보내지 마세요</small></span></button>
+        <button class="mrow" data-a="restore"><span><b>백업 불러오기</b><small>새 휴대폰에서 백업 파일을 열어 이어 써요</small></span></button>
+        <input type="file" id="restore-file" accept="application/json,.json" hidden></section>
+      <section class="card"><p class="label">화면 모드</p><div class="seg" role="radiogroup" aria-label="화면 모드">${[['', '기기 설정'], ['light', '밝게'], ['dark', '어둡게']].map(([k, l]) => `<button class="${mode === k ? 'on' : ''}" role="radio" aria-checked="${mode === k}" data-a="mode" data-v="${k}">${l}</button>`).join('')}</div></section>
+      <section class="card"><p class="label">함께하는 곳</p><p class="plain">기도 노트는 혼자 쓰는 곳이에요. 사랑방이나 모임과 함께 기도하는 곳은 같은 앱의 공동체예요(카카오 로그인). 노트의 기도제목을 사랑방에 나누고 싶으면 노트에서 "사랑방에 나누기"를 눌러요.</p>
+        <a class="btn ghost small" style="align-self:flex-start;text-decoration:none;display:inline-flex;align-items:center" href="index.html">코이데 공동체로</a></section>
+      <section class="card"><p class="label">시범판 의견</p><p class="hint">써 보고 좋았던 점, 불편한 점을 알려 주세요. 기도 내용은 담기지 않아요.</p>
+        <button class="btn ghost small" data-a="fbcopy" style="align-self:flex-start">의견 보낼 글 복사하기</button></section>
+      <button class="link quiet" data-a="wipe" style="display:block;margin:6px auto 0">이 휴대폰의 기도 노트 모두 지우기</button>`;
+  }
+  function startView() {
+    return `<div class="pilot">시범판</div><header class="top"><div><p class="eyebrow">코이데 · 나만 보는 기도 노트</p><h1>나와 내가 사랑하는 사람들을 위해</h1></div></header>
+      <section class="card"><p class="plain">기도제목을 쓰고, 날마다 몇 개씩 기도하고, 감사와 응답을 남겨요.</p>
+        <div class="notice"><b>기록은 이 휴대폰에만 저장돼요.</b> 서버로 보내지 않아서 운영하는 사람도 볼 수 없어요. 그래서 휴대폰을 바꾸면 백업 파일로 옮겨야 해요. 아이폰은 꼭 <b>홈 화면에 추가</b>해서 써 주세요(공유 버튼 › 홈 화면에 추가).</div>
+        <form data-f="start"><label class="label" for="st-name">부를 이름 (선택)</label><input class="field" id="st-name" maxlength="20" autocomplete="nickname" style="margin-top:6px">
+          <label class="label" for="st-people" style="display:block;margin-top:12px">늘 기도하는 사람 (선택, 쉼표로 나눠요)</label><input class="field" id="st-people" maxlength="200" placeholder="예) 엄마, 아빠, 지우" style="margin-top:6px">
+          <button class="btn wide" type="submit" style="margin-top:16px">시작하기</button></form></section>`;
+  }
+  function doneSheet() {
+    const i = D.items.find(x => x.id === S.done); if (!i) return '';
+    return `<div class="sheet-back" data-a="doneclose"><section class="sheet" role="dialog" aria-modal="true" aria-labelledby="dn-t" data-stop>
+      <h2 id="dn-t">이 기도제목을 마칠까요?</h2><p class="plain"><span class="tag">${esc(targetName(i.target))}</span>${esc(i.text)}</p>
+      <div class="seg" role="radiogroup" aria-label="어떻게 마칠까요">${[['answer', '응답받았어요'], ['leave', '맡겨 둘게요']].map(([k, l]) => `<button class="${(S.doneHow || 'answer') === k ? 'on' : ''}" role="radio" aria-checked="${(S.doneHow || 'answer') === k}" data-a="donehow" data-v="${k}">${l}</button>`).join('')}</div>
+      ${(S.doneHow || 'answer') === 'answer' ? '<label class="label" for="dn-note">어떻게 응답하셨나요? (감사 기록으로 남아요)</label><textarea class="field" id="dn-note" maxlength="1000" placeholder="한 줄이어도 좋아요"></textarea>' : '<p class="hint">하나님께 맡겨 두고 마쳐요. 돌아보기의 마친 기도에 남고, 언제든 다시 기도할 수 있어요.</p>'}
+      <div class="row" style="justify-content:flex-end"><button class="btn ghost" data-a="doneclose">취소</button><button class="btn" data-a="doneok">마치기</button></div></section></div>`;
+  }
+  function psHtml() {
+    const P = S.ps, L = P.list, last = P.i >= L.length;
+    const top = `<div class="ps-top"><span class="hint">${last ? '마침' : `${P.i + 1} / ${L.length}`}</span><button class="link" data-a="psclose">닫기</button></div><div class="bar"><b style="width:${Math.min(100, P.i / L.length * 100)}%"></b></div>`;
+    if (last) return `<div class="ps" role="dialog" aria-modal="true" aria-label="기도하기">${top}<div class="ps-body"><div class="in">
+      <p class="eyebrow">감사와 찬양으로 마쳐요</p><p class="ps-text">나라와 권세와 영광이\n영원히 아버지께 있습니다. 아멘.</p>
+      <p class="hint">${P.n}개 기도제목을 위해 기도했어요.</p>
+      <form data-f="thanks" style="width:100%;display:flex;gap:8px"><input class="field" id="th-in" maxlength="200" placeholder="오늘 감사한 것 한 줄" aria-label="오늘 감사한 것" value="${esc(S.thDraft || '')}"><button class="btn small" type="submit">남기기</button></form></div></div>
+      <div class="ps-nav" style="grid-template-columns:1fr"><button class="btn" data-a="psclose">마치기</button></div></div>`;
+    const it = L[P.i], on = prayedToday(it.id);
+    return `<div class="ps" role="dialog" aria-modal="true" aria-label="기도하기">${top}<div class="ps-body"><div class="in">
+      <span class="tag">${esc(targetName(it.target))}</span><p class="ps-text">${esc(it.text)}</p><span class="days">${daysSince(it.created)}일째 기도하고 있어요</span></div></div>
+      <div class="ps-nav"><button class="btn ghost" data-a="psgo" data-v="-1"${P.i ? '' : ' disabled'}>이전</button>
+        <button class="pray-btn${on ? ' on' : ''}" style="align-self:stretch;justify-content:center" data-a="pspray" aria-pressed="${on}">${on ? ICON.check + '기도했어요' : '기도했어요'}</button>
+        <button class="btn ghost" data-a="psgo" data-v="1">${P.i === L.length - 1 ? '마침' : '다음'}</button></div></div>`;
+  }
+  function prayTab() {
+    const set = todaySet(), all = open();
+    return `<header class="top"><div><p class="eyebrow">한 장씩 넘기며</p><h1>기도하기</h1></div></header>
+      <section class="card"><p class="plain">고른 기도제목을 한 장씩 넘기며 기도해요. 기도한 장에서 "기도했어요"를 누르면 오늘 기록에 남아요. 마지막에는 감사와 찬양으로 마쳐요.</p>
+        <button class="btn" data-a="psopen" data-v="today"${set.length ? '' : ' disabled'}>오늘 기도할 제목 · ${set.length}개</button>
+        <button class="btn ghost" data-a="psopen" data-v="all"${all.length ? '' : ' disabled'}>모든 기도제목 · ${all.length}개</button>
+        ${all.length ? '' : '<p class="hint">먼저 기도 노트에 기도제목을 써 주세요.</p>'}</section>`;
+  }
+  const TABS = [['today', '오늘', ICON.sun], ['note', '기도 노트', ICON.pen], ['pray', '기도하기', ICON.hands], ['look', '돌아보기', ICON.book], ['more', '더보기', ICON.more]];
+  function render() {
+    document.documentElement.dataset.theme = D.mode || '';
+    if (!D.mode) delete document.documentElement.dataset.theme;
+    const V = { start: startView, today: todayView, note: noteView, pray: prayTab, look: lookView, more: moreView }[S.tab];
+    $('#root').innerHTML = `<div class="wrap">${S.tab !== 'start' ? `<div class="space"><span class="pilot" style="margin:0">나 · 기도 노트 · 이 휴대폰에만</span><a href="index.html">공동체로 ›</a></div>` : ''}${V()}</div>
+      ${S.tab === 'start' ? '' : `<nav class="tabs" aria-label="메뉴">${TABS.map(([k, l, ic]) => `<button class="${k === 'pray' ? 'mid ' : ''}${S.tab === k ? 'on' : ''}" data-a="tab" data-v="${k}" ${S.tab === k ? 'aria-current="page"' : ''}>${ic}<span>${l}</span></button>`).join('')}</nav>`}
+      ${S.done ? doneSheet() : ''}${S.ps ? psHtml() : ''}${S.toast ? `<div class="toast" role="status">${esc(S.toast)}</div>` : ''}
+      ${canSave ? '' : '<div class="toast" role="alert">이 브라우저에서는 저장할 수 없어요. 개인 정보 보호 모드를 끄고 열어 주세요.</div>'}`;
+    document.documentElement.style.overflow = S.ps || S.done ? 'hidden' : '';
+  }
+  let toastT;
+  function toast(m) { S.toast = m; render(); clearTimeout(toastT); toastT = setTimeout(() => { S.toast = ''; render(); }, 2200); }
+  function go(t) { S.tab = t; S.edit = null; render(); window.scrollTo(0, 0); }
+  function addPerson() {
+    const n = (prompt('기도할 사람의 이름') || '').trim().slice(0, 12); if (!n) return null;
+    const p = { id: uid(), name: n }; D.people.push(p); save(); return p;
+  }
+
+  // ── 누르기 ─────────────────────────────────────────────────────────────
+  document.addEventListener('click', e => {
+    const b = e.target.closest('[data-a]'); if (!b) return;
+    // 다시 그려도 쓰던 글이 남게(대상 고르기·사람 더하기를 눌러도)
+    const ta = $('#it-text'); if (ta) S.draft = ta.value;
+    const th = $('#th-in'); if (th) S.thDraft = th.value;
+    if (b.dataset.a === 'doneclose' && e.target.closest('[data-stop]') && !e.target.closest('button')) return;
+    const a = b.dataset.a, v = b.dataset.v;
+    switch (a) {
+      case 'tab': S.draft = null; S.thDraft = ''; return go(v);
+      case 'pray': togglePray(v); return render();
+      case 'tgt': S.draftT = v; return render();
+      case 'addperson': { const p = addPerson(); if (p && S.tab === 'note') S.draftT = 'p:' + p.id; return render(); }
+      case 'edit': { const i = D.items.find(x => x.id === v); S.edit = v; S.draftT = i.target; S.draft = null; render(); $('#it-text').focus(); return window.scrollTo(0, 0); }
+      case 'editcancel': S.edit = null; S.draft = null; return render();
+      case 'done': S.done = v; S.doneHow = 'answer'; return render();
+      case 'donehow': S.doneHow = v; return render();
+      case 'doneclose': S.done = null; return render();
+      case 'doneok': {
+        const i = D.items.find(x => x.id === S.done), how = S.doneHow || 'answer', note = how === 'answer' ? ($('#dn-note').value || '').trim() : '';
+        i.done = { date: TODAY(), how };
+        if (how === 'answer') D.thanks.push({ id: uid(), date: TODAY(), text: note || '응답받았어요', item: i.id, kind: 'answer' });
+        save(); S.done = null; return toast(how === 'answer' ? '감사 기록으로 남겼어요' : '맡겨 두었어요');
+      }
+      case 'share': {
+        // 사랑방에 나누기: 글만 공동체 앱의 '내 기도' 쓰기 칸으로 넘긴다(복사). 공개 범위와 저장은 거기서 고른다. 노트의 원본은 그대로
+        const i = D.items.find(x => x.id === v);
+        if (!confirm('이 기도제목을 공동체(사랑방)의 "내 기도" 쓰기 칸으로 옮겨 적을까요? 공개 범위를 고르고 저장해야 나눠져요. 노트의 기도제목은 그대로 남아요.')) return;
+        try { localStorage.setItem('koide-share', JSON.stringify({ text: (i.target === 'me' ? '' : targetName(i.target) + 'ㅡ') + i.text, at: Date.now() })); } catch (e) { return toast('옮겨 적지 못했어요'); }
+        location.href = 'index.html';
+        return;
+      }
+      case 'undone': { const i = D.items.find(x => x.id === v); i.done = null; save(); return toast('다시 기도 노트에 넣었어요'); }
+      case 'psopen': { const L = v === 'all' ? open() : todaySet(); if (!L.length) return; S.ps = { list: L.slice(), i: 0, n: 0 }; return render(); }
+      case 'psgo': S.ps.i = Math.max(0, S.ps.i + Number(v)); S.ps.n = S.ps.list.filter(i => prayedToday(i.id)).length; return render();
+      case 'pspray': togglePray(S.ps.list[S.ps.i].id); S.ps.n = S.ps.list.filter(i => prayedToday(i.id)).length; return render();
+      case 'psclose': S.ps = null; return render();
+      case 'renperson': { const p = D.people.find(x => x.id === v), n = (prompt('새 이름', p.name) || '').trim().slice(0, 12); if (n) { p.name = n; save(); } return render(); }
+      case 'delperson': {
+        const p = D.people.find(x => x.id === v), n = D.items.filter(i => i.target === 'p:' + v && !i.done).length;
+        if (!confirm(`${p.name} 님을 뺄까요?${n ? ` 이 사람을 위한 기도제목 ${n}개는 "나"로 옮겨요.` : ''}`)) return;
+        D.items.forEach(i => { if (i.target === 'p:' + v) i.target = 'me'; }); D.people = D.people.filter(x => x.id !== v); save(); return render();
+      }
+      case 'mode': D.mode = v; save(); return render();
+      case 'backup': {
+        const blob = new Blob([JSON.stringify(Object.assign({ app: 'koide-note', saved: new Date().toISOString() }, D), null, 1)], { type: 'application/json' });
+        const u = URL.createObjectURL(blob), l = document.createElement('a'); l.href = u; l.download = `코이데-기도노트-${TODAY()}.json`; document.body.appendChild(l); l.click(); l.remove(); setTimeout(() => URL.revokeObjectURL(u), 1000);
+        return toast('백업 파일을 내려받았어요');
+      }
+      case 'restore': return $('#restore-file').click();
+      case 'wipe': if (!confirm('이 휴대폰의 기도 노트를 모두 지울까요? 되돌릴 수 없어요. 먼저 백업을 내려받아 두세요.')) return; D = blank(); save(); S.tab = 'start'; return render();
+      case 'fbcopy': {
+        const t = `코이데 기도 노트 시범판 의견\n- 쓴 기간: ${D.prays.length ? short(D.prays.map(p => p.d).sort()[0]) + ' ~ ' + short(TODAY()) : '오늘'}\n- 기도제목 ${D.items.length}개 · 기도한 날 ${new Set(D.prays.map(p => p.d)).size}일 · 감사 기록 ${D.thanks.length}개\n- 좋았던 점: \n- 불편했던 점: \n- 있었으면 하는 것: `;
+        (navigator.clipboard ? navigator.clipboard.writeText(t) : Promise.reject()).then(() => toast('복사했어요. 카톡에 붙여 넣어 보내 주세요'), () => prompt('아래 글을 복사해 보내 주세요', t));
+        return;
+      }
+    }
+  });
+  document.addEventListener('submit', e => {
+    const f = e.target.closest('[data-f]'); if (!f) return; e.preventDefault();
+    if (f.dataset.f === 'start') {
+      D.name = $('#st-name').value.trim().slice(0, 20);
+      ($('#st-people').value || '').split(/[,，·]/).map(s => s.trim().slice(0, 12)).filter(Boolean).slice(0, 12).forEach(n => D.people.push({ id: uid(), name: n }));
+      D.started = true; save(); return go('note');
+    }
+    if (f.dataset.f === 'item') {
+      const t = $('#it-text').value.trim(); if (!t) return $('#it-text').focus();
+      S.draft = null;
+      if (S.edit) { const i = D.items.find(x => x.id === S.edit); i.text = t; i.target = S.draftT; S.edit = null; save(); return toast('고쳤어요'); }
+      D.items.push({ id: uid(), text: t, target: S.draftT, created: TODAY(), done: null }); save(); return toast('기도 노트에 더했어요');
+    }
+    if (f.dataset.f === 'thanks') {
+      const t = $('#th-in').value.trim(); if (!t) return;
+      S.thDraft = ''; D.thanks.push({ id: uid(), date: TODAY(), text: t.slice(0, 200), kind: 'thanks' }); save(); return toast('감사를 남겼어요');
+    }
+  });
+  document.addEventListener('change', e => {
+    if (e.target.id !== 'restore-file' || !e.target.files[0]) return;
+    const r = new FileReader();
+    r.onload = () => {
+      try {
+        const x = JSON.parse(r.result);
+        if (x.app !== 'koide-note' || !Array.isArray(x.items)) throw new Error();
+        if (!confirm(`백업(${x.saved ? short(dkey(new Date(x.saved))) : '날짜 모름'}, 기도제목 ${x.items.length}개)으로 바꿀까요? 지금 이 휴대폰의 기도 노트는 지워져요.`)) return;
+        D = Object.assign(blank(), x); delete D.app; delete D.saved; D.started = true; save(); S.tab = 'today'; toast('백업을 불러왔어요');
+      } catch (err) { toast('코이데 기도 노트 백업 파일이 아니에요'); }
+    };
+    r.readAsText(e.target.files[0]);
+  });
+  document.addEventListener('keydown', e => {
+    if (e.key !== 'Escape') return;
+    if (S.ps) { S.ps = null; render(); } else if (S.done) { S.done = null; render(); }
+  });
+  render();
+  if ('serviceWorker' in navigator && (location.protocol === 'https:' || location.hostname === 'localhost')) navigator.serviceWorker.register('sw.js').catch(() => {});
+})();
+</script>
+</body>
+</html>
