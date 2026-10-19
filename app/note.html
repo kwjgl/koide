@@ -12,8 +12,15 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Gowun+Batang:wght@700&family=IBM+Plex+Sans+KR:wght@400;500;600&display=swap">
+<script>
+/* 화면 모드·색 테마·큰 글씨: 공동체 앱과 같은 설정(이 기기에만). 화면이 그려지기 전에 먼저 입힌다 */
+try { const p = JSON.parse(localStorage.getItem('koide-pref') || '{}'), d = document.documentElement;
+  if (p.mode === 'light' || p.mode === 'dark') d.dataset.mode = p.mode;
+  if (p.accent && p.accent !== 'green') d.dataset.accent = p.accent;
+  if (p.big) d.dataset.big = ''; } catch (e) { /* 무시 */ }
+</script>
 <style>
-/* 코이데 기도 노트(개인용 시범판): 공동체 앱(index.html)과 같은 폴더·같은 홈 화면 앱 안의 '나' 공간. 같은 색·글꼴.
+/* 코이데 기도 노트: 공동체 앱(index.html)과 같은 폴더·같은 홈 화면 앱 안의 '나' 공간. 같은 색·글꼴·설정(화면 모드, 색 테마, 큰 글씨).
    기록은 이 기기에만 저장하고 서버로 보내지 않는다. 공동체로는 '사랑방에 나누기'(글만 넘겨 내 기도에서 고르고 저장)와 '공동체로' 링크로 오간다 */
 :root {
   --page: #F3F5F2; --surface: #FFFFFF; --surface-2: #EEF2EF;
@@ -22,25 +29,41 @@
   --warm: #9A5A14; --warm-soft: #F5E8D6; --shadow: rgba(20, 35, 32, .14);
   --f-display: 'Gowun Batang', 'AppleMyungjo', 'Batang', serif;
   --f-body: 'IBM Plex Sans KR', 'Apple SD Gothic Neo', 'Malgun Gothic', sans-serif;
+  --base: 16px;
 }
-@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) {
+@media (prefers-color-scheme: dark) { :root:not([data-mode="light"]) {
   --page: #141B19; --surface: #1C2522; --surface-2: #232D2A;
   --ink: #E5ECE9; --ink-2: #9CAAA5; --line: #2D3935; --line-strong: #4A5853;
   --accent: #7CC2B7; --accent-mid: #3F7C73; --accent-soft: #1E3934; --on-accent: #0F1A18;
   --warm: #E2A563; --warm-soft: #3A2C1B; --shadow: rgba(0, 0, 0, .5); color-scheme: dark; } }
-:root[data-theme="dark"] {
+:root[data-mode="dark"] {
   --page: #141B19; --surface: #1C2522; --surface-2: #232D2A;
   --ink: #E5ECE9; --ink-2: #9CAAA5; --line: #2D3935; --line-strong: #4A5853;
   --accent: #7CC2B7; --accent-mid: #3F7C73; --accent-soft: #1E3934; --on-accent: #0F1A18;
   --warm: #E2A563; --warm-soft: #3A2C1B; --shadow: rgba(0, 0, 0, .5); color-scheme: dark; }
+/* 큰 글씨와 색 테마: 공동체 앱과 같은 값 */
+:root[data-big] { --base: 19px; }
+@media (min-width: 1000px) { :root[data-big] { --base: 18px; } }
+:root[data-accent="amber"] { --page:#F7F2EA;--surface:#FFFDF9;--surface-2:#F1EADF;--ink:#2A221B;--ink-2:#6E6155;--line:#E6DCCD;--line-strong:#C9B9A3;--accent:#A9561B;--accent-mid:#E2B07F;--accent-soft:#F6E3CF;--on-accent:#FFFFFF;--private:#EFE8DE; }
+@media (prefers-color-scheme: dark) { :root[data-accent="amber"]:not([data-mode="light"]) { --page:#1A1612;--surface:#231E19;--surface-2:#2B241E;--ink:#EEE6DC;--ink-2:#AE9F8E;--line:#3A3129;--line-strong:#5A4D41;--accent:#E9A066;--accent-mid:#8A5A32;--accent-soft:#3A2818;--on-accent:#1E140C;--private:#2E2721; } }
+:root[data-accent="amber"][data-mode="dark"] { --page:#1A1612;--surface:#231E19;--surface-2:#2B241E;--ink:#EEE6DC;--ink-2:#AE9F8E;--line:#3A3129;--line-strong:#5A4D41;--accent:#E9A066;--accent-mid:#8A5A32;--accent-soft:#3A2818;--on-accent:#1E140C;--private:#2E2721; }
+:root[data-accent="blue"] { --page:#F2F4F8;--surface:#FFFFFF;--surface-2:#EAEEF4;--ink:#1B2230;--ink-2:#5A6475;--line:#DCE2EB;--line-strong:#B6C0CF;--accent:#2F5D95;--accent-mid:#93AFD3;--accent-soft:#DCE6F3;--on-accent:#FFFFFF;--private:#E8EBF0; }
+@media (prefers-color-scheme: dark) { :root[data-accent="blue"]:not([data-mode="light"]) { --page:#12161D;--surface:#1A2029;--surface-2:#212833;--ink:#E4E9F0;--ink-2:#9AA5B5;--line:#2C3542;--line-strong:#485466;--accent:#8EB4E6;--accent-mid:#3C5B85;--accent-soft:#1D2C42;--on-accent:#0E1622;--private:#232A35; } }
+:root[data-accent="blue"][data-mode="dark"] { --page:#12161D;--surface:#1A2029;--surface-2:#212833;--ink:#E4E9F0;--ink-2:#9AA5B5;--line:#2C3542;--line-strong:#485466;--accent:#8EB4E6;--accent-mid:#3C5B85;--accent-soft:#1D2C42;--on-accent:#0E1622;--private:#232A35; }
+:root[data-accent="rose"] { --page:#F8F2F3;--surface:#FFFDFD;--surface-2:#F2E8EA;--ink:#2A1E21;--ink-2:#6E5B60;--line:#E8DADD;--line-strong:#CDB6BC;--accent:#A8435C;--accent-mid:#DDA2B1;--accent-soft:#F5DFE5;--on-accent:#FFFFFF;--private:#F0E7E9; }
+@media (prefers-color-scheme: dark) { :root[data-accent="rose"]:not([data-mode="light"]) { --page:#1A1416;--surface:#231B1E;--surface-2:#2B2226;--ink:#EEE3E6;--ink-2:#B09CA2;--line:#3A2D31;--line-strong:#5A464C;--accent:#E896AB;--accent-mid:#86475A;--accent-soft:#3B2029;--on-accent:#200E14;--private:#2E2428; } }
+:root[data-accent="rose"][data-mode="dark"] { --page:#1A1416;--surface:#231B1E;--surface-2:#2B2226;--ink:#EEE3E6;--ink-2:#B09CA2;--line:#3A2D31;--line-strong:#5A464C;--accent:#E896AB;--accent-mid:#86475A;--accent-soft:#3B2029;--on-accent:#200E14;--private:#2E2428; }
+:root[data-accent="ink"] { --page:#F4F4F2;--surface:#FFFFFF;--surface-2:#EDEDEA;--ink:#1D1D1B;--ink-2:#62625E;--line:#E0E0DC;--line-strong:#BDBDB7;--accent:#33332F;--accent-mid:#A3A39C;--accent-soft:#E6E6E1;--on-accent:#FFFFFF;--private:#ECECE8; }
+@media (prefers-color-scheme: dark) { :root[data-accent="ink"]:not([data-mode="light"]) { --page:#141414;--surface:#1D1D1C;--surface-2:#252524;--ink:#ECECE8;--ink-2:#A3A39E;--line:#30302E;--line-strong:#4D4D4A;--accent:#E2E2DC;--accent-mid:#6A6A65;--accent-soft:#2E2E2C;--on-accent:#141414;--private:#262625; } }
+:root[data-accent="ink"][data-mode="dark"] { --page:#141414;--surface:#1D1D1C;--surface-2:#252524;--ink:#ECECE8;--ink-2:#A3A39E;--line:#30302E;--line-strong:#4D4D4A;--accent:#E2E2DC;--accent-mid:#6A6A65;--accent-soft:#2E2E2C;--on-accent:#141414;--private:#262625; }
 * { box-sizing: border-box; }
 html { -webkit-text-size-adjust: 100%; text-size-adjust: 100%; }
-body { margin: 0; background: var(--page); color: var(--ink); font-family: var(--f-body); font-size: 16px; line-height: 1.55; }
+body { margin: 0; background: var(--page); color: var(--ink); font-family: var(--f-body); font-size: var(--base); line-height: 1.55; }
 button, input, textarea { font: inherit; color: inherit; }
 .wrap { max-width: 640px; margin: 0 auto; padding: calc(12px + env(safe-area-inset-top, 0px)) 16px calc(96px + env(safe-area-inset-bottom, 0px)); }
 .space { display: flex; justify-content: space-between; align-items: center; gap: 8px; margin-bottom: 10px; }
 .space a { color: var(--accent); font-weight: 600; font-size: .86em; text-decoration: none; min-height: 36px; display: inline-flex; align-items: center; }
-.pilot { font-size: .74em; color: var(--warm); background: var(--warm-soft); border-radius: 999px; padding: .3em .9em; display: inline-block; margin-bottom: 10px; }
+.pilot { font-size: .74em; color: var(--accent); background: var(--accent-soft); border-radius: 999px; padding: .3em .9em; display: inline-block; margin-bottom: 10px; }
 .top { display: flex; justify-content: space-between; align-items: flex-end; gap: 12px; margin-bottom: 12px; }
 .eyebrow { margin: 0; font-size: .8em; color: var(--ink-2); }
 h1 { font-family: var(--f-display); font-size: 1.6em; margin: .1em 0 0; line-height: 1.3; word-break: keep-all; text-wrap: balance; }
@@ -89,7 +112,7 @@ textarea.field { min-height: 5.5em; resize: vertical; }
 .note:first-of-type { border-top: 0; padding-top: 0; }
 .note p { margin: 0; word-break: keep-all; white-space: pre-wrap; }
 .note .acts { display: flex; gap: 14px; }
-/* 돌아보기 */
+/* 지난 기록 */
 .weeks { display: grid; grid-template-columns: repeat(7, 1fr); gap: 5px; }
 .weeks i { aspect-ratio: 1; border-radius: 6px; background: var(--surface-2); display: grid; place-items: center; font-style: normal; font-size: .68em; color: var(--ink-2); }
 .weeks i.on { background: var(--accent); color: var(--on-accent); }
@@ -132,12 +155,35 @@ textarea.field { min-height: 5.5em; resize: vertical; }
 .people li { display: flex; justify-content: space-between; align-items: center; padding: .4em 0; border-top: 1px solid var(--line); list-style: none; }
 .people { margin: 0; padding: 0; }
 .people li:first-child { border-top: 0; }
+.swatches { display: flex; gap: .55em; flex-wrap: wrap; }
+.swatch { width: 40px; height: 40px; border-radius: 50%; padding: 0; border: 2px solid transparent; background: none; cursor: pointer; display: grid; place-items: center; }
+.swatch i { width: 28px; height: 28px; border-radius: 50%; display: block; box-shadow: inset 0 0 0 1px rgba(0, 0, 0, .12); }
+.swatch.on { border-color: var(--ink); }
+.switch { width: 48px; height: 28px; border-radius: 999px; border: 0; background: var(--line-strong); position: relative; flex: none; padding: 0; cursor: pointer; }
+.switch > span { position: absolute; top: 3px; left: 3px; width: 22px; height: 22px; border-radius: 50%; background: var(--surface); transition: left .2s; }
+.switch.on { background: var(--accent); }
+.switch.on > span { left: 23px; }
+/* 기도하기: 하나님 나라 장과 주기도문 */
+.ps-lp { margin: 0; font-size: .82em; color: var(--accent); font-weight: 600; word-break: keep-all; }
+.ps-list { margin: 0; padding: 0; list-style: none; display: flex; flex-direction: column; gap: .8em; text-align: left; }
+.ps-list li { font-family: var(--f-display); font-size: 1.1em; line-height: 1.6; word-break: keep-all; }
+.ps-list small { display: block; font-family: var(--f-body); font-size: .72em; color: var(--ink-2); margin-top: .2em; }
+.ps-next { margin: 0; font-size: .9em; color: var(--ink-2); word-break: keep-all; }
+.ps-lord { margin: 0; font-family: var(--f-display); font-size: clamp(1.05rem, 4vw, 1.35rem); line-height: 1.8; word-break: keep-all; }
+.ps-lord span { display: block; }
+.ps-music { background: none; border: 1px solid var(--line-strong); border-radius: 999px; padding: .25em .8em; min-height: 34px; font-size: .82em; color: var(--ink-2); cursor: pointer; }
+.ps-music.on { color: var(--accent); border-color: var(--accent-mid); }
+/* 사용법 안내 */
+.tour-dots { display: flex; gap: 6px; justify-content: center; }
+.tour-dots i { width: 7px; height: 7px; border-radius: 50%; background: var(--line-strong); }
+.tour-dots i.on { background: var(--accent); }
 @media (prefers-reduced-motion: no-preference) { .today-item, .card { transition: background .2s, border-color .2s; } }
 </style>
 </head>
 <body>
 <div id="root"></div>
 <script src="config.js"></script>
+<script src="pray-data.js"></script>
 <script>
 (() => {
   // ── 저장: 이 기기에만. 서버로 보내지 않는다 ─────────────────────────────
@@ -296,7 +342,63 @@ textarea.field { min-height: 5.5em; resize: vertical; }
     save();
   }
 
-  const S = { tab: D.started ? 'today' : 'start', edit: null, draftT: 'me', done: null, ps: null, toast: '', pick: null };
+  const S = { tab: D.started ? 'today' : 'start', edit: null, draftT: 'me', done: null, ps: null, toast: '', pick: null, tour: null };
+
+  // ── 화면 설정: 공동체 앱과 같은 곳(koide-pref)에 둔다. 예전 노트의 화면 모드는 한 번 옮긴다 ──────────
+  const PREF = (() => { try { return JSON.parse(localStorage.getItem('koide-pref')) || {}; } catch (e) { return {}; } })();
+  const MODES = [['system', '기기 설정'], ['light', '밝게'], ['dark', '어둡게']];
+  const ACCENTS = [['green', '초록', '#2B6A62'], ['amber', '주황', '#C46A24'], ['blue', '파랑', '#2F5D95'], ['rose', '장미', '#A8435C'], ['ink', '먹색', '#3A3A36']];
+  function setPref(k, v) {
+    PREF[k] = v;
+    try { localStorage.setItem('koide-pref', JSON.stringify(PREF)); } catch (e) { /* 무시 */ }
+    const d = document.documentElement;
+    if (PREF.mode === 'light' || PREF.mode === 'dark') d.dataset.mode = PREF.mode; else delete d.dataset.mode;
+    if (PREF.accent && PREF.accent !== 'green') d.dataset.accent = PREF.accent; else delete d.dataset.accent;
+    if (PREF.big) d.dataset.big = ''; else delete d.dataset.big;
+  }
+  if (D.mode && !PREF.mode) setPref('mode', D.mode);
+  if (D.mode) { D.mode = ''; saveLocal(); }
+
+  // ── 기도하기 설정: 무엇을(오늘의 세 가지 / 모든 기도제목 / 빼기), 하나님 나라, 잔잔한 음악 ──────────
+  const KP = window.KOIDE_PRAY;
+  const PSK = DEMO_LINK ? 'koide-demo-note-pset' : 'koide-note-pset';
+  const PS = Object.assign({ set: 'today', world: false, topics: KP.PRAY_TOPICS.map(t => t.k), music: false, track: 0, auto: true }, (() => { try { return JSON.parse(localStorage.getItem(PSK)) || {}; } catch (e) { return {}; } })());
+  const savePs = () => { try { localStorage.setItem(PSK, JSON.stringify(PS)); } catch (e) { /* 이번만 */ } };
+  // 공동체용 문장의 '사랑방'을 혼자 쓰는 노트에 맞게
+  const solo = x => String(x || '').replace(/우리 사랑방/g, '내 주변').replace(/사랑방/g, '공동체');
+  // 오늘 보여 줄 하나님 나라 문장: 공동체 앱과 같은 날에는 같은 문장(절기면 하루걸러 절기 문장)
+  function prayDay(t) {
+    const day = new Date(), n = KP.dayNo(day), s = KP.PRAY_SEASONS.find(x => x.k === KP.seasonKey(day));
+    return { a: s && s.topic === t.k && n % 2 === 0 ? [s.text, s.ref] : [t.a[n % t.a.length], ''], b: t.b[n % t.b.length], next: t.next };
+  }
+  const topicByK = k => [...KP.PRAY_TOPICS, KP.PRAY_THANKS].find(t => t.k === k);
+  // 한 장씩 넘길 목록: 기도제목(고른 것) + 하나님 나라(고른 주제, 마지막은 늘 감사와 찬양)
+  function psList(set) {
+    const items = set === 'all' ? open() : set === 'none' ? [] : todaySet();
+    const world = PS.world ? [...KP.PRAY_TOPICS.filter(t => PS.topics.includes(t.k)), KP.PRAY_THANKS].map(t => ({ topic: t.k })) : [];
+    return [...items, ...world];
+  }
+  // 잔잔한 음악: 찬송가 1~8장 연주 파일(공동체 앱과 같은 파일)
+  const HYMNS = Array.from({ length: 8 }, (_, i) => ({ label: (i + 1) + '장', file: (CFG.MUSIC || 'music/') + 'hymn-' + String(i + 1).padStart(2, '0') + '.mp3' }));
+  const player = new Audio(); player.preload = 'auto';
+  function playTrack(i) { PS.track = i; savePs(); player.src = HYMNS[i].file; player.play().catch(() => {}); document.querySelectorAll('.ps-music .trk').forEach(e => { e.textContent = HYMNS[i].label; }); }
+  player.addEventListener('ended', () => { if (S.ps && PS.music) playTrack(PS.auto ? (PS.track + 1) % HYMNS.length : PS.track); });
+  const musicOff = () => { player.pause(); };
+
+  // ── 사용법 안내: 처음 시작할 때 한 번, 더보기에서 다시 보기 ──────────
+  const TOUR_KEY = DEMO_LINK ? 'koide-demo-note-tour' : 'koide-note-tour';
+  const TOUR = [
+    ['오늘', '하루 세 가지', '날마다 기도제목 세 개가 나와요. 오래 기도하지 않은 것부터예요. 기도하고 "기도했어요"를 눌러요.'],
+    ['내 기도', '쓰고, 마치고, 감사해요', '기도제목을 쓰고 누구를 위한 것인지 골라요. 응답받으면 마치기 › "응답받았어요"로 감사 기록을 남겨요.'],
+    ['기도하기', '한 장씩 넘기며', '내 기도제목에 하나님 나라 주제와 잔잔한 음악을 더할 수 있어요. 마지막에는 주기도문으로 마쳐요.'],
+    ['나만 봐요', '이 휴대폰에 저장돼요', '서버로 보내지 않아서 아무도 볼 수 없어요. 휴대폰을 바꿀 때는 더보기 › 다른 기기와 이어 두기나 백업을 써요.']];
+  function tourSheet() {
+    const i = S.tour, [ey, h, t] = TOUR[i], last = i === TOUR.length - 1;
+    return `<div class="sheet-back" data-a="tourend"><section class="sheet" role="dialog" aria-modal="true" aria-labelledby="tr-t" data-stop>
+      <p class="eyebrow">${ey}</p><h2 id="tr-t">${h}</h2><p class="plain">${t}</p>
+      <div class="tour-dots" aria-hidden="true">${TOUR.map((_, k) => `<i class="${k === i ? 'on' : ''}"></i>`).join('')}</div>
+      <div class="row"><button class="link quiet" data-a="tourend">건너뛰기</button><span style="display:flex;gap:8px">${i ? '<button class="btn ghost small" data-a="tourgo" data-v="-1">이전</button>' : ''}<button class="btn small" data-a="${last ? 'tourend' : 'tourgo'}" data-v="1">${last ? '시작하기' : '다음'}</button></span></div></section></div>`;
+  }
 
   // ── 화면 ─────────────────────────────────────────────────────────────
   function cordHtml() {
@@ -337,7 +439,7 @@ textarea.field { min-height: 5.5em; resize: vertical; }
         <p class="label" style="margin-top:10px">누구를 위해</p>
         <div class="chips" role="radiogroup" aria-label="누구를 위해">${T.map(([t, n]) => `<button type="button" class="chip${S.draftT === t ? ' on' : ''}" role="radio" aria-checked="${S.draftT === t}" data-a="tgt" data-v="${t}">${esc(n)}</button>`).join('')}<button type="button" class="chip add" data-a="addperson">+ 사람</button></div>
         <div class="row" style="margin-top:12px;justify-content:flex-end">${e ? '<button type="button" class="btn ghost small" data-a="editcancel">취소</button>' : ''}<button class="btn" type="submit">${e ? '고치기' : '더하기'}</button></div></form></section>`;
-    return `<header class="top"><div><p class="eyebrow">나만 보는 노트</p><h1>기도 노트</h1></div><span class="hint">${open().length}개</span></header>${form}
+    return `<header class="top"><div><p class="eyebrow">나만 보는 기도제목</p><h1>내 기도</h1></div><span class="hint">${open().length}개</span></header>${form}
       ${groups.length ? `<section class="card group">${groups.map(([t, n, L]) => `<h3>${esc(n)}</h3>${L.map(i => `<div class="note"><p>${esc(i.text)}</p>
         <div class="row"><span class="days">${short(i.created)}부터 · ${daysSince(i.created)}일째${lastPrayed(i.id) ? ' · 마지막 기도 ' + short(lastPrayed(i.id)) : ''}</span>
         <span class="acts"><button class="link quiet" data-a="edit" data-v="${i.id}">고치기</button><button class="link quiet" data-a="share" data-v="${i.id}">나누기</button><button class="link" data-a="done" data-v="${i.id}">마치기</button></span></div></div>`).join('')}`).join('')}</section>` : '<p class="hint" style="text-align:center">위에 첫 기도제목을 써 보세요.</p>'}`;
@@ -350,7 +452,7 @@ textarea.field { min-height: 5.5em; resize: vertical; }
     const doneL = D.items.filter(i => i.done).sort((a, b) => b.done.date.localeCompare(a.done.date));
     const longest = open().slice().sort((a, b) => a.created.localeCompare(b.created)).slice(0, 3);
     const thanks = D.thanks.slice().sort((a, b) => b.date.localeCompare(a.date));
-    return `<header class="top"><div><p class="eyebrow">나만 보는 기록</p><h1>돌아보기</h1></div></header>
+    return `<header class="top"><div><p class="eyebrow">나만 보는 기록</p><h1>지난 기록</h1></div></header>
       <section class="card"><div class="stats"><div><b>${mDays}</b><span>이번 달 기도한 날</span></div><div><b>${thanks.length}</b><span>감사·응답 기록</span></div><div><b>${doneL.length}</b><span>마친 기도</span></div></div>
         <p class="label">최근 4주</p><div class="weeks" aria-label="최근 4주 중 기도한 날">${days.map(d => `<i class="${prayedDays.has(d) ? 'on' : ''}${d === TODAY() ? ' today' : ''}" title="${short(d)}">${Number(d.slice(8))}</i>`).join('')}</div>
         <p class="hint">남과 견주지 않는 나만의 기록이에요. 빈 날이 있어도 괜찮아요.</p></section>
@@ -360,7 +462,7 @@ textarea.field { min-height: 5.5em; resize: vertical; }
         <button class="link quiet" data-a="undone" data-v="${i.id}" style="align-self:flex-start">다시 기도하기</button></div>`).join('')}</section>` : ''}`;
   }
   function moreView() {
-    const mode = D.mode || '';
+    const mode = PREF.mode || 'system', accent = PREF.accent || 'green';
     return `<header class="top"><div><p class="eyebrow">${D.name ? esc(D.name) : '코이데 기도 노트'}</p><h1>더보기</h1></div></header>
       ${D.vault && D.vault.on ? '<div class="notice"><b>잠가서 이어 두고 있어요.</b> 서버에는 비밀 문구로 잠근 글만 있어서 아무도 읽을 수 없어요. 비밀 문구를 잊지 않게 적어 두세요.</div>'
         : '<div class="notice"><b>이 기록은 이 휴대폰에만 있어요.</b> 서버로 보내지 않아서 아무도 볼 수 없지만, 휴대폰을 바꾸거나 브라우저 기록을 지우면 사라져요. 아이폰은 홈 화면에 두지 않고 7일 넘게 열지 않으면 지워질 수 있어요. 가끔 백업을 내려받거나, 아래에서 다른 기기와 이어 두세요.</div>'}
@@ -372,11 +474,17 @@ textarea.field { min-height: 5.5em; resize: vertical; }
         <button class="mrow" data-a="backup"><span><b>백업 파일 내려받기</b><small>기도 노트를 파일 하나로 저장해요. 다른 사람에게 보내지 마세요</small></span></button>
         <button class="mrow" data-a="restore"><span><b>백업 불러오기</b><small>새 휴대폰에서 백업 파일을 열어 이어 써요</small></span></button>
         <input type="file" id="restore-file" accept="application/json,.json" hidden></section>
-      <section class="card"><p class="label">화면 모드</p><div class="seg" role="radiogroup" aria-label="화면 모드">${[['', '기기 설정'], ['light', '밝게'], ['dark', '어둡게']].map(([k, l]) => `<button class="${mode === k ? 'on' : ''}" role="radio" aria-checked="${mode === k}" data-a="mode" data-v="${k}">${l}</button>`).join('')}</div></section>
-      <section class="card"><p class="label">함께하는 곳</p><p class="plain">기도 노트는 혼자 쓰는 곳이에요. 사랑방이나 모임과 함께 기도하는 곳은 같은 앱의 공동체예요(카카오 로그인). 노트의 기도제목을 사랑방이나 모임에 나누고 싶으면 노트에서 "나누기"를 눌러요.</p>
-        <a class="btn ghost small" style="align-self:flex-start;text-decoration:none;display:inline-flex;align-items:center" href="index.html${QS}">코이데 공동체로</a></section>
-      <section class="card"><p class="label">시범판 의견</p><p class="hint">써 보고 좋았던 점, 불편한 점을 알려 주세요. 기도 내용은 담기지 않아요.</p>
+      <section class="card"><p class="label">화면</p><div class="seg" role="radiogroup" aria-label="화면 모드">${MODES.map(([k, l]) => `<button class="${mode === k ? 'on' : ''}" role="radio" aria-checked="${mode === k}" data-a="mode" data-v="${k}">${l}</button>`).join('')}</div>
+        <div class="swatches" role="radiogroup" aria-label="색 테마">${ACCENTS.map(([k, l, c]) => `<button class="swatch${accent === k ? ' on' : ''}" role="radio" aria-checked="${accent === k}" data-a="accent" data-v="${k}" aria-label="${l}" title="${l}"><i style="background:${c}"></i></button>`).join('')}</div>
+        <div class="row"><div><p class="plain">큰 글씨</p><p class="hint">글씨를 크게 봐요. 공동체 화면도 함께 바뀌어요.</p></div><button class="switch${PREF.big ? ' on' : ''}" role="switch" aria-checked="${!!PREF.big}" aria-label="큰 글씨" data-a="big"><span></span></button></div></section>
+      <section class="card"><button class="mrow" data-a="tourgo" data-v="restart"><span><b>사용법 다시 보기</b><small>기도 노트의 처음 안내를 다시 봐요</small></span></button></section>
+      <section class="card"><p class="label">함께하는 곳</p>${inCommunity() ? `<p class="plain">기도 노트는 혼자 쓰는 곳이에요. 사랑방이나 모임과 함께 기도하는 곳은 같은 앱의 공동체예요. 노트의 기도제목을 사랑방이나 모임에 나누고 싶으면 노트에서 "나누기"를 눌러요.</p>
+        <a class="btn ghost small" style="align-self:flex-start;text-decoration:none;display:inline-flex;align-items:center" href="index.html${QS}">코이데 공동체로</a>`
+        : `<p class="plain">교회 사랑방이나 모임과 함께 기도하려면 공동체에 연결해요. 리더에게 초대 링크를 받았으면 그 링크를 열면 돼요. 링크가 없으면 부서와 사랑방을 골라 연결을 신청할 수 있어요.</p>
+        <a class="btn ghost small" style="align-self:flex-start;text-decoration:none;display:inline-flex;align-items:center" href="index.html${DEMO_LINK ? '?demo&connect' : '?connect'}">우리 교회 공동체에 연결하기</a>`}</section>
+      <section class="card"><p class="label">의견 보내기</p><p class="hint">써 보고 좋았던 점, 불편한 점을 알려 주세요. 기도 내용은 담기지 않아요.</p>
         <button class="btn ghost small" data-a="fbcopy" style="align-self:flex-start">의견 보낼 글 복사하기</button></section>
+      <button class="link quiet" data-a="logout" style="display:block;margin:6px auto 0">로그아웃</button>
       <button class="link quiet" data-a="wipe" style="display:block;margin:6px auto 0">이 휴대폰의 기도 노트 모두 지우기</button>`;
   }
   function vaultCard() {
@@ -399,6 +507,8 @@ textarea.field { min-height: 5.5em; resize: vertical; }
     const room = c.me.link && c.me.link.status === '연결' && c.month && c.month.room ? c.month.room.name : '';
     return { room, groups: (c.me.groups || []).filter(g => !g.wait) };
   }
+  // 공동체(소그룹이나 모임)에 연결된 사람인지: 아니면 혼자 시작한 사람이라 노트만 있다
+  const inCommunity = () => { const P = places(); return !!(P && (P.room || P.groups.length)); };
   function shareSheet() {
     const i = D.items.find(x => x.id === S.share); if (!i) return '';
     const P = places();
@@ -407,7 +517,7 @@ textarea.field { min-height: 5.5em; resize: vertical; }
       <h2 id="sh-t">어디에 나눌까요?</h2><p class="plain"><span class="tag">${esc(targetName(i.target))}</span>${esc(i.text)}</p>
       <p class="hint">고른 곳의 "내 기도" 쓰기 칸에 옮겨 적어요. 거기서 항목으로 나누기 → 공개 범위를 고르고 추가해야 나눠져요. 노트의 기도제목은 그대로 남아요.</p>
       ${opts.length ? opts.map(([id, n, sub]) => `<button class="mrow" data-a="shareto" data-v="${esc(id)}"><span><b>${esc(n)}</b><small>${sub}</small></span></button>`).join('')
-        : `<button class="mrow" data-a="shareto" data-v=""><span><b>공동체로 가기</b><small>${P ? '아직 연결된 소그룹이나 모임이 없어요' : '카카오로 로그인하고 내 소그룹을 고른 뒤 옮겨 적어요'}</small></span></button>`}
+        : `<a class="mrow" style="text-decoration:none;color:inherit" href="index.html${DEMO_LINK ? '?demo&connect' : '?connect'}"><span><b>우리 교회 공동체에 연결하기</b><small>아직 연결된 소그룹이나 모임이 없어요. 연결된 다음에 나눌 수 있어요</small></span></a>`}
       <div class="row" style="justify-content:flex-end"><button class="btn ghost" data-a="shareclose">취소</button></div></section></div>`;
   }
   function vaultSheet() {
@@ -434,7 +544,7 @@ textarea.field { min-height: 5.5em; resize: vertical; }
     S.vbusy = false; render();
   }
   function startView() {
-    return `<div class="pilot">시범판</div><header class="top"><div><p class="eyebrow">코이데 · 나만 보는 기도 노트</p><h1>나와 내가 사랑하는 사람들을 위해</h1></div></header>
+    return `<header class="top"><div><p class="eyebrow">코이데 · 나만 보는 기도 노트</p><h1>나와 내가 사랑하는 사람들을 위해</h1></div></header>
       <section class="card"><p class="plain">기도제목을 쓰고, 날마다 몇 개씩 기도하고, 감사와 응답을 남겨요.</p>
         <div class="notice"><b>기록은 이 휴대폰에만 저장돼요.</b> 서버로 보내지 않아서 운영하는 사람도 볼 수 없어요. 그래서 휴대폰을 바꾸면 백업 파일로 옮겨야 해요. 아이폰은 꼭 <b>홈 화면에 추가</b>해서 써 주세요(공유 버튼 › 홈 화면에 추가).</div>
         <form data-f="start"><label class="label" for="st-name">부를 이름 (선택)</label><input class="field" id="st-name" maxlength="20" autocomplete="nickname" style="margin-top:6px">
@@ -447,42 +557,58 @@ textarea.field { min-height: 5.5em; resize: vertical; }
     return `<div class="sheet-back" data-a="doneclose"><section class="sheet" role="dialog" aria-modal="true" aria-labelledby="dn-t" data-stop>
       <h2 id="dn-t">이 기도제목을 마칠까요?</h2><p class="plain"><span class="tag">${esc(targetName(i.target))}</span>${esc(i.text)}</p>
       <div class="seg" role="radiogroup" aria-label="어떻게 마칠까요">${[['answer', '응답받았어요'], ['leave', '맡겨 둘게요']].map(([k, l]) => `<button class="${(S.doneHow || 'answer') === k ? 'on' : ''}" role="radio" aria-checked="${(S.doneHow || 'answer') === k}" data-a="donehow" data-v="${k}">${l}</button>`).join('')}</div>
-      ${(S.doneHow || 'answer') === 'answer' ? '<label class="label" for="dn-note">어떻게 응답하셨나요? (감사 기록으로 남아요)</label><textarea class="field" id="dn-note" maxlength="1000" placeholder="한 줄이어도 좋아요"></textarea>' : '<p class="hint">하나님께 맡겨 두고 마쳐요. 돌아보기의 마친 기도에 남고, 언제든 다시 기도할 수 있어요.</p>'}
+      ${(S.doneHow || 'answer') === 'answer' ? '<label class="label" for="dn-note">어떻게 응답하셨나요? (감사 기록으로 남아요)</label><textarea class="field" id="dn-note" maxlength="1000" placeholder="한 줄이어도 좋아요"></textarea>' : '<p class="hint">하나님께 맡겨 두고 마쳐요. 지난 기록의 마친 기도에 남고, 언제든 다시 기도할 수 있어요.</p>'}
       <div class="row" style="justify-content:flex-end"><button class="btn ghost" data-a="doneclose">취소</button><button class="btn" data-a="doneok">마치기</button></div></section></div>`;
   }
   function psHtml() {
     const P = S.ps, L = P.list, last = P.i >= L.length;
-    const top = `<div class="ps-top"><span class="hint">${last ? '마침' : `${P.i + 1} / ${L.length}`}</span><button class="link" data-a="psclose">닫기</button></div><div class="bar"><b style="width:${Math.min(100, P.i / L.length * 100)}%"></b></div>`;
+    const mus = `<span style="display:flex;gap:6px"><button class="ps-music${PS.music ? ' on' : ''}" data-a="psmusic" aria-pressed="${PS.music}">♪ <span class="trk">${PS.music ? HYMNS[PS.track].label : '음악 꺼짐'}</span></button>${PS.music ? '<button class="ps-music" data-a="psnexttrack" aria-label="다음 곡">다음 곡 ›</button>' : ''}</span>`;
+    const top = `<div class="ps-top"><span class="hint">${last ? '마침' : `${P.i + 1} / ${L.length}`}</span>${mus}<button class="link" data-a="psclose">닫기</button></div><div class="bar"><b style="width:${Math.min(100, P.i / L.length * 100)}%"></b></div>`;
+    const n = L.filter(x => x.topic ? P.extra.includes(x.topic) : prayedToday(x.id)).length;
+    // 마지막 장: 주기도문으로 마치고, 오늘 감사한 것을 남긴다
     if (last) return `<div class="ps" role="dialog" aria-modal="true" aria-label="기도하기">${top}<div class="ps-body"><div class="in">
-      <p class="eyebrow">감사와 찬양으로 마쳐요</p><p class="ps-text">나라와 권세와 영광이\n영원히 아버지께 있습니다. 아멘.</p>
-      <p class="hint">${P.n}개 기도제목을 위해 기도했어요.</p>
+      <p class="eyebrow">주기도문으로 마쳐요</p><p class="ps-lord">${KP.LORDS_PRAYER.map(x => `<span>${x}</span>`).join('')}</p>
+      <p class="hint">${n ? n + '장을 기도했어요.' : '오늘도 함께해 주신 아버지께 감사해요.'}</p>
       <form data-f="thanks" style="width:100%;display:flex;gap:8px"><input class="field" id="th-in" maxlength="200" placeholder="오늘 감사한 것 한 줄" aria-label="오늘 감사한 것" value="${esc(S.thDraft || '')}"><button class="btn small" type="submit">남기기</button></form></div></div>
       <div class="ps-nav" style="grid-template-columns:1fr"><button class="btn" data-a="psclose">마치기</button></div></div>`;
-    const it = L[P.i], on = prayedToday(it.id);
-    return `<div class="ps" role="dialog" aria-modal="true" aria-label="기도하기">${top}<div class="ps-body"><div class="in">
-      <span class="tag">${esc(targetName(it.target))}</span><p class="ps-text">${esc(it.text)}</p><span class="days">${daysSince(it.created)}일째 기도하고 있어요</span></div></div>
+    const it = L[P.i];
+    let body, on;
+    if (it.topic) {
+      // 하나님 나라: 주기도문의 간구, 오늘의 간구 문장 하나와 성경의 기도 하나, 내 말로 이어서
+      const t = topicByK(it.topic), d = prayDay(t); on = P.extra.includes(it.topic);
+      body = `<p class="ps-lp">${t.lines.map(k => KP.LORDS_PRAYER[k]).join(' ')}</p><p class="eyebrow">하나님 나라</p><h2>${esc(t.name)}</h2>
+        <ul class="ps-list"><li>${esc(solo(d.a[0]))}${d.a[1] ? `<small>${esc(d.a[1])}</small>` : ''}</li><li>${esc(solo(d.b[0]))}<small>${esc(d.b[1])}</small></li></ul><p class="ps-next">${esc(solo(d.next))}</p>`;
+    } else {
+      on = prayedToday(it.id);
+      body = `<span class="tag">${esc(targetName(it.target))}</span><p class="ps-text">${esc(it.text)}</p><span class="days">${daysSince(it.created)}일째 기도하고 있어요</span>`;
+    }
+    return `<div class="ps" role="dialog" aria-modal="true" aria-label="기도하기">${top}<div class="ps-body"><div class="in">${body}</div></div>
       <div class="ps-nav"><button class="btn ghost" data-a="psgo" data-v="-1"${P.i ? '' : ' disabled'}>이전</button>
-        <button class="pray-btn${on ? ' on' : ''}" style="align-self:stretch;justify-content:center" data-a="pspray" aria-pressed="${on}">${on ? ICON.check + '기도했어요' : '기도했어요'}</button>
+        <button class="pray-btn${on ? ' on' : ''}" style="align-self:stretch;justify-content:center" data-a="${it.topic ? 'psxtra' : 'pspray'}" data-v="${it.topic || ''}" aria-pressed="${on}">${on ? ICON.check + '기도했어요' : '기도했어요'}</button>
         <button class="btn ghost" data-a="psgo" data-v="1">${P.i === L.length - 1 ? '마침' : '다음'}</button></div></div>`;
   }
   function prayTab() {
-    const set = todaySet(), all = open();
+    const nT = todaySet().length, nA = open().length, list = psList(PS.set);
+    const seg = (items, cur, act) => `<div class="seg" role="radiogroup">${items.map(([k, l]) => `<button class="${cur === k ? 'on' : ''}" role="radio" aria-checked="${cur === k}" data-a="${act}" data-v="${k}">${l}</button>`).join('')}</div>`;
+    const sw = (on, act, label) => `<button class="switch${on ? ' on' : ''}" role="switch" aria-checked="${!!on}" aria-label="${label}" data-a="${act}"><span></span></button>`;
     return `<header class="top"><div><p class="eyebrow">한 장씩 넘기며</p><h1>기도하기</h1></div></header>
-      <section class="card"><p class="plain">고른 기도제목을 한 장씩 넘기며 기도해요. 기도한 장에서 "기도했어요"를 누르면 오늘 기록에 남아요. 마지막에는 감사와 찬양으로 마쳐요.</p>
-        <button class="btn" data-a="psopen" data-v="today"${set.length ? '' : ' disabled'}>오늘 기도할 제목 · ${set.length}개</button>
-        <button class="btn ghost" data-a="psopen" data-v="all"${all.length ? '' : ' disabled'}>모든 기도제목 · ${all.length}개</button>
-        ${all.length ? '' : '<p class="hint">먼저 기도 노트에 기도제목을 써 주세요.</p>'}</section>`;
+      <section class="card"><p class="plain">조용한 화면에서 한 장씩 넘기며 기도해요. 마지막에는 주기도문으로 마쳐요.</p>
+        <p class="label">내 기도제목</p>${seg([['today', '오늘의 ' + nT + '개'], ['all', '모두 ' + nA + '개'], ['none', '빼기']], PS.set, 'psset')}
+        <div class="row" style="margin-top:6px"><div><p class="plain">하나님 나라</p><p class="hint">주기도문의 간구를 따라 교회와 나라와 세상을 위해 기도해요. 마지막엔 감사와 찬양이에요.</p></div>${sw(PS.world, 'psworld', '하나님 나라')}</div>
+        ${PS.world ? `<div class="chips">${KP.PRAY_TOPICS.map(t => `<button class="chip${PS.topics.includes(t.k) ? ' on' : ''}" data-a="pstopic" data-v="${t.k}" aria-pressed="${PS.topics.includes(t.k)}">${esc(t.name)}</button>`).join('')}</div>` : ''}
+        <div class="row" style="margin-top:6px"><div><p class="plain">잔잔한 음악 (찬송가 1~8장)</p><p class="hint">기도하는 동안 조용히 흘러요. 이어폰을 권해요.</p></div>${sw(PS.music, 'psmusic', '잔잔한 음악')}</div>
+        ${PS.music ? `<div class="chips">${HYMNS.map((h, i) => `<button class="chip${PS.track === i ? ' on' : ''}" data-a="pstrack" data-v="${i}" aria-pressed="${PS.track === i}">${h.label}</button>`).join('')}</div>
+          <div class="row"><p class="hint">${PS.auto ? '다 들으면 다음 곡으로 이어져요.' : HYMNS[PS.track].label + '만 반복해요.'}</p>${sw(PS.auto, 'psauto', '다 들으면 다음 곡으로')}</div>` : ''}
+        <button class="btn wide" data-a="psopen" data-v="tab" style="margin-top:8px;min-height:52px"${list.length ? '' : ' disabled'}>${list.length ? '기도 시작 · ' + list.length + '장' : nA ? '무엇을 위해 기도할지 골라 주세요' : '먼저 내 기도에 기도제목을 써 주세요'}</button></section>`;
   }
-  const TABS = [['today', '오늘', ICON.sun], ['note', '기도 노트', ICON.pen], ['pray', '기도하기', ICON.hands], ['look', '돌아보기', ICON.book], ['more', '더보기', ICON.more]];
+  const TABS = [['today', '오늘', ICON.sun], ['note', '내 기도', ICON.pen], ['pray', '기도하기', ICON.hands], ['look', '지난 기록', ICON.book], ['more', '더보기', ICON.more]];
   function render() {
-    document.documentElement.dataset.theme = D.mode || '';
-    if (!D.mode) delete document.documentElement.dataset.theme;
     const V = { start: startView, today: todayView, note: noteView, pray: prayTab, look: lookView, more: moreView }[S.tab];
-    $('#root').innerHTML = `<div class="wrap">${S.tab !== 'start' ? `<div class="space"><span class="pilot" style="margin:0">나 · 기도 노트 · ${D.vault && D.vault.on ? '잠가서 이어 둠' : '이 휴대폰에만'}</span><a href="index.html${QS}">공동체로 ›</a></div>` : ''}${V()}</div>
+    $('#root').innerHTML = `<div class="wrap">${S.tab !== 'start' ? `<div class="space"><span class="pilot" style="margin:0">나 · 기도 노트 · ${D.vault && D.vault.on ? '잠가서 이어 둠' : '이 휴대폰에만'}</span>${inCommunity() ? `<a href="index.html${QS}">공동체로 ›</a>` : ''}</div>` : ''}${V()}</div>
       ${S.tab === 'start' ? '' : `<nav class="tabs" aria-label="메뉴">${TABS.map(([k, l, ic]) => `<button class="${k === 'pray' ? 'mid ' : ''}${S.tab === k ? 'on' : ''}" data-a="tab" data-v="${k}" ${S.tab === k ? 'aria-current="page"' : ''}>${ic}<span>${l}</span></button>`).join('')}</nav>`}
-      ${S.done ? doneSheet() : ''}${S.vsheet ? vaultSheet() : ''}${S.share ? shareSheet() : ''}${S.ps ? psHtml() : ''}${S.toast ? `<div class="toast" role="status">${esc(S.toast)}</div>` : ''}
+      ${S.done ? doneSheet() : ''}${S.tour != null ? tourSheet() : ''}${S.vsheet ? vaultSheet() : ''}${S.share ? shareSheet() : ''}${S.ps ? psHtml() : ''}${S.toast ? `<div class="toast" role="status">${esc(S.toast)}</div>` : ''}
       ${canSave ? '' : '<div class="toast" role="alert">이 브라우저에서는 저장할 수 없어요. 개인 정보 보호 모드를 끄고 열어 주세요.</div>'}`;
-    document.documentElement.style.overflow = S.ps || S.done || S.vsheet || S.share ? 'hidden' : '';
+    document.documentElement.style.overflow = S.ps || S.done || S.vsheet || S.share || S.tour != null ? 'hidden' : '';
   }
   let toastT;
   function toast(m) { S.toast = m; render(); clearTimeout(toastT); toastT = setTimeout(() => { S.toast = ''; render(); }, 2200); }
@@ -526,18 +652,34 @@ textarea.field { min-height: 5.5em; resize: vertical; }
         S.share = null; location.href = 'index.html' + QS;
         return;
       }
-      case 'undone': { const i = D.items.find(x => x.id === v); i.done = null; i.up = now(); save(); return toast('다시 기도 노트에 넣었어요'); }
-      case 'psopen': { const L = v === 'all' ? open() : todaySet(); if (!L.length) return; S.ps = { list: L.slice(), i: 0, n: 0 }; return render(); }
-      case 'psgo': S.ps.i = Math.max(0, S.ps.i + Number(v)); S.ps.n = S.ps.list.filter(i => prayedToday(i.id)).length; return render();
-      case 'pspray': togglePray(S.ps.list[S.ps.i].id); S.ps.n = S.ps.list.filter(i => prayedToday(i.id)).length; return render();
-      case 'psclose': S.ps = null; return render();
+      case 'undone': { const i = D.items.find(x => x.id === v); i.done = null; i.up = now(); save(); return toast('다시 내 기도에 넣었어요'); }
+      case 'psopen': {
+        // 기도하기 탭은 고른 대로, 오늘 화면의 '한 장씩 기도하기'는 그 기도제목에 하나님 나라(켜 두었으면)를 더해서
+        const L = psList(v === 'tab' ? PS.set : v); if (!L.length) return;
+        S.ps = { list: L, i: 0, extra: [] }; if (PS.music) playTrack(PS.track); render(); const b = document.querySelector('.ps-body'); if (b) b.scrollTop = 0; return;
+      }
+      case 'psgo': S.ps.i = Math.max(0, S.ps.i + Number(v)); render(); { const b = document.querySelector('.ps-body'); if (b) b.scrollTop = 0; } return;
+      case 'pspray': togglePray(S.ps.list[S.ps.i].id); return render();
+      case 'psclose': S.ps = null; musicOff(); return render();
       case 'renperson': { const p = D.people.find(x => x.id === v), n = (prompt('새 이름', p.name) || '').trim().slice(0, 12); if (n) { p.name = n; p.up = now(); save(); } return render(); }
       case 'delperson': {
         const p = D.people.find(x => x.id === v), n = D.items.filter(i => i.target === 'p:' + v && !i.done).length;
         if (!confirm(`${p.name} 님을 뺄까요?${n ? ` 이 사람을 위한 기도제목 ${n}개는 "나"로 옮겨요.` : ''}`)) return;
         D.items.forEach(i => { if (i.target === 'p:' + v) { i.target = 'me'; i.up = now(); } }); p.del = true; p.up = now(); save(); return render();
       }
-      case 'mode': D.mode = v; saveLocal(); return render();
+      case 'mode': setPref('mode', v === 'system' ? '' : v); return render();
+      case 'accent': setPref('accent', v); return render();
+      case 'big': setPref('big', !PREF.big); return render();
+      case 'tourgo': S.tour = v === 'restart' ? 0 : Math.max(0, Math.min(TOUR.length - 1, S.tour + Number(v))); return render();
+      case 'tourend': S.tour = null; try { localStorage.setItem(TOUR_KEY, '1'); } catch (err) { /* 무시 */ } return render();
+      case 'psset': PS.set = v; savePs(); return render();
+      case 'psworld': PS.world = !PS.world; savePs(); return render();
+      case 'pstopic': { const k = PS.topics.indexOf(v); if (k >= 0) { if (PS.topics.length > 1) PS.topics.splice(k, 1); } else PS.topics.push(v); savePs(); return render(); }
+      case 'psmusic': PS.music = !PS.music; savePs(); if (S.ps) { PS.music ? playTrack(PS.track) : musicOff(); } return render();
+      case 'pstrack': PS.track = Number(v); savePs(); return render();
+      case 'psauto': PS.auto = !PS.auto; savePs(); return render();
+      case 'psnexttrack': playTrack((PS.track + 1) % HYMNS.length); return;
+      case 'psxtra': { const k = S.ps.extra.indexOf(v); k >= 0 ? S.ps.extra.splice(k, 1) : S.ps.extra.push(v); return render(); }
       case 'vstart': return vaultStart();
       case 'vclose': S.vsheet = null; return render();
       case 'vsync': return sync();
@@ -555,11 +697,16 @@ textarea.field { min-height: 5.5em; resize: vertical; }
         return toast('백업 파일을 내려받았어요');
       }
       case 'restore': return $('#restore-file').click();
+      case 'logout': {
+        if (!confirm('로그아웃할까요? 기도 노트는 이 휴대폰에 그대로 남고, 다시 카카오로 로그인하면 보여요.')) return;
+        api('logout').catch(() => {}).then(() => { try { localStorage.removeItem(TOKEN); localStorage.removeItem(DEMO_LINK ? 'koide-demo-cache' : 'koide-cache'); } catch (err) { /* 무시 */ } location.replace('index.html' + QS); });
+        return;
+      }
       case 'wipe': if (!confirm(`이 휴대폰의 기도 노트를 모두 지울까요?${D.vault && D.vault.on ? ' 다른 기기와 이어 둔 것은 그대로 남고, 이 휴대폰만 이어 두기가 끊겨요.' : ' 되돌릴 수 없어요. 먼저 백업을 내려받아 두세요.'}`)) return;
         D = blank(); saveLocal(); try { localStorage.removeItem(LOCK_KEY); } catch (e) { /* 무시 */ } S.tab = 'start'; return render();
       case 'fbcopy': {
         const home = !!(navigator.standalone || (window.matchMedia && matchMedia('(display-mode: standalone)').matches));
-        const t = `코이데 기도 노트 시범판 의견\n- 쓴 기간: ${prays().length ? short(prays().map(p => p.d).sort()[0]) + ' ~ ' + short(TODAY()) : '오늘'}\n- 기도제목 ${D.items.length}개 · 기도한 날 ${new Set(prays().map(p => p.d)).size}일 · 감사 기록 ${D.thanks.length}개(응답 ${D.thanks.filter(x => x.kind === 'answer').length})\n- 홈 화면 앱: ${home ? '예' : '아니요'} · 다른 기기와 이어 둠: ${D.vault && D.vault.on ? '예' : '아니요'}\n\n1. 날마다 쓰게 됐나요? 며칠쯤 지나서 덜 열게 됐나요?\n2. 응답·감사 기록은 어땠나요?\n3. 사랑방·모임에 나누기, 공동체 기도하기의 "내 기도 노트"를 써 봤나요?\n4. 휴대폰에만 저장되는 것, 이어 두기(비밀 문구)는 어땠나요?\n5. 막히거나 헷갈린 곳:\n6. 있었으면 하는 것:`;
+        const t = `코이데 기도 노트 의견\n- 쓴 기간: ${prays().length ? short(prays().map(p => p.d).sort()[0]) + ' ~ ' + short(TODAY()) : '오늘'}\n- 기도제목 ${D.items.length}개 · 기도한 날 ${new Set(prays().map(p => p.d)).size}일 · 감사 기록 ${D.thanks.length}개(응답 ${D.thanks.filter(x => x.kind === 'answer').length})\n- 홈 화면 앱: ${home ? '예' : '아니요'} · 다른 기기와 이어 둠: ${D.vault && D.vault.on ? '예' : '아니요'}\n\n1. 날마다 쓰게 됐나요? 며칠쯤 지나서 덜 열게 됐나요?\n2. 응답·감사 기록은 어땠나요?\n3. 사랑방·모임에 나누기, 공동체 기도하기의 "내 기도 노트"를 써 봤나요?\n4. 휴대폰에만 저장되는 것, 이어 두기(비밀 문구)는 어땠나요?\n5. 막히거나 헷갈린 곳:\n6. 있었으면 하는 것:`;
         (navigator.clipboard ? navigator.clipboard.writeText(t) : Promise.reject()).then(() => toast('복사했어요. 카톡에 붙여 넣어 보내 주세요'), () => prompt('아래 글을 복사해 보내 주세요', t));
         return;
       }
@@ -570,13 +717,16 @@ textarea.field { min-height: 5.5em; resize: vertical; }
     if (f.dataset.f === 'start') {
       D.name = $('#st-name').value.trim().slice(0, 20); D.nameUp = now();
       ($('#st-people').value || '').split(/[,，·]/).map(s => s.trim().slice(0, 12)).filter(Boolean).slice(0, 12).forEach(n => D.people.push({ id: uid(), name: n, up: now() }));
-      D.started = true; save(); return go('note');
+      D.started = true; save();
+      let seen = null; try { seen = localStorage.getItem(TOUR_KEY); } catch (err) { /* 없음 */ }
+      if (!seen) S.tour = 0;
+      return go('note');
     }
     if (f.dataset.f === 'item') {
       const t = $('#it-text').value.trim(); if (!t) return $('#it-text').focus();
       S.draft = null;
       if (S.edit) { const i = D.items.find(x => x.id === S.edit); i.text = t; i.target = S.draftT; i.up = now(); S.edit = null; save(); return toast('고쳤어요'); }
-      D.items.push({ id: uid(), text: t, target: S.draftT, created: TODAY(), done: null, up: now() }); save(); return toast('기도 노트에 더했어요');
+      D.items.push({ id: uid(), text: t, target: S.draftT, created: TODAY(), done: null, up: now() }); save(); return toast('내 기도에 더했어요');
     }
     if (f.dataset.f === 'vcreate' || f.dataset.f === 'vunlock') {
       const V = S.vsheet, a = $('#vs-a').value, b = $('#vs-b') ? $('#vs-b').value : a;
@@ -619,8 +769,10 @@ textarea.field { min-height: 5.5em; resize: vertical; }
   });
   document.addEventListener('keydown', e => {
     if (e.key !== 'Escape') return;
-    if (S.ps) { S.ps = null; render(); } else if (S.done) { S.done = null; render(); } else if (S.vsheet) { S.vsheet = null; render(); } else if (S.share) { S.share = null; render(); }
+    if (S.ps) { S.ps = null; musicOff(); render(); } else if (S.done) { S.done = null; render(); } else if (S.vsheet) { S.vsheet = null; render(); } else if (S.share) { S.share = null; render(); }
   });
+  // 카카오 로그인이 기본: 로그인하지 않았으면 로그인 화면으로(노트는 이 휴대폰에 그대로 남아 있다)
+  if (!getToken()) { location.replace('index.html' + QS); return; }
   render();
   let resume = null; try { resume = localStorage.getItem('koide-note-resume'); localStorage.removeItem('koide-note-resume'); } catch (e) { /* 무시 */ }
   if (resume === 'vault' && getToken()) { if (D.started) S.tab = 'more'; vaultStart(); }

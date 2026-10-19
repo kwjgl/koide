@@ -1315,6 +1315,7 @@ try { const p = JSON.parse(localStorage.getItem('koide-pref') || '{}'), d = docu
 <nav id="tabs" class="tabs" hidden></nav>
 <div id="toast" class="toast" role="status" hidden></div>
 <script src="config.js"></script>
+<script src="pray-data.js"></script>
 <script>
 (function () {
   const CFG = window.KOIDE_CONFIG || {};
@@ -1396,6 +1397,7 @@ try { const p = JSON.parse(localStorage.getItem('koide-pref') || '{}'), d = docu
     // 초대 링크: 카카오 로그인을 다녀와도 남게 기기에 적어 두고 주소에서 뺀다
     if (q.get('gjoin')) { try { localStorage.setItem(GJOIN, q.get('gjoin')); } catch (e) { /* 이번만 */ } q.delete('gjoin'); history.replaceState(null, '', location.pathname + (q.toString() ? '?' + q.toString().replace(/=(&|$)/g, '$1') : '')); }
     if (q.get('opsjoin')) { try { localStorage.setItem(OPS_JOIN, q.get('opsjoin')); } catch (e) { /* 이번만 */ } q.delete('opsjoin'); history.replaceState(null, '', location.pathname + (q.toString() ? '?' + q.toString().replace(/=(&|$)/g, '$1') : '')); }
+    if (q.has('connect')) { try { localStorage.setItem(CONNECT, '1'); } catch (e) { /* 이번만 */ } q.delete('connect'); history.replaceState(null, '', location.pathname + (q.toString() ? '?' + q.toString().replace(/=(&|$)/g, '$1') : '')); }
     if (q.get('join')) { try { localStorage.setItem(JOIN, q.get('join')); } catch (e) { /* 이번만 */ } q.delete('join'); history.replaceState(null, '', location.pathname + (q.toString() ? '?' + q.toString().replace(/=(&|$)/g, '$1') : '')); }
     if (q.get('code')) {
       try { const r = await api('login', { code: q.get('code'), redirectUri: CFG.REDIRECT_URI || '' }); setToken(r.token); }
@@ -1441,7 +1443,11 @@ try { const p = JSON.parse(localStorage.getItem('koide-pref') || '{}'), d = docu
         if (S.me.link && S.me.link.status === '연결') S.month = r.month || S.month;
         S.op = null; return S.me.ops.all && !opsDepts().some(d => d.id === op) ? enterChurch() : enterOps(id);
       }
+      if (S.me.link) { try { localStorage.removeItem(CONNECT); } catch (e) { /* 무시 */ } }
       if (!S.me.link) {
+        // 초대 링크(소그룹·부서·모임)나 '공동체에 연결하기'로 오지 않았으면 혼자 시작한 사람: 기도 노트가 첫 화면이다
+        let gj0 = null; try { gj0 = localStorage.getItem(GJOIN); } catch (e) { /* 없음 */ }
+        if (!r.join && !gj0 && !connecting()) { location.replace('note.html' + (DEMO_LINK ? '?demo' : '')); return; }
         // 부서를 모르는 예전 서버면 사랑방 목록을 부서 하나로 본다
         S.depts = r.depts || [Object.assign({ id: '', name: '' }, DEPT0, { rooms: r.rooms || await api('rooms') })];
         S.pick = {};
@@ -1678,7 +1684,7 @@ try { const p = JSON.parse(localStorage.getItem('koide-pref') || '{}'), d = docu
           <p class="hint">데모 모드에서는 카카오 대신 이 버튼으로 사람을 골라 들어가요.</p>`
         : `<button class="kakao" data-act="login">${ICON.bubble}카카오로 시작하기</button>${iosSafari() ? '<p class="hint">아이폰에서 \'접속 정보를 확인해 주세요\'가 나오면, 카톡 채팅방에서 이 링크를 눌러 열거나 설정 → iCloud → 비공개 릴레이를 끄고 다시 해 주세요.</p>' : ''}`}
       <button class="link note-link" data-act="codestart">카카오톡이 없어요 · 코드로 들어오기 ›</button>
-      <a class="link note-link" href="note.html${DEMO_LINK ? '?demo' : ''}">로그인 없이 나만 보는 기도 노트 쓰기 ›</a>
+      <p class="hint">교회에서 받은 초대 링크가 있으면 그 링크로 열어 주세요. 링크 없이 시작하면 나만 보는 기도 노트부터 열려요.</p>
       <p class="hint name-note">코이데는 '교제'를 뜻하는 코이노니아와 '간구'를 뜻하는 데에시스에서 영감을 얻은 이름이에요. 서로의 기도를 나누고, 함께 기도하는 공동체를 뜻해요. 우리를 잇는 끈은 성령의 교통하심(코이노니아)이에요.</p>`,
     // 카카오톡이 없는 분: 리더에게 받은 일회용 코드로 들어온다(리더가 그 사람 이름으로 만들어서 따로 승인하지 않는다)
     code: () => `<p class="eyebrow">카카오톡 없이</p><h1>코드로 들어오기</h1><p>리더에게 받은 8자리 코드를 넣어 주세요.</p>
@@ -1687,11 +1693,12 @@ try { const p = JSON.parse(localStorage.getItem('koide-pref') || '{}'), d = docu
       <p class="hint">코드는 한 번만 쓸 수 있고 7일 동안 유효해요. 휴대폰을 바꾸면 리더에게 새 코드를 받아요.</p>
       <button class="link" data-act="codeback">뒤로</button>`,
     dept: () => `${steps(1)}<p class="eyebrow">처음 한 번만 확인할게요</p><h1>어느 부서인가요?</h1>
-      <div class="choices">${(S.depts || []).map(d => `<button class="choice" data-act="pickdept" data-v="${esc(d.id)}">${esc(d.name)}</button>`).join('')}</div>`,
+      <div class="choices">${(S.depts || []).map(d => `<button class="choice" data-act="pickdept" data-v="${esc(d.id)}">${esc(d.name)}</button>`).join('')}</div>
+      ${connecting() ? '<button class="link" data-act="tonote">기도 노트로 돌아가기</button>' : ''}`,
     room: () => `${steps(1)}<p class="eyebrow">${dept().name ? esc(dept().name) : '처음 한 번만 확인할게요'}</p><h1>어느 ${esc(grp())}인가요?</h1>
       <div class="choices">${(S.rooms || []).map(r => `<button class="choice" data-act="pickroom" data-v="${esc(r.id)}">${esc(r.name)}</button>`).join('')}</div>
       ${dept().hasStaff || (dept().staff || []).length ? '<button class="choice new" data-act="staffstart">목사님·장로님으로 들어가기</button>' : ''}
-      ${S.depts && S.depts.length > 1 ? '<button class="link" data-act="back" data-v="dept">뒤로</button>' : ''}`,
+      ${S.depts && S.depts.length > 1 ? '<button class="link" data-act="back" data-v="dept">뒤로</button>' : connecting() ? '<button class="link" data-act="tonote">기도 노트로 돌아가기</button>' : ''}`,
     staffpick: () => `${steps(2)}<p class="eyebrow">${esc(dept().name || '')}</p><h1>어느 분이세요?</h1>
       <div class="choices">${(dept().staff || []).map(s => `<button class="choice" data-act="pickstaff" data-v="${esc(s.id)}">${esc(s.label)}<small class="choice-sub">${esc(s.name)}</small></button>`).join('')}</div>
       <p class="hint">목록에 없으면 부서 관리자에게 교역자 목록에 더해 달라고 해 주세요. 연결은 관리자가 승인해요.</p>
@@ -1737,6 +1744,7 @@ try { const p = JSON.parse(localStorage.getItem('koide-pref') || '{}'), d = docu
       <p>${S.me.familyName && S.me.familyName !== S.me.link.person ? `${esc(S.me.link.person)} 님의 카카오 계정을 <b>${esc(S.me.familyName)}</b>에 연결해 달라고` : `${esc(S.me.link.person)} 님의 카카오 계정을 연결해 달라고`} ${S.me.staff ? '부서 관리자' : '리더'}에게 보냈어요. 승인되면 바로 열려요.</p>
       <div class="wait">${S.me.staff ? '관리자' : '리더'}가 확인하고 있어요</div>
       <button class="btn wide" data-act="retry">승인됐는지 다시 확인</button>
+      <a class="link note-link" href="note.html${DEMO_LINK ? '?demo' : ''}">기다리는 동안 나만 보는 기도 노트 쓰기 ›</a>
       <p class="hint">${DEMO ? '데모: 로그아웃하고 그 부서의 리더(청장년부는 김도윤, 청년부는 윤하람)로 들어가 더보기에서 승인해 보세요.' : '보통 하루 안에 끝나요.'}</p>
       <button class="link" data-act="logout">로그아웃</button>`,
     app: () => ({ home: homeView, mine: mineView, pray: prayView, history: historyView, more: moreView, about: aboutView, praytext: prayTextView, feedback: feedbackView, church: churchView, status: statusView, admin: adminView, import: importView, reorg: reorgView })[S.tab]()
@@ -2558,140 +2566,10 @@ try { const p = JSON.parse(localStorage.getItem('koide-pref') || '{}'), d = docu
   const PS_KINDS = () => staffMe() ? [['room', '오늘의 ' + grp()], ['serve', '함께 섬기는 분들'], ['me', words().mine], ...noteKind(), ['world', '하나님 나라']]
     : [['room', '우리 ' + grp()], ['me', words().mine], ...noteKind(), ...(serveList().length ? [['serve', '섬기는 분들']] : []), ['world', '하나님 나라']];
   const PS_TIMES = [[0, '시간 없이'], [60, '1분'], [180, '3분'], [300, '5분']];
-  // 주기도문(개역개정 이전 번역)과 하나님 나라 주제 6개. 주제마다 주기도문 간구 하나씩 짝지어 그 순서대로 둔다(lines: 장 위에 다는 구절 번호)
-  //  송영에 짝지은 "감사와 찬양"은 고르는 주제가 아니라 하나님 나라를 고르면 늘 마지막 장으로 나온다
-  const LORDS_PRAYER = ['하늘에 계신 우리 아버지여', '이름이 거룩히 여김을 받으시오며', '나라이 임하옵시며', '뜻이 하늘에서 이룬 것같이 땅에서도 이루어지이다', '오늘날 우리에게 일용할 양식을 주옵시고', '우리가 우리에게 죄 지은 자를 사하여 준 것같이 우리 죄를 사하여 주옵시고', '우리를 시험에 들게 하지 마옵시고', '다만 악에서 구하옵소서', '대개 나라와 권세와 영광이 아버지께 영원히 있사옵나이다', '아멘'];
-  //  문장 풀은 docs/pray-topics.md(교역자 검토용 초안)와 같다. 주기도문 간구 → 웨스트민스터 대요리문답 190~196문의 해설 → 문장
-  //  a: 간구 문장, b: 성경의 기도 [문장, 장절], next: 내 말로 이어서. 날마다 a 하나, b 하나만 날짜로 골라 보여 준다(prayToday)
-  const PRAY_TOPICS = [
-    { k: 'church', name: '우리 교회', lines: [0, 1], a: [
-      '우리 교회가 하나님의 말씀 위에 굳게 서고, 기도로 하나 되게 해 주세요.',
-      '우리가 하나님을 더 깊이 알고, 생각과 말과 행동으로 아버지의 이름을 높이게 해 주세요.',
-      '예배와 말씀과 성례가 우리 교회에서 바르게 세워지고, 은혜의 통로가 되게 해 주세요.',
-      '성도들이 서로를 돌보며, 처음 온 이들도 따뜻하게 맞이하게 해 주세요.',
-      '목회자와 사역자들에게 지혜와 힘을 주시고, 기쁨으로 섬기게 해 주세요.',
-      '우리의 허물 때문에 주의 이름이 가려지지 않게, 교회를 깨끗하게 지켜 주세요.',
-      '우리 교회가 보낸 선교사들과 가족들을 지켜 주시고, 복음이 전해지는 곳마다 예수님의 사랑이 깊이 뿌리내리게 해 주세요.',
-      '아직 하나님을 모르는 이웃들이 아버지의 이름을 알고 부르게 해 주세요.'], b: [
-      ['아버지, 성령으로 우리 속사람을 강하게 하시고, 그리스도께서 믿음으로 우리 마음에 계시게 해 주세요.', '엡 3:16-17'],
-      ['지혜와 계시의 영을 주셔서, 우리가 하나님을 더 알고 부르심의 소망을 깨닫게 해 주세요.', '엡 1:17-18'],
-      ['아버지와 아들이 하나이신 것같이, 우리 교회도 하나 되게 해 주세요.', '요 17:21'],
-      ['주의 말씀이 막힘없이 퍼져 나가 영광을 받게 해 주세요.', '살후 3:1']],
-      next: '요즘 우리 교회에서 마음이 가는 사람이나 사역을 아버지께 말씀드려요.' },
-    { k: 'nation', name: '나라와 민족', lines: [2], a: [
-      '나라의 지도자들이 정직하고 지혜롭게 일하며, 국민을 섬기게 해 주세요.',
-      '가난하고 소외된 이들이 보호받고, 누구나 존중받는 사회가 되게 해 주세요.',
-      '서로 다른 생각을 가진 사람들이 미움 대신 대화와 이해를 선택하게 해 주세요.',
-      '남과 북의 갈등이 줄어들고, 한반도에 평화와 화해의 길이 열리게 해 주세요.',
-      '복음이 우리 민족과 온 세상에 전해져, 그리스도의 다스리심이 넓어지게 해 주세요.',
-      '복음이 막힌 땅에도 예배가 다시 일어나게 해 주세요.',
-      '아직 예수님을 모르는 가족과 이웃이 그리스도께 돌아오게 해 주세요.',
-      '주님, 우리 마음부터 다스려 주시고, 다시 오실 날을 기다리며 살게 해 주세요.'], b: [
-      ['나라를 맡은 모든 이들을 위해 기도합니다. 우리가 경건하고 평안하게 살게 해 주세요.', '딤전 2:1-2'],
-      ['다스리는 이들에게 공의를 주셔서, 가난한 이들의 억울함을 풀어 주게 해 주세요.', '시 72:1-4'],
-      ['우리가 사는 이 도시와 나라가 평안하게 해 주세요.', '렘 29:7'],
-      ['추수할 것은 많은데 일꾼이 적습니다. 주의 일꾼들을 보내 주세요.', '마 9:37-38']],
-      next: '이번 주 뉴스에서 마음에 걸린 일을 아버지께 올려 드려요.' },
-    { k: 'climate', name: '창조 세계', lines: [3], a: [
-      '기후재난으로 어려움을 겪는 이들을 지켜 주시고, 일상을 회복하도록 도와주세요.',
-      '우리가 자연을 함부로 소비하지 않고, 하나님이 맡기신 창조 세계를 돌보게 해 주세요.',
-      '일회용품과 에너지 낭비를 줄이는 작은 실천을 꾸준히 이어 가게 해 주세요.',
-      '나라와 기업들이 다음 세대를 생각하며, 기후위기에 책임 있게 대응하게 해 주세요.',
-      '아버지의 뜻을 알기 싫어하는 마음과 미루는 마음을 거두어 주세요.',
-      '뜻을 알게 되면 기쁘고 성실하게 따르게 해 주세요.',
-      '내 뜻대로 되지 않는 일 앞에서도 아버지의 뜻에 겸손히 맡기게 해 주세요.',
-      '하늘에서 기쁘게 순종하듯, 우리도 이 땅에서 그렇게 살게 해 주세요.'], b: [
-      ['땅과 거기 가득한 모든 것이 주님의 것임을 기억하게 해 주세요.', '시 24:1'],
-      ['주의 영을 보내셔서 이 땅을 새롭게 해 주세요.', '시 104:30'],
-      ['탄식하는 모든 피조물이 썩어짐에서 벗어나 하나님의 자녀들과 함께 자유를 얻게 해 주세요.', '롬 8:21-22'],
-      ['신령한 지혜와 깨달음으로 주님의 뜻을 알게 하셔서, 주께 합당하게 살게 해 주세요.', '골 1:9-10']],
-      next: '오늘 내 뜻과 아버지의 뜻이 부딪히는 한 가지를 내려놓아요.' },
-    { k: 'neighbor', name: '이웃과 일터', lines: [4], a: [
-      '몸과 마음이 아픈 이들에게 회복의 힘을 주시고, 치료받는 모든 과정에 함께해 주세요.',
-      '홀로 지내거나 외로움 속에 있는 이들에게 따뜻한 만남과 위로를 보내 주세요.',
-      '일자리를 잃었거나 생계로 마음이 무거운 가정에 길을 열어 주시고, 필요한 것을 채워 주세요.',
-      '우리가 가진 것에 감사하며, 도움이 필요한 이웃에게 먼저 다가가 나누게 해 주세요.',
-      '우리가 하는 일에 복을 주시고, 정직하게 일하게 해 주세요.',
-      '가진 것으로 만족하는 마음을 주시고, 더 가지려는 욕심에서 지켜 주세요.',
-      '일터에서 지친 이들에게 쉼을 주시고, 부당한 대우를 받는 이들을 지켜 주세요.',
-      '먹고 입고 사는 모든 것이 아버지의 선물임을 잊지 않게 해 주세요.'], b: [
-      ['가난하게도 부하게도 하지 마시고, 꼭 필요한 양식으로 먹여 주세요.', '잠 30:8-9'],
-      ['무슨 일을 하든지 사람에게 하듯 하지 않고 주께 하듯 마음을 다하게 해 주세요.', '골 3:23'],
-      ['우리가 서로의 짐을 나누어 지게 해 주세요.', '갈 6:2'],
-      ['어떤 형편에서도 만족하는 법을 배우게 해 주세요.', '빌 4:11-12']],
-      next: '이번 주 우리 일터나 동네에서 도움이 필요한 한 사람을 떠올려요.' },
-    { k: 'peace', name: '평화와 화해', lines: [5, 7], a: [
-      '전쟁과 폭력이 멈추고, 두려움 속에 있는 사람들이 평안을 되찾게 해 주세요.',
-      '삶의 터전과 가족을 잃은 이들에게 안전한 거처와 위로, 필요한 도움을 보내 주세요.',
-      '깨어진 가정과 관계 가운데 용서의 길을 열어 주시고, 먼저 손 내밀 용기를 주세요.',
-      '갈등과 차별이 깊은 사회 속에서 우리가 화해의 다리가 되게 해 주세요.',
-      '그리스도 덕분에 우리 죄를 용서해 주시니 감사합니다. 날마다 짓는 잘못도 용서해 주세요.',
-      '용서받은 사람답게, 우리에게 잘못한 이들을 용서하게 해 주세요.',
-      '악한 이들의 손에서 약한 이들을 건져 주세요.',
-      '죄와 악에서 완전히 자유로워질 그날을 바라보며 살게 해 주세요.'], b: [
-      ['그리스도 안에서 우리를 용서하신 것같이, 우리도 서로 친절하고 너그럽게 용서하게 해 주세요.', '엡 4:32'],
-      ['할 수 있는 대로 모든 사람과 화목하게 지내게 해 주세요.', '롬 12:18'],
-      ['땅 끝까지 전쟁을 그치게 하시고 무기를 꺾어 주세요.', '시 46:9'],
-      ['우리를 평화를 만드는 사람으로 써 주세요.', '마 5:9']],
-      next: '화해가 필요한 관계가 떠오르면, 그 사람의 이름을 조용히 아버지께 맡겨요.' },
-    { k: 'next', name: '다음 세대', lines: [6], a: [
-      '어린이와 청소년들이 하나님의 사랑 안에서 자신의 소중함을 발견하게 해 주세요.',
-      '성적과 비교, 미래에 대한 불안으로 지친 마음에 쉼과 용기를 주세요.',
-      '가정과 학교, 교회가 다음 세대의 목소리를 듣고 안전하게 돌보게 해 주세요.',
-      '다음 세대가 믿음 안에서 자라며, 각자에게 주신 재능으로 이웃을 섬기게 해 주세요.',
-      '아이들이 유혹 앞에서 무너지지 않게 성령으로 붙들어 주세요.',
-      '넘어진 아이들을 다시 일으켜 주시고, 곁에 믿을 만한 어른을 보내 주세요.',
-      '부모와 교사들이 말씀으로 가르치고 삶으로 보여 주게 해 주세요.',
-      '화면 속 비교와 해로운 것들에서 아이들의 마음을 지켜 주세요.'], b: [
-      ['하나님이 하신 놀라운 일들을 다음 세대에 전하게 해 주세요.', '시 78:4'],
-      ['아이들이 어려서부터 성경을 알아 구원에 이르는 지혜를 얻게 해 주세요.', '딤후 3:15'],
-      ['감당하지 못할 시험은 허락하지 마시고, 피할 길을 내 주세요.', '고전 10:13'],
-      ['예수님처럼 지혜와 키가 자라며, 하나님과 사람에게 사랑받게 해 주세요.', '눅 2:52']],
-      next: '우리 사랑방 아이들 가운데 한 명의 이름을 불러 기도해요.' }
-  ];
-  const PRAY_THANKS = { k: 'thanks', name: '감사와 찬양', lines: [8], a: [
-    '오늘까지 지켜 주시고 함께하신 하나님의 은혜에 감사드립니다.',
-    '크고 작은 일상 속에 주신 복을 잊지 않고, 감사로 고백하게 해 주세요.',
-    '죽음과 이별 앞에서도 부활의 소망을 붙들고 살아가게 해 주세요.',
-    '우리가 영원한 나라를 바라보며, 오늘을 성실하고 기쁘게 살게 해 주세요.',
-    '우리 자격이 아니라 아버지의 선하심을 의지해 구했습니다. 들으실 줄 믿습니다.',
-    '나라와 권세와 영광이 영원히 아버지께 있습니다.',
-    '우리를 도우실 능력과 마음이 있으신 아버지께 오늘 드린 기도를 맡깁니다.',
-    '오늘 드린 모든 기도에 믿음으로 아멘 합니다.'], b: [
-    ['내 영혼이 주님을 찬양하며, 주신 모든 은혜를 잊지 않게 해 주세요.', '시 103:2'],
-    ['모든 것이 주님에게서 나오고, 주님으로 말미암고, 주님께로 돌아갑니다. 영광이 영원히 주님께 있습니다.', '롬 11:36'],
-    ['우리가 구하거나 생각하는 것보다 더 넘치게 이루시는 아버지께, 교회와 그리스도 예수 안에서 영광이 영원히 있습니다.', '엡 3:20-21'],
-    ['성부와 성자와 성령께 영광이 처음과 같이 이제와 영원히 있습니다.', '영광송']],
-    next: '오늘 감사한 한 가지를 아버지께 말씀드려요.' };
-  // 절기 문장: 그 기간에는 해당 주제의 a 자리에 하루걸러 나온다. 장절이 없는 것은 대요리문답에서 온 문장
-  const PRAY_SEASONS = [
-    { k: 'newyear', topic: 'climate', text: '새해 우리의 계획을 아버지의 뜻 앞에 내려놓습니다. 한 해를 주님이 원하시는 길로 이끌어 주세요.', ref: '약 4:15' },
-    { k: 'lent', topic: 'peace', text: '십자가에서 우리 죄를 지신 그리스도를 기억하며, 돌이키는 마음을 주세요.', ref: '' },
-    { k: 'easter', topic: 'thanks', text: '죽음을 이기고 다시 사신 그리스도를 찬양합니다.', ref: '고전 15:57' },
-    { k: 'pentecost', topic: 'church', text: '약속하신 성령을 우리 교회에 부어 주셔서, 담대히 복음을 전하게 해 주세요.', ref: '행 1:8' },
-    { k: 'harvest', topic: 'neighbor', text: '한 해 동안 먹이시고 입히신 은혜에 감사하며, 받은 것을 이웃과 나누게 해 주세요.', ref: '시 65:11' },
-    { k: 'advent', topic: 'nation', text: '다시 오실 주님을 기다리며, 깨어 준비하게 해 주세요.', ref: '' },
-    { k: 'christmas', topic: 'thanks', text: '우리에게 아들을 보내 주신 아버지의 사랑에 감사드립니다.', ref: '요 3:16' }
-  ];
-  // 날짜 번호(이 기기의 날짜 기준): 같은 날에는 누가 열어도 같은 문장이 나온다
-  const dayNo = d => Math.floor(Date.UTC(d.getFullYear(), d.getMonth(), d.getDate()) / 864e5);
-  // 부활절(그레고리력 계산법): 사순절·부활절·오순절이 여기서 정해진다
-  function easterDay(y) {
-    const a = y % 19, b = Math.floor(y / 100), c = y % 100, d = Math.floor(b / 4), e = b % 4, f = Math.floor((b + 8) / 25), g = Math.floor((b - f + 1) / 3);
-    const h = (19 * a + b - d - g + 15) % 30, i = Math.floor(c / 4), k = c % 4, l = (32 + 2 * e + 2 * i - h - k) % 7, m = Math.floor((a + 11 * h + 22 * l) / 451);
-    const n = h + l - 7 * m + 114;
-    return dayNo(new Date(y, Math.floor(n / 31) - 1, (n % 31) + 1));
-  }
-  // 절기: 새해 1/1~1/7, 사순절(재의 수요일~부활 전날), 부활절 주간, 오순절 주간, 추수감사(11월 셋째 주일까지의 한 주, 월~주일),
-  //  대림절(성탄 전 넷째 주일~12/24), 성탄절 12/25~12/31
-  function seasonOf(day) {
-    const y = day.getFullYear(), n = dayNo(day), at = (m, d) => dayNo(new Date(y, m - 1, d)), on = (a, b) => n >= a && n <= b, E = easterDay(y);
-    const harvest = at(11, 1 + (7 - new Date(y, 10, 1).getDay()) % 7 + 14);
-    const advent = at(12, 25) - (new Date(y, 11, 25).getDay() || 7) - 21;
-    const k = on(at(1, 1), at(1, 7)) ? 'newyear' : on(E - 46, E - 1) ? 'lent' : on(E, E + 6) ? 'easter' : on(E + 49, E + 55) ? 'pentecost'
-      : on(harvest - 6, harvest) ? 'harvest' : on(advent, at(12, 24)) ? 'advent' : on(at(12, 25), at(12, 31)) ? 'christmas' : '';
-    return effSeason(PRAY_SEASONS.find(s => s.k === k) || null);
-  }
+  // 주기도문, 하나님 나라 주제, 감사와 찬양, 절기 문장은 기도 노트와 함께 쓰려고 pray-data.js에 둔다
+  const { LORDS_PRAYER, PRAY_TOPICS, PRAY_THANKS, PRAY_SEASONS, dayNo } = window.KOIDE_PRAY;
+  // 오늘의 절기(교회가 고친 절기 문장이 있으면 그것으로)
+  const seasonOf = day => effSeason(PRAY_SEASONS.find(s => s.k === window.KOIDE_PRAY.seasonKey(day)) || null);
   // 오늘 보여 줄 문장: a 하나(절기면 하루걸러 절기 문장), b 하나, 내 말로 이어서
   function prayToday(t, day = new Date()) {
     const n = dayNo(day), s = seasonOf(day);
@@ -4006,6 +3884,9 @@ try { const p = JSON.parse(localStorage.getItem('koide-pref') || '{}'), d = docu
   }
   // ── ⑤ 초대 링크 · QR: 링크로 들어온 사람은 부서·사랑방 고르기를 건너뛴다. 승인은 지금처럼 리더가 ──
   const JOIN = 'koide-join';
+  // 기도 노트에서 '우리 교회 공동체에 연결하기'를 눌러 왔다는 표시(초대 링크 없이 부서·소그룹을 골라 신청)
+  const CONNECT = 'koide-connect';
+  const connecting = () => { try { return !!localStorage.getItem(CONNECT); } catch (e) { return false; } };
   const inviteUrl = t => (CFG.REDIRECT_URI || location.origin + location.pathname) + (DEMO_LINK ? '?demo&' : '?') + 'join=' + t;
   // QR 그림은 관리자가 볼 때만 앱 안의 vendor/qrcode.js(MIT, Kazuhiko Arase)를 불러 만든다
   const loadQR = () => window.qrcode ? Promise.resolve() : new Promise((ok, bad) => { const s = document.createElement('script'); s.src = 'vendor/qrcode.js'; s.onload = ok; s.onerror = bad; document.head.appendChild(s); });
@@ -4543,6 +4424,7 @@ try { const p = JSON.parse(localStorage.getItem('koide-pref') || '{}'), d = docu
       }
       case 'codestart': S.view = 'code'; render(); { const f = $('#cd-a'); if (f) f.focus(); } return;
       case 'codeback': S.view = 'login'; return render();
+      case 'tonote': try { localStorage.removeItem(CONNECT); } catch (err) { /* 무시 */ } location.href = 'note.html' + (DEMO_LINK ? '?demo' : ''); return;
       case 'codeagain': S.codeMk = {}; return render();
       case 'codemake': {
         const P = S.pending, C = S.codeMk || {}, fam = P.families.find(f => f.id === C.fam) || P.families[0];
