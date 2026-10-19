@@ -2362,34 +2362,32 @@ try { const p = JSON.parse(localStorage.getItem('koide-pref') || '{}'), d = docu
     const A = S.an;
     if (!A) return `<section class="card"><p class="hint">${S.anErr ? esc(S.anErr) : '불러오는 중…'}</p></section>`;
     const g = grp(), unit = words().count, N = A.now, mon = mm => Number(mm.slice(5)) + '월';
-    const ratio = (k, l, hint) => `<div class="ov-row"><div class="row"><span>${l}</span><b>${k}/${N.n}<small>${unit} · ${N.n ? Math.round(k / N.n * 100) : 0}%</small></b></div>
-      <span class="bar" role="img" aria-label="${l} ${N.n}${unit} 중 ${k}"><span class="bseg edited" style="flex:${k}"></span><span class="bseg same" style="flex:${N.n - k}"></span></span><p class="hint">${hint}</p></div>`;
+    const ratio = (k, l) => `<div class="ov-row"><div class="row"><span>${l}</span><b>${k}/${N.n}<small>${unit} · ${N.n ? Math.round(k / N.n * 100) : 0}%</small></b></div>
+      <span class="bar" role="img" aria-label="${l} ${N.n}${unit} 중 ${k}"><span class="bseg edited" style="flex:${k}"></span><span class="bseg same" style="flex:${N.n - k}"></span></span></div>`;
     const wmax = Math.max(1, ...A.weeks.map(w => w.n)), last = A.weeks.length - 1;
     const weeks = A.weeks.map((w, i) => `<div class="wk${i === last ? ' now' : ''}"><span class="wk-n">${w.n}</span><span class="wk-bar" style="height:${(w.n / wmax * 4.6).toFixed(2)}em"></span><span class="wk-d">${i === last ? '이번 주' : w.label}</span></div>`).join('');
-    const mini = (label, key, hint) => { const vals = A.trend.map(t => t[key]);
+    const mini = (label, key) => { const vals = A.trend.map(t => t[key]);
       return `<div class="an-mini"><div class="row"><span>${label}</span><small class="hint">%</small></div>
-        <div class="an-cols" role="img" aria-label="${label}: ${A.trend.map(t => `${mon(t.month)} ${t[key] == null ? '없음' : t[key] + '%'}`).join(', ')}">${vals.map((v, i) => `<div class="an-col${i === vals.length - 1 ? ' now' : ''}"><span class="an-v">${v == null ? '·' : v}</span><span class="an-bar" style="height:${((v || 0) / 100 * 4.2).toFixed(2)}em"></span><span class="an-x">${mon(A.months[i])}</span></div>`).join('')}</div>
-        <p class="hint">${hint}</p></div>`; };
+        <div class="an-cols" role="img" aria-label="${label}: ${A.trend.map(t => `${mon(t.month)} ${t[key] == null ? '없음' : t[key] + '%'}`).join(', ')}">${vals.map((v, i) => `<div class="an-col${i === vals.length - 1 ? ' now' : ''}"><span class="an-v">${v == null ? '·' : v}</span><span class="an-bar" style="height:${((v || 0) / 100 * 4.2).toFixed(2)}em"></span><span class="an-x">${mon(A.months[i])}</span></div>`).join('')}</div></div>`; };
     const roomRows = A.rooms.map(r => `<tr><th scope="row">${esc(r.name)}</th>${r.vals.map((v, i) => v == null ? '<td class="an-na">·</td>' : `<td ${heatAttr(v, 100)} title="${esc(r.name)} ${mon(A.months[i])} ${v}%">${v}</td>`).join('')}</tr>`).join('');
     const tmax = Math.max(0, ...A.time.flat()), tsum = A.time.flat().reduce((a, b) => a + b, 0);
     const timeRows = A.time.map((row, d) => `<tr><th scope="row">${AN_DAY[d]}</th>${row.map((v, k) => `<td ${heatAttr(v, tmax)} title="${AN_DAY[d]}요일 ${AN_SLOT[k]} ${v}번">${v}</td>`).join('')}</tr>`).join('');
     return `<div class="an-grid"><div class="an-side">
       <section class="card ov"><div class="row"><p class="label" style="margin:0">${esc(S.month.dept.name)} 한눈에</p><span class="hint">${mon(A.month)} · ${N.day}일까지</span></div>
-        ${ratio(N.visit, '이번 달 앱에 들어온 ' + unit, '한 번이라도 열어 본 ' + unit + '이에요.')}
-        ${ratio(N.edit, '기도제목을 손보거나 확인한 ' + unit, '나머지는 지난달 기도제목이 그대로 넘어왔어요.')}
-        <div class="ov-row"><div class="row"><span>주별 "기도했어요"</span><small class="hint">${esc(S.month.dept.name)} 합계 · 최근 8주</small></div>
+        ${ratio(N.visit, '이번 달 앱에 들어온 ' + unit)}
+        ${ratio(N.edit, '기도제목을 손보거나 확인한 ' + unit)}
+        <div class="ov-row"><div class="row"><span>주별 "기도했어요"</span><small class="hint">최근 8주</small></div>
           <div class="wk-bars" role="img" aria-label="주별 기도했어요 수: ${A.weeks.map((w, i) => `${i === last ? '이번 주(진행 중)' : w.label + ' 주'} ${w.n}`).join(', ')}">${weeks}</div></div>
-        <p class="plain ov-note">이번 달 기도가 아직 한 번도 닿지 않은 ${unit}이 있는 ${esc(g)} <b>${N.unreached}곳</b> <span class="hint">· 어느 ${unit}인지는 보이지 않아요</span></p>
-        <p class="hint">${unit} 이름과 ${unit}별 숫자, ${esc(g)} 순위는 보이지 않아요. 기도제목 내용도 세지 않아요. 승인 대기와 리더 없는 ${esc(g)}은 관리 탭에서 봐요.</p></section>
+        <p class="plain ov-note">기도가 아직 닿지 않은 ${unit}이 있는 ${esc(g)} <b>${N.unreached}곳</b></p></section>
       <section class="card an-sec"><p class="label">우리 공동체 · 달마다 흐름</p>
-        <div class="an-pair">${mini('앱에 들어온 ' + unit, 'visit', '그달 편성의 ' + unit + ' 중 앱을 한 번이라도 열었거나, 기도했어요를 누르거나, 기도제목을 손본 ' + unit)}${mini('기도제목을 손보거나 확인한 ' + unit, 'edit', '그달 기도제목을 고쳤거나 "이번 달도 그대로예요"를 누른 ' + unit)}</div></section>
+        <div class="an-pair">${mini('앱에 들어온 ' + unit, 'visit')}${mini('손보거나 확인한 ' + unit, 'edit')}</div></section>
     </div><div class="an-side">
       <section class="card an-sec"><p class="label">${esc(g)}별 기도제목 손봄·확인 <small class="hint">%</small></p>
         ${A.rooms.length ? `<div class="an-scroll"><table class="an-heat"><thead><tr><th></th>${A.months.map(mm => `<th scope="col">${mon(mm)}</th>`).join('')}</tr></thead><tbody>${roomRows}</tbody></table></div>` : `<p class="hint">아직 ${esc(g)}이 없어요.</p>`}
-        <p class="hint">색이 진할수록 많이 손본 달이에요. ${esc(g)}은 늘 같은 순서로 놓고 순위를 매기지 않아요. 연한 달이 이어지는 ${esc(g)}은 리더와 이야기해 볼 신호예요.</p></section>
-      <section class="card an-sec"><p class="label">기도하는 때 <small class="hint">"기도했어요" 수 · 최근 4주</small></p>
+        <p class="hint">진할수록 많이 손본 달이에요.</p></section>
+      <section class="card an-sec"><p class="label">기도하는 때 <small class="hint">최근 4주</small></p>
         ${tsum ? `<div class="an-scroll"><table class="an-heat an-time"><thead><tr><th></th>${AN_SLOT.map(x => `<th scope="col">${x}</th>`).join('')}</tr></thead><tbody>${timeRows}</tbody></table></div>` : '<p class="hint">최근 4주에 누른 "기도했어요"가 아직 없어요.</p>'}
-        <p class="hint">새벽 5~9시 · 오전 9~12시 · 오후 12~18시 · 저녁 18~22시 · 밤 22시~. 나중에 기도 알림 시간을 정할 때 써요.</p></section>
+        <p class="hint">새벽 5~9시 · 오전 ~12시 · 오후 ~18시 · 저녁 ~22시 · 밤</p></section>
     </div></div>${appStatsView(A.app)}`;
   }
   // 분석 ② 앱 개선(만드는 쪽): 교회 전체 합계. 계속 쓰는지, 어디서 막히는지, 무엇을 쓰는지
@@ -2399,22 +2397,19 @@ try { const p = JSON.parse(localStorage.getItem('koide-pref') || '{}'), d = docu
     const cohort = P.cohorts.map(c => `<tr><th scope="row">${mon(c.month)}<small>${c.n}${words().count}</small></th>${c.vals.map((v, i) => v == null || !c.n ? '<td class="an-na">·</td>' : `<td ${heatAttr(Math.max(0, v - 40), 60)} title="${mon(c.month)}에 처음 들어온 ${c.n}${words().count} 중 ${i ? i + '개월 뒤' : '처음 달'} ${v}%">${v}</td>`).join('')}</tr>`).join('');
     const hbars = (rows, max, unit) => rows.map(r => `<li><span class="an-l">${esc(r.label)}</span><span class="an-track"><span class="an-fill" style="width:${max ? ((r.v || 0) / max * 100).toFixed(1) : 0}%"></span></span><b>${na(r.v)}${r.v == null ? '' : unit}</b></li>`).join('');
     const f0 = P.funnel[0].n, tile = (v, l) => `<div class="stat"><b>${v}</b><span>${l}</span></div>`, pc = v => v == null ? '·' : v + '%';
-    return `<h2 class="section-title an-head">앱 개선 <small class="hint">만드는 쪽 · 교회 전체 합계</small></h2>
+    return `<h2 class="section-title an-head">앱 개선 <small class="hint">교회 전체</small></h2>
     <div class="an-grid"><div class="an-side">
-      <section class="card an-sec"><p class="label">계속 쓰기 <small class="hint">처음 들어온 달별로, 그 뒤에도 들어온 ${words().count} %</small></p>
-        <div class="an-scroll"><table class="an-heat"><thead><tr><th></th><th scope="col">처음 달</th><th scope="col">1개월 뒤</th><th scope="col">2개월 뒤</th><th scope="col">3개월 뒤</th></tr></thead><tbody>${cohort}</tbody></table></div>
-        <p class="hint">한 달 주기 앱이라 가장 중요한 숫자예요. 다른 교회에 보여 줄 근거가 돼요.</p></section>
-      <section class="card an-sec"><p class="label">첫 접속 <small class="hint">최근 90일, 단계마다 도착한 기기 수</small></p>
-        ${f0 ? `<ol class="an-hbars">${hbars(P.funnel.map(x => ({ label: x.label, v: x.n })), f0, '')}</ol>` : '<p class="hint">최근 90일에 처음 들어온 기기가 없어요.</p>'}
-        <p class="hint">숫자가 크게 줄어드는 단계가 처음 쓰는 분이 막히는 곳이에요. 처음부터 관리자인 분은 승인 기다림을 건너뛰어요.</p></section>
+      <section class="card an-sec"><p class="label">계속 쓰기 <small class="hint">처음 들어온 달별, 그 뒤에도 들어온 %</small></p>
+        <div class="an-scroll"><table class="an-heat"><thead><tr><th></th><th scope="col">처음 달</th><th scope="col">1개월 뒤</th><th scope="col">2개월 뒤</th><th scope="col">3개월 뒤</th></tr></thead><tbody>${cohort}</tbody></table></div></section>
+      <section class="card an-sec"><p class="label">첫 접속 <small class="hint">최근 90일 · 기기 수</small></p>
+        ${f0 ? `<ol class="an-hbars">${hbars(P.funnel.map(x => ({ label: x.label, v: x.n })), f0, '')}</ol>` : '<p class="hint">최근 90일에 처음 들어온 기기가 없어요.</p>'}</section>
     </div><div class="an-side">
-      <section class="card an-sec"><p class="label">기능 사용 <small class="hint">이번 달 앱을 연 기기 ${P.devices}대 중 %</small></p>
+      <section class="card an-sec"><p class="label">기능 사용 <small class="hint">이번 달 기기 ${P.devices}대 중</small></p>
         ${P.devices ? `<ul class="an-hbars">${hbars(P.features.map(x => ({ label: x.label, v: x.pct })), 100, '%')}</ul>` : '<p class="hint">이번 달 사용 기록이 아직 없어요.</p>'}</section>
       <section class="card an-sec"><p class="label">기도하기 한 번에 <small class="hint">이번 달 ${P.pray.n}번</small></p>
         <div class="stats an-tiles">${tile(pc(P.pray.done), '끝까지 마침')}${tile(na(P.pray.seen) + (P.pray.seen == null ? '' : '장'), '평균 넘긴 장')}${tile(na(P.pray.mins) + (P.pray.mins == null ? '' : '분'), '평균 머문 시간')}${tile(pc(P.pray.music), '음악 켬')}${tile(pc(P.pray.flow), '자동으로 넘기기')}</div>
-        <p class="label an-sub">쓰는 환경 <small class="hint">이번 달 기기 %</small></p>
-        <div class="stats an-tiles">${tile(pc(P.env.phone), '휴대폰')}${tile(pc(P.env.tablet), '태블릿')}${tile(pc(P.env.pc), 'PC')}${tile(pc(P.env.app), '홈 화면 앱')}${tile(pc(P.env.dark), '어두운 화면')}${tile(pc(P.env.big), '큰 글씨')}</div>
-        <p class="hint">이름 없는 사용 기록으로 세요. 기도제목 내용, ${words().count} 이름, 누가 누구를 위해 기도했는지는 세지 않아요.</p></section>
+        <p class="label an-sub">쓰는 환경 <small class="hint">이번 달 기기</small></p>
+        <div class="stats an-tiles">${tile(pc(P.env.phone), '휴대폰')}${tile(pc(P.env.tablet), '태블릿')}${tile(pc(P.env.pc), 'PC')}${tile(pc(P.env.app), '홈 화면 앱')}${tile(pc(P.env.dark), '어두운 화면')}${tile(pc(P.env.big), '큰 글씨')}</div></section>
     </div></div>`;
   }
   async function loadAnalysis() {
