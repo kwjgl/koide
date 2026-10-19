@@ -182,6 +182,62 @@ h2 { font-size: 1.05em; margin: 0; }
 .hist-table th.now { color: var(--accent); font-weight: 700; }
 .hist-table tbody th { position: sticky; left: 0; background: var(--surface); text-align: left; color: var(--ink); padding-right: .5em; font-size: .92em; }
 .hist-table td { padding: 0; }
+/* 이달의 그림 모으기: 그림, 크게 보기, 달마다 모은 그림(시안과 같은 규칙) */
+.pasture { display: block; width: 100%; height: auto; aspect-ratio: 32 / 15; border-radius: 14px; overflow: hidden; background: #F6C9A0; }
+.pop-in { transform-box: fill-box; transform-origin: 50% 100%; animation: ps-pop .7s cubic-bezier(.3,1.6,.5,1) both; }
+@keyframes ps-pop { 0% { transform: scale(0); } 100% { transform: scale(1); } }
+/* 그림 크게 보기 */
+.ps-frame { position: relative; cursor: zoom-in; }
+/* 크게 보기: 그림을 덜 가리게 글자 없이 아이콘만 */
+.ps-big { position: absolute; right: 8px; bottom: 8px; display: inline-grid; place-items: center; font: inherit; font-size: .72em;
+  color: #4A3A2E; background: rgba(255, 250, 242, .82); border: 0; border-radius: 50%; padding: 0; width: 32px; height: 32px; cursor: pointer;
+  box-shadow: 0 1px 4px rgba(60, 40, 20, .2); -webkit-backdrop-filter: blur(4px); backdrop-filter: blur(4px); }
+.ps-big .ic { width: 1.1em; height: 1.1em; stroke-width: 1.8; }
+.bigview { position: fixed; inset: 0; z-index: 80; background: #20160F; overflow: hidden; }
+.big-stage { position: absolute; left: 50%; top: 50%; width: min(100vw, 100dvh * 32 / 15); aspect-ratio: 32 / 15; transform: translate(-50%, -50%); animation: big-in .45s ease-out both; }
+@media (orientation: portrait) { .big-stage { width: min(100dvh, 100vw * 32 / 15); transform: translate(-50%, -50%) rotate(90deg); } }
+@keyframes big-in { from { opacity: 0; } to { opacity: 1; } }
+.big-stage .pasture { border-radius: 0; height: 100%; }
+.big-cap { position: absolute; left: 0; right: 0; top: 0; padding: 1em 4.5em 2.2em 1.3em; display: flex; flex-direction: column; gap: .2em; color: #fff; pointer-events: none;
+  background: linear-gradient(rgba(70, 40, 20, .45), transparent); text-shadow: 0 1px 6px rgba(60, 30, 10, .45); }
+.big-cap b { font-family: var(--f-display); font-size: clamp(1.15em, 3.4vmax, 1.9em); }
+.big-cap span { font-size: clamp(.82em, 1.9vmax, 1.05em); }
+.big-x { position: absolute; top: .7em; right: .7em; width: 44px; height: 44px; border-radius: 50%; border: 0; display: grid; place-items: center;
+  background: rgba(255, 250, 242, .85); color: #4A3A2E; cursor: pointer; }
+.big-x .ic { width: 1.2em; height: 1.2em; stroke-width: 2; }
+@media (prefers-reduced-motion: reduce) { .big-stage { animation: none; } }
+.coll-year { border-top: 1px solid var(--line); padding-top: .2em; }
+.coll-year > summary { cursor: pointer; display: flex; align-items: baseline; gap: .6em; min-height: 40px; padding: .4em 0; list-style-position: outside; }
+.coll-year > summary b { font-size: 1em; }
+.coll-year > summary span { font-size: .78em; color: var(--ink-2); }
+.coll-year > .btn { margin: .8em 0 .4em; }
+.coll.coll-past { grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); }
+/* 잔잔한 움직임: 아주 작고 느리게. 동작 줄이기를 켠 기기에서는 멈춘다 */
+.mv-breathe, .mv-float, .mv-sway { transform-box: fill-box; transform-origin: 50% 100%; }
+.mv-breathe { animation: ps-breathe 4s ease-in-out infinite; }
+.mv-float { animation: ps-float 3s ease-in-out infinite; }
+.mv-sway { animation: ps-sway 6s ease-in-out infinite; }
+@keyframes ps-breathe { 0%, 100% { transform: none; } 50% { transform: scale(1.015, 1.035); } }
+@keyframes ps-float { 0%, 100% { transform: none; } 50% { transform: translateY(-1.6px); } }
+@keyframes ps-sway { 0%, 100% { transform: rotate(-.8deg); } 50% { transform: rotate(.8deg); } }
+@media (prefers-reduced-motion: reduce) { .pop-in, .mv-breathe, .mv-float, .mv-sway { animation: none; } }
+.ps-locked { aspect-ratio: 32 / 15; border-radius: 14px; display: grid; place-items: center; background: repeating-linear-gradient(45deg, var(--surface-2) 0 8px, var(--surface) 8px 16px); }
+.ps-locked svg { width: 44px; height: 44px; }
+.ps-ico { width: 1.25em; height: 1.1em; vertical-align: -.2em; margin-right: .25em; object-fit: contain; }
+.ps-legend { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: .4em; }
+.ps-legend li { display: flex; flex-direction: column; gap: .05em; font-size: .78em; }
+.ps-legend b { display: inline-flex; align-items: center; font-size: 1.15em; font-weight: 700; font-variant-numeric: tabular-nums; }
+.ps-legend b small { font-size: .7em; color: var(--ink-2); font-weight: 500; }
+.ps-legend span { color: var(--ink-2); line-height: 1.35; }
+.coll { display: grid; gap: 12px; grid-template-columns: repeat(auto-fill, minmax(min(100%, 220px), 1fr)); }
+.coll-item { display: flex; flex-direction: column; gap: .5em; }
+.coll-item .ps-legend { font-size: .9em; }
+.coll-m { margin: 0; font-weight: 600; font-size: .9em; display: flex; justify-content: space-between; gap: .5em; }
+.coll-m span { font-size: .8em; font-weight: 600; color: var(--accent); }
+.coll-item.next .coll-m span { color: var(--ink-2); }
+
+
+.art-card { display: flex; flex-direction: column; gap: 10px; }
 /* 지난 기록 검색 */
 .hist-q { margin: 6px 0 4px; max-width: 420px; }
 .sr-list { list-style: none; margin: 8px 0 0; padding: 0; display: flex; flex-direction: column; gap: 6px; }
@@ -888,6 +944,7 @@ try { const p = JSON.parse(localStorage.getItem('koide-pref') || '{}'), d = docu
 <header class="topbar" id="topbar"></header>
 <main id="main" class="wrap"><p class="loading">불러오는 중…</p></main>
 <div id="pss" class="pss" role="dialog" aria-modal="true" hidden></div>
+<div id="bigv"></div>
 <div id="pop" class="pop" hidden></div>
 <nav id="tabs" class="tabs" hidden></nav>
 <div id="toast" class="toast" role="status" hidden></div>
@@ -1069,6 +1126,7 @@ try { const p = JSON.parse(localStorage.getItem('koide-pref') || '{}'), d = docu
     chevL: svg('<path d="M10 3.5L5.5 8 10 12.5"/>'),
     up: svg('<path d="M4 9.5L8 5.5l4 4"/>'),
     x: svg('<path d="M4 4l8 8M12 4l-8 8"/>'),
+    expand: svg('<path d="M9.5 2.5h4v4M6.5 13.5h-4v-4M13.5 2.5L9.2 6.8M2.5 13.5l4.3-4.3"/>'),
     lock: svg('<rect x="3" y="7" width="10" height="7" rx="1.5"/><path d="M5.5 7V5a2.5 2.5 0 0 1 5 0v2"/>'),
     people: svg('<circle cx="6" cy="5.5" r="2"/><path d="M2.5 13c0-2 1.6-3.5 3.5-3.5s3.5 1.5 3.5 3.5"/><circle cx="11.2" cy="6" r="1.6"/><path d="M10.5 9.6c1.8 0 3 1.3 3 3.1"/>'),
     gear: svg('<circle cx="8" cy="8" r="2"/><path d="M8 1.8v1.6M8 12.6v1.6M3.6 3.6l1.1 1.1M11.3 11.3l1.1 1.1M1.8 8h1.6M12.6 8h1.6M3.6 12.4l1.1-1.1M11.3 4.7l1.1-1.1"/>'),
@@ -1232,7 +1290,7 @@ try { const p = JSON.parse(localStorage.getItem('koide-pref') || '{}'), d = docu
           <div class="pray-hero"><div class="pray-row">${prayBtn(t, false, true)}<button class="btn next${t.today ? '' : ' ghost'}" data-act="nexttoday">다음 ${words().one}</button></div>
             ${t.prayed ? `<p class="pray-done">이번 달 ${esc(t.name)}${solo() ? ' 님' : ' 가정'}을 위해 ${t.prayed}번 기도했어요</p>` : ''}</div>
           <p class="hint">앱을 열 때마다 이번 달 아직 기도하지 않은 ${words().one}부터 돌아가며 나와요.</p>
-          ${cordHtml(t.id)}</section>` : ''}</div>
+          ${cordHtml(t.id)}</section>` : ''}${artCard()}</div>
       <div class="col main">
         ${mineCard()}
         <div class="section-row"><div class="sr-title"><h2 class="section-title">${esc(grp())} ${words().members} ${others.length}</h2><span class="sr-legend"><i class="new-dot"></i>이번 달 새 기도제목</span></div>
@@ -1506,6 +1564,171 @@ try { const p = JSON.parse(localStorage.getItem('koide-pref') || '{}'), d = docu
     return itemList((open ? its : its.slice(0, 4)).map((i, k) => Object.assign({}, i, { id: id + '-' + k })), true)
       + (more > 0 ? `<button class="link" data-act="famtoggle" data-id="${esc(id)}" aria-expanded="${open}">${open ? '접기' : '더 보기 · ' + more + '개'}</button>` : '');
   }
+  // ── 이달의 그림 모으기 (설계서 4장, 3차) ──────────────────────────
+  // 나만 보는 그림: 기도한 날마다 주인공 하나, 새 가정을 위해 처음 기도할 때마다 소품 하나, 같은 날 한 번 더 기도하면 하트.
+  //  숫자 세 개는 서버가 기도기록에서 센다(art). 그림은 시안과 같은 규칙으로 그때그때 그린다(시안 prototype/index.html에서 옮김)
+  //  그림 파일은 CFG.ART(이 저장소는 ../prototype/img/, 실제 앱 저장소는 app/img/)
+  //  그림 세트는 1년차(2026-09 ~ 2027-08) 열두 달. 그 뒤에는 2년차 그림이 생길 때까지 같은 달의 1년차 그림을 쓴다
+  const sceneKey = m => (m.slice(5) >= '09' ? '2026-' : '2027-') + m.slice(5);
+  const SCENES = {
+    '2026-09': { title: '9월 광야의 만나', hero: '만나', heroW: 20, heroMv: 'mv-breathe', heroFlip: false, heroHead: 0,
+      props: [['quail', '메추라기', 170, 104, 22, 'mv-breathe'], ['tent', '장막', 222, 90, 60], ['basket', '바구니', 70, 142, 26], ['rock-spring', '반석의 샘물', 56, 98, 62],
+        ['cloud-pillar', '구름기둥', 292, 86, 26, 'mv-float'], ['jar', '항아리', 116, 98, 22], ['staff', '지팡이', 140, 94, 12]] },
+    '2026-10': { title: '10월 선한 목자', hero: '양', heroW: 22, heroMv: 'mv-breathe', heroFlip: true, heroHead: .27, unit: '마리',
+      props: [['tree', '나무', 38, 98, 72, 'mv-sway'], ['well', '샘물', 108, 96, 64], ['flowers', '꽃밭', 282, 106, 40], ['tent', '목자의 천막', 214, 88, 58],
+        ['hay', '건초더미', 60, 142, 28], ['dog', '양치기 개', 188, 104, 22], ['rock', '쉼터 바위', 160, 88, 26]] },
+    '2026-11': { title: '11월 추수감사', hero: '곡식 단', heroW: 18, heroMv: 'mv-sway', heroFlip: false, heroHead: 0,
+      props: [['basket', '이삭 바구니', 70, 142, 30], ['sickle', '낫', 226, 104, 20], ['threshing-floor', '타작마당', 176, 94, 64], ['jar', '항아리', 96, 100, 24],
+        ['sparrow', '참새', 122, 102, 18, 'mv-breathe'], ['apple-tree', '사과나무', 38, 98, 70, 'mv-sway'], ['cart', '수레', 272, 100, 50]] },
+    // 12월은 배경의 땅이 아래쪽 마을 앞에만 있어서, 주인공 별은 밤하늘에 흩뿌리고(sky) 소품은 마을 앞에 줄지어 둔다
+    '2026-12': { title: '12월 베들레헴의 별', hero: '별', heroW: 13, heroMv: 'mv-float', heroFlip: false, heroHead: 0, sky: true,
+      props: [['stable', '마구간', 52, 140, 62], ['manger', '구유', 140, 147, 34], ['camel', '낙타', 258, 143, 52, 'mv-breathe'], ['lamp', '등불', 180, 147, 16],
+        ['gift-box', '선물 상자', 212, 148, 26], ['shepherd-staff', '목자 지팡이', 298, 147, 12], ['lamb', '작은 양', 100, 148, 26, 'mv-breathe']] },
+    // 1월은 새싹이 배경 밭고랑을 따라 난다(rows: 고랑 선. 오른쪽으로 갈수록 올라가고, 아래 고랑일수록 더 기운다)
+    '2027-01': { title: '1월 씨 뿌리는 사람', hero: '새싹', heroW: 17, heroMv: 'mv-sway', heroFlip: true, heroHead: 0,
+      rows: { Y: [92, 100, 110, 122, 136], T: .36 }, plan: { rows: [92, 100, 110, 122, 136], gap: 1.25 },
+      props: [['seed-bag', '씨앗 주머니', 70, 142, 26], ['watering-can', '물뿌리개', 252, 142, 28], ['scarecrow', '허수아비', 162, 94, 30, 'mv-sway'], ['sparrow', '참새', 196, 96, 16, 'mv-breathe'],
+        ['fence', '나무 울타리', 270, 98, 62], ['sunflower', '해바라기', 36, 98, 28, 'mv-sway'], ['small-cart', '작은 수레', 106, 100, 44]] },
+    '2027-02': { title: '2월 노아의 방주', hero: '동물 한 쌍', heroW: 22, heroMv: 'mv-breathe', heroFlip: true, heroHead: 0, unit: '쌍',
+      props: [['ark', '방주', 208, 94, 82], ['dove', '비둘기', 118, 42, 24, 'mv-float'], ['olive-branch', '올리브 가지', 138, 100, 20, 'mv-sway'], ['rainbow', '무지개', 66, 84, 72],
+        ['ladder', '사다리', 256, 100, 16], ['puddle', '물웅덩이', 92, 142, 46], ['cloud', '구름', 282, 38, 46, 'mv-float']] },
+    // 3월은 배경 왼쪽의 큰 나무에 둥지와 그네를 단다
+    // 3월은 배경을 왼쪽 아래 기준으로 1.25배 키워서 큰 나무를 더 크게 보이게 한다(bgZoom). 둥지와 그네는 그 나무에 단다
+    '2027-03': { title: '3월 겨자씨', hero: '작은 새', heroW: 17, heroMv: 'mv-breathe', heroFlip: true, heroHead: .2, bgZoom: 1.25,
+      props: [['nest', '둥지', 74, 34, 26], ['branch', '나뭇가지', 152, 102, 30], ['mustard-flower', '겨자꽃', 112, 98, 26, 'mv-sway'], ['birdhouse', '새집', 240, 96, 28],
+        ['feather', '깃털', 196, 142, 16, 'mv-float'], ['butterfly', '나비', 214, 50, 16, 'mv-float'], ['swing', '그네', 122, 64, 26, 'mv-sway']] },
+    '2027-04': { title: '4월 부활의 아침', hero: '흰 백합', heroW: 15, heroMv: 'mv-sway', heroFlip: true, heroHead: 0,
+      props: [['rolled-stone', '굴려진 돌', 60, 96, 46], ['butterfly', '나비', 130, 54, 18, 'mv-float'], ['dawn-sun', '새벽 해', 196, 50, 34], ['olive-tree', '올리브 나무', 276, 100, 66, 'mv-sway'],
+        ['perfume-jar', '향유 병', 100, 100, 14], ['garden-path', '정원 길', 166, 110, 96], ['sparrow', '참새', 222, 102, 16, 'mv-breathe']] },
+    // 5월은 큰 반석을 배경처럼 처음부터 깔고(base), 그 윗면에 집들을 구획대로 올린다. 그래서 모으는 소품은 반석을 뺀 6개
+    //  plan.oval: 반석 윗면(가운데 x, 가운데 y, 가로 반지름, 세로 반지름). 집과 소품은 이 안에만 선다
+    '2027-05': { title: '5월 반석 위의 집', hero: '작은 집', heroW: 12, heroMv: '', heroFlip: true, heroHead: 0, unit: '채',
+      base: ['rock', 160, 152, 330, 104],
+      plan: { rows: [61, 68, 76, 85, 94], gap: 1.2, size: y => 10 + (y - 60) * .3, oval: [160, 75, 142, 22] },
+      props: [['well', '우물', 48, 80, 13], ['garden', '텃밭', 272, 84, 22], ['clothesline', '빨랫줄', 100, 66, 20, 'mv-sway'],
+        ['puppy', '강아지', 226, 92, 9, 'mv-breathe'], ['flowerpot', '화분', 130, 92, 7], ['lamp', '등불', 196, 64, 8]] },
+    // 6월은 포도가 포도원 언덕 위쪽 줄까지 생긴다
+    '2027-06': { title: '6월 포도나무', hero: '포도송이', heroW: 15, heroMv: 'mv-sway', heroFlip: true, heroHead: 0, unit: '송이', plan: { rows: [80, 88, 97, 107, 118, 130, 144] },
+      props: [['grape-leaf', '포도 잎', 62, 142, 22, 'mv-sway'], ['basket', '바구니', 110, 100, 34], ['trellis', '덩굴 시렁', 220, 96, 62], ['ladder', '사다리', 262, 98, 20],
+        ['jar', '항아리', 40, 98, 24], ['bird', '새', 205, 41, 14, 'mv-breathe'], ['bucket', '물통', 290, 142, 20]] },
+    // 7월은 작은 배를 호수 위에, 갈매기를 하늘에 띄운다
+    '2027-07': { title: '7월 오병이어', hero: '빵과 물고기', heroW: 22, heroMv: 'mv-breathe', heroFlip: true, heroHead: 0,
+      props: [['twelve-baskets', '열두 바구니', 230, 100, 56], ['lunchbox', '아이의 도시락', 120, 100, 24], ['small-boat', '작은 배', 78, 69, 40, 'mv-float'], ['mat', '풀밭 돗자리', 164, 143, 52],
+        ['water-bottle', '물병', 272, 143, 18], ['seagull', '갈매기', 198, 36, 22, 'mv-float'], ['hill-path', '언덕 길', 30, 112, 40]] },
+    '2027-08': { title: '8월 그물 가득', hero: '물고기', heroW: 20, heroMv: 'mv-breathe', heroFlip: true, heroHead: 0, unit: '마리',
+      props: [['fishing-boat', '고깃배', 242, 88, 54, 'mv-float'], ['net', '그물', 130, 100, 46], ['oar', '노', 196, 104, 24], ['shell', '조개', 60, 143, 18],
+        ['seagull', '갈매기', 100, 40, 22, 'mv-float'], ['campfire', '모닥불', 290, 141, 24], ['rock', '바위', 40, 98, 46]] }
+  };
+  // 그림 높이/너비 비율 (tools/optimize_art.py가 찍어 주는 값)
+  const ART_RATIO = {
+    '2026-09': { 'cloud-pillar': 1.758, quail: 1.07, basket: 1.049, 'rock-spring': .716, tent: .681, staff: 2.119, jar: 1.27, hero: .646 },
+    '2026-10': { hay: .8, flowers: .616, tree: .969, tent: .838, well: .613, rock: .616, dog: 1.311, hero: .904 },
+    '2026-11': { sickle: .881, 'apple-tree': 1.022, cart: .716, basket: .972, sparrow: 1.003, 'threshing-floor': .516, jar: 1.1, hero: .919 },
+    '2026-12': { camel: .922, 'gift-box': .816, hero: .958, lamb: 1.036, lamp: .653, manger: .713, 'shepherd-staff': 1.818, stable: .731 },
+    '2027-01': { fence: .569, hero: .885, scarecrow: 1.221, 'seed-bag': 1.022, 'small-cart': .681, sparrow: .953, sunflower: 1.28, 'watering-can': .659 },
+    '2027-02': { ark: .787, cloud: .525, dove: .984, hero: .923, ladder: 1.553, 'olive-branch': 1.168, puddle: .378, rainbow: .65 },
+    '2027-03': { birdhouse: 1.176, branch: .603, butterfly: .691, feather: 1.039, hero: .977, 'mustard-flower': 1.29, nest: .769, swing: 1.495 },
+    '2027-04': { butterfly: .909, 'dawn-sun': .975, 'garden-path': .341, hero: 1.232, 'olive-tree': .963, 'perfume-jar': 1.649, 'rolled-stone': 1.029, sparrow: 1.019 },
+    '2027-05': { clothesline: .522, flowerpot: 1.322, garden: .625, hero: .858, lamp: .659, puppy: 1.077, rock: .444, well: 1.127 },
+    '2027-06': { basket: .619, bird: .975, bucket: 1.181, 'grape-leaf': .931, hero: 1.294, jar: 1.345, ladder: 1.296, trellis: .931 },
+    '2027-07': { hero: .662, 'hill-path': .966, lunchbox: .753, mat: .441, seagull: .831, 'small-boat': .662, 'twelve-baskets': .572, 'water-bottle': 1.127 },
+    '2027-08': { campfire: 1.06, 'fishing-boat': .984, hero: .669, net: .55, oar: .869, rock: .747, seagull: .691, shell: .847 },
+    common: { heart: .806 }
+  };
+  const ART = (m, n) => (CFG.ART || 'img/') + m + '/' + n + '.webp';
+  const spot = (i, salt) => { const x = Math.sin(i * 12.9898 + salt * 78.233) * 43758.5453; return x - Math.floor(x); };
+  const imgAt = (m, name, cx, by, w, cls, flip, mv, delay, hh) => { const h = hh || w * ART_RATIO[m][name], x = cx - w / 2, y = by - h;
+    const img = `<image href="${ART(m, name)}" x="${x.toFixed(1)}" y="${y.toFixed(1)}" width="${w.toFixed(1)}" height="${h.toFixed(1)}"${hh ? ' preserveAspectRatio="none"' : ''}${flip ? ` transform="translate(${(cx * 2).toFixed(1)} 0) scale(-1 1)"` : ''}/>`;
+    return `<g class="${cls || ''}">${mv ? `<g class="${mv}" style="animation-delay:-${(delay || 0).toFixed(2)}s">${img}</g>` : img}</g>`; };
+  const artIco = (m, name) => `<img class="ps-ico" src="${ART(m, name)}" alt="">`;
+  // 서버 숫자(art: hero, fams, hearts)를 그림 숫자로. 소품은 그달 소품 수까지
+  const artN = a => { const sc = SCENES[sceneKey(a.month)]; return { hero: a.hero, props: Math.min(sc.props.length, a.fams), hearts: a.hearts }; };
+  function sceneHtml(month, n, opt) {
+    const m = sceneKey(month), sc = SCENES[m], d = `data-act="bigview" data-m="${month}" data-n="${n.hero},${n.props},${n.hearts}"`;
+    return `<div class="ps-frame" ${d}>${sceneSvg(m, n, opt)}
+      <button class="ps-big" ${d} aria-label="${Number(month.slice(5))}월 그림 크게 보기" title="크게 보기">${ICON.expand}</button></div>
+      <ul class="ps-legend">
+        <li><b>${artIco(m, 'hero')}${n.hero}</b><span>기도한 날</span></li>
+        <li><b>${artIco(m, sc.props[0][0])}${n.props}<small>/${sc.props.length}</small></b><span>새 ${words().one} 기도</span></li>
+        <li><b>${artIco('common', 'heart')}${n.hearts}</b><span>같은 날 기도</span></li>
+      </ul>`;
+  }
+  function sceneSvg(m, n, { compact, fx } = {}) {
+    const sc = SCENES[m], R = ART_RATIO[m], shown = sc.props.slice(0, n.props);
+    const props = shown.map(([name, , x, y, w, mv], i) => ({ y, html: imgAt(m, name, x, y, w, fx === 'prop' && i === n.props - 1 ? 'pop-in' : '', false, mv, 0) }));
+    // 주인공은 정해진 구획에 선다(뒤 줄일수록 작고 촘촘). 소품 자리는 처음부터 비워 두고, 가장 먼 자리부터 채워 몇 개만 있어도 고르게 퍼진다
+    const heroes = (sc.sky ? Array.from({ length: n.hero }, (_, i) => ({ i, x: 22 + ((i * .618 + spot(i, 1) * .12) % 1) * 276, y: 16 + spot(i, 2) * 76 }))
+      : planSlots(m).slice(0, n.hero).map((p, i) => ({ i, x: p.x, y: p.y }))).map(({ i, x, y }) => {
+      const w = sc.sky ? sc.heroW * (.7 + spot(i, 7) * .6) : heroSize(sc, y), flip = sc.heroFlip && spot(i, 3) < .45, head = (flip ? -1 : 1) * sc.heroHead;
+      const g = imgAt(m, 'hero', x, y, w, fx === 'hero' && i === n.hero - 1 ? 'pop-in' : '', flip, sc.heroMv, spot(i, 4) * 4);
+      const h = i < n.hearts ? imgAt('common', 'heart', x + w * head, y - w * R.hero - 1, Math.max(8, w * .36), fx === 'heart' && i === n.hearts - 1 ? 'pop-in' : '', false, 'mv-float', spot(i, 5) * 3) : '';
+      return { y, html: g + h };
+    });
+    const items = [...props, ...heroes].sort((a, b) => a.y - b.y).map(o => o.html).join('');
+    const base = sc.base ? imgAt(m, sc.base[0], sc.base[1], sc.base[2], sc.base[3], '', false, '', 0, sc.base[4]) : '';
+    return `<svg class="pasture${compact ? ' compact' : ''}" viewBox="0 0 320 150" preserveAspectRatio="xMidYMid slice" role="img" aria-label="${sc.title}: ${sc.hero} ${n.hero}${sc.unit || '개'}, 소품 ${n.props}개, 하트 ${n.hearts}개">
+      <image href="${ART(m, 'bg')}" x="0" y="${(150 - 150 * (sc.bgZoom || 1)).toFixed(1)}" width="${320 * (sc.bgZoom || 1)}" height="${150 * (sc.bgZoom || 1)}" preserveAspectRatio="xMidYMid slice"/>
+      ${base}${items}</svg>`;
+  }
+  const heroSize = (sc, y) => sc.plan && sc.plan.size ? sc.plan.size(y) : Math.max(sc.heroW * .55, sc.heroW * .82 + (y - 106) * .22);
+  // 구획 자리 만들기 (달마다 한 번 만들어 둔다)
+  const PLAN_CACHE = {};
+  function planSlots(m) {
+    if (PLAN_CACHE[m]) return PLAN_CACHE[m];
+    const sc = SCENES[m], R = ART_RATIO[m], P = sc.plan || {}, rows = P.rows || [100, 107, 115, 124, 134, 145], cx = 160;
+    const onRow = (Y, x) => { if (!sc.rows) return Y; const t = (x - 160) / 160; return Y - sc.rows.T * (Y - 62) * t - .06 * (Y - 62) * t * t; };
+    // 소품 7개 자리(조금 넉넉하게)는 비워 둔다
+    const boxes = sc.props.map(([name, , x, by, w]) => { const h = w * R[name]; return [x - w * .42, by - h * .85, x + w * .42, by + 1]; });
+    const free = (x, y, w) => { const h = w * R.hero, a = [x - w * .3, y - h * .75, x + w * .3, y]; return !boxes.some(b => a[0] < b[2] && a[2] > b[0] && a[1] < b[3] && a[3] > b[1]); };
+    const inside = (x, y, w) => { if (!P.oval) return x - w / 2 > 6 && x + w / 2 < 314; const [ox, oy, rx, ry] = P.oval; return ((x - ox) / rx) ** 2 + ((y - oy) / ry) ** 2 < .92; };
+    const all = [];
+    rows.forEach((Y, r) => { const w = heroSize(sc, Y), gap = w * (P.gap || 1.12);
+      for (let k = -24; k <= 24; k++) { const x = cx + (k + (r % 2) * .5) * gap, y = onRow(Y, x); if (inside(x, y, w) && free(x, y, w)) all.push({ x, y }); } });
+    // 가장 먼 자리부터 고르기: 처음은 가운데 줄의 가운데
+    const mid = rows[Math.floor(rows.length / 2)], d2 = (a, b) => (a.x - b.x) ** 2 + ((a.y - b.y) * 2.4) ** 2;
+    const out = []; let left = all.slice(), best = left.reduce((p, q) => d2(q, { x: cx, y: mid }) < d2(p, { x: cx, y: mid }) ? q : p, left[0]);
+    while (best) { out.push(best); left = left.filter(q => q !== best); let bd = -1; best = null;
+      left.forEach(q => { const d = Math.min(...out.map(o => d2(o, q))); if (d > bd) { bd = d; best = q; } }); }
+    return (PLAN_CACHE[m] = out);
+  }
+  // 홈의 "N월의 그림"(회원만, 목사님·장로님에게는 없다)
+  function artCard() {
+    const A = S.month.art;
+    if (!A || staffMe()) return '';
+    const mo = Number(A.month.slice(5));
+    return `<section class="card art-card" aria-label="${mo}월의 그림"><div class="row"><p class="label" style="margin:0">${mo}월의 그림 · ${esc(SCENES[sceneKey(A.month)].title.replace(/^\d+월 /, ''))}</p><span class="only">${ICON.lock}나만 보여요</span></div>
+      ${sceneHtml(A.month, artN(A), { fx: S.artFx })}</section>`;
+  }
+  // 기도했어요를 누른 순간 그림에 무엇이 생겼는지(서버를 기다리지 않고 먼저 늘린다)
+  function artBump(f) {
+    const A = S.month.art; if (!A || staffMe() || f.own) return;
+    const today = S.month.families.some(x => !x.own && x !== f && x.today) || f.today > 0;
+    const before = artN(A);
+    if (!today) A.hero++;
+    if (!f.prayed) A.fams++;
+    if (f.today > 0) A.hearts++;
+    const after = artN(A);
+    S.artFx = after.hero > before.hero ? 'hero' : after.props > before.props ? 'prop' : after.hearts > before.hearts ? 'heart' : null;
+  }
+  // 크게 보기: 화면을 꽉 채우고, 세로로 든 휴대폰에서는 그림을 가로로 돌린다
+  function bigHtml() {
+    const { month, n } = S.bigView, m = sceneKey(month), sc = SCENES[m];
+    return `<div class="bigview" role="dialog" aria-modal="true" aria-label="${Number(month.slice(5))}월 그림 크게 보기" data-act="bigclose"><div class="big-stage">
+      ${sceneSvg(m, n)}
+      <div class="big-cap"><b>${sc.title}</b><span>${sc.hero} ${n.hero}${sc.unit || '개'}, 소품 ${n.props}개, 하트 ${n.hearts}개를 모았어요</span></div>
+      <button class="big-x" data-act="bigclose" aria-label="닫기">${ICON.x}</button></div></div>`;
+  }
+  // 나의 기도 맨 아래 "달마다 모은 그림": 연도별로 접고 펼친다(올해는 펼침). 다음 달은 "곧 열려요"
+  function artCollection(list) {
+    if (!list || !list.length) return '';
+    const now = list[list.length - 1].month, next = (y => (y[1] === 12 ? (y[0] + 1) + '-01' : y[0] + '-' + String(y[1] + 1).padStart(2, '0')))(now.split('-').map(Number));
+    const years = [...new Set(list.map(a => a.month.slice(0, 4)))].sort().reverse();
+    const item = a => { const t = SCENES[sceneKey(a.month)].title, n = artN(a);
+      return `<article class="coll-item${a.month === now ? ' now' : ''}"><p class="coll-m">${esc(t)} <span>${a.month === now ? '모으는 중' : '완성'}</span></p>${sceneHtml(a.month, n)}</article>`; };
+    return `<section class="card"><p class="label">달마다 모은 그림</p>${years.map((y, k) => { const L = list.filter(a => a.month.startsWith(y)).reverse(), days = L.reduce((s, a) => s + a.hero, 0);
+      return `<details class="coll-year"${k ? '' : ' open'}><summary><b>${y}년</b><span>그림 ${L.length}장 · ${days}일 기도</span></summary>
+        <div class="coll">${k ? '' : `<article class="coll-item next"><p class="coll-m">${Number(next.slice(5))}월 · ? <span>곧 열려요</span></p><div class="ps-locked" aria-hidden="true"></div><p class="hint">다음 달 그림은 ${Number(next.slice(5))}월 1일에 열려요.</p></article>`}${L.map(item).join('')}</div></details>`; }).join('')}</section>`;
+  }
   // 나의 기도(설계서 10장 '누구를 위해 기도했나'): 내가 누른 기도했어요를 최근 6개월, 가정마다(목사님은 사랑방마다). 나만 본다
   function loadMyPrayers() {
     if (S.myp || S.mypLoading) return S.myp;
@@ -1530,7 +1753,8 @@ try { const p = JSON.parse(localStorage.getItem('koide-pref') || '{}'), d = docu
       <div class="col side"><section class="card"><p class="label">달마다 보기</p>
         <div class="table-wrap"><table class="hist-table"><thead><tr><th></th>${P.months.map((mm, i) => `<th scope="col"${i === last ? ' class="now"' : ''}>${mon(mm)}</th>`).join('')}</tr></thead>
         <tbody>${rows.map(x => `<tr><th scope="row">${esc(x.r.name)}</th>${x.r.cells.map((n, i) => `<td><span class="mp-c l${lv(n)}${i === last ? ' now' : ''}" title="${mon(P.months[i])} ${n}번">${n || ''}</span></td>`).join('')}</tr>`).join('')}</tbody></table></div>
-        <ul class="legend"><li><i class="sw mp-c l0"></i>없음</li><li><i class="sw mp-c l1"></i>1번</li><li><i class="sw mp-c l2"></i>2~3번</li><li><i class="sw mp-c l3"></i>4번 이상</li></ul></section></div></div>`;
+        <ul class="legend"><li><i class="sw mp-c l0"></i>없음</li><li><i class="sw mp-c l1"></i>1번</li><li><i class="sw mp-c l2"></i>2~3번</li><li><i class="sw mp-c l3"></i>4번 이상</li></ul></section></div></div>
+      ${artCollection(P.art)}`;
   }
   // 지난 기록 검색: 내가 볼 수 있던 기도제목 중 낱말이 든 것. 누르면 그 달 기록으로 간다
   function searchView(R) {
@@ -2057,6 +2281,7 @@ try { const p = JSON.parse(localStorage.getItem('koide-pref') || '{}'), d = docu
   const wakeOff = () => { try { if (wake) wake.release(); } catch (e) { /* 무시 */ } wake = null; };
   // '기도했어요': 화면은 먼저 늘리고 서버에는 뒤에서 적는다. 서버가 돌려준 이번 달·오늘 횟수로 맞춘다
   function prayFor(f) {
+    artBump(f);
     f.today = (f.today || 0) + 1; f.prayed++; S.myp = null;
     // 목사님·장로님: 그 사랑방 매듭을 이번 주 기도한 것으로(청장년부 기도의 끈)
     if (staffMe() && S.room && S.room.families.indexOf(f) >= 0) { const r = (S.month.rooms || []).find(x => x.id === S.room.room.id); if (r) r.week = true; }
@@ -2064,6 +2289,7 @@ try { const p = JSON.parse(localStorage.getItem('koide-pref') || '{}'), d = docu
     api('pray', { familyId: f.id }).then(r => {
       const g = famById(f.id) || f;
       if (r.today != null) { g.today = r.today; g.prayed = r.prayed; }
+      if (r.art && S.month.art) S.month.art = r.art;
       if (r.capped && S.tab === 'home') toast('이 ' + words().one + '은 오늘 충분히 기도했어요. 내일 또 기도해 주세요.');
       paint();
     }).catch(err => { const g = famById(f.id) || f; g.today--; g.prayed--; paint(); oops(err); });
@@ -2621,6 +2847,8 @@ try { const p = JSON.parse(localStorage.getItem('koide-pref') || '{}'), d = docu
     if (app) $('#tabs').innerHTML = TABS.map(([k, l, ic]) => `<button class="${k === 'pray' ? 'pray-tab ' : ''}${on === k ? 'on' : ''}" data-act="tab" data-v="${k}" aria-label="${l}" title="${l}" ${on === k ? 'aria-current="page"' : ''}>${ic}</button>`).join('');
     // 기도하는 화면은 아래 탭까지 덮는 전체 화면
     //  모임 모드도 같은 자리에 띄운다
+    $('#bigv').innerHTML = app && S.bigView ? bigHtml() : '';
+    S.artFx = null;
     const P = $('#pss'), meeting = app && !S.ps && S.meet != null, praying = app && !!S.ps || meeting;
     P.hidden = !praying; P.innerHTML = S.ps ? psHtml() : meeting ? meetHtml() : ''; P.setAttribute('aria-label', S.ps ? '기도하기' : meeting ? '모임 모드' : '');
     P.classList.toggle('meet', meeting);
@@ -2725,6 +2953,13 @@ try { const p = JSON.parse(localStorage.getItem('koide-pref') || '{}'), d = docu
         } catch (err) { oops(err); }
         S.busy = false; return render();
       }
+      case 'bigview': {
+        const [h, pr, he] = (b.dataset.n || '0,0,0').split(',').map(Number); S.bigView = { month: b.dataset.m, n: { hero: h, props: pr, hearts: he } }; render();
+        const el = document.documentElement;
+        if (el.requestFullscreen) el.requestFullscreen().then(() => screen.orientation && screen.orientation.lock && screen.orientation.lock('landscape')).catch(() => {});
+        return track('화면 보기', { screen: '그림 크게' });
+      }
+      case 'bigclose': S.bigView = null; render(); if (document.fullscreenElement) document.exitFullscreen().catch(() => {}); return;
       case 'tdtopic': S.tdTopic = v; return render();
       case 'tdmore': S.tdMore = !S.tdMore; return render();
       case 'tdrm': { const [t, w] = v.split('|'); if (confirm(t + '에서 "' + w + '"을(를) 뺄까요?')) topicWord(t, w, true); return; }

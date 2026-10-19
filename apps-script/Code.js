@@ -58,7 +58,7 @@ const FIRST_DEPT = { id: 'D1', name: '청장년부', group: '사랑방', unit: '
 // ── 요청 받기 ─────────────────────────────────────────────
 
 // 서버 코드를 고칠 때마다 바꾼다. 웹 앱 주소를 열면 보여서, 새 버전으로 배포됐는지 확인할 수 있다
-const VERSION = '2026-10-19 업데이트 추이';
+const VERSION = '2026-10-19 그림 모으기';
 function doGet() {
   return ContentService.createTextOutput('코이데 서버가 켜져 있어요. (버전: ' + VERSION + ')');
 }
@@ -618,7 +618,20 @@ function monthView_(c) {
   // 이번 달 사랑방의 다른 가정 중 몇 가정이 우리 가정을 위해 기도했는지(누가 했는지는 알리지 않는다)
   const by = {}; read_('prayers').forEach(p => { if (p.familyId === c.familyId && p.by !== c.familyId && fmtMonth_(p.at) === m) by[p.by] = true; });
   const received = { n: Object.keys(by).length, of: Math.max(0, families.length - 1) };
-  return { month: m, term: termNow_(c.deptId), shift: shift_(c), dept: c.dept, room: { id: room.id, name: room.name }, me: { person: c.person, familyId: c.familyId, role: c.role, admin: c.admin }, families, received, serve: serveView_(c.deptId) };
+  return { month: m, term: termNow_(c.deptId), shift: shift_(c), dept: c.dept, room: { id: room.id, name: room.name }, me: { person: c.person, familyId: c.familyId, role: c.role, admin: c.admin }, families, received, serve: serveView_(c.deptId),
+    art: artNums_(c, [m])[0] };
+}
+
+// 이달의 그림 모으기(설계서 4장): 내가 누른 '기도했어요'로 달마다 세 숫자를 센다. 나만 본다. 기도기록에서 바로 세어서 줄지 않는다.
+//  hero: 기도한 날 수(날마다 주인공 하나) / fams: 기도한 다른 가정 수(소품은 화면에서 그달 소품 수까지) / hearts: 같은 날 같은 가정을 위해 한 번 더 기도한 수.
+//  누른 사람 칸이 생기기 전 기록은 우리 가정이 누른 것으로 함께 센다
+function artNums_(c, months) {
+  const mine = read_('prayers').filter(p => (p.kakaoId ? p.kakaoId === c.kakaoId : p.by === c.familyId) && p.familyId !== c.familyId);
+  return months.map(mm => {
+    const days = {}, fams = {}, pair = {};
+    mine.filter(p => fmtMonth_(p.at) === mm).forEach(p => { const d = fmtDate_(p.at); days[d] = 1; fams[p.familyId] = 1; pair[d + '|' + p.familyId] = (pair[d + '|' + p.familyId] || 0) + 1; });
+    return { month: mm, hero: Object.keys(days).length, fams: Object.keys(fams).length, hearts: Object.keys(pair).reduce((a, k) => a + pair[k] - 1, 0) };
+  });
 }
 
 // 개편 안내(설계서 6장): 예약한 새 편성의 우리 가정 사랑방을 회원 안내 시작일부터, 새 리더에게는 맡을 가정 명단을 리더 미리 보기 시작일부터.
@@ -743,7 +756,7 @@ function pray_(body) {
   const n = mine.filter(p => fmtDate_(p.at) === today_()).length;
   if (n >= 3) return { prayed: mine.length, today: n, capped: true };
   append_('prayers', { at: new Date(), by: c.familyId, familyId: body.familyId, kakaoId: c.kakaoId });
-  return { prayed: mine.length + 1, today: n + 1, capped: n + 1 >= 3 };
+  return { prayed: mine.length + 1, today: n + 1, capped: n + 1 >= 3, art: c.staff ? undefined : artNums_(c, [month_()])[0] };
 }
 
 // ── 사용기록 ─────────────────────────────────────────────
@@ -847,8 +860,11 @@ function myPrayers_(c) {
     : read_('roster').filter(x => activeRow_(x) && x.roomId === c.roomId && x.familyId !== c.familyId && live(x.familyId))
       .map(x => ({ id: x.familyId, name: (fams.find(f => f.id === x.familyId) || {}).name || '', fams: [x.familyId] }));
   const mine = read_('prayers').filter(p => p.kakaoId ? p.kakaoId === c.kakaoId : p.by === c.familyId);
+  // 달마다 모은 그림(목사님·장로님은 그림이 없다): 최근 24개월 중 기도한 달과 이번 달
+  const artMonths = [m]; while (artMonths.length < 24) artMonths.unshift(prevMonth_(artMonths[0]));
   return { months, unit: c.staff ? 'room' : 'family', rows: rows.map(r => ({ id: r.id, name: r.name,
-    cells: months.map(mm => mine.filter(p => r.fams.indexOf(p.familyId) >= 0 && fmtMonth_(p.at) === mm).length) })) };
+    cells: months.map(mm => mine.filter(p => r.fams.indexOf(p.familyId) >= 0 && fmtMonth_(p.at) === mm).length) })),
+    art: c.staff ? undefined : artNums_(c, artMonths).filter(a => a.hero || a.month === m) };
 }
 
 // ── 기도 주제 흐름 (목사님·관리자, 설계서 10장) ─────────────────
