@@ -2952,7 +2952,7 @@ try { const p = JSON.parse(localStorage.getItem('koide-pref') || '{}'), d = docu
     const roles = [
       isLeaderRole() && !S.grp ? row('tab', 'status', esc(grp()) + ' 현황', '기도제목 올렸는지 보기 · 안부 문구 · 연결 승인', tag('leader', esc(me.role))) : '',
       me.admin && !S.grp ? row('tab', 'admin', (S.month.dept && S.month.dept.name ? esc(S.month.dept.name) : '부서') + ' 관리', '우리 부서 전체를 꾸려요', tag('admin', '부서 관리자')) : '',
-      opsDepts().length && !S.grp ? row(S.me.ops.all ? 'church' : 'tab', S.me.ops.all ? '' : 'ops', S.me.ops.all ? '전체 관리' : '운영 지원', opsDepts().map(d => esc(d.name)).join(' · ') + ' · 기도제목 내용은 보지 않아요', tag('admin', S.me.ops.all ? '전체 관리자' : '지원')) : ''
+      opsDepts().length ? row(S.me.ops.all ? 'church' : 'tab', S.me.ops.all ? '' : 'ops', S.me.ops.all ? '전체 관리' : '운영 지원', opsDepts().map(d => esc(d.name)).join(' · ') + ' · 기도제목 내용은 보지 않아요', tag('admin', S.me.ops.all ? '전체 관리자' : '지원')) : ''
     ].join('');
     const setOpen = !!S.setOpen;
     return `<div class="page-top"><div><p class="eyebrow">${solo() ? esc(me.person) : famWho(mine.name, me.person)}</p><h1>더보기</h1></div></div>
@@ -3406,11 +3406,16 @@ try { const p = JSON.parse(localStorage.getItem('koide-pref') || '{}'), d = docu
     Object.assign(S, { pending: null, ops: null, rost: null, an: null, rgData: null, menu: null, church: null, tab: 'church' });
     try { S.month = await api('opsCtx'); }
     catch (e) { S.op = null; S.month = S.home; S.home = null; if (S.month) { S.tab = 'more'; toast(e.code === 'bad' ? '서버를 새 버전으로 배포하면 열 수 있어요.' : e.message); } else { S.view = 'error'; S.err = e; } return render(); }
-    S.view = 'app'; render(); window.scrollTo(0, 0); loadChurch();
+    S.view = 'app'; render(); window.scrollTo(0, 0); loadChurch(); if (S.churchTab === 'analysis') loadChurchAnalysis();
   }
   async function loadChurch() { try { S.church = await api('church'); S.gAll = S.church.groups; } catch (e) { S.church = { err: e.code === 'bad' ? '서버를 새 버전으로 배포하면 볼 수 있어요.' : e.message }; } render(); }
+  async function loadChurchAnalysis() { S.canErr = ''; try { S.can = await api('churchAnalysis'); } catch (e) { S.can = null; S.canErr = e.code === 'bad' ? '서버를 새 버전으로 배포하면 볼 수 있어요.' : e.message; } render(); }
   function churchView() {
-    const C = S.church, head = `<div class="page-top"><div><p class="eyebrow">전체 관리자</p><h1>교회 전체</h1></div></div>`;
+    const ct = S.churchTab || 'home';
+    const head = `<div class="page-top"><div><p class="eyebrow">전체 관리자</p><h1>교회 전체</h1></div></div>
+      <div class="seg2 admin-seg" role="tablist" aria-label="교회 전체">${[['home', '한눈에'], ['analysis', '분석']].map(([k, l]) => `<button class="${ct === k ? 'on' : ''}" role="tab" aria-selected="${ct === k}" data-act="churchtab" data-v="${k}">${l}</button>`).join('')}</div>`;
+    if (ct === 'analysis') return head + analysisView(true);
+    const C = S.church;
     if (!C || C.err) return `${head}<section class="card"><p class="hint">${C ? esc(C.err) : '불러오는 중…'}</p></section>`;
     const pill = (n, l) => n ? `<span class="ch-todo">${l} ${n}</span>` : '';
     const card = d => `<button class="card ch-dept${d.closed ? ' closed' : ''}" data-act="opsgo" data-v="${esc(d.id)}">
@@ -3595,7 +3600,7 @@ try { const p = JSON.parse(localStorage.getItem('koide-pref') || '{}'), d = docu
   }
   // ── 관리 › 운영 (설계서 S7): ① 앱 상태 ② 개인정보 요청. 할 일이 있는 카드만 관리 탭 위로 올라온다 ──
   //  NEED_SERVER: 이 화면이 바라는 서버 버전(서버 VERSION 앞 날짜). 서버 코드를 고쳐 배포해야 하는 기능을 넣을 때 함께 올린다
-  const NEED_SERVER = '2026-10-24';
+  const NEED_SERVER = '2026-10-27';
   const DOC = 'https://github.com/kwjgl/pray-for/blob/main/docs/';
   async function loadOps() { try { S.ops = await api('ops'); S.opsErr = null; } catch (e) { S.ops = null; S.opsErr = e.code === 'bad' ? 'old' : e.code === 'forbidden' ? null : e.message; S.opsWhy = e.message || ''; } render(); }
   const opsWhen = iso => { const d = new Date(iso); return isNaN(d) ? '' : `${d.getMonth() + 1}월 ${d.getDate()}일 ${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`; };
@@ -3712,10 +3717,12 @@ try { const p = JSON.parse(localStorage.getItem('koide-pref') || '{}'), d = docu
   //  색은 주 색 하나의 진하기로만 나누고 칸마다 숫자를 적어 색만으로 읽지 않게 한다
   const AN_SLOT = ['새벽', '오전', '오후', '저녁', '밤'], AN_DAY = ['월', '화', '수', '목', '금', '토', '일'];
   const heatAttr = (v, max) => { const k = Math.round(12 + 78 * (max ? v / max : 0)); return `style="background:color-mix(in srgb, var(--accent) ${k}%, var(--surface))"${k >= 55 ? ' data-dark' : ''}`; };
-  function analysisView() {
-    const A = S.an;
-    if (!A) return `<section class="card"><p class="hint">${S.anErr ? esc(S.anErr) : '불러오는 중…'}</p></section>`;
-    const g = grp(), unit = words().count, N = A.now, mon = mm => Number(mm.slice(5)) + '월';
+  // church: 교회 전체 분석(전체 관리자). 부서 대신 부서 × 달, 기도가 닿지 않은 곳 대신 자율 모임, 아래에 앱 개선
+  function analysisView(church) {
+    const A = church ? S.can : S.an, err = church ? S.canErr : S.anErr;
+    if (!A) return `<section class="card"><p class="hint">${err ? esc(err) : '불러오는 중…'}</p></section>`;
+    const g = church ? '부서' : grp(), unit = church ? '곳' : words().count, who = church ? '가정·사람' : unit, N = A.now, mon = mm => Number(mm.slice(5)) + '월';
+    const rows = church ? A.depts : A.rooms;
     const ratio = (k, l) => `<div class="ov-row"><div class="row"><span>${l}</span><b>${k}/${N.n}<small>${unit} · ${N.n ? Math.round(k / N.n * 100) : 0}%</small></b></div>
       <span class="bar" role="img" aria-label="${l} ${N.n}${unit} 중 ${k}"><span class="bseg edited" style="flex:${k}"></span><span class="bseg same" style="flex:${N.n - k}"></span></span></div>`;
     const wmax = Math.max(1, ...A.weeks.map(w => w.n)), last = A.weeks.length - 1;
@@ -3723,27 +3730,27 @@ try { const p = JSON.parse(localStorage.getItem('koide-pref') || '{}'), d = docu
     const mini = (label, key) => { const vals = A.trend.map(t => t[key]);
       return `<div class="an-mini"><div class="row"><span>${label}</span><small class="hint">%</small></div>
         <div class="an-cols" role="img" aria-label="${label}: ${A.trend.map(t => `${mon(t.month)} ${t[key] == null ? '없음' : t[key] + '%'}`).join(', ')}">${vals.map((v, i) => `<div class="an-col${i === vals.length - 1 ? ' now' : ''}"><span class="an-v">${v == null ? '·' : v}</span><span class="an-bar" style="height:${((v || 0) / 100 * 4.2).toFixed(2)}em"></span><span class="an-x">${mon(A.months[i])}</span></div>`).join('')}</div></div>`; };
-    const roomRows = A.rooms.map(r => `<tr><th scope="row">${esc(r.name)}</th>${r.vals.map((v, i) => v == null ? '<td class="an-na">·</td>' : `<td ${heatAttr(v, 100)} title="${esc(r.name)} ${mon(A.months[i])} ${v}%">${v}</td>`).join('')}</tr>`).join('');
+    const roomRows = rows.map(r => `<tr><th scope="row">${esc(r.name)}</th>${r.vals.map((v, i) => v == null ? '<td class="an-na">·</td>' : `<td ${heatAttr(v, 100)} title="${esc(r.name)} ${mon(A.months[i])} ${v}%">${v}</td>`).join('')}</tr>`).join('');
     const tmax = Math.max(0, ...A.time.flat()), tsum = A.time.flat().reduce((a, b) => a + b, 0);
     const timeRows = A.time.map((row, d) => `<tr><th scope="row">${AN_DAY[d]}</th>${row.map((v, k) => `<td ${heatAttr(v, tmax)} title="${AN_DAY[d]}요일 ${AN_SLOT[k]} ${v}번">${v}</td>`).join('')}</tr>`).join('');
     return `<div class="an-grid"><div class="an-side">
-      <section class="card ov"><div class="row"><p class="label" style="margin:0">${esc(S.month.dept.name)} 한눈에</p><span class="hint">${mon(A.month)} · ${N.day}일까지</span></div>
-        ${ratio(N.visit, '이번 달 앱에 들어온 ' + unit)}
-        ${ratio(N.edit, '기도제목을 손보거나 확인한 ' + unit)}
+      <section class="card ov"><div class="row"><p class="label" style="margin:0">${church ? '교회 전체' : esc(S.month.dept.name)} 한눈에</p><span class="hint">${mon(A.month)} · ${N.day}일까지</span></div>
+        ${ratio(N.visit, '이번 달 앱에 들어온 ' + who)}
+        ${ratio(N.edit, '기도제목을 손보거나 확인한 ' + who)}
         <div class="ov-row"><div class="row"><span>주별 "기도했어요"</span><small class="hint">최근 8주</small></div>
           <div class="wk-bars" role="img" aria-label="주별 기도했어요 수: ${A.weeks.map((w, i) => `${i === last ? '이번 주(진행 중)' : w.label + ' 주'} ${w.n}`).join(', ')}">${weeks}</div></div>
-        <p class="plain ov-note">기도가 아직 닿지 않은 ${unit}이 있는 ${esc(g)} <b>${N.unreached}곳</b></p></section>
-      <section class="card an-sec"><p class="label">우리 공동체 · 달마다 흐름</p>
-        <div class="an-pair">${mini('앱에 들어온 ' + unit, 'visit')}${mini('손보거나 확인한 ' + unit, 'edit')}</div></section>
+        <p class="plain ov-note">${church ? `자율 모임 <b>${A.groups.n}개</b> · 함께하는 사람 <b>${A.groups.people}명</b>` : `기도가 아직 닿지 않은 ${unit}이 있는 ${esc(g)} <b>${N.unreached}곳</b>`}</p></section>
+      <section class="card an-sec"><p class="label">${church ? '교회 전체' : '우리 공동체'} · 달마다 흐름</p>
+        <div class="an-pair">${mini('앱에 들어온 ' + who, 'visit')}${mini('손보거나 확인한 ' + who, 'edit')}</div></section>
     </div><div class="an-side">
       <section class="card an-sec"><p class="label">${esc(g)}별 기도제목 손봄·확인 <small class="hint">%</small></p>
-        ${A.rooms.length ? `<div class="an-scroll"><table class="an-heat"><thead><tr><th></th>${A.months.map(mm => `<th scope="col">${mon(mm)}</th>`).join('')}</tr></thead><tbody>${roomRows}</tbody></table></div>` : `<p class="hint">아직 ${esc(g)}이 없어요.</p>`}
+        ${rows.length ? `<div class="an-scroll"><table class="an-heat"><thead><tr><th></th>${A.months.map(mm => `<th scope="col">${mon(mm)}</th>`).join('')}</tr></thead><tbody>${roomRows}</tbody></table></div>` : `<p class="hint">아직 ${esc(g)}이 없어요.</p>`}
         <p class="hint">진할수록 많이 손본 달이에요.</p></section>
       <section class="card an-sec"><p class="label">기도하는 때 <small class="hint">최근 4주</small></p>
         ${tsum ? `<div class="an-scroll"><table class="an-heat an-time"><thead><tr><th></th>${AN_SLOT.map(x => `<th scope="col">${x}</th>`).join('')}</tr></thead><tbody>${timeRows}</tbody></table></div>` : '<p class="hint">최근 4주에 누른 "기도했어요"가 아직 없어요.</p>'}
         <p class="hint">새벽 5~9시 · 오전 ~12시 · 오후 ~18시 · 저녁 ~22시 · 밤</p></section>
       ${topicFlowCard(A.topics || { err: '서버 코드를 새 버전으로 배포하면 볼 수 있어요.' })}
-    </div></div>${appStatsView(A.app)}`;
+    </div></div>${church ? appStatsView(A.app) : ''}`;
   }
   // 분석 ② 앱 개선(만드는 쪽): 교회 전체 합계. 계속 쓰는지, 어디서 막히는지, 무엇을 쓰는지
   function appStatsView(P) {
@@ -3858,7 +3865,8 @@ try { const p = JSON.parse(localStorage.getItem('koide-pref') || '{}'), d = docu
         ${myGroups().map(g => `<button class="mitem${S.grp === g.id ? ' on' : ''}" role="menuitem" ${g.wait ? 'disabled' : `data-act="gopen" data-v="${esc(g.id)}"`}><span>${esc(g.name)}</span><small>${g.wait ? '승인을 기다려요' : S.grp === g.id ? '지금 보는 곳' : g.role + (g.asks ? ' · 신청 ' + g.asks : '')}</small></button>`).join('')}`;
     const menu = S.menu === 'badge' ? `<div class="menu" role="menu" aria-label="사랑방">
         <p class="mlabel">${esc(grp())}</p><div class="mitem static"><b>${esc(M.room.name)}</b><small>${S.grp ? `모임 · ${M.families.length}명` : ''}${S.grp ? '' : M.dept && M.dept.name ? esc(M.dept.name) + ' · ' : ''}${S.grp ? '' : me.staff ? `${grp()} ${(M.rooms || []).length}곳 · ${(M.rooms || []).reduce((a, r) => a + r.n, 0)}${words().count}` : `${M.term || M.month.slice(0, 4)}년 편성 · ${M.families.length}${words().count}`}</small></div>${places}
-        ${opsDepts().length ? `<div class="mdiv"></div><p class="mlabel">운영 지원</p>${opsDepts().map(d => `<button class="mitem" role="menuitem" data-act="opsgo" data-v="${esc(d.id)}"><span>${esc(d.name)} · 지원</span><small>관리 화면</small></button>`).join('')}` : ''}
+        ${!opsDepts().length ? '' : S.me.ops.all ? `<div class="mdiv"></div><p class="mlabel">전체 관리</p><button class="mitem" role="menuitem" data-act="church"><span>교회 전체</span><small>모든 부서 한눈에</small></button>`
+          : `<div class="mdiv"></div><p class="mlabel">운영 지원</p>${opsDepts().map(d => `<button class="mitem" role="menuitem" data-act="opsgo" data-v="${esc(d.id)}"><span>${esc(d.name)} · 지원</span><small>관리 화면</small></button>`).join('')}`}
         ${me.admin && !DEMO ? '<div class="mdiv"></div><a class="mitem" role="menuitem" href="?demo" target="_blank" rel="noopener"><span>데모로 둘러보기</span><small>예시 데이터</small></a>' : ''}</div>`
       : S.menu === 'settings' ? `<div class="menu" role="menu" aria-label="설정">
         <p class="mlabel">화면 모드 · 색 테마 · 디자인</p>${themeControls()}<div class="mdiv"></div>
@@ -3888,7 +3896,7 @@ try { const p = JSON.parse(localStorage.getItem('koide-pref') || '{}'), d = docu
   function viewSig() {
     const o = S.view !== 'app' ? '' : S.ps ? 'ps' : S.meet != null ? 'meet' : S.album ? 'album' : S.bigView ? 'big' : '';
     return { o, view: S.view, scr: S.tab + '/' + (S.openRoom || ''), tab: TABS.findIndex(x => x[0] === tabOn()),
-      page: o === 'ps' ? (S.ps.done ? 1e3 : S.ps.i) : o === 'meet' ? S.meet : 0, sub: [S.histTab, S.adminTab, S.homeView].join('/'), today: S.todayId };
+      page: o === 'ps' ? (S.ps.done ? 1e3 : S.ps.i) : o === 'meet' ? S.meet : 0, sub: [S.histTab, S.adminTab, S.homeView, S.churchTab].join('/'), today: S.todayId };
   }
   function vtKind(a, b) {
     if (!a || a.view !== b.view) return a && b.view === 'app' ? 'fade' : '';
@@ -4156,6 +4164,7 @@ try { const p = JSON.parse(localStorage.getItem('koide-pref') || '{}'), d = docu
       case 'eraseask': S.eraseAsk = v || null; return render();
       case 'opsgo': S.menu = null; return enterOps(v);
       case 'church': S.menu = null; return enterChurch();
+      case 'churchtab': S.churchTab = v; render(); if (v === 'analysis') { track('화면 보기', { screen: '교회 분석' }); loadChurchAnalysis(); } return;
       case 'setopen': S.setOpen = !S.setOpen; return render();
       case 'dpclose': case 'dpreopen': case 'dperase': {
         const a = b.dataset.act, n = b.dataset.n;
