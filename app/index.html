@@ -182,6 +182,24 @@ h2 { font-size: 1.05em; margin: 0; }
 .hist-table th.now { color: var(--accent); font-weight: 700; }
 .hist-table tbody th { position: sticky; left: 0; background: var(--surface); text-align: left; color: var(--ink); padding-right: .5em; font-size: .92em; }
 .hist-table td { padding: 0; }
+/* 지난 기록 검색 */
+.hist-q { margin: 6px 0 4px; max-width: 420px; }
+.sr-list { list-style: none; margin: 8px 0 0; padding: 0; display: flex; flex-direction: column; gap: 6px; }
+.sr-item { font: inherit; width: 100%; text-align: left; display: flex; flex-direction: column; gap: .2em; background: var(--surface-2); border: 0; border-radius: 12px; padding: .65em .85em; color: var(--ink); cursor: pointer; line-height: 1.5; }
+.sr-meta { font-size: .78em; color: var(--ink-2); }
+/* 나의 기도: 가정별 막대와 달마다 칸(횟수 단계) */
+.mp-bars { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: .55em; }
+.mp-bars li { display: grid; grid-template-columns: minmax(6em, 38%) minmax(0, 1fr) 2.8em; align-items: center; gap: .6em; font-size: .86em; }
+.mp-bars b { text-align: right; font-weight: 600; font-variant-numeric: tabular-nums; }
+.mp-name { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.mp-c { display: grid; place-items: center; width: 24px; height: 24px; margin: 0 auto; border-radius: 6px; font-size: .78em; font-weight: 700; font-variant-numeric: tabular-nums; box-sizing: border-box; }
+.mp-c.l0 { border: 1.5px dashed var(--line-strong); }
+.mp-c.l1 { background: var(--accent-soft); color: var(--accent); }
+.mp-c.l2 { background: var(--accent-mid); color: var(--ink); }
+.mp-c.l3 { background: var(--accent); color: var(--on-accent); }
+.mp-c.now { outline: 2px solid var(--accent); outline-offset: 1px; }
+.sw.mp-c { width: .9em; height: .9em; border-radius: 3px; display: inline-block; margin: 0 .35em 0 0; vertical-align: -.1em; }
+.stat b small { font-size: .55em; color: var(--ink-2); font-weight: 400; margin-left: .1em; }
 .hc { display: block; width: 20px; height: 20px; border-radius: 5px; margin: 0 auto; box-sizing: border-box; }
 .hc.h-edited { background: var(--accent); }
 .hc.h-confirmed { background: var(--accent-mid); }
@@ -442,6 +460,10 @@ h3 { font-size: 1.02em; font-weight: 600; margin: 0; }
 .an-v { font-size: .66em; color: var(--ink-2); font-variant-numeric: tabular-nums; }
 .an-col.now .an-v { color: var(--ink); font-weight: 600; }
 .an-x { font-size: .66em; color: var(--ink-2); padding-bottom: .2em; }
+.tr-cols { grid-template-columns: repeat(12, minmax(0, 1fr)); margin-top: 10px; }
+.tr-bar { width: 62%; max-width: 1.6em; display: flex; flex-direction: column-reverse; border-radius: 4px 4px 0 0; overflow: hidden; }
+.tr-e { background: var(--accent); }
+.tr-c { background: var(--accent-mid); }
 .an-scroll { overflow-x: auto; }
 .an-heat { border-collapse: separate; border-spacing: 2px; width: 100%; font-size: .78em; font-variant-numeric: tabular-nums; }
 .an-heat th { font-weight: 600; color: var(--ink-2); padding: .25em .3em; white-space: nowrap; }
@@ -608,6 +630,7 @@ h3 { font-size: 1.02em; font-weight: 600; margin: 0; }
 /* 지난 기록 */
 .seg.fit { display: inline-grid; grid-template-columns: repeat(var(--n, 3), auto); margin-top: 14px; }
 .seg.fit button { padding-left: 1.4em; padding-right: 1.4em; }
+@media (max-width: 480px) { .seg.fit { display: grid; } .seg.fit button { padding-left: .6em; padding-right: .6em; white-space: nowrap; } }
 .hist-grid { margin-top: 12px; }
 .hist-grid h3 { margin: 0 0 .5em; }
 .hist-chips { display: flex; gap: 6px; overflow-x: auto; padding: 2px 0 8px; margin: 10px 0 4px; scrollbar-width: none; }
@@ -1423,6 +1446,18 @@ try { const p = JSON.parse(localStorage.getItem('koide-pref') || '{}'), d = docu
       <ul class="legend"><li><i class="sw edited"></i>이번 달 손봄 ${e}</li><li><i class="sw confirmed"></i>그대로 확인 ${c}</li><li><i class="sw same"></i>지난달 그대로 ${s}</li></ul>
       ${group('same', `<button class="btn small ghost" data-act="copyremind">안부 문구 복사</button>${copyNote('remind', remindText())}`)}${group('edited')}${group('confirmed')}</section>`;
   }
+  // 월별 업데이트 추이(리더): 최근 12개월, 우리 사랑방 합계. 막대 높이는 손봄+그대로 확인 비율, 아래 진한 쪽이 손봄
+  function trendCard() {
+    const T = S.pending && S.pending.trend;
+    if (!T || !T.some(t => t.n)) return '';
+    const n = m => Number(m.slice(5)), last = T.length - 1;
+    const cols = T.map((t, i) => { const p = t.n ? Math.round((t.edited + t.confirmed) / t.n * 100) : null;
+      return `<div class="an-col${i === last ? ' now' : ''}" title="${n(t.month)}월 ${t.n ? `${t.n}${words().count} 중 손봄 ${t.edited} · 그대로 확인 ${t.confirmed}` : '기록 없음'}">
+        <span class="an-v">${p == null ? '·' : p}</span><span class="tr-bar" style="height:${((p || 0) / 100 * 4.2).toFixed(2)}em"><span class="tr-e" style="flex:${t.edited}"></span><span class="tr-c" style="flex:${t.confirmed}"></span></span><span class="an-x">${n(t.month)}</span></div>`; }).join('');
+    return `<section class="card"><div class="row"><p class="label" style="margin:0">월별 업데이트 추이 <small class="hint">최근 12개월 · %</small></p></div>
+      <div class="an-cols tr-cols" role="img" aria-label="월별 손봄·확인 비율: ${T.map(t => `${n(t.month)}월 ${t.n ? Math.round((t.edited + t.confirmed) / t.n * 100) + '%' : '없음'}`).join(', ')}">${cols}</div>
+      <ul class="legend"><li><i class="sw edited"></i>손봄</li><li><i class="sw confirmed"></i>그대로 확인</li></ul></section>`;
+  }
   // 가정별 업데이트 이력: 지금 편성의 리더·코리더만(서버도 리더에게만 보낸다). 편성이 시작한 달부터 이번 달까지 칠한 칸만, 비율·순위는 없다
   const HIST_LABEL = { edited: '손봄', confirmed: '그대로 확인', same: '지난달 그대로', none: '기도제목 없음' };
   function histCard() {
@@ -1471,10 +1506,48 @@ try { const p = JSON.parse(localStorage.getItem('koide-pref') || '{}'), d = docu
     return itemList((open ? its : its.slice(0, 4)).map((i, k) => Object.assign({}, i, { id: id + '-' + k })), true)
       + (more > 0 ? `<button class="link" data-act="famtoggle" data-id="${esc(id)}" aria-expanded="${open}">${open ? '접기' : '더 보기 · ' + more + '개'}</button>` : '');
   }
+  // 나의 기도(설계서 10장 '누구를 위해 기도했나'): 내가 누른 기도했어요를 최근 6개월, 가정마다(목사님은 사랑방마다). 나만 본다
+  function loadMyPrayers() {
+    if (S.myp || S.mypLoading) return S.myp;
+    S.mypLoading = true;
+    api('myPrayers').then(r => { S.myp = r; S.mypLoading = false; paint(); })
+      .catch(err => { S.mypLoading = false; S.myp = { err: err.code === 'bad' ? '서버 코드를 새 버전으로 배포하면 볼 수 있어요.' : err.message }; paint(); });
+    return null;
+  }
+  function myPrayView(P) {
+    if (!P || P.err) return `<p class="hint" style="margin-top:12px">${P ? esc(P.err) : '불러오는 중…'}</p>`;
+    const unit = P.unit === 'room' ? grp() : words().one, last = P.months.length - 1, mon = mm => Number(mm.slice(5)) + '월';
+    if (!P.rows.length) return `<p class="hint" style="margin-top:12px">함께 기도할 ${esc(unit)}이 아직 없어요.</p>`;
+    const rows = P.rows.map(r => ({ r, total: r.cells.reduce((a, b) => a + b, 0), now: r.cells[last] }));
+    const max = Math.max(1, ...rows.map(x => x.total)), low = Math.min(...rows.map(x => x.total));
+    const least = rows.filter(x => x.total === low).map(x => x.r.name), lv = n => n === 0 ? 0 : n === 1 ? 1 : n <= 3 ? 2 : 3;
+    const stat = (n, l) => `<div class="stat"><b>${n}</b><span>${l}</span></div>`;
+    return `<div class="row" style="margin-top:12px"><p class="hint" style="margin:0">내가 누구를 위해 얼마나 기도했는지 모아 봤어요.</p><span class="only">${ICON.lock}나만 보여요</span></div>
+      <section class="card" style="margin-top:10px"><div class="stats">${stat(rows.reduce((a, x) => a + x.now, 0), '이번 달 기도')}${stat(rows.filter(x => x.now).length + '<small>/' + rows.length + '</small>', '이번 달 기도한 ' + esc(unit))}${stat(rows.reduce((a, x) => a + x.total, 0), mon(P.months[0]) + '부터 모두')}</div></section>
+      <div class="two-col"><div class="col"><section class="card"><p class="label">${esc(unit)}별로 모아 보기 · ${mon(P.months[0])}부터</p>
+        <ul class="mp-bars">${rows.map(x => `<li><span class="mp-name">${esc(x.r.name)}</span><span class="an-track"><span class="an-fill" style="width:${Math.round(x.total / max * 100)}%"></span></span><b>${x.total}번</b></li>`).join('')}</ul>
+        <p class="hint">${!max || rows.every(x => !x.total) ? '아직 누른 "기도했어요"가 없어요.' : least.length < rows.length ? `${least.map(esc).join(', ')}을 위해 조금 덜 기도했어요. 이번 주에 한 번 더 기억해 볼까요?` : `모든 ${esc(unit)}을 고르게 기억했어요.`}</p></section></div>
+      <div class="col side"><section class="card"><p class="label">달마다 보기</p>
+        <div class="table-wrap"><table class="hist-table"><thead><tr><th></th>${P.months.map((mm, i) => `<th scope="col"${i === last ? ' class="now"' : ''}>${mon(mm)}</th>`).join('')}</tr></thead>
+        <tbody>${rows.map(x => `<tr><th scope="row">${esc(x.r.name)}</th>${x.r.cells.map((n, i) => `<td><span class="mp-c l${lv(n)}${i === last ? ' now' : ''}" title="${mon(P.months[i])} ${n}번">${n || ''}</span></td>`).join('')}</tr>`).join('')}</tbody></table></div>
+        <ul class="legend"><li><i class="sw mp-c l0"></i>없음</li><li><i class="sw mp-c l1"></i>1번</li><li><i class="sw mp-c l2"></i>2~3번</li><li><i class="sw mp-c l3"></i>4번 이상</li></ul></section></div></div>`;
+  }
+  // 지난 기록 검색: 내가 볼 수 있던 기도제목 중 낱말이 든 것. 누르면 그 달 기록으로 간다
+  function searchView(R) {
+    const mon = mm => monthLabel(mm, R.now);
+    return `<section class="card" style="margin-top:12px"><div class="row"><p class="label" style="margin:0">"${esc(R.q)}" 찾은 기도제목 · ${R.n}</p><button class="link" data-act="srclose">닫기</button></div>
+      ${R.list.length ? `<ul class="sr-list">${R.list.map(x => `<li><button class="sr-item" data-act="srgo" data-v="${esc(x.to)}|${x.own ? 1 : 0}|${esc(x.roomId || '')}">
+        <span class="sr-meta">${esc(x.name)}${x.own ? `<span class="me-tag">${words().mine}</span>` : ''} · ${x.from === x.to ? mon(x.to) : mon(x.from) + ' ~ ' + mon(x.to)}</span>
+        <span><span class="tgt">${esc(x.target)}</span> ${esc(x.text)}</span></button></li>`).join('')}</ul>${R.n > R.list.length ? `<p class="hint">최근 ${R.list.length}개만 보여요. 낱말을 더 자세히 써 보세요.</p>` : ''}`
+        : '<p class="hint">찾은 기도제목이 없어요.</p>'}</section>`;
+  }
   function historyView() {
     const H = S.hist, tab = S.histTab || 'room', staff = staffMe();
     const head = `<div class="page-top"><div><p class="eyebrow">${esc(staff ? S.month.dept.name : H && H.room || S.month.room.name)}</p><h1>지난 기록 <span aria-hidden="true">📖</span></h1></div></div>
-      <div class="seg fit" style="--n:3" role="tablist" aria-label="지난 기록 보기">${[['room', grp() + (staff ? '별' : '')], ['mine', words().mine], ['timeline', '기도 타임라인']].map(([k, l]) => `<button class="${tab === k ? 'on' : ''}" role="tab" aria-selected="${tab === k}" data-act="histtab" data-v="${k}">${l}</button>`).join('')}</div>`;
+      <form class="kid-form hist-q" data-form="histq" role="search"><input class="field" type="search" name="q" placeholder="낱말로 찾기 (예: 이사)" aria-label="지난 기도제목에서 찾기" maxlength="20" autocomplete="off" value="${esc(S.sr ? S.sr.q : '')}"><button class="btn small" type="submit">찾기</button></form>
+      <div class="seg fit" style="--n:4" role="tablist" aria-label="지난 기록 보기">${[['room', grp() + (staff ? '별' : '')], ['mine', words().mine], ['timeline', '타임라인'], ['pray', '나의 기도']].map(([k, l]) => `<button class="${tab === k ? 'on' : ''}" role="tab" aria-selected="${tab === k}" data-act="histtab" data-v="${k}">${l}</button>`).join('')}</div>`;
+    if (S.sr) return head + searchView(S.sr);
+    if (tab === 'pray') return head + myPrayView(loadMyPrayers());
     if (!H) return head + '<p class="loading">불러오는 중…</p>';
     const past = H.months.filter(m => m < H.now);
     const first = past.length ? '' : `<section class="card"><p style="margin:0">지난 기록은 다음 달부터 쌓여요.</p>
@@ -1984,7 +2057,7 @@ try { const p = JSON.parse(localStorage.getItem('koide-pref') || '{}'), d = docu
   const wakeOff = () => { try { if (wake) wake.release(); } catch (e) { /* 무시 */ } wake = null; };
   // '기도했어요': 화면은 먼저 늘리고 서버에는 뒤에서 적는다. 서버가 돌려준 이번 달·오늘 횟수로 맞춘다
   function prayFor(f) {
-    f.today = (f.today || 0) + 1; f.prayed++;
+    f.today = (f.today || 0) + 1; f.prayed++; S.myp = null;
     // 목사님·장로님: 그 사랑방 매듭을 이번 주 기도한 것으로(청장년부 기도의 끈)
     if (staffMe() && S.room && S.room.families.indexOf(f) >= 0) { const r = (S.month.rooms || []).find(x => x.id === S.room.room.id); if (r) r.week = true; }
     render();
@@ -2195,7 +2268,7 @@ try { const p = JSON.parse(localStorage.getItem('koide-pref') || '{}'), d = docu
   function statusView() {
     return `<button class="link back" data-act="tab" data-v="more">${ICON.chevL}더보기</button>
       <div class="page-top"><div><p class="eyebrow">${esc(S.month.room.name)} · ${esc(S.month.me.role)}</p><h1>이번 달 현황</h1></div><p class="date">${todayLabel()}</p></div>
-      <div class="two-col"><div class="col">${statusCard()}${histCard()}${signalCard(S.pending && S.pending.signals)}${manageCard()}</div><div class="col side">${shareCard()}</div></div>`;
+      <div class="two-col"><div class="col">${statusCard()}${trendCard()}${histCard()}${signalCard(S.pending && S.pending.signals)}${manageCard()}</div><div class="col side">${shareCard()}</div></div>`;
   }
   // 교역자(관리자): 우리 부서를 섬기는 목사님 부부·장로님 등. 섬기는 분들 카드에 나올지, 카드 이름, 연결된 사람.
   //  교역자는 첫 접속의 '목사님·장로님으로 들어가기'에서 이름을 고르고, 연결은 여기(위 관리 카드의 신청)에서 승인한다
@@ -2757,6 +2830,14 @@ try { const p = JSON.parse(localStorage.getItem('koide-pref') || '{}'), d = docu
         const c = document.getElementById('hm-' + v); if (c) c.scrollIntoView({ block: 'center', behavior: matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth' });
         return;
       }
+      case 'srclose': S.sr = null; return render();
+      case 'srgo': {
+        const [m, own, room] = v.split('|'); S.sr = null;
+        if (own === '1') { S.histTab = 'mine'; S.hlMonth = m; S.openFams.add('h-m' + m); render(); S.hlMonth = null;
+          const c = document.getElementById('hm-' + m); if (c) c.scrollIntoView({ block: 'center' }); return; }
+        S.histTab = 'room'; if (staffMe() && room) { S.histRoom = room; if (S.hist) S.hist.roomId = room; }
+        if (S.hist) S.hist.month = m; render(); window.scrollTo(0, 0); return loadHist(m);
+      }
       case 'histmonth': if (S.hist) S.hist.month = v; render(); return loadHist(v);
       case 'histroom': S.histRoom = v; if (S.hist) S.hist.roomId = v; render(); return loadHist(S.hist && S.hist.month);
       case 'famtl': return loadFamTl(v);
@@ -2907,6 +2988,11 @@ try { const p = JSON.parse(localStorage.getItem('koide-pref') || '{}'), d = docu
       try { S.month = await api('saveFamily', { a: E.a, b: E.b, kids: E.kids }); S.famEdit = null; S.famMsg = '저장했어요.'; refreshMe(true); }
       catch (err) { oops(err); }
       S.busy = false; return render();
+    }
+    if (f.dataset.form === 'histq') {
+      const q = f.querySelector('input').value.trim(); if (!q) { S.sr = null; return render(); }
+      try { S.sr = await api('search', { q }); track('화면 보기', { screen: '검색' }); } catch (err) { oops(err); }
+      return render();
     }
     if (f.dataset.form === 'tdadd') { const v = f.querySelector('input').value.trim(); if (v) topicWord(f.dataset.topic, v, false); return; }
     if (f.dataset.form === 'tgtcustom') { const v = f.querySelector('input').value.trim(); if (v) setTarget(f.dataset.id, v); return; }

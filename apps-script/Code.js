@@ -58,7 +58,7 @@ const FIRST_DEPT = { id: 'D1', name: '청장년부', group: '사랑방', unit: '
 // ── 요청 받기 ─────────────────────────────────────────────
 
 // 서버 코드를 고칠 때마다 바꾼다. 웹 앱 주소를 열면 보여서, 새 버전으로 배포됐는지 확인할 수 있다
-const VERSION = '2026-10-19 주제 사전은 목사님';
+const VERSION = '2026-10-19 업데이트 추이';
 function doGet() {
   return ContentService.createTextOutput('코이데 서버가 켜져 있어요. (버전: ' + VERSION + ')');
 }
@@ -119,7 +119,9 @@ const ACTIONS = {
   reorgCancel: body => reorgCancel_(adminOf_(body)),
   analysis: body => analysisView_(adminOf_(body)),
   topics: body => topicFlow_(staffOrAdmin_(body)),
-  topicWord: topicWord_
+  topicWord: topicWord_,
+  myPrayers: body => myPrayers_(member_(body)),
+  search: body => search_(member_(body), String(body.q || ''))
 };
 
 // ── 로그인 ───────────────────────────────────────────────
@@ -284,7 +286,21 @@ function pendingView_(c) {
   // 돌봄 신호: 리더·코리더가 우리 사랑방 것을 본다
   const lead = c.role === '리더' || c.role === '코리더';
   return { requests, families, posts, today: today_(), staff: c.admin ? staffList_(c.deptId) : undefined, signals: lead ? careSignals_([c.roomId], month_()) : undefined,
-    history: lead ? updateHistory_(c.roomId, c.deptId, month_()) : undefined };
+    history: lead ? updateHistory_(c.roomId, c.deptId, month_()) : undefined, trend: lead ? updateTrend_(c.roomId, c.deptId, month_()) : undefined };
+}
+
+// 월별 업데이트 추이(설계서 10장, 리더): 최근 12개월, 그달 편성에서 우리 사랑방 가정 수와 손봄·그대로 확인 수. 사랑방 합계만.
+//  그달에 이 사랑방이 없었으면 n이 0이다
+function updateTrend_(roomId, deptId, m) {
+  const months = [m];
+  while (months.length < 12) months.unshift(prevMonth_(months[0]));
+  const status = {}; read_('monthly').forEach(x => { status[x.familyId + '|' + x.month] = x.status; });
+  const roster = read_('roster').filter(r => r.roomId === roomId);
+  return months.map(mm => {
+    const ids = roster.filter(r => String(r.year) === termAt_(deptId, mm)).map(r => r.familyId);
+    const k = st => ids.filter(f => status[f + '|' + mm] === st).length;
+    return { month: mm, n: ids.length, edited: k('edited'), confirmed: k('confirmed') };
+  });
 }
 
 // 가정별 업데이트 이력(설계서 10장): 지금 편성의 담당 리더·코리더만 본다. 편성이 시작한 달부터 이번 달까지, 가정마다 달의 상태만.
@@ -443,6 +459,35 @@ function historyView_(c, want, roomId) {
     .filter(x => x.items.length);
   const room = r ? rooms.find(x => x.id === r.roomId) : null;
   return { months, month: m, now: month_(), room: room ? room.name : '', families, mine, threads: threads_(items.filter(i => i.familyId === c.familyId)) };
+}
+
+// 지난 기록 검색(설계서 S3): 지난 기록 열람 규칙 그대로, 내가 볼 수 있던 기도제목 중 대상이나 내용에 낱말이 있는 것.
+//  같은 가정·대상·내용이 여러 달 이어졌으면 한 줄로(처음 달 ~ 마지막 달). 최근 순 40개까지
+function search_(c, q) {
+  q = q.trim();
+  if (!q || q.length > 20) throw fail_('bad', '찾을 낱말을 20글자까지 써 주세요.');
+  const items = read_('items'), fams = read_('families'), roster = read_('roster');
+  let can;
+  if (c.staff) {
+    const ids = roomIdsOfDept_(c.deptId);
+    can = i => i.familyId === c.familyId || (ids.indexOf(i.roomId) >= 0 && i.scope !== 'family');
+  } else {
+    const myRows = roster.filter(r => r.familyId === c.familyId), at = {};
+    const myRoom = mm => at[mm] !== undefined ? at[mm] : (at[mm] = myRows.find(r => String(r.year) === termAt_(deptOfRoom_(r.roomId).id, mm)) || null);
+    can = i => {
+      if (i.familyId === c.familyId) return true;
+      const r = myRoom(i.month);
+      return !!r && i.roomId === r.roomId && (i.scope === 'room' || (i.scope === 'leader' && (r.role === '리더' || r.role === '코리더')));
+    };
+  }
+  const groups = {};
+  items.filter(i => (String(i.text).indexOf(q) >= 0 || String(i.target).indexOf(q) >= 0) && can(i)).forEach(i => {
+    const k = i.familyId + '|' + i.target + '|' + i.text, g = groups[k];
+    if (!g) groups[k] = { name: (fams.find(f => f.id === i.familyId) || {}).name || '', own: i.familyId === c.familyId, roomId: i.roomId, target: i.target, text: i.text, from: i.month, to: i.month };
+    else { if (i.month < g.from) g.from = i.month; if (i.month > g.to) g.to = i.month; }
+  });
+  const list = Object.keys(groups).map(k => groups[k]).sort((a, b) => a.to < b.to ? 1 : a.to > b.to ? -1 : 0);
+  return { q, now: month_(), n: list.length, list: list.slice(0, 40) };
 }
 
 // 목사님·장로님의 지난 기록: 달과 사랑방을 골라 그 달의 사랑방 모습(그때 편성 그대로). 리더·목사님 항목까지, 우리 가정만 항목은 빼고.
@@ -788,6 +833,22 @@ function analysisView_(c) {
     topics: topicFlow_(c),
     app: appStats_(m, seen)
   };
+}
+
+// ── 나의 기도 (지난 기록, 설계서 10장 '누구를 위해 기도했나') ────────────
+// 내가 누른 '기도했어요'를 최근 6개월, 가정마다(목사님·장로님은 사랑방마다) 센다. 나만 본다.
+//  누른 사람 칸이 생기기 전 기록은 우리 가정이 누른 것으로 함께 센다
+function myPrayers_(c) {
+  const m = month_(), months = [m];
+  while (months.length < 6) months.unshift(prevMonth_(months[0]));
+  const fams = read_('families'), live = id => (fams.find(f => f.id === id) || {}).status === '활동';
+  const rows = c.staff
+    ? activeRooms_(c.deptId).sort((a, b) => a.order - b.order).map(r => ({ id: r.id, name: r.name, fams: read_('roster').filter(x => activeRow_(x) && x.roomId === r.id && live(x.familyId)).map(x => x.familyId) }))
+    : read_('roster').filter(x => activeRow_(x) && x.roomId === c.roomId && x.familyId !== c.familyId && live(x.familyId))
+      .map(x => ({ id: x.familyId, name: (fams.find(f => f.id === x.familyId) || {}).name || '', fams: [x.familyId] }));
+  const mine = read_('prayers').filter(p => p.kakaoId ? p.kakaoId === c.kakaoId : p.by === c.familyId);
+  return { months, unit: c.staff ? 'room' : 'family', rows: rows.map(r => ({ id: r.id, name: r.name,
+    cells: months.map(mm => mine.filter(p => r.fams.indexOf(p.familyId) >= 0 && fmtMonth_(p.at) === mm).length) })) };
 }
 
 // ── 기도 주제 흐름 (목사님·관리자, 설계서 10장) ─────────────────
