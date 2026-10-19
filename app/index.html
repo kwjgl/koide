@@ -1692,7 +1692,7 @@ try { const p = JSON.parse(localStorage.getItem('koide-pref') || '{}'), d = docu
     '1-8': { title: '8월 그물 가득', hero: '물고기', heroW: 20, heroMv: 'mv-breathe', heroFlip: true, heroHead: 0, unit: '마리',
       props: [['fishing-boat', '고깃배', 242, 88, 54, 'mv-float'], ['net', '그물', 130, 100, 46], ['oar', '노', 196, 104, 24], ['shell', '조개', 60, 143, 18],
         ['seagull', '갈매기', 100, 40, 22, 'mv-float'], ['campfire', '모닥불', 290, 141, 24], ['rock', '바위', 40, 98, 46]] },
-    // 2년차 (2027년 9월 ~ 2028년 8월). 1~6월만 그림이 있다. heroes: 주인공이 여러 장이면 돌아가며(3월 들꽃 네 가지 색)
+    // 2년차 (2027년 9월 ~ 2028년 8월). heroes: 주인공이 여러 장이면 돌아가며(3월 들꽃 네 가지 색)
     '2-1': { title: '1월 예수님의 세례', hero: '물방울', heroW: 9, heroMv: 'mv-float', heroFlip: false, heroHead: 0,
       props: [['light-beam', '열린 하늘의 빛줄기', 160, 60, 62], ['reeds', '요단강 갈대', 28, 110, 26, 'mv-sway'], ['stepping-stones', '징검다리', 100, 94, 46], ['riverside-tree', '강가 나무', 286, 102, 62, 'mv-sway'],
         ['dove', '비둘기', 206, 38, 20, 'mv-float'], ['water-jar', '물항아리', 232, 140, 22], ['pebbles', '조약돌', 70, 142, 34]] },
@@ -1710,7 +1710,26 @@ try { const p = JSON.parse(localStorage.getItem('koide-pref') || '{}'), d = docu
         ['clothesline', '빨랫줄', 150, 84, 54, 'mv-sway'], ['wildflower-pot', '들꽃 화분', 300, 106, 20], ['two-coins', '동전 두 닢', 120, 143, 14]] },
     '2-6': { title: '6월 오순절', hero: '작은 등불', heroW: 10, heroMv: '', heroFlip: false, heroHead: 0,
       props: [['upper-window', '열린 다락방 창', 110, 80, 30], ['curtain', '바람에 날리는 휘장', 200, 82, 30, 'mv-sway'], ['wheat-sheaf', '밀 단', 152, 102, 20, 'mv-sway'], ['bread-basket', '빵 바구니', 110, 143, 30],
-        ['flags', '여러 나라 깃발', 262, 98, 30, 'mv-sway'], ['tent', '천막', 268, 130, 56], ['well', '우물', 50, 141, 34]] }
+        ['flags', '여러 나라 깃발', 262, 98, 30, 'mv-sway'], ['tent', '천막', 268, 130, 56], ['well', '우물', 50, 141, 34]] },
+    '2-7': { title: '7월 생명수의 강', hero: '강가 나무', heroW: 20, heroMv: 'mv-sway', heroFlip: true, heroHead: 0, unit: '그루',
+      props: [['spring', '샘', 280, 100, 40], ['fish-school', '물고기 떼', 92, 86, 40, 'mv-float'], ['waterwheel', '물레방아', 150, 100, 40], ['duck', '오리', 204, 76, 20, 'mv-float'],
+        ['egret', '백로', 30, 104, 18, 'mv-breathe'], ['healing-leaf', '약이 되는 잎', 250, 141, 20, 'mv-sway'], ['water-bottle', '물병', 110, 142, 14]] },
+    // 8월은 바다가 땅이다(구획 예외): 작은 배를 물결 위 줄마다 띄운다
+    '2-8': { title: '8월 바다를 잔잔케 하심', hero: '작은 배', heroW: 22, heroMv: 'mv-float', heroFlip: true, heroHead: .1, unit: '척', plan: { rows: [78, 86, 95, 105, 116, 128, 142] },
+      props: [['calm-waves', '잔잔한 물결', 150, 94, 60, 'mv-float'], ['clearing-cloud', '걷히는 구름', 90, 34, 56, 'mv-float'], ['seagull', '갈매기', 190, 44, 22, 'mv-float'], ['evening-star', '저녁 별', 252, 26, 12],
+        ['net', '그물', 262, 148, 30], ['pillow', '고물의 베개', 296, 146, 22], ['oar', '노', 300, 134, 18]] },
+    '2-9': { title: '9월 성령의 열매', hero: '열매', heroW: 11, heroMv: '', heroFlip: false, heroHead: 0, unit: '개', heroes: ['hero', 'hero-2', 'hero-3', 'hero-4', 'hero-5', 'hero-6', 'hero-7', 'hero-8', 'hero-9'],
+      props: [['orchard-tree', '과일나무', 40, 100, 56, 'mv-sway'], ['basket', '바구니', 130, 142, 24], ['ladder', '사다리', 72, 102, 14], ['beehive', '벌집', 280, 104, 24],
+        ['watering-can', '물뿌리개', 240, 142, 24], ['garden-gate', '정원 문', 200, 86, 40], ['butterfly', '나비', 170, 50, 16, 'mv-float']] },
+    '2-10': { title: '10월 다니엘과 사자', hero: '아기 사자', heroW: 18, heroMv: 'mv-breathe', heroFlip: true, heroHead: .2, unit: '마리',
+      props: [['sealed-stone', '봉인된 돌문', 40, 62, 26], ['moon', '달', 250, 30, 22], ['open-window', '예루살렘 쪽으로 열린 창', 150, 82, 30], ['palm-tree', '종려나무', 290, 102, 34, 'mv-sway'],
+        ['oil-lamp', '등잔', 90, 142, 22], ['scroll', '두루마리', 210, 142, 26], ['royal-seal', '왕의 인장', 150, 144, 16]] },
+    '2-11': { title: '11월 한 해를 관 씌우시니', hero: '감', heroW: 11, heroMv: '', heroFlip: false, heroHead: 0,
+      props: [['persimmon-tree', '감나무', 36, 102, 58, 'mv-sway'], ['magpie', '까치', 56, 58, 16, 'mv-breathe'], ['rice-sheaf', '볏단', 280, 100, 22, 'mv-sway'], ['grain-cart', '곡식 수레', 230, 96, 44],
+        ['ditch', '물 대는 도랑', 150, 92, 60], ['basket', '바구니', 110, 142, 26], ['jar-terrace', '장독대', 290, 142, 40]] },
+    '2-12': { title: '12월 말씀이 육신이 되어', hero: '촛불', heroW: 9, heroMv: '', heroFlip: false, heroHead: 0,
+      props: [['stable', '마구간', 50, 102, 52], ['empty-manger', '짚 깔린 빈 구유', 100, 120, 30], ['star', '별 하나', 170, 24, 14, 'mv-float'], ['donkey', '나귀', 240, 104, 26, 'mv-breathe'],
+        ['lit-window', '불 켜진 창', 290, 104, 22], ['shepherd-staff', '목자 지팡이', 200, 108, 10], ['scroll', '두루마리', 150, 144, 24]] }
   };
   // 그림 높이/너비 비율 (tools/optimize_art.py가 찍어 주는 값)
   const ART_RATIO = {
@@ -1732,6 +1751,12 @@ try { const p = JSON.parse(localStorage.getItem('koide-pref') || '{}'), d = docu
     '2-4': { 'stone-path': .263, 'fig-tree': 1.029, 'water-pot': 1.285, 'city-gate': .662, 'donkey-colt': 1.19, 'olive-tree': 1.016, 'spread-cloak': .519, hero: 1.198 },
     '2-5': { 'two-coins': .659, nest: .688, 'wildflower-pot': 1.317, 'feed-bowl': .525, lily: 1.236, clothesline: .706, birdhouse: 1.285, hero: .973 },
     '2-6': { 'wheat-sheaf': 1.1, curtain: .909, 'bread-basket': .672, flags: .959, 'upper-window': .778, well: 1.127, tent: .678, hero: 1.262 },
+    '2-7': { 'fish-school': .653, waterwheel: 1.019, 'water-bottle': 1.429, egret: 1.461, spring: .722, 'healing-leaf': .994, duck: .85, hero: 1.004 },
+    '2-8': { seagull: .678, 'clearing-cloud': .537, pillow: .481, net: .575, oar: .872, 'calm-waves': .253, 'evening-star': .95, hero: .488 },
+    '2-9': { 'orchard-tree': 1.092, butterfly: .984, 'watering-can': .794, basket: 1.029, beehive: .988, ladder: 1.905, 'garden-gate': .681, hero: .942, 'hero-2': 1.111, 'hero-3': 1.453, 'hero-4': 1.193, 'hero-5': 1.176, 'hero-6': 1.13, 'hero-7': 1.07, 'hero-8': 1.135, 'hero-9': 1.226 },
+    '2-10': { moon: .994, scroll: .787, 'oil-lamp': .697, 'sealed-stone': .709, 'open-window': .856, 'royal-seal': .713, 'palm-tree': 1.208, hero: 1.15 },
+    '2-11': { 'persimmon-tree': .953, 'grain-cart': .738, magpie: .869, ditch: .709, basket: .553, 'rice-sheaf': 1.151, 'jar-terrace': .791, hero: .908 },
+    '2-12': { donkey: 1.181, scroll: .822, stable: .791, 'shepherd-staff': 2.222, star: .959, 'lit-window': 1.194, 'empty-manger': .766, hero: 1.429 },
     common: { heart: .806 }
   };
   const ART = (m, n) => (CFG.ART || 'img/') + m + '/' + n + '.webp';
