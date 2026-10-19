@@ -61,6 +61,8 @@
 :root[data-accent="ink"][data-mode="dark"] { --page:#141414;--surface:#1D1D1C;--surface-2:#252524;--ink:#ECECE8;--ink-2:#A3A39E;--line:#30302E;--line-strong:#4D4D4A;--accent:#E2E2DC;--accent-mid:#6A6A65;--accent-soft:#2E2E2C;--on-accent:#141414;--private:#262625; }
 * { box-sizing: border-box; }
 html, body { margin: 0; }
+/* 휴대폰을 가로로 돌려도 브라우저가 글씨를 저절로 키우지 않게 */
+html { -webkit-text-size-adjust: 100%; text-size-adjust: 100%; }
 body { background: var(--page); color: var(--ink); font-family: var(--f-body); font-size: var(--base); line-height: 1.55; -webkit-tap-highlight-color: transparent; }
 button, input, textarea, select { font: inherit; color: inherit; }
 /* 틀(시안과 같게): 휴대폰·태블릿은 상단 바(배지·설정) + 하단 바(아이콘만), PC(1000px 이상)는 메뉴가 상단 바로 올라가고 2단 */
@@ -274,7 +276,7 @@ body.praying .tabs { display: none; }
 .pss-music.on { color: var(--accent); background: var(--accent-soft); border-color: transparent; }
 .pss-mus { display: inline-flex; gap: 6px; }
 .pss-body { flex: 1; max-width: 640px; width: 100%; margin: 0 auto; display: flex; flex-direction: column; align-items: center; gap: 14px; text-align: center; }
-.pss-body h2 { font-family: var(--f-display, inherit); font-size: clamp(1.6em, 6vw, 2.3em); margin: 0; }
+.pss-body h2 { font-family: var(--f-display, inherit); font-size: clamp(1.6em, 6vmin, 2.3em); margin: 0; }
 .pss-body ul { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 10px; text-align: left; width: 100%; }
 .pss-body li { display: flex; gap: .7em; font-size: 1.05em; line-height: 1.6; background: var(--surface); border-radius: 14px; padding: .7em .9em; }
 .pss-body li .tgt { align-self: flex-start; flex: none; margin-top: .25em; }
@@ -291,17 +293,21 @@ body.praying .tabs { display: none; }
 .pss-nav .pss-pray { background: var(--accent); border-color: var(--accent); color: var(--on-accent); }
 .pss-nav .pss-pray:disabled { opacity: .55; cursor: default; }
 .pss-nav .pss-pray.ready { animation: pss-glow 1.6s ease-in-out infinite; }
+/* 저절로 다음 장으로: 버튼 줄 위에 '3초 뒤 … · 머무르기'(뒤에 두고 order로 올려서 이전 버튼이 첫 칸 그대로) */
+.pss-nav .pss-cd { grid-column: 1 / -1; order: -1; display: flex; justify-content: space-between; align-items: center; gap: .6em; padding: .45em .5em .45em .95em; border-radius: 14px; background: var(--accent-soft); color: var(--accent); font-size: .9em; font-weight: 600; }
+.pss-nav .pss-cd b { font-variant-numeric: tabular-nums; }
+.pss-nav .pss-cd button { min-height: 40px; padding: 0 1em; border-radius: 999px; font-size: .95em; }
 @keyframes pss-glow { 50% { box-shadow: 0 0 0 6px var(--accent-soft); } }
 @media (prefers-reduced-motion: reduce) { .pss-nav .pss-pray.ready { animation: none; } }
 /* 모임 모드: 기도하는 화면과 같은 전체 화면에, 모임 때 함께 볼 수 있게 더 넓고 큰 글씨로 */
 .pss.meet .pss-top, .pss.meet .pss-body, .pss.meet .pss-nav { max-width: 960px; }
 .pss.meet .pss-nav { grid-template-columns: 1fr 1fr; }
 .pss.meet .pss-body { align-items: stretch; text-align: left; }
-.pss.meet .pss-body h2 { font-size: clamp(1.8em, 5vw, 3em); }
-.pss.meet .pss-body li { font-size: clamp(1.15em, 2.6vw, 1.7em); line-height: 1.55; }
+.pss.meet .pss-body h2 { font-size: clamp(1.8em, 5vmin, 3em); }
+.pss.meet .pss-body li { font-size: clamp(1.15em, 2.6vmin, 1.7em); line-height: 1.55; }
 .pss.meet .pss-body.lp { justify-content: center; align-items: center; text-align: center; }
 .m-hint { text-align: center; font-size: .8em; color: var(--ink-2); margin: 0; }
-.lp-text { margin: .4em auto 0; max-width: 30em; font-family: var(--f-display, inherit); font-size: clamp(1.15em, 3vw, 1.7em); line-height: 1.7; word-break: keep-all; text-wrap: balance; }
+.lp-text { margin: .4em auto 0; max-width: 30em; font-family: var(--f-display, inherit); font-size: clamp(1.15em, 3vmin, 1.7em); line-height: 1.7; word-break: keep-all; text-wrap: balance; }
 .lp-text span { display: block; }
 .sr-tools { display: flex; align-items: center; gap: .4em; flex: none; }
 .meet-btn .ic { width: 1.15em; height: 1.15em; }
@@ -1688,7 +1694,7 @@ try { const p = JSON.parse(localStorage.getItem('koide-pref') || '{}'), d = docu
   const topicOf = id => [...PRAY_TOPICS, PRAY_THANKS].find(t => 't:' + t.k === id);
   // 고른 것은 이 기기에 기억한다(다음에 열 때 그대로)
   const PSET_KEY = 'koide-pray';
-  const PSET = Object.assign({ kinds: ['room'], topics: PRAY_TOPICS.map(t => t.k), dur: 60, music: false, track: 0, auto: true },
+  const PSET = Object.assign({ kinds: ['room'], topics: PRAY_TOPICS.map(t => t.k), dur: 60, flow: false, music: false, track: 0, auto: true },
     (() => { try { return JSON.parse(localStorage.getItem(PSET_KEY)) || {}; } catch (e) { return {}; } })());
   const savePset = () => { try { localStorage.setItem(PSET_KEY, JSON.stringify(PSET)); } catch (e) { /* 무시 */ } };
   // 섬기는 분들은 처음부터 켜 둔다(설계서). 예전에 고른 것이 기억된 기기에도 한 번만 더한다
@@ -1764,6 +1770,8 @@ try { const p = JSON.parse(localStorage.getItem('koide-pref') || '{}'), d = docu
         ${staffRoom ? `<p class="label" style="margin-top:14px">오늘의 ${esc(grp())}</p><div class="chips">${S.month.rooms.map(r => `<button class="chip-btn${r.id === staffRoom ? ' on' : ''}" data-act="psroom" data-v="${esc(r.id)}" aria-pressed="${r.id === staffRoom}">${esc(r.name)}</button>`).join('')}</div>` : ''}
         ${PSET.kinds.includes('world') ? `<div class="ps-topics"><p class="hint" style="margin:0">기도할 주제를 골라요. 마지막엔 늘 감사와 찬양으로 마쳐요.</p>${seg(PRAY_TOPICS.map(t => [t.k, t.name]), PSET.topics, 'pstopic', 2, true)}</div>` : ''}
         <p class="label" style="margin-top:14px">한 장에 머무는 시간</p>${seg(PS_TIMES, PSET.dur, 'psdur')}
+        ${PSET.dur ? `<div class="row" style="margin-top:10px"><div><p class="label" style="margin:0">시간이 다 되면 저절로 다음 장으로</p><p class="hint">기도제목이 길면 천천히 내려 보여 줘요. 화면을 만지면 멈춰요. 넘어가면 기도한 것으로 세어요.</p></div>
+          <button class="switch${PSET.flow ? ' on' : ''}" role="switch" aria-checked="${!!PSET.flow}" aria-label="시간이 다 되면 저절로 다음 장으로" data-act="psflow"><span></span></button></div>` : ''}
         <div class="row" style="margin-top:14px"><div><p class="label" style="margin:0">잔잔한 음악 (찬송가 1~8장)</p><p class="hint">기도하는 동안 조용히 흘러요. 이어폰을 권해요.</p></div>
           <button class="switch${PSET.music ? ' on' : ''}" role="switch" aria-checked="${PSET.music}" aria-label="잔잔한 음악" data-act="psmusic"><span></span></button></div>
         ${PSET.music ? `<div class="ps-music-set"><p class="label" style="margin:0">처음 들을 곡</p>
@@ -1807,27 +1815,64 @@ try { const p = JSON.parse(localStorage.getItem('koide-pref') || '{}'), d = docu
         body = `<p class="pss-lp">${t.lines.map(n => LORDS_PRAYER[n]).join(' ')}</p><p class="eyebrow">하나님의 나라</p><h2>${t.name}</h2><ul>${line(d.a)}${line(d.b)}</ul><p class="pss-next">${esc(d.next)}</p>`; }
       pray = `<button class="pss-pray${ready ? ' ready' : ''}" data-act="psextra">${ICON.hands.replace('<svg', '<svg width="20" height="20"')} 기도했어요</button>`;
     }
-    return `${top}<div class="pss-body">${body}</div><div class="pss-nav trio"><button data-act="psprev"${ps.i ? '' : ' disabled'}>이전</button><button data-act="psnext">${last ? '마치기' : '다음'}</button>${pray}</div>`;
+    const cd = ps.cd ? `<div class="pss-cd" role="status"><span><b id="pss-cd">${ps.cd}</b>초 뒤 ${last ? '마쳐요' : '다음 장으로 넘어가요'}</span><button data-act="psstay">머무르기</button></div>` : '';
+    return `${top}<div class="pss-body">${body}</div><div class="pss-nav trio"><button data-act="psprev"${ps.i ? '' : ' disabled'}>이전</button><button data-act="psnext">${last ? '마치기' : '다음'}</button>${pray}${cd}</div>`;
   }
-  // 한 장에 머무는 시간: 줄어드는 고리와 숫자. 다 되면 '기도했어요'가 부드럽게 반짝이고, 저절로 넘어가지는 않는다
+  // 한 장에 머무는 시간: 줄어드는 고리와 숫자. 다 되면 '기도했어요'가 부드럽게 반짝인다
+  //  '저절로 다음 장으로'(flow)를 켰으면 3초 세고 기도한 것으로 세어 넘어간다. '머무르기'를 누르면 그 장에서는 멈춘다
   let psTimer = null;
   function psTick() {
     clearInterval(psTimer);
     const ps = S.ps; if (!ps || ps.done || !ps.dur) return;
     psTimer = setInterval(() => {
       if (S.ps !== ps || ps.done) return clearInterval(psTimer);
+      if (ps.cd) {
+        if (--ps.cd) { const c = document.getElementById('pss-cd'); if (c) c.textContent = ps.cd; return; }
+        clearInterval(psTimer); psMark(); return psGo(ps.i + 1);
+      }
       ps.left = Math.max(0, ps.left - 1);
       const t = document.getElementById('pss-time'), bar = document.querySelector('.pss-ring .bar');
       if (t) t.textContent = fmtTime(ps.left);
       if (bar) bar.setAttribute('stroke-dashoffset', (276.5 * (1 - ps.left / ps.dur)).toFixed(1));
-      if (!ps.left) { clearInterval(psTimer); const b = document.querySelector('.pss-pray'); if (b) b.classList.add('ready'); }
+      if (!ps.left) {
+        if (ps.flow && !ps.stay) { ps.cd = 3; return psRender(); }
+        clearInterval(psTimer); const b = document.querySelector('.pss-pray'); if (b) b.classList.add('ready');
+      }
     }, 1000);
   }
+  // 읽던 자리를 지키며 다시 그린다
+  const psRender = () => { const P = $('#pss'), y = P.scrollTop; render(); P.scrollTop = y; };
+  // 지금 장을 기도한 것으로 센다: 사랑방 가정은 기도했어요(하루 3번까지), 다른 장은 함께 기도한 것
+  function psMark() {
+    const ps = S.ps, id = ps.list[ps.i];
+    if (id.startsWith('f:')) {
+      const f = famById(id.slice(2)); if (!f || (f.today || 0) >= 3) return false;
+      if (ps.prayed.indexOf(f.id) < 0) ps.prayed.push(f.id);
+      prayFor(f);
+    } else if (ps.extra.indexOf(id) < 0) ps.extra.push(id);
+    return true;
+  }
+  // 저절로 내려 보기(flow): 화면보다 긴 장만. 처음 몇 초는 머물고, 시간의 70%가 될 때까지 천천히 끝까지 내린 뒤 남은 시간은 맨 아래에 둔다
+  //  손가락·마우스 휠·키보드로 화면을 만지면 그 장에서는 멈춘다
+  let psRaf = 0;
+  function psScroll() {
+    cancelAnimationFrame(psRaf);
+    const ps = S.ps; if (!ps || ps.done || !ps.flow) return;
+    const P = $('#pss'), hold = Math.min(8, ps.dur * .1) * 1000, end = ps.dur * 700;
+    const step = () => {
+      if (S.ps !== ps || ps.done || ps.held) return;
+      const t = Date.now() - ps.pt0, max = P.scrollHeight - P.clientHeight;
+      if (max > 4 && t > hold) P.scrollTop = Math.round(max * Math.min(1, (t - hold) / (end - hold)));
+      if (t < end) psRaf = requestAnimationFrame(step);
+    };
+    psRaf = requestAnimationFrame(step);
+  }
+  ['touchstart', 'wheel', 'mousedown', 'keydown'].forEach(e => $('#pss').addEventListener(e, () => { if (S.ps) S.ps.held = true; }, { passive: true }));
   function psGo(i) {
     const ps = S.ps; ps.seen = Math.max(ps.seen || 1, Math.min(i + 1, ps.list.length));
     if (i >= ps.list.length) { ps.done = true; clearInterval(psTimer); }
-    else { ps.i = i; ps.left = ps.dur; }
-    render(); $('#pss').scrollTop = 0; psTick();
+    else { Object.assign(ps, { i, left: ps.dur, cd: 0, stay: false, held: false, pt0: Date.now() }); }
+    render(); $('#pss').scrollTop = 0; psTick(); psScroll();
   }
   // 모임 모드(설계서 S1): 모임 때 화면에 크게 띄워 한 가정씩 넘긴다. 사랑방 공개 항목만 나와서 회원 누구나 열 수 있다.
   //  가정을 다 넘기면 마지막 장에서 주기도문으로 함께 마친다
@@ -2539,19 +2584,16 @@ try { const p = JSON.parse(localStorage.getItem('koide-pref') || '{}'), d = docu
       case 'psnexttrack': Music.unlock(); Music.play((PSET.track + 1) % HYMNS.length); return render();
       case 'psstart': {
         const list = psList(); if (!list.length) return;
-        S.ps = { list, i: 0, dur: PSET.dur, left: PSET.dur, prayed: [], extra: [], done: false, t0: Date.now(), seen: 1 };
-        track('기도하기 시작', { kinds: PSET.kinds.join('·'), cards: list.length, secs: PSET.dur, music: !!PSET.music });
+        S.ps = { list, i: 0, dur: PSET.dur, left: PSET.dur, flow: !!(PSET.flow && PSET.dur), cd: 0, pt0: Date.now(), prayed: [], extra: [], done: false, t0: Date.now(), seen: 1 };
+        track('기도하기 시작', { kinds: PSET.kinds.join('·'), cards: list.length, secs: PSET.dur, music: !!PSET.music, flow: S.ps.flow });
         if (PSET.music) { Music.unlock(); Music.play(PSET.track); }
-        wakeOn(); render(); return psTick();
+        wakeOn(); render(); psTick(); return psScroll();
       }
       case 'psprev': return S.ps.i > 0 && psGo(S.ps.i - 1);
       case 'psnext': return psGo(S.ps.i + 1);
-      case 'pspray': {
-        const f = famById(S.ps.list[S.ps.i].slice(2)); if (!f || (f.today || 0) >= 3) return;
-        if (S.ps.prayed.indexOf(f.id) < 0) S.ps.prayed.push(f.id);
-        prayFor(f); return psGo(S.ps.i + 1);
-      }
-      case 'psextra': { const id = S.ps.list[S.ps.i]; if (S.ps.extra.indexOf(id) < 0) S.ps.extra.push(id); return psGo(S.ps.i + 1); }
+      case 'pspray': case 'psextra': return psMark() && psGo(S.ps.i + 1);
+      case 'psstay': clearInterval(psTimer); S.ps.cd = 0; S.ps.stay = true; return psRender();
+      case 'psflow': PSET.flow = !PSET.flow; savePset(); return render();
       case 'psend': S.ps.done = true; clearInterval(psTimer); return render();
       case 'psclose':
         // 몇 장까지 봤는지, 끝 장까지 가기 전에 끝냈는지(early: '끝내기'도 마친 화면을 보여 주므로 본 장 수로 정한다), 머문 시간(분)
