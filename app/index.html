@@ -2066,7 +2066,7 @@ try { const p = JSON.parse(localStorage.getItem('koide-pref') || '{}'), d = docu
     const M = S.month, me = M.me, lead = me.role === '리더' || me.role === '코리더', on = tabOn();
     const role = lead || me.staff ? me.role : me.admin ? '관리자' : '회원', rc = lead || me.staff ? 'leader' : me.admin ? 'admin' : '';
     const menu = S.menu === 'badge' ? `<div class="menu" role="menu" aria-label="사랑방">
-        <p class="mlabel">${esc(grp())}</p><div class="mitem static"><b>${esc(M.room.name)}</b><small>${M.dept && M.dept.name ? esc(M.dept.name) + ' · ' : ''}${me.staff ? `${grp()} ${(M.rooms || []).length}곳 · ${(M.rooms || []).reduce((a, r) => a + r.n, 0)}${words().count}` : `${M.month.slice(0, 4)}년 편성 · ${M.families.length}${words().count}`}</small></div>
+        <p class="mlabel">${esc(grp())}</p><div class="mitem static"><b>${esc(M.room.name)}</b><small>${M.dept && M.dept.name ? esc(M.dept.name) + ' · ' : ''}${me.staff ? `${grp()} ${(M.rooms || []).length}곳 · ${(M.rooms || []).reduce((a, r) => a + r.n, 0)}${words().count}` : `${M.term || M.month.slice(0, 4)}년 편성 · ${M.families.length}${words().count}`}</small></div>
         ${me.admin && !DEMO ? '<div class="mdiv"></div><a class="mitem" role="menuitem" href="?demo" target="_blank" rel="noopener"><span>데모로 둘러보기</span><small>예시 데이터</small></a>' : ''}</div>`
       : S.menu === 'settings' ? `<div class="menu" role="menu" aria-label="설정">
         <p class="mlabel">화면 모드 · 색 테마 · 디자인</p>${themeControls()}<div class="mdiv"></div>
