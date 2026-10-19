@@ -3716,8 +3716,11 @@ try { const p = JSON.parse(localStorage.getItem('koide-pref') || '{}'), d = docu
   function render() {
     const sig = viewSig(), kind = vtKind(lastSig, sig);
     lastSig = sig;
-    const t0 = performance.now();
+    const t0 = performance.now(), y0 = scrollY;
     draw();
+    // 같은 화면 안에서 다시 그릴 때(고르기, 펼치기 등)는 보던 자리를 지킨다. 화면을 통째로 바꾸면 위로 튀는 브라우저가 있다(아이폰 사파리).
+    //  다른 화면으로 갈 때 맨 위로 올리는 것은 부르는 쪽이 그린 뒤에 한다
+    if (!kind && S.view === 'app' && Math.abs(scrollY - y0) > 1) window.scrollTo(0, y0);
     document.querySelectorAll('.cord-line animate').forEach(a => { try { a.beginElement(); } catch (e) { /* 지원하지 않으면 바로 팽팽 */ } });
     playTapFx();
     // 그리는 데 오래 걸린 화면(그림·표가 많은 화면, 느린 휴대폰)은 이미 늦었으니 움직임 없이 바로 보여 준다
