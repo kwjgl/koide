@@ -366,7 +366,7 @@ body.praying .tabs { display: none; }
 .pss-body li { display: flex; gap: .7em; font-size: 1.05em; line-height: 1.6; background: var(--surface); border-radius: 14px; padding: .7em .9em; }
 .pss-body li .tgt { align-self: flex-start; flex: none; margin-top: .25em; }
 .pss-lp { margin: 0; color: var(--accent); font-size: .92em; word-break: keep-all; }
-/* 하나님의 나라: 성경의 기도 장절은 문장 끝에 작게, "내 말로 이어서"는 문장 아래 흐린 글씨로 */
+/* 하나님 나라: 성경의 기도 장절은 문장 끝에 작게, "내 말로 이어서"는 문장 아래 흐린 글씨로 */
 .pss-ref { display: block; margin-top: .15em; font-size: .78em; color: var(--ink-2); }
 .pss-next { margin: 0; max-width: 32em; color: var(--ink-2); font-size: .95em; line-height: 1.6; word-break: keep-all; }
 .pss-nav { position: sticky; bottom: 0; display: grid; grid-template-columns: 1fr 1.4fr; gap: 10px; max-width: 640px; width: 100%; margin: 0 auto; padding: 12px 0 max(16px, env(safe-area-inset-bottom)); background: linear-gradient(transparent, var(--page) 30%); }
@@ -738,13 +738,13 @@ button.knot { cursor: pointer; }
 :root:not([data-style="neu"]):not([data-style="skeu"]) :is(.btn, .pray, .chip-btn, .mchip, .seg button, .seg2 button, button.knot, .tabs button, .icon-btn, .badge-btn, .pss-nav button, .pss-x, .pss-music, .ps-big, .sr-item, .room-sum, .td-word, .switch):not(:disabled) { transition: transform .12s ease, background-color .2s, color .2s, border-color .2s, box-shadow .2s; }
 :root:not([data-style="neu"]):not([data-style="skeu"]) :is(.btn, .pray, .chip-btn, .mchip, .seg button, .seg2 button, button.knot, .tabs button, .icon-btn, .badge-btn, .pss-nav button, .pss-x, .pss-music, .ps-big, .sr-item, .room-sum, .td-word, .switch):not(:disabled):active { transform: scale(.96); }
 /* 부드럽게 넘어가기: 새로 그린 쪽이 들어온다(탭은 옆으로, 큰 화면은 아래에서, 장 넘기기는 옆으로) */
-.vt-in-r { animation: vt-in-r .3s cubic-bezier(.2, .8, .2, 1) both; }
-.vt-in-l { animation: vt-in-l .3s cubic-bezier(.2, .8, .2, 1) both; }
-.vt-up { animation: vt-up .34s cubic-bezier(.2, .8, .2, 1) both; }
-.vt-fade { animation: vt-fade .24s ease-out both; }
-@keyframes vt-in-r { from { opacity: 0; transform: translateX(24px); } }
-@keyframes vt-in-l { from { opacity: 0; transform: translateX(-24px); } }
-@keyframes vt-up { from { opacity: 0; transform: translateY(28px); } }
+.vt-in-r { animation: vt-in-r .2s cubic-bezier(.2, .8, .2, 1) both; }
+.vt-in-l { animation: vt-in-l .2s cubic-bezier(.2, .8, .2, 1) both; }
+.vt-up { animation: vt-up .24s cubic-bezier(.2, .8, .2, 1) both; }
+.vt-fade { animation: vt-fade .18s ease-out both; }
+@keyframes vt-in-r { from { opacity: 0; transform: translateX(14px); } }
+@keyframes vt-in-l { from { opacity: 0; transform: translateX(-14px); } }
+@keyframes vt-up { from { opacity: 0; transform: translateY(18px); } }
 @keyframes vt-fade { from { opacity: 0; } }
 @media (prefers-reduced-motion: reduce) { .vt-in-r, .vt-in-l, .vt-up, .vt-fade { animation: none; } }
 /* 기도했어요 효과: 아이콘이 톡, 메인 버튼은 빛이 한 번 번진다 */
@@ -2058,16 +2058,16 @@ try { const p = JSON.parse(localStorage.getItem('koide-pref') || '{}'), d = docu
 
 
   // ── 기도하기 ────────────────────────────────────────
-  // 조용한 화면에서 한 장씩 넘기며 기도한다. 순서는 우리 사랑방 가정 → 우리 가정 → 하나님의 나라.
+  // 조용한 화면에서 한 장씩 넘기며 기도한다. 순서는 우리 사랑방 가정 → 우리 가정 → 하나님 나라.
   //  기도의 끈과 '기도했어요' 횟수는 사랑방 가정을 위한 기도만 센다(가정마다 하루 3번까지)
-  // 순서는 우리 사랑방 → 우리 가정 → 섬기는 분들(있을 때) → 하나님의 나라. 목사님·장로님은 맡은 사랑방 대신 오늘의 사랑방
+  // 순서는 우리 사랑방 → 우리 가정 → 섬기는 분들(있을 때) → 하나님 나라. 목사님·장로님은 맡은 사랑방 대신 오늘의 사랑방
   const serveList = () => (S.month && S.month.serve) || [];
   // 목사님·장로님은 섬기는 분들 자리에 함께 섬기는 분들(사랑방 리더·코리더와 본인을 뺀 동역자)을 둔다. 고른 것은 같은 자리(serve)에 기억한다
-  const PS_KINDS = () => staffMe() ? [['room', '오늘의 ' + grp()], ['serve', '함께 섬기는 분들'], ['me', words().mine], ['world', '하나님의 나라']]
-    : [['room', '우리 ' + grp()], ['me', words().mine], ...(serveList().length ? [['serve', '섬기는 분들']] : []), ['world', '하나님의 나라']];
+  const PS_KINDS = () => staffMe() ? [['room', '오늘의 ' + grp()], ['serve', '함께 섬기는 분들'], ['me', words().mine], ['world', '하나님 나라']]
+    : [['room', '우리 ' + grp()], ['me', words().mine], ...(serveList().length ? [['serve', '섬기는 분들']] : []), ['world', '하나님 나라']];
   const PS_TIMES = [[0, '시간 없이'], [60, '1분'], [180, '3분'], [300, '5분']];
-  // 주기도문(개역개정 이전 번역)과 하나님의 나라 주제 6개. 주제마다 주기도문 간구 하나씩 짝지어 그 순서대로 둔다(lines: 장 위에 다는 구절 번호)
-  //  송영에 짝지은 "감사와 찬양"은 고르는 주제가 아니라 하나님의 나라를 고르면 늘 마지막 장으로 나온다
+  // 주기도문(개역개정 이전 번역)과 하나님 나라 주제 6개. 주제마다 주기도문 간구 하나씩 짝지어 그 순서대로 둔다(lines: 장 위에 다는 구절 번호)
+  //  송영에 짝지은 "감사와 찬양"은 고르는 주제가 아니라 하나님 나라를 고르면 늘 마지막 장으로 나온다
   const LORDS_PRAYER = ['하늘에 계신 우리 아버지여', '이름이 거룩히 여김을 받으시오며', '나라이 임하옵시며', '뜻이 하늘에서 이룬 것같이 땅에서도 이루어지이다', '오늘날 우리에게 일용할 양식을 주옵시고', '우리가 우리에게 죄 지은 자를 사하여 준 것같이 우리 죄를 사하여 주옵시고', '우리를 시험에 들게 하지 마옵시고', '다만 악에서 구하옵소서', '대개 나라와 권세와 영광이 아버지께 영원히 있사옵나이다', '아멘'];
   //  문장 풀은 docs/pray-topics.md(교역자 검토용 초안)와 같다. 주기도문 간구 → 웨스트민스터 대요리문답 190~196문의 해설 → 문장
   //  a: 간구 문장, b: 성경의 기도 [문장, 장절], next: 내 말로 이어서. 날마다 a 하나, b 하나만 날짜로 골라 보여 준다(prayToday)
@@ -2359,7 +2359,7 @@ try { const p = JSON.parse(localStorage.getItem('koide-pref') || '{}'), d = docu
         <button class="btn wide" data-act="psstart" style="margin-top:16px;min-height:54px" ${list.length && roomReady ? '' : 'disabled'}>${ICON.hands.replace('<svg', '<svg width="22" height="22"')} ${!roomReady ? '불러오는 중…' : list.length ? '기도 시작 · ' + list.length + '장' : '무엇을 위해 기도할지 골라 주세요'}</button></section>
       </div><div class="col side"><section class="card"><p class="label" style="margin:0">오늘 기도할 순서${staffRoom ? ' · ' + esc((S.month.rooms.find(r => r.id === staffRoom) || {}).name || '') : ''}</p>
         <ol class="ps-list">${list.map(id => { const f = id.startsWith('f:') && famById(id.slice(2));
-          return f ? `<li><span>${esc(f.name)}</span><span class="${f.today ? 'ok' : ''}">${f.today ? '오늘 ' + f.today + '번' : '아직'}</span></li>` : `<li><span>${esc(psPageName(id))}</span><span>${id === 'me' ? words().mine : id === 's' ? '함께 기억해요' : '하나님의 나라'}</span></li>`; }).join('')}</ol></section></div></div>`;
+          return f ? `<li><span>${esc(f.name)}</span><span class="${f.today ? 'ok' : ''}">${f.today ? '오늘 ' + f.today + '번' : '아직'}</span></li>` : `<li><span>${esc(psPageName(id))}</span><span>${id === 'me' ? words().mine : id === 's' ? '함께 기억해요' : '하나님 나라'}</span></li>`; }).join('')}</ol></section></div></div>`;
   }
   const psPageName = id => id.startsWith('f:') ? (famById(id.slice(2)) || {}).name || '' : id === 'me' ? words().mine : id === 's' ? '섬기는 분들' : id === 'c' ? '함께 섬기는 분들' : topicOf(id).name;
   // 받침에 맞춰 '와/과'로 잇는다(목사님 부부와 조믿음 장로님)
@@ -2395,9 +2395,9 @@ try { const p = JSON.parse(localStorage.getItem('koide-pref') || '{}'), d = docu
           ${mates.length ? `<p class="label serve-who">함께 섬기는 교역자</p><ul>${li('', andJoin(mates))}</ul>` : ''}`; }
       else if (id === 'me') { const m = S.month.families.find(f => f.own);
         body = `<p class="eyebrow">${words().mine}</p><h2>${esc(m.name)}</h2>${m.items.length ? `<ul>${m.items.map(i => li(i.target, i.text)).join('')}</ul>` : '<p class="hint">이번 달 기도제목이 아직 없어요.</p>'}`; }
-      // 하나님의 나라: 오늘의 간구 문장 하나와 성경의 기도 하나만 보여 주고, 남은 시간은 "내 말로 이어서" 기도한다
+      // 하나님 나라: 오늘의 간구 문장 하나와 성경의 기도 하나만 보여 주고, 남은 시간은 "내 말로 이어서" 기도한다
       else { const t = topicOf(id), d = prayToday(t), line = ([x, r]) => `<li><span>${esc(x)}${r ? `<small class="pss-ref">${esc(r)}</small>` : ''}</span></li>`;
-        body = `<p class="pss-lp">${t.lines.map(n => LORDS_PRAYER[n]).join(' ')}</p><p class="eyebrow">하나님의 나라</p><h2>${t.name}</h2><ul>${line(d.a)}${line(d.b)}</ul><p class="pss-next">${esc(d.next)}</p>`; }
+        body = `<p class="pss-lp">${t.lines.map(n => LORDS_PRAYER[n]).join(' ')}</p><p class="eyebrow">하나님 나라</p><h2>${t.name}</h2><ul>${line(d.a)}${line(d.b)}</ul><p class="pss-next">${esc(d.next)}</p>`; }
       pray = `<button class="pss-pray${ready ? ' ready' : ''}" data-act="psextra">${ICON.hands.replace('<svg', '<svg width="20" height="20"')} 기도했어요</button>`;
     }
     const cd = ps.cd ? `<div class="pss-cd" role="status"><span><b id="pss-cd">${ps.cd}</b>초 뒤 ${last ? '마쳐요' : '다음 장으로 넘어가요'}</span><button data-act="psstay">머무르기</button></div>` : '';
@@ -3049,9 +3049,11 @@ try { const p = JSON.parse(localStorage.getItem('koide-pref') || '{}'), d = docu
   function render() {
     const sig = viewSig(), kind = vtKind(lastSig, sig);
     lastSig = sig;
+    const t0 = performance.now();
     draw();
     document.querySelectorAll('.cord-line animate').forEach(a => { try { a.beginElement(); } catch (e) { /* 지원하지 않으면 바로 팽팽 */ } });
-    if (!kind || calm()) return;
+    // 그리는 데 오래 걸린 화면(그림·표가 많은 화면, 느린 휴대폰)은 이미 늦었으니 움직임 없이 바로 보여 준다
+    if (!kind || calm() || performance.now() - t0 > 50) return;
     const sheet = S.ps || S.meet != null ? $('#pss') : $('#bigv').firstElementChild;
     if (kind === 'fwd') vtAnim($('#main'), 'vt-in-r');
     else if (kind === 'back') vtAnim($('#main'), 'vt-in-l');
