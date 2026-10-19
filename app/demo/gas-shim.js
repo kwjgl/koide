@@ -14,6 +14,7 @@
     const rows = db[name];
     const api = {
       getName: () => name,
+      setName(n) { db[n] = db[name]; delete db[name]; save(); },
       getLastRow: () => rows.length,
       setFrozenRows() {},
       appendRow(arr) { rows.push(arr.map(unquote)); save(); },
