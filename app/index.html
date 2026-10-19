@@ -248,6 +248,55 @@ h2 { font-size: 1.05em; margin: 0; }
 .album-item { margin: 0; display: flex; flex-direction: column; gap: .4em; }
 .album-item figcaption { font-size: .84em; font-weight: 600; }
 .coll-year > .btn { margin: .8em 0 .4em; }
+/* 코이데 소개 */
+.about { display: flex; flex-direction: column; gap: 12px; margin-top: 8px; }
+.ab-hero { align-items: center; text-align: center; padding: 1.6em 1.2em 1.3em; gap: .5em; }
+.ab-mark { width: 64px; height: 64px; border-radius: 50%; background: var(--accent); color: var(--on-accent); display: grid; place-items: center; }
+.ab-mark svg { width: 38px; height: 38px; stroke-width: 1.4; }
+.ab-mark svg path { stroke-dasharray: 40; stroke-dashoffset: 40; animation: ab-tie .9s .1s ease-out forwards; }
+.ab-mark svg path + path { animation-delay: .45s; }
+@keyframes ab-tie { to { stroke-dashoffset: 0; } }
+.ab-hero h1 { font-family: var(--f-display); font-size: 1.8em; margin: .15em 0 0; }
+.ab-tag { margin: 0; color: var(--ink-2); font-size: .9em; }
+.ab-words { display: flex; align-items: center; justify-content: center; gap: .5em; margin: .6em 0 .2em; }
+.ab-words span { display: flex; flex-direction: column; align-items: center; gap: .1em; padding: .5em .7em; border: 1px solid var(--line); border-radius: 12px; background: var(--page); min-width: 6.4em; }
+.ab-words b { font-weight: 600; }
+.ab-words i { font-style: normal; font-family: var(--f-display); color: var(--accent); }
+.ab-words small { font-size: .74em; color: var(--ink-2); }
+.ab-words em { font-style: normal; color: var(--ink-2); }
+.ab-lead { margin: .4em auto 0; max-width: 34em; font-family: var(--f-display); line-height: 1.75; word-break: keep-all; text-wrap: pretty; }
+.ab-cols { display: grid; gap: 12px; align-items: start; }
+.ab-cols .col { display: flex; flex-direction: column; gap: 12px; min-width: 0; }
+@media (min-width: 900px) { .ab-cols { grid-template-columns: 1fr 1fr; gap: 16px; } }
+.ab-cord { width: 100%; max-width: 340px; height: auto; display: block; margin: 0 auto; }
+.ab-seg { fill: none; stroke: var(--accent); stroke-width: 2.5; stroke-linecap: round; }
+.ab-seg.loose { stroke: var(--line-strong); }
+.ab-knot { fill: var(--accent); }
+.ab-slot { fill: var(--surface); stroke: var(--line-strong); stroke-width: 1.5; }
+.ab-go { align-self: flex-start; display: inline-flex; align-items: center; gap: .15em; font-size: .85em; }
+.ab-go svg { width: 14px; height: 14px; }
+.ab-keep, .ab-und, .ab-credit { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; }
+.ab-keep li, .ab-credit li { display: grid; grid-template-columns: 7.5em 1fr; gap: .6em; padding: .6em 0; border-top: 1px solid var(--line); font-size: .9em; line-height: 1.55; word-break: keep-all; }
+.ab-keep li:first-child, .ab-credit li:first-child { border-top: 0; padding-top: 0; }
+.ab-keep b, .ab-credit b { font-weight: 600; color: var(--accent); }
+.ab-credit b { color: var(--ink); }
+.ab-und { gap: .9em; }
+.ab-und li { display: grid; grid-template-columns: 1.8em 1fr; gap: .6em; }
+.ab-und h3 { font-family: var(--f-display); font-size: 1.02em; margin: 0 0 .2em; }
+.ab-und .plain { word-break: keep-all; }
+.ab-und .ab-go { margin-top: .2em; }
+.ab-n { width: 1.8em; height: 1.8em; border-radius: 50%; background: var(--accent-soft); color: var(--accent); display: grid; place-items: center; font-weight: 600; font-size: .85em; }
+.ab-months { display: grid; grid-template-columns: repeat(auto-fill, minmax(7.2em, 1fr)); gap: 6px; }
+.ab-months span { display: flex; flex-direction: column; padding: .45em .6em; border: 1px solid var(--line); border-radius: 10px; font-size: .8em; line-height: 1.35; word-break: keep-all; }
+.ab-months small { color: var(--ink-2); font-size: .85em; }
+.ab-blank { background: var(--accent-soft); color: var(--accent); border-radius: 4px; padding: 0 .3em; font-weight: 600; }
+@media (max-width: 420px) { .ab-keep li, .ab-credit li { grid-template-columns: 1fr; gap: .15em; } }
+@media (prefers-reduced-motion: reduce) { .ab-mark svg path { animation: none; stroke-dashoffset: 0; } }
+.ab-hero .hint { margin: 0; }
+.about .card { display: flex; flex-direction: column; gap: .6em; }
+.about .card .label, .about .plain { margin: 0; }
+.about .plain { line-height: 1.65; }
+.about .hint { margin: 0; }
 /* 지난 기록 검색 */
 .hist-q { margin: 6px 0 4px; max-width: 420px; }
 .sr-list { list-style: none; margin: 8px 0 0; padding: 0; display: flex; flex-direction: column; gap: 6px; }
@@ -1295,7 +1344,7 @@ try { const p = JSON.parse(localStorage.getItem('koide-pref') || '{}'), d = docu
       <button class="btn wide" data-act="retry">승인됐는지 다시 확인</button>
       <p class="hint">${DEMO ? '데모: 로그아웃하고 그 부서의 리더(청장년부는 김도윤, 청년부는 윤하람)로 들어가 더보기에서 승인해 보세요.' : '보통 하루 안에 끝나요.'}</p>
       <button class="link" data-act="logout">로그아웃</button>`,
-    app: () => ({ home: homeView, mine: mineView, pray: prayView, history: historyView, more: moreView, status: statusView, admin: adminView, import: importView, reorg: reorgView })[S.tab]()
+    app: () => ({ home: homeView, mine: mineView, pray: prayView, history: historyView, more: moreView, about: aboutView, status: statusView, admin: adminView, import: importView, reorg: reorgView })[S.tab]()
   };
   // 고른 가정: 사랑방 가정, 또는 '목사님·장로님으로 들어가기'에서 고른 교역자 가정
   const famPicked = () => S.pick.staff ? (dept().staff || []).find(f => f.id === S.pick.familyId) : S.rooms.find(x => x.id === S.pick.roomId).families.find(f => f.id === S.pick.familyId);
@@ -2718,8 +2767,76 @@ try { const p = JSON.parse(localStorage.getItem('koide-pref') || '{}'), d = docu
           ${me.admin ? menuCard('admin', '관리', 'admin', '관리자', (S.month.dept && S.month.dept.name ? esc(S.month.dept.name) : '부서') + ' 전체를 꾸려요', ['연결 승인·해제', ...(solo() ? [] : ['시트 가져오기']), ...(DEMO ? [] : ['데모로 둘러보기'])]) : ''}
           ${STANDALONE ? '' : `<button class="card menu-card" data-act="a2hsopen"><span><b>홈 화면에 앱처럼 두기</b><small>아이콘을 눌러 바로 열 수 있게 해요</small></span>${ICON.chevR}</button>`}
           ${settingsCard()}
+          <button class="card menu-card" data-act="tab" data-v="about"><span><b>코이데 소개</b><small>이름의 뜻과 코이데가 지키는 것</small></span>${ICON.chevR}</button>
           <button class="card menu-card" data-act="logout"><span><b>이 기기에서 로그아웃</b><small>다시 들어올 때 카카오로 로그인해요</small></span>${ICON.chevR}</button>
         </div></div>`;
+  }
+  // 코이데 소개(더보기, 시안과 같게): 앱 이름의 뜻과 앱이 왜 이렇게 생겼는지. 문단마다 그 뜻이 담긴 기능으로 가는 링크를 둔다
+  const aboutLink = (label, tab, h) => `<button class="link ab-go" data-act="aboutgo" data-v="${tab}"${h ? ` data-h="${h}"` : ''}>${label}${ICON.chevR}</button>`;
+  function aboutCord() {
+    const on = [1, 1, 0, 1, 1, 0], W = 300, x = i => 10 + i * (W - 20) / (on.length - 1);
+    const segs = on.slice(1).map((b, i) => { const a = on[i], x1 = x(i), x2 = x(i + 1), sag = a && b ? 0 : 14;
+      return `<path class="ab-seg${sag ? ' loose' : ''}" d="M${x1} 24Q${(x1 + x2) / 2} ${24 + sag * 2} ${x2} 24"/>`; }).join('');
+    const knots = on.map((b, i) => b ? `<circle class="ab-knot" cx="${x(i)}" cy="24" r="6"/>` : `<circle class="ab-slot" cx="${x(i)}" cy="24" r="5"/>`).join('');
+    return `<svg class="ab-cord" viewBox="0 0 ${W} 56" role="img" aria-label="매듭이 지어진 곳은 끈이 팽팽하고, 아직인 곳은 끈이 처져 있어요">${segs}${knots}</svg>`;
+  }
+  function aboutView() {
+    const g = esc(grp()), fam = words().one, mine = words().mine, staff = staffMe();
+    const UNDERSTAND = [
+      ['하나님 아버지께', '우리는 하늘에 계신 아버지께 기도해요. 기도하기의 "하나님 나라"는 주기도문의 간구를 따라 짜여 있고, 감사와 찬양으로 끝나요.', aboutLink('기도하기 열기', 'pray')],
+      ['예수 그리스도의 이름으로', `우리는 그리스도의 이름으로 나아가고, 그분은 지금도 우리를 위해 간구하세요. 아무도 누르지 않은 달에도 ${mine} 카드에는 "그리스도께서 ${mine === '나' ? '나를' : '우리 가정을'} 위해 간구하고 계세요"라고 나와요. "기도했어요"는 그 간구에 함께하는 거예요.`, staff ? '' : aboutLink('이번 달 › ' + mine, 'home')],
+      ['성령의 도우심으로', `무엇을 구해야 할지 모를 때 성령께서 도우세요. ${esc(gj('을/를'))} 잇는 기도의 끈은 성령의 교통하심(코이노니아)이고, 코이데라는 이름도 여기서 왔어요.`, ''],
+      ['누구를 위해', `교회와 나라, 섬기는 분들, 우리 자신과 이웃, 다음 세대까지 기도해요. 기도하기의 네 종류(우리 ${g} · ${mine} · 섬기는 분들 · 하나님 나라)가 이 범위를 따라요.`, aboutLink('기도하기 종류 고르기', 'pray')],
+      ['어떤 마음으로', '겸손히, 믿음으로, 끈기 있게 기다리며 기도해요. 몇 달째 이어지는 기도는 기도 타임라인에서 보고, 이뤄졌거나 그만 올릴 기도제목은 "마치기"로 맡겨 둬요.', aboutLink('지난 기록 › 타임라인', 'history', 'timeline')]
+    ];
+    const KEEP = [
+      ['겸손', '다른 사람이 누구를 위해 몇 번 기도했는지는 보이지 않아요. 순위도 없어요. 끈이 이어진 모습만 보여요.'],
+      ['한 ' + fam + '도 빠지지 않게', `"지금 함께 기도할 ${fam}"은 아직 기도하지 않은 ${fam}부터 차례로 나와요.`],
+      ['정한 사람만', `기도제목마다 고른 공개 범위(${g} · 리더·목사님 · ${esc(words().only)})대로만 보여요.`],
+      ['기다림', '바뀐 게 없으면 기도제목이 다음 달로 그대로 넘어가요. "이번 달도 그대로예요"만 눌러도 괜찮아요.']
+    ];
+    // 올해(이번 그림 해) 열두 달 주제: 9월부터 8월까지
+    const now = S.month.month, y0 = Number(now.slice(5)) >= 9 ? Number(now.slice(0, 4)) : Number(now.slice(0, 4)) - 1;
+    const months = Array.from({ length: 12 }, (_, i) => { const mo = (i + 8) % 12 + 1, yy = mo >= 9 ? y0 : y0 + 1; return { mo, t: SCENES[sceneKey(yy + '-' + String(mo).padStart(2, '0'))].title.replace(/^\d+월 /, '') }; });
+    return `<button class="link back" data-act="tab" data-v="more">${ICON.chevL}더보기</button>
+    <div class="about">
+      <section class="card ab-hero">
+        <span class="ab-mark" aria-hidden="true">${ICON.knot}</span>
+        <h1>코이데</h1><p class="ab-tag">함께 기도하는 공동체</p>
+        <div class="ab-words" aria-hidden="true"><span><b>코이노니아</b><i>κοινωνία</i><small>교제</small></span><em>+</em><span><b>데에시스</b><i>δέησις</i><small>간구</small></span></div>
+        <p class="ab-lead">코이데는 '교제'를 뜻하는 코이노니아(κοινωνία, koinōnia)와 '간구'를 뜻하는 데에시스(δέησις, deēsis)에서 영감을 얻은 이름입니다. 서로의 기도를 나누고, 함께 기도하는 공동체를 뜻합니다. 우리를 잇는 끈은 성령의 교통하심(코이노니아)입니다.</p>
+        <p class="hint">"성령의 교통하심" · 고린도후서 13:13</p>
+      </section>
+      <div class="ab-cols">
+        <div class="col">
+          <section class="card"><p class="label">기도의 끈</p>
+            ${aboutCord()}
+            <p class="plain">${g} ${fam}마다 매듭 자리가 하나 있어요. 그 ${fam}을 위해 기도하면 매듭이 지어지고, 이웃한 두 ${fam}을 다 기도하면 그 사이 끈이 팽팽해져요. 처진 곳이 아직 기도하지 않은 ${fam}이에요.</p>
+            ${aboutLink('이번 달 › 기도의 끈 보기', 'home')}</section>
+          <section class="card"><p class="label">코이데가 지키는 것</p>
+            <ul class="ab-keep">${KEEP.map(([t, d]) => `<li><b>${t}</b><span>${d}</span></li>`).join('')}</ul></section>
+          <section class="card"><p class="label">내 기도제목은 어디에</p>${consentList()}</section>
+        </div>
+        <div class="col">
+          <section class="card"><p class="label">코이데는 기도를 이렇게 이해해요</p>
+            <ol class="ab-und">${UNDERSTAND.map(([t, d, l], i) => `<li><span class="ab-n">${i + 1}</span><div><h3>${t}</h3><p class="plain">${d}</p>${l}</div></li>`).join('')}</ol>
+            <p class="hint">웨스트민스터 대요리문답이 풀어 쓴 기도의 뜻을 쉬운 말로 옮겼어요.</p></section>
+          ${staff ? '' : `<section class="card"><p class="label">이달의 그림</p>
+            <p class="plain">달마다 그 달 주제의 그림이 하나씩 있어요. 기도한 날마다 그림이 조금씩 채워지고, 나만 봐요. 남과 비교하지 않고 줄어들지도 않아요.</p>
+            <div class="ab-months">${months.map(m => `<span><small>${m.mo}월</small>${esc(m.t)}</span>`).join('')}</div>
+            <p class="hint">${y0}년 9월부터 열두 달 주제예요. 해마다 새 주제로 바뀌어요.</p>
+            ${aboutLink('지난 기록 › 달마다 모은 그림', 'history', 'pray')}</section>`}
+          <section class="card"><p class="label">만든 곳 · 의견 보내기</p>
+            <p class="plain">${esc(josa(S.month.dept.name, '이/가'))} 함께 만들어 가고 있어요. 불편한 점이나 바라는 점은 ${g} 리더에게 카톡으로 알려 주세요.</p></section>
+          <section class="card"><p class="label">쓴 것들</p>
+            <ul class="ab-credit">
+              <li><b>그림</b><span>이달의 그림과 하트는 AI로 만들었어요.</span></li>
+              <li><b>음악</b><span>기도하기의 찬송가 1~8장(송영) 연주</span></li>
+              <li><b>글꼴</b><span>고운바탕, IBM Plex Sans KR (SIL Open Font License)</span></li>
+            </ul></section>
+        </div>
+      </div>
+    </div>`;
   }
   // 사랑방 현황(리더·코리더): 이번 달 현황과 가정 관리, 오른쪽에 카톡방에 올릴 가정
   function statusView() {
@@ -3033,7 +3150,7 @@ try { const p = JSON.parse(localStorage.getItem('koide-pref') || '{}'), d = docu
       <div class="set-row"><div><p class="label" style="margin:0">큰 글씨 모드</p><p class="hint" style="margin:.2em 0 0">글씨를 조금 더 크게 보여 줘요.</p></div>${bigSwitch()}</div>
       <p class="hint">이 기기에만 적용돼요.</p></section>`;
   }
-  const tabOn = () => ['import', 'status', 'admin', 'reorg'].includes(S.tab) ? 'more' : S.tab;
+  const tabOn = () => ['import', 'status', 'admin', 'reorg', 'about'].includes(S.tab) ? 'more' : S.tab;
   // 상단 바: 로고(누르면 이번 달), PC에서는 메뉴, 사랑방 배지(누르면 사랑방 정보), 설정
   function topHtml() {
     const brand = `<button class="brand"${S.view === 'app' ? ' data-act="tab" data-v="home"' : ''} aria-label="코이데 홈"><span class="brand-mark">${ICON.knot}</span><span class="brand-name">코이데</span></button>`;
@@ -3280,6 +3397,11 @@ try { const p = JSON.parse(localStorage.getItem('koide-pref') || '{}'), d = docu
       case 'album': S.album = v; render(); return track('화면 보기', { screen: '한 해 앨범' });
       case 'albumclose': S.album = null; return render();
       case 'bigclose': S.bigView = null; render(); if (document.fullscreenElement) document.exitFullscreen().catch(() => {}); return;
+      case 'aboutgo':
+        if (b.dataset.h) { S.histTab = b.dataset.h; S.sr = null; }
+        S.tab = v; render(); window.scrollTo(0, 0);
+        if (v === 'history') loadHist(S.hist && S.hist.month);
+        return;
       case 'grppick': S.grpPick = v; return render();
       case 'grpsave': {
         const rename = !!($('#grp-rename') || {}).checked; S.grpRename = rename; S.busy = true; render();
@@ -3296,6 +3418,7 @@ try { const p = JSON.parse(localStorage.getItem('koide-pref') || '{}'), d = docu
         if (v === 'analysis') { track('화면 보기', { screen: '분석' }); loadAnalysis(); }
         return;
       case 'tab':
+        if (v === 'about') track('화면 보기', { screen: '코이데 소개' });
         if (v === 'home' && S.tab === 'home') S.openRoom = null;
         S.tab = v; S.copied = null; render(); window.scrollTo(0, 0);
         if (v === 'history') { loadHist(S.hist && S.hist.month); track('화면 보기', { screen: '지난 기록' }); }
