@@ -373,7 +373,7 @@ textarea.field { min-height: 5.5em; resize: vertical; }
         <button class="mrow" data-a="restore"><span><b>백업 불러오기</b><small>새 휴대폰에서 백업 파일을 열어 이어 써요</small></span></button>
         <input type="file" id="restore-file" accept="application/json,.json" hidden></section>
       <section class="card"><p class="label">화면 모드</p><div class="seg" role="radiogroup" aria-label="화면 모드">${[['', '기기 설정'], ['light', '밝게'], ['dark', '어둡게']].map(([k, l]) => `<button class="${mode === k ? 'on' : ''}" role="radio" aria-checked="${mode === k}" data-a="mode" data-v="${k}">${l}</button>`).join('')}</div></section>
-      <section class="card"><p class="label">함께하는 곳</p><p class="plain">기도 노트는 혼자 쓰는 곳이에요. 사랑방이나 모임과 함께 기도하는 곳은 같은 앱의 공동체예요(카카오 로그인). 노트의 기도제목을 사랑방에 나누고 싶으면 노트에서 "사랑방에 나누기"를 눌러요.</p>
+      <section class="card"><p class="label">함께하는 곳</p><p class="plain">기도 노트는 혼자 쓰는 곳이에요. 사랑방이나 모임과 함께 기도하는 곳은 같은 앱의 공동체예요(카카오 로그인). 노트의 기도제목을 사랑방이나 모임에 나누고 싶으면 노트에서 "나누기"를 눌러요.</p>
         <a class="btn ghost small" style="align-self:flex-start;text-decoration:none;display:inline-flex;align-items:center" href="index.html${QS}">코이데 공동체로</a></section>
       <section class="card"><p class="label">시범판 의견</p><p class="hint">써 보고 좋았던 점, 불편한 점을 알려 주세요. 기도 내용은 담기지 않아요.</p>
         <button class="btn ghost small" data-a="fbcopy" style="align-self:flex-start">의견 보낼 글 복사하기</button></section>
@@ -391,6 +391,24 @@ textarea.field { min-height: 5.5em; resize: vertical; }
       <p class="hint">노트는 이 기기에서 비밀 문구로 잠근 뒤 맡겨서, 서버와 관리자도 읽을 수 없어요. 그래서 <b>비밀 문구를 잊으면 아무도 되살릴 수 없어요.</b> 꼭 적어 두세요.</p>
       ${S.syncMsg ? `<p class="hint" style="color:var(--warm)">${esc(S.syncMsg)}</p>` : ''}
       <button class="btn small" data-a="vstart" style="align-self:flex-start"${S.vbusy ? ' disabled' : ''}>${getToken() ? '이어 두기 시작' : '카카오로 로그인하고 이어 두기'}</button></section>`;
+  }
+  // 나눌 곳: 공동체 앱이 이 기기에 기억해 둔 내 소그룹과 모임(로그인한 적이 없으면 공동체로 가서 로그인부터)
+  function places() {
+    let c = null; try { c = JSON.parse(localStorage.getItem(DEMO_LINK ? 'koide-demo-cache' : 'koide-cache') || 'null'); } catch (e) { /* 없음 */ }
+    if (!c || !c.me) return null;
+    const room = c.me.link && c.me.link.status === '연결' && c.month && c.month.room ? c.month.room.name : '';
+    return { room, groups: (c.me.groups || []).filter(g => !g.wait) };
+  }
+  function shareSheet() {
+    const i = D.items.find(x => x.id === S.share); if (!i) return '';
+    const P = places();
+    const opts = P ? [...(P.room ? [['', P.room, '우리 소그룹']] : []), ...P.groups.map(g => [g.id, g.name, '모임' + (g.role === '모임장' ? ' · 모임장' : '')])] : [];
+    return `<div class="sheet-back" data-a="shareclose"><section class="sheet" role="dialog" aria-modal="true" aria-labelledby="sh-t" data-stop>
+      <h2 id="sh-t">어디에 나눌까요?</h2><p class="plain"><span class="tag">${esc(targetName(i.target))}</span>${esc(i.text)}</p>
+      <p class="hint">고른 곳의 "내 기도" 쓰기 칸에 옮겨 적어요. 거기서 항목으로 나누기 → 공개 범위를 고르고 추가해야 나눠져요. 노트의 기도제목은 그대로 남아요.</p>
+      ${opts.length ? opts.map(([id, n, sub]) => `<button class="mrow" data-a="shareto" data-v="${esc(id)}"><span><b>${esc(n)}</b><small>${sub}</small></span></button>`).join('')
+        : `<button class="mrow" data-a="shareto" data-v=""><span><b>공동체로 가기</b><small>${P ? '아직 연결된 소그룹이나 모임이 없어요' : '카카오로 로그인하고 내 소그룹을 고른 뒤 옮겨 적어요'}</small></span></button>`}
+      <div class="row" style="justify-content:flex-end"><button class="btn ghost" data-a="shareclose">취소</button></div></section></div>`;
   }
   function vaultSheet() {
     const V = S.vsheet; if (!V) return '';
@@ -462,9 +480,9 @@ textarea.field { min-height: 5.5em; resize: vertical; }
     const V = { start: startView, today: todayView, note: noteView, pray: prayTab, look: lookView, more: moreView }[S.tab];
     $('#root').innerHTML = `<div class="wrap">${S.tab !== 'start' ? `<div class="space"><span class="pilot" style="margin:0">나 · 기도 노트 · ${D.vault && D.vault.on ? '잠가서 이어 둠' : '이 휴대폰에만'}</span><a href="index.html${QS}">공동체로 ›</a></div>` : ''}${V()}</div>
       ${S.tab === 'start' ? '' : `<nav class="tabs" aria-label="메뉴">${TABS.map(([k, l, ic]) => `<button class="${k === 'pray' ? 'mid ' : ''}${S.tab === k ? 'on' : ''}" data-a="tab" data-v="${k}" ${S.tab === k ? 'aria-current="page"' : ''}>${ic}<span>${l}</span></button>`).join('')}</nav>`}
-      ${S.done ? doneSheet() : ''}${S.vsheet ? vaultSheet() : ''}${S.ps ? psHtml() : ''}${S.toast ? `<div class="toast" role="status">${esc(S.toast)}</div>` : ''}
+      ${S.done ? doneSheet() : ''}${S.vsheet ? vaultSheet() : ''}${S.share ? shareSheet() : ''}${S.ps ? psHtml() : ''}${S.toast ? `<div class="toast" role="status">${esc(S.toast)}</div>` : ''}
       ${canSave ? '' : '<div class="toast" role="alert">이 브라우저에서는 저장할 수 없어요. 개인 정보 보호 모드를 끄고 열어 주세요.</div>'}`;
-    document.documentElement.style.overflow = S.ps || S.done || S.vsheet ? 'hidden' : '';
+    document.documentElement.style.overflow = S.ps || S.done || S.vsheet || S.share ? 'hidden' : '';
   }
   let toastT;
   function toast(m) { S.toast = m; render(); clearTimeout(toastT); toastT = setTimeout(() => { S.toast = ''; render(); }, 2200); }
@@ -499,12 +517,13 @@ textarea.field { min-height: 5.5em; resize: vertical; }
         if (how === 'answer') D.thanks.push({ id: uid(), date: TODAY(), text: note || '응답받았어요', item: i.id, kind: 'answer', up: now() });
         save(); S.done = null; return toast(how === 'answer' ? '감사 기록으로 남겼어요' : '맡겨 두었어요');
       }
-      case 'share': {
-        // 사랑방에 나누기: 글만 공동체 앱의 '내 기도' 쓰기 칸으로 넘긴다(복사). 공개 범위와 저장은 거기서 고른다. 노트의 원본은 그대로
-        const i = D.items.find(x => x.id === v);
-        if (!confirm('이 기도제목을 공동체(사랑방)의 "내 기도" 쓰기 칸으로 옮겨 적을까요? 공개 범위를 고르고 저장해야 나눠져요. 노트의 기도제목은 그대로 남아요.')) return;
-        try { localStorage.setItem('koide-share', JSON.stringify({ text: (i.target === 'me' ? '' : targetName(i.target) + 'ㅡ') + i.text, at: Date.now() })); } catch (e) { return toast('옮겨 적지 못했어요'); }
-        location.href = 'index.html' + QS;
+      case 'share': S.share = v; return render();
+      case 'shareclose': S.share = null; return render();
+      case 'shareto': {
+        // 나누기: 글만 공동체 앱의 '내 기도' 쓰기 칸으로 넘긴다(복사). 사랑방이나 고른 모임에서 공개 범위를 고르고 추가해야 나눠진다. 노트의 원본은 그대로
+        const i = D.items.find(x => x.id === S.share); if (!i) return;
+        try { localStorage.setItem('koide-share', JSON.stringify({ text: (i.target === 'me' ? '' : targetName(i.target) + 'ㅡ') + i.text, at: Date.now(), grp: v || null })); } catch (e) { return toast('옮겨 적지 못했어요'); }
+        S.share = null; location.href = 'index.html' + QS;
         return;
       }
       case 'undone': { const i = D.items.find(x => x.id === v); i.done = null; i.up = now(); save(); return toast('다시 기도 노트에 넣었어요'); }
@@ -539,7 +558,8 @@ textarea.field { min-height: 5.5em; resize: vertical; }
       case 'wipe': if (!confirm(`이 휴대폰의 기도 노트를 모두 지울까요?${D.vault && D.vault.on ? ' 다른 기기와 이어 둔 것은 그대로 남고, 이 휴대폰만 이어 두기가 끊겨요.' : ' 되돌릴 수 없어요. 먼저 백업을 내려받아 두세요.'}`)) return;
         D = blank(); saveLocal(); try { localStorage.removeItem(LOCK_KEY); } catch (e) { /* 무시 */ } S.tab = 'start'; return render();
       case 'fbcopy': {
-        const t = `코이데 기도 노트 시범판 의견\n- 쓴 기간: ${prays().length ? short(prays().map(p => p.d).sort()[0]) + ' ~ ' + short(TODAY()) : '오늘'}\n- 기도제목 ${D.items.length}개 · 기도한 날 ${new Set(prays().map(p => p.d)).size}일 · 감사 기록 ${D.thanks.length}개${D.vault && D.vault.on ? '\n- 다른 기기와 이어 둠: 예' : ''}\n- 좋았던 점: \n- 불편했던 점: \n- 있었으면 하는 것: `;
+        const home = !!(navigator.standalone || (window.matchMedia && matchMedia('(display-mode: standalone)').matches));
+        const t = `코이데 기도 노트 시범판 의견\n- 쓴 기간: ${prays().length ? short(prays().map(p => p.d).sort()[0]) + ' ~ ' + short(TODAY()) : '오늘'}\n- 기도제목 ${D.items.length}개 · 기도한 날 ${new Set(prays().map(p => p.d)).size}일 · 감사 기록 ${D.thanks.length}개(응답 ${D.thanks.filter(x => x.kind === 'answer').length})\n- 홈 화면 앱: ${home ? '예' : '아니요'} · 다른 기기와 이어 둠: ${D.vault && D.vault.on ? '예' : '아니요'}\n\n1. 날마다 쓰게 됐나요? 며칠쯤 지나서 덜 열게 됐나요?\n2. 응답·감사 기록은 어땠나요?\n3. 사랑방·모임에 나누기, 공동체 기도하기의 "내 기도 노트"를 써 봤나요?\n4. 휴대폰에만 저장되는 것, 이어 두기(비밀 문구)는 어땠나요?\n5. 막히거나 헷갈린 곳:\n6. 있었으면 하는 것:`;
         (navigator.clipboard ? navigator.clipboard.writeText(t) : Promise.reject()).then(() => toast('복사했어요. 카톡에 붙여 넣어 보내 주세요'), () => prompt('아래 글을 복사해 보내 주세요', t));
         return;
       }
@@ -599,7 +619,7 @@ textarea.field { min-height: 5.5em; resize: vertical; }
   });
   document.addEventListener('keydown', e => {
     if (e.key !== 'Escape') return;
-    if (S.ps) { S.ps = null; render(); } else if (S.done) { S.done = null; render(); } else if (S.vsheet) { S.vsheet = null; render(); }
+    if (S.ps) { S.ps = null; render(); } else if (S.done) { S.done = null; render(); } else if (S.vsheet) { S.vsheet = null; render(); } else if (S.share) { S.share = null; render(); }
   });
   render();
   let resume = null; try { resume = localStorage.getItem('koide-note-resume'); localStorage.removeItem('koide-note-resume'); } catch (e) { /* 무시 */ }

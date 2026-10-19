@@ -2500,8 +2500,28 @@ try { const p = JSON.parse(localStorage.getItem('koide-pref') || '{}'), d = docu
   // 순서는 우리 사랑방 → 우리 가정 → 섬기는 분들(있을 때) → 하나님 나라. 목사님·장로님은 맡은 사랑방 대신 오늘의 사랑방
   const serveList = () => (S.month && S.month.serve) || [];
   // 목사님·장로님은 섬기는 분들 자리에 함께 섬기는 분들(사랑방 리더·코리더와 본인을 뺀 동역자)을 둔다. 고른 것은 같은 자리(serve)에 기억한다
-  const PS_KINDS = () => staffMe() ? [['room', '오늘의 ' + grp()], ['serve', '함께 섬기는 분들'], ['me', words().mine], ['world', '하나님 나라']]
-    : [['room', '우리 ' + grp()], ['me', words().mine], ...(serveList().length ? [['serve', '섬기는 분들']] : []), ['world', '하나님 나라']];
+  // 나 · 기도 노트(note.html): 이 기기에 저장된 것을 여기서만 읽는다(서버로 보내지 않는다). 노트에 기도제목이 있을 때만 종류에 나오고,
+  //  고르지 않으면 넣지 않는다(기본값 아님, 모임에서 화면을 크게 띄울 때 나오지 않게). 기도했어요는 노트의 오늘 기록에도 남긴다
+  const NOTE_KEY = DEMO_LINK ? 'koide-demo-note-v1' : 'koide-note-v1';
+  const noteData = () => { try { return JSON.parse(localStorage.getItem(NOTE_KEY) || 'null'); } catch (e) { return null; } };
+  const noteDay = () => { const d = new Date(); return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0'); };
+  function noteToday() {
+    const d = noteData(); if (!d || !Array.isArray(d.items)) return [];
+    const open = d.items.filter(i => !i.done), ids = d.today && d.today.d === noteDay() ? d.today.ids || [] : [];
+    let L = ids.map(id => open.find(i => i.id === id)).filter(Boolean);
+    if (L.length < 3) L = L.concat(open.filter(i => L.indexOf(i) < 0).slice(0, 3 - L.length));
+    const who = t => t === 'me' ? '나' : t === 'church' ? '교회' : t === 'world' ? '나라·세상' : ((d.people || []).find(p => 'p:' + p.id === t) || {}).name || '나';
+    return L.map(i => ({ id: i.id, text: i.text, target: who(i.target) }));
+  }
+  function notePrayed(ids) {
+    const d = noteData(); if (!d) return;
+    const t = noteDay(); d.prays = d.prays || [];
+    ids.forEach(id => { const p = d.prays.find(x => x.item === id && x.d === t); if (!p) d.prays.push({ d: t, item: id, up: Date.now() }); else if (p.off) { p.off = false; p.up = Date.now(); } });
+    try { localStorage.setItem(NOTE_KEY, JSON.stringify(d)); } catch (e) { /* 노트에는 못 남김 */ }
+  }
+  const noteKind = () => noteToday().length ? [['note', '내 기도 노트']] : [];
+  const PS_KINDS = () => staffMe() ? [['room', '오늘의 ' + grp()], ['serve', '함께 섬기는 분들'], ['me', words().mine], ...noteKind(), ['world', '하나님 나라']]
+    : [['room', '우리 ' + grp()], ['me', words().mine], ...noteKind(), ...(serveList().length ? [['serve', '섬기는 분들']] : []), ['world', '하나님 나라']];
   const PS_TIMES = [[0, '시간 없이'], [60, '1분'], [180, '3분'], [300, '5분']];
   // 주기도문(개역개정 이전 번역)과 하나님 나라 주제 6개. 주제마다 주기도문 간구 하나씩 짝지어 그 순서대로 둔다(lines: 장 위에 다는 구절 번호)
   //  송영에 짝지은 "감사와 찬양"은 고르는 주제가 아니라 하나님 나라를 고르면 늘 마지막 장으로 나온다
@@ -2672,9 +2692,10 @@ try { const p = JSON.parse(localStorage.getItem('koide-pref') || '{}'), d = docu
   function psList() {
     const K = PSET.kinds;
     const room = K.includes('room') ? psOrder().map(id => 'f:' + id) : [];
-    if (staffMe()) return [...room, ...(K.includes('serve') ? ['c'] : []), ...(K.includes('me') ? ['me'] : []),
+    const note = K.includes('note') && noteToday().length ? ['n'] : [];
+    if (staffMe()) return [...room, ...(K.includes('serve') ? ['c'] : []), ...(K.includes('me') ? ['me'] : []), ...note,
       ...(K.includes('world') ? [...PRAY_TOPICS.filter(t => PSET.topics.includes(t.k)), PRAY_THANKS].map(t => 't:' + t.k) : [])];
-    return [...room, ...(K.includes('me') ? ['me'] : []), ...(K.includes('serve') && serveList().length ? ['s'] : []),
+    return [...room, ...(K.includes('me') ? ['me'] : []), ...note, ...(K.includes('serve') && serveList().length ? ['s'] : []),
       ...(K.includes('world') ? [...PRAY_TOPICS.filter(t => PSET.topics.includes(t.k)), PRAY_THANKS].map(t => 't:' + t.k) : [])];
   }
   // 목사님·장로님의 오늘의 사랑방: 날마다 한 사랑방씩 돌아가고, 다른 사랑방을 골라도 된다
@@ -2798,7 +2819,7 @@ try { const p = JSON.parse(localStorage.getItem('koide-pref') || '{}'), d = docu
         <ol class="ps-list">${list.map(id => { const f = id.startsWith('f:') && famById(id.slice(2));
           return f ? `<li><span>${esc(f.name)}</span><span class="${f.today ? 'ok' : ''}">${f.today ? '오늘 ' + f.today + '번' : '아직'}</span></li>` : `<li><span>${esc(psPageName(id))}</span><span>${id === 'me' ? words().mine : id === 's' ? '함께 기억해요' : '하나님 나라'}</span></li>`; }).join('')}</ol></section></div></div>`;
   }
-  const psPageName = id => id.startsWith('f:') ? (famById(id.slice(2)) || {}).name || '' : id === 'me' ? words().mine : id === 's' ? '섬기는 분들' : id === 'c' ? '함께 섬기는 분들' : topicOf(id).name;
+  const psPageName = id => id.startsWith('f:') ? (famById(id.slice(2)) || {}).name || '' : id === 'me' ? words().mine : id === 'n' ? '내 기도 노트' : id === 's' ? '섬기는 분들' : id === 'c' ? '함께 섬기는 분들' : topicOf(id).name;
   // 받침에 맞춰 '와/과'로 잇는다(목사님 부부와 조믿음 장로님)
   const andJoin = L => L.map((x, k) => k === L.length - 1 ? x : x + ((c => c >= 0 && c % 28 ? '과' : '와')(x.charCodeAt(x.length - 1) - 0xAC00))).join(' ');
   const musicBtn = () => `<span class="pss-mus"><button class="pss-music${PSET.music ? ' on' : ''}" data-act="psmusic" aria-pressed="${PSET.music}">♪ <span class="trk">${PSET.music ? HYMNS[PSET.track].label : '음악 꺼짐'}</span></button>${PSET.music ? '<button class="pss-music" data-act="psnexttrack" aria-label="다음 곡">다음 곡 ›</button>' : ''}</span>`;
@@ -2830,6 +2851,8 @@ try { const p = JSON.parse(localStorage.getItem('koide-pref') || '{}'), d = docu
           <ul>${(S.month.rooms || []).map(r => li(r.name, lead(r) || '리더 미지정')).join('')}</ul>
           ${others.map(s => `<p class="label serve-who">${esc(s.label)}</p>${s.items.length ? `<ul>${s.items.map(i => li(i.target, i.text)).join('')}</ul>` : '<p class="hint">이번 달 기도제목이 아직 없어요.</p>'}`).join('')}
           ${mates.length ? `<p class="label serve-who">함께 섬기는 교역자</p><ul>${li('', andJoin(mates))}</ul>` : ''}`; }
+      else if (id === 'n') { const L = noteToday();
+        body = `<p class="eyebrow">나 · 기도 노트</p><h2>오늘 기도할 제목</h2>${L.length ? `<ul>${L.map(i => li(i.target, i.text)).join('')}</ul>` : '<p class="hint">노트에 기도제목이 없어요.</p>'}<p class="hint">나만 보는 노트예요. 이 휴대폰에서만 보이고, 기도했어요는 노트의 오늘 기록에도 남아요.</p>`; }
       else if (id === 'me') { const m = S.month.families.find(f => f.own);
         body = `<p class="eyebrow">${words().mine}</p><h2>${esc(m.name)}</h2>${m.items.length ? `<ul>${m.items.map(i => li(i.target, i.text)).join('')}</ul>` : '<p class="hint">이번 달 기도제목이 아직 없어요.</p>'}`; }
       // 하나님 나라: 오늘의 간구 문장 하나와 성경의 기도 하나만 보여 주고, 남은 시간은 "내 말로 이어서" 기도한다
@@ -2871,7 +2894,7 @@ try { const p = JSON.parse(localStorage.getItem('koide-pref') || '{}'), d = docu
       const f = famById(id.slice(2)); if (!f || (f.today || 0) >= 3) return false;
       if (ps.prayed.indexOf(f.id) < 0) ps.prayed.push(f.id);
       prayFor(f);
-    } else if (ps.extra.indexOf(id) < 0) ps.extra.push(id);
+    } else if (ps.extra.indexOf(id) < 0) { ps.extra.push(id); if (id === 'n') notePrayed(noteToday().map(i => i.id)); }
     return true;
   }
   // 저절로 내려 보기(flow): 화면보다 긴 장만. 처음 몇 초는 머물고, 시간의 70%가 될 때까지 천천히 끝까지 내린 뒤 남은 시간은 맨 아래에 둔다
@@ -4149,8 +4172,14 @@ try { const p = JSON.parse(localStorage.getItem('koide-pref') || '{}'), d = docu
   function takeShare() {
     let x = null; try { x = JSON.parse(localStorage.getItem('koide-share') || 'null'); localStorage.removeItem('koide-share'); } catch (e) { return; }
     if (!x || !x.text || Date.now() - (x.at || 0) > 864e5) return;
-    S.grp = null; S.tab = 'mine'; S.draft = (S.draft ? S.draft + '\n\n' : '') + x.text;
-    setTimeout(() => toast('기도 노트에서 옮겨 적었어요. 항목으로 나누기 → 공개 범위를 고르고 추가해 주세요.'), 300);
+    const say = () => setTimeout(() => toast('기도 노트에서 옮겨 적었어요. 항목으로 나누기 → 공개 범위를 고르고 추가해 주세요.'), 300);
+    // 모임을 골랐으면 그 모임을 연 뒤 그 모임의 내 기도에(모임을 열면 쓰던 칸이 비워지므로 연 다음에 넣는다)
+    if (x.grp && myGroups().some(g => g.id === x.grp && !g.wait)) {
+      setTimeout(() => (S.grp === x.grp ? Promise.resolve() : enterGroup(x.grp)).then(() => { if (S.grp !== x.grp) return; S.tab = 'mine'; S.draft = x.text; render(); window.scrollTo(0, 0); say(); }), 0);
+      return;
+    }
+    if (S.grp) leaveGroupView();
+    S.tab = 'mine'; S.draft = (S.draft ? S.draft + '\n\n' : '') + x.text; say();
   }
   function render() {
     if (S.view === 'app' && !S.op && S.month) { try { if (localStorage.getItem('koide-share')) takeShare(); } catch (e) { /* 무시 */ } }
