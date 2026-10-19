@@ -1261,6 +1261,7 @@ try { const p = JSON.parse(localStorage.getItem('koide-pref') || '{}'), d = docu
         : `<p class="hint">아직 ${esc(grp())}이 없어요.</p>`}
         ${signalCard(M.signals, true)}
         ${topicFlowCard(loadTopics())}
+        ${topicDictCard(S.topics)}
         ${serveCard()}
       </div></div>`;
   }
@@ -2353,7 +2354,6 @@ try { const p = JSON.parse(localStorage.getItem('koide-pref') || '{}'), d = docu
     return `${head}
       <div class="two-col"><div class="col">${manageCard()}</div><div class="col side">
         ${reorgCard()}
-        ${topicDictCard(loadTopics())}
         ${staffCard()}
         ${solo() ? '' : `<section class="card"><h2>기존 기도제목 가져오기</h2><p class="hint">지금 쓰는 구글 시트의 ${esc(grp())} 탭을 붙여 넣어 이번 달 기도제목으로 옮겨요.</p>
           <button class="btn small ghost" data-act="tab" data-v="import">가져오기 열기</button></section>`}
@@ -2438,11 +2438,11 @@ try { const p = JSON.parse(localStorage.getItem('koide-pref') || '{}'), d = docu
       <div class="an-scroll"><table class="an-heat"><thead><tr><th></th>${T.flow.map(f => `<th scope="col">${mon(f.month)}<small>${f.n}개</small></th>`).join('')}</tr></thead><tbody>${rows}</tbody></table></div>
       <p class="hint">설교와 기도회 주제를 정할 때 참고해요.</p></section>`;
   }
-  // 관리 탭: 주제사전 다듬기. 이번 달 '기타'로 빠진 사랑방 공개 기도제목(가정 이름 없이)을 보고 키워드를 더하거나 뺀다
+  // 목사님 홈: 주제사전 다듬기. 이번 달 '기타'로 빠진 사랑방 공개 기도제목(가정 이름 없이)을 보고 키워드를 더하거나 뺀다
   function topicDictCard(T) {
     if (!T || T.err || !T.dict) return '';
     const cur = T.dict.some(d => d.topic === S.tdTopic) ? S.tdTopic : T.dict[0].topic;
-    return `<section class="card"><h2>주제 사전</h2><p class="hint">기도제목에 이 낱말이 있으면 주제를 붙여요. 목사님·관리자의 주제 흐름에만 쓰여요.</p>
+    return `<section class="card"><h2>주제 사전</h2><p class="hint">기도제목에 이 낱말이 있으면 주제를 붙여요. 주제 흐름에만 쓰여요.</p>
       <p class="label" style="margin-top:12px">이번 달 기타로 빠진 기도제목 · ${T.etc.length}</p>
       ${T.etc.length ? `<ul class="td-etc">${T.etc.slice(0, S.tdMore ? 999 : 5).map(x => `<li><span class="tgt">${esc(x.target)}</span>${esc(x.text)}</li>`).join('')}</ul>${T.etc.length > 5 ? `<button class="link" data-act="tdmore">${S.tdMore ? '접기' : '모두 보기'}</button>` : ''}` : '<p class="hint">모두 주제가 붙었어요.</p>'}
       <p class="label" style="margin-top:12px">키워드 더하기</p>

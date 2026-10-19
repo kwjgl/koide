@@ -58,7 +58,7 @@ const FIRST_DEPT = { id: 'D1', name: '청장년부', group: '사랑방', unit: '
 // ── 요청 받기 ─────────────────────────────────────────────
 
 // 서버 코드를 고칠 때마다 바꾼다. 웹 앱 주소를 열면 보여서, 새 버전으로 배포됐는지 확인할 수 있다
-const VERSION = '2026-10-19 기도 주제 흐름';
+const VERSION = '2026-10-19 주제 사전은 목사님';
 function doGet() {
   return ContentService.createTextOutput('코이데 서버가 켜져 있어요. (버전: ' + VERSION + ')');
 }
@@ -814,7 +814,8 @@ function staffOrAdmin_(body) {
   return c;
 }
 // 부서의 최근 6개월 기도제목을 주제로 나눠 센다(합계만, 이름 없이). 우리 가정만 항목도 개수에는 넣고 내용은 내보내지 않는다.
-//  관리자에게는 이번 달 '기타'로 빠진 사랑방 공개 항목의 내용(가정 이름 없이)과 사전을 함께 준다(키워드 다듬기용)
+//  목사님·장로님에게만 이번 달 '기타'로 빠진 사랑방 공개 항목의 내용(가정 이름 없이)과 사전을 함께 준다(키워드 다듬기용).
+//  관리자는 다른 사랑방 기도제목 내용을 보지 않으므로 주제별 숫자만 본다
 function topicFlow_(c) {
   const m = month_(), months = [m];
   while (months.length < 6) months.unshift(prevMonth_(months[0]));
@@ -827,15 +828,17 @@ function topicFlow_(c) {
     return { month: mm, n: list.length, counts };
   });
   const out = { months, topics: names, flow };
-  if (c.admin) {
+  if (c.staff) {
     out.dict = dict.map(d => ({ topic: d.topic, words: d.words }));
     out.etc = items.filter(i => i.month === m && i.scope === 'room' && classify_(dict, i.text)[0] === '기타').map(i => ({ target: i.target, text: i.text }));
   }
   return out;
 }
-// 관리자: 주제사전에 키워드를 더하거나 뺀다
+// 목사님·장로님: 주제사전에 키워드를 더하거나 뺀다
 function topicWord_(body) {
-  const c = adminOf_(body), word = String(body.word || '').trim(), dict = topicDict_(), d = dict.find(x => x.topic === body.topic);
+  const c = member_(body);
+  if (!c.staff) throw fail_('forbidden', '목사님·장로님만 고칠 수 있어요.');
+  const word = String(body.word || '').trim(), dict = topicDict_(), d = dict.find(x => x.topic === body.topic);
   if (!d) throw fail_('bad', '모르는 주제예요.');
   if (!word || word.length > 10 || /[,\n]/.test(word)) throw fail_('bad', '키워드는 쉼표 없이 10글자까지 써 주세요.');
   const words = body.remove ? d.words.filter(w => w !== word) : d.words.indexOf(word) >= 0 ? d.words : d.words.concat(word);
