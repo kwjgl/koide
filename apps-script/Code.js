@@ -55,6 +55,9 @@ const SCHEMA = {
   // 오류 기록(설계서 S7 › ①): 서버에서 뜻밖에 난 오류의 요청 이름과 종류만. 이름·기도제목은 없다. 30일 뒤 지운다
   errors: ['오류 기록', [['at', '날짜시각'], ['action', '요청'], ['kind', '종류']]],
   // 초대 링크(설계서 S7 › ⑤): 부서 링크(사랑방ID 비움)와 사랑방 링크. 링크 값은 무작위. 새로 만들면 예전 링크는 '막힘'
+  // 노트 보관(설계서 13장 '나 · 기도 노트'): 개인 기도 노트를 다른 기기와 이어 두려고 맡긴 것. 내용은 휴대폰에서 비밀 문구로 잠근 글이라
+  //  서버와 시트를 여는 사람은 읽을 수 없다. 한 칸에 다 들어가지 않으면 조각으로 나눠 여러 줄에 둔다. 판은 맡길 때마다 1씩 는다
+  vault: ['노트 보관', [['kakaoId', '카카오ID'], ['part', '조각'], ['data', '잠긴 내용'], ['at', '맡긴 시각'], ['salt', '소금'], ['rev', '판']]],
   invites: ['초대링크', [['token', '링크 값'], ['deptId', '부서ID'], ['roomId', '사랑방ID'], ['at', '만든 날'], ['status', '상태']]],
   // 의견함(설계서 S7 › ⑥): 이름을 밝히지 않으면 가정ID와 사람을 남기지 않는다. 13개월 뒤 지운다
   // 운영 관리자(설계서 13장): 부서에 속하지 않고, 기도제목 내용을 보지 않고 맡은 부서를 꾸리는 사람. 범위는 부서ID들(쉼표) 또는 '전체'.
@@ -76,7 +79,7 @@ const FIRST_DEPT = { id: 'D1', name: '청장년부', group: '사랑방', unit: '
 // ── 요청 받기 ─────────────────────────────────────────────
 
 // 서버 코드를 고칠 때마다 바꾼다. 웹 앱 주소를 열면 보여서, 새 버전으로 배포됐는지 확인할 수 있다
-const VERSION = '2026-10-29 함께 기도해요';
+const VERSION = '2026-10-30 노트 이어 두기';
 function doGet() {
   return ContentService.createTextOutput('코이데 서버가 켜져 있어요. (버전: ' + VERSION + ')');
 }
@@ -189,7 +192,11 @@ const ACTIONS = {
   deptErase: deptErase_,
   roster: body => rosterView_(adminOf_(body)),
   groups: body => groupsAll_(adminOrStaff_(body)),
-  rosterSave: rosterSave_
+  rosterSave: rosterSave_,
+  // 나 · 기도 노트 이어 두기: 카카오로 로그인한 사람이면 누구나(교회에 연결되지 않아도). 잠긴 글만 주고받는다
+  noteGet: body => noteGet_(auth_(body.token)),
+  notePut: body => { const a = auth_(body.token); return withLock_(() => notePut_(a, body)); },
+  noteDel: body => { const a = auth_(body.token); return withLock_(() => noteDel_(a)); }
 };
 const OPS_ACTIONS_ = ['opsCtx', 'church', 'churchAnalysis', 'groupAdmin', 'changes', 'together', 'togetherSave', 'togetherState', 'opsInvite', 'opsRemove', 'deptSave', 'deptClose', 'deptReopen', 'deptErase', 'roster', 'rosterSave', 'pending', 'approve', 'reject', 'unlink', 'saveStaff', 'endStaff',
   'reorg', 'reorgSave', 'reorgCancel', 'analysis', 'saveGroup', 'ops', 'groups', 'openMonth', 'handover', 'eraseFamily', 'keepFamily', 'inviteRenew', 'feedbackRead', 'usage'];
@@ -2124,6 +2131,31 @@ function renameLegacy_(ss, key) {
   const old = LEGACY_SHEETS_[key].map(n => ss.getSheetByName(n)).filter(Boolean)[0];
   if (old) old.setName(SCHEMA[key][0]);
 }
+// ── 나 · 기도 노트 이어 두기 ────────────────────────────────────────────
+const NOTE_PART_ = 40000, NOTE_MAX_ = 2000000;
+function noteRows_(kakaoId) { return read_('vault').filter(r => String(r.kakaoId) === kakaoId).sort((a, b) => Number(a.part) - Number(b.part)); }
+function noteGet_(a) {
+  const rows = noteRows_(a.kakaoId);
+  if (!rows.length) return { none: true };
+  return { data: rows.map(r => String(r.data)).join(''), salt: String(rows[0].salt), rev: Number(rows[0].rev) || 0, at: rows[0].at };
+}
+// 다른 기기가 먼저 맡겼으면(판이 다르면) 저장하지 않고 알린다. 화면이 받아서 합친 뒤 다시 맡긴다
+function notePut_(a, body) {
+  const data = String(body.data || ''), salt = String(body.salt || '');
+  if (!data || !salt) throw fail_('bad', '맡길 내용이 없어요.');
+  if (data.length > NOTE_MAX_) throw fail_('bad', '기도 노트가 너무 커서 맡길 수 없어요.');
+  const rows = noteRows_(a.kakaoId), rev = rows.length ? Number(rows[0].rev) || 0 : 0;
+  if (rows.length && rev !== Number(body.baseRev || 0)) return { stale: true, rev };
+  rows.slice().sort((x, y) => y._row - x._row).forEach(r => remove_('vault', r));
+  const at = new Date(), next = rev + 1;
+  for (let i = 0, k = 0; i < data.length; i += NOTE_PART_, k++) append_('vault', { kakaoId: a.kakaoId, part: k, data: data.slice(i, i + NOTE_PART_), at, salt, rev: next });
+  return { rev: next, at };
+}
+function noteDel_(a) {
+  noteRows_(a.kakaoId).sort((x, y) => y._row - x._row).forEach(r => remove_('vault', r));
+  return { ok: true };
+}
+
 function sheet_(key) {
   renameLegacy_(ss_(), key);
   let sh = ss_().getSheetByName(SCHEMA[key][0]);
