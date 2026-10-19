@@ -1013,6 +1013,13 @@ body.pop-open { overflow: hidden; }
 .mrow > .ic, .mrow > .ops-chev { color: var(--ink-2); flex: none; }
 .mrow[aria-expanded="true"] .ops-chev { transform: rotate(180deg); }
 .mset { display: flex; flex-direction: column; gap: 12px; padding: .2em 0 .9em; }
+.folds { padding-top: 0; padding-bottom: 0; }
+.fold + .fold { border-top: 1px solid var(--line); }
+.fold > .mrow { border-top: 0; }
+.fold-body { padding: 0 0 1em; display: flex; flex-direction: column; gap: .6em; }
+.fold-body > .row:first-child:empty { display: none; }
+.ops-fold { padding: .8em 0; }
+.ops-fold .ops-rows { margin-top: .6em; }
 .more-out { align-self: center; margin: 4px auto 8px; display: block; }
 .badge-dot { position: absolute; top: 2px; right: 2px; width: 8px; height: 8px; border-radius: 50%; background: var(--warn); }
 .mitem.on span { font-weight: 700; }
@@ -3320,19 +3327,54 @@ try { const p = JSON.parse(localStorage.getItem('koide-pref') || '{}'), d = docu
     const head = `${S.op ? '' : `<button class="link back" data-act="tab" data-v="more">${ICON.chevL}더보기</button>`}
       <div class="page-top"><div><p class="eyebrow">${S.month.dept && S.month.dept.name ? esc(S.month.dept.name) : '관리자'}${S.op ? ' · 운영 관리자' : ''}</p><h1>${tab === 'analysis' ? '분석' : '관리'}</h1></div></div>${seg}`;
     if (tab === 'analysis') return head + analysisView();
+    // 관리 탭(더보기처럼 묶음): 왼쪽은 할 일과 소그룹과 사람, 오른쪽은 묶음마다 한 줄씩 접어 둔 메뉴(누르면 그 자리에서 펼침)
+    const P = S.pending, O = S.ops, reqs = P ? P.requests : [];
+    const todo = [reqs.length ? reqCard() : '', opsProblems().length ? opsCard() : '', privacyN() ? privacyCard() : '', fbNew() ? feedbackCard() : ''].join('');
+    const L = (O && O.opsList) || S.month.opsList, I = O && O.invites, G = Array.isArray(S.gAll) ? S.gAll : null, R = S.rgData;
+    const staffN = P && P.staff ? P.staff.length : null;
+    const rows = {
+      people: [
+        staffN === null ? '' : fold('staff', '교역자', staffN ? P.staff.map(x => esc(x.label)).join(' · ') : '아직 없어요', staffCard()),
+        fold('invite', '초대 링크 · QR', I ? `${esc(S.month.dept.name)} 전체 · ${esc(grp())} ${I.rooms.length}곳` : '불러오는 중…', inviteCard()),
+        fold('groups', '교회 안 모임', G ? (G.length ? G.length + '개' : '아직 없어요') : '불러오는 중…', groupsAllCard())
+      ],
+      ops: [
+        opsProblems().length ? '' : `<div class="fold ops-fold">${opsCard().replace(/^\s*<section[^>]*>/, '').replace(/<\/section>\s*$/, '')}</div>`,
+        privacyN() ? '' : fold('privacy', '개인정보 요청', O ? (O.privacy.later ? `떠난 ${words().one} ${O.privacy.later}곳 · 1년이 되면 올라와요` : '지울 기록이 없어요') : '불러오는 중…', privacyCard()),
+        fbNew() ? '' : fold('feedback', '의견함', O ? (O.feedback.length ? `받은 의견 ${O.feedback.length}` : '아직 없어요') : '불러오는 중…', feedbackCard()),
+        fold('opsadm', '운영 관리자', L ? (L.live.length ? L.live.map(x => esc(x.name || '이름 없음')).join(' · ') : '아직 없어요') : '불러오는 중…', opsAdminCard())
+      ],
+      set: [
+        fold('group', '소그룹 이름', esc(grp()), groupCard()),
+        fold('reorg', '연도 개편', !R ? '불러오는 중…' : R.plan ? `${R.next}년 편성 예약 · ${monName(R.plan.start)}부터` : `${R.next}년 개편 준비`, reorgCard()),
+        S.op && S.month.me.all ? fold('dept', '부서', (S.month.scope || []).map(d => esc(d.name)).join(' · ') + ' · 부서 만들기', deptCard()) : '',
+        solo() || S.op ? '' : fold('import', '기존 기도제목 가져오기', `구글 시트의 ${esc(grp())} 탭을 붙여 넣어 옮겨요`, `<p class="hint">지금 쓰는 구글 시트의 ${esc(grp())} 탭을 붙여 넣어 이번 달 기도제목으로 옮겨요.</p><button class="btn small ghost" data-act="tab" data-v="import">가져오기 열기</button>`),
+        DEMO || S.op ? '' : fold('demo', '데모로 둘러보기', '지어낸 예시 데이터로 눌러 봐요', `<p class="hint">실제 데이터와 로그인은 그대로예요.</p><a class="btn small ghost" href="?demo" target="_blank" rel="noopener" style="text-decoration:none;align-self:flex-start">데모 열기</a>`)
+      ]
+    };
+    const sec = (h, list) => { const x = list.filter(Boolean).join(''); return x ? `<p class="more-h">${h}</p><section class="card mrows folds">${x}</section>` : ''; };
     return `${head}
-      <div class="two-col"><div class="col">${manageCard()}${rosterCard()}</div><div class="col side">
-        ${opsProblems().length ? opsCard() : ''}${privacyN() ? privacyCard() : ''}${fbNew() ? feedbackCard() : ''}
-        ${groupCard()}
-        ${reorgCard()}
-        ${staffCard()}
-        ${groupsAllCard()}${opsAdminCard()}${deptCard()}
-        ${solo() || S.op ? '' : `<section class="card"><h2>기존 기도제목 가져오기</h2><p class="hint">지금 쓰는 구글 시트의 ${esc(grp())} 탭을 붙여 넣어 이번 달 기도제목으로 옮겨요.</p>
-          <button class="btn small ghost" data-act="tab" data-v="import">가져오기 열기</button></section>`}
-        ${DEMO || S.op ? '' : `<section class="card"><h2>데모로 둘러보기</h2><p class="hint">지어낸 예시 데이터로 리더·회원 화면을 눌러 봐요. 실제 데이터와 로그인은 그대로예요.</p>
-          <a class="btn small ghost" href="?demo" target="_blank" rel="noopener" style="text-decoration:none;align-self:flex-start">데모 열기</a></section>`}
-        ${inviteCard()}${fbNew() ? '' : feedbackCard()}${privacyN() ? '' : privacyCard()}${opsProblems().length ? '' : opsCard()}
+      <div class="two-col"><div class="col">
+        <p class="more-h">할 일</p>${todo || `<section class="card"><p class="hint" style="margin:0">${P && O ? '지금 할 일이 없어요.' : '불러오는 중…'}</p></section>`}
+        <p class="more-h">편성</p>${rosterCard()}
+      </div><div class="col side">
+        ${sec('사람', rows.people)}${sec('운영', rows.ops)}${sec('설정', rows.set)}
       </div></div>`;
+  }
+  // 관리 탭의 한 줄 메뉴: 누르면 그 자리에서 내용이 펼쳐진다. 내용은 원래 카드에서 바깥 틀과 제목을 뺀 것
+  const foldInner = html => html.replace(/^\s*<section[^>]*>/, '').replace(/<\/section>\s*$/, '').replace(/<h2>[\s\S]*?<\/h2>/, '');
+  function fold(key, title, sub, html) {
+    const open = !!(S.fold || {})[key];
+    return `<div class="fold${open ? ' open' : ''}"><button class="mrow" data-act="fold" data-v="${key}" aria-expanded="${open}"><span><b>${title}</b><small>${sub}</small></span><span class="ops-chev" aria-hidden="true">${ICON.chev}</span></button>
+      ${open ? `<div class="fold-body">${foldInner(html) || '<p class="hint">불러오는 중…</p>'}</div>` : ''}</div>`;
+  }
+  // 연결 신청(관리 탭의 할 일): 승인을 기다리는 요청만. 사랑방 가정의 연결 해제는 사랑방 현황에서
+  function reqCard() {
+    const P = S.pending;
+    return `<section class="card"><h2>연결 신청 <span class="ops-n">${P.requests.length}</span></h2>
+      ${P.requests.map(q => `<div class="req"><b>${q.newFamily ? '새로 온 ' + words().one + ' · ' : ''}${esc(q.person)} 님${q.familyName !== q.person ? ' → ' + esc(q.familyName) : ''}</b>
+        <small>${q.kids ? '자녀 ' + esc(q.kids) + ' · ' : ''}카카오 "${esc(q.nick)}" · ${esc(q.requestedAt)} 요청</small>
+        <div class="actions" style="margin-top:8px"><button class="btn small" data-act="approve" data-v="${esc(q.kakaoId)}">승인</button><button class="btn small ghost" data-act="reject" data-v="${esc(q.kakaoId)}">거절</button></div></div>`).join('')}</section>`;
   }
   // 소그룹 이름(관리자): 우리 부서에서 소그룹을 부르는 말. 앱 곳곳의 말과 조사가 이 이름을 따른다
   const GROUP_PRESETS = ['사랑방', '셀', '목장', '순', '구역', '조', '소그룹'];
@@ -4066,6 +4108,7 @@ try { const p = JSON.parse(localStorage.getItem('koide-pref') || '{}'), d = docu
       case 'eraseask': S.eraseAsk = v || null; return render();
       case 'opsgo': S.menu = null; return enterOps(v);
       case 'setopen': S.setOpen = !S.setOpen; return render();
+      case 'fold': S.fold = Object.assign({}, S.fold, { [v]: !(S.fold || {})[v] }); return render();
       case 'gopen': S.menu = null; return enterGroup(v);
       case 'gback': S.menu = null; return leaveGroupView();
       case 'gnew': S.gNew = true; render(); { const f = $('[data-form="gcreate"] .field'); if (f) f.focus(); } return;
@@ -4148,11 +4191,12 @@ try { const p = JSON.parse(localStorage.getItem('koide-pref') || '{}'), d = docu
         if (v === 'analysis') { track('화면 보기', { screen: '분석' }); loadAnalysis(); }
         return;
       case 'tab':
+        // 운영 관리는 탭이 아니라 운영 화면으로 바꾸는 것(맡은 부서가 여럿이면 배지에서 바꾼다)
+        if (v === 'ops') return enterOps((opsDepts()[0] || {}).id);
         if (v === 'about') track('화면 보기', { screen: '코이데 소개' });
         if (v === 'home' && S.tab === 'home') S.openRoom = null;
         S.tab = v; S.copied = null; render(); window.scrollTo(0, 0);
         if (v === 'history') { loadHist(S.hist && S.hist.month); track('화면 보기', { screen: '지난 기록' }); }
-        if (v === 'ops') { S.tab = 'more'; return enterOps((opsDepts()[0] || {}).id); }
         if (v === 'more' && S.month.me.staff && !S.gAll) loadGroupsAll();
         if (v === 'status') { try { S.pending = await api('pending'); render(); } catch (err) { oops(err); } }
         if (v === 'admin') loadAdmin();
