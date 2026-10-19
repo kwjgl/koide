@@ -171,6 +171,7 @@ h2 { font-size: 1.05em; margin: 0; }
 .signals li { padding: .6em 0; border-top: 1px solid var(--line); display: flex; flex-wrap: wrap; align-items: baseline; gap: .2em .5em; }
 .signals li:first-child { border-top: 0; }
 .signals small { flex-basis: 100%; color: var(--ink-2); }
+.sig-go { font-weight: 600; color: var(--ink); min-height: 0; padding: 0; text-align: left; }
 .sig-tag { font-size: .75em; font-weight: 600; color: var(--leader); background: var(--leader-soft); border-radius: 999px; padding: .15em .7em; }
 .legend { list-style: none; margin: .6em 0 0; padding: 0; display: flex; flex-wrap: wrap; gap: .3em 1em; font-size: .78em; color: var(--ink-2); }
 .sw { display: inline-block; width: .8em; height: .8em; border-radius: 3px; margin-right: .35em; vertical-align: -.05em; }
@@ -1257,7 +1258,7 @@ try { const p = JSON.parse(localStorage.getItem('koide-pref') || '{}'), d = docu
     return `<section class="card"><div class="row"><p class="label" style="margin:0">돌봄 신호${multi ? ' · 전체' : ''}</p><span class="hint">${all.length}건</span></div>
       <div class="seg2" role="tablist" aria-label="돌봄 신호 종류">${[['same', '오래 그대로'], ['long', '오래 이어진 기도제목']].map(([k, l]) => `<button class="${type === k ? 'on' : ''}" role="tab" aria-selected="${type === k}" data-act="sigtype" data-v="${k}">${l} ${all.filter(x => x.type === k).length}</button>`).join('')}</div>
       ${rooms.length > 1 ? `<div class="mchips" style="margin-top:10px">${[{ id: 'all', name: '전체', n: of.length }, ...rooms.map(r => ({ id: r.id, name: r.name, n: of.filter(x => x.roomId === r.id).length }))].map(x => `<button class="mchip${room === x.id ? ' on' : ''}" data-act="sigroom" data-v="${esc(x.id)}" aria-pressed="${room === x.id}">${esc(x.name)} ${x.n}</button>`).join('')}</div>` : ''}
-      ${list.length ? `<ul class="signals">${shown.map(x => `<li><span class="sig-tag">${tag(x)}</span><b>${esc(x.name)}</b>${multi || x.note ? `<small>${[multi ? x.room : '', x.note].filter(Boolean).map(esc).join(' · ')}</small>` : ''}</li>`).join('')}</ul>`
+      ${list.length ? `<ul class="signals">${shown.map(x => `<li><span class="sig-tag">${tag(x)}</span>${multi ? `<button class="link sig-go" data-act="sigfam" data-room="${esc(x.roomId)}" data-v="${esc(x.familyId)}">${esc(x.name)}</button>` : `<b>${esc(x.name)}</b>`}${multi || x.note ? `<small>${[multi ? x.room : '', x.note].filter(Boolean).map(esc).join(' · ')}</small>` : ''}</li>`).join('')}</ul>`
         : `<p class="hint">${type === 'same' ? '3달 넘게 지난달 그대로인 ' + words().one + '이 없어요.' : '3개월 넘게 이어진 기도제목이 없어요.'}</p>`}
       ${list.length > 5 ? `<button class="link" data-act="sigmore">${S.sigMore ? '접기' : `나머지 ${list.length - 5}건 더 보기`}</button>` : ''}
       <p class="hint">오래된 순이에요. 심방과 연락 참고용이고, ${words().count}끼리 비교하는 숫자는 보여 주지 않아요.</p></section>`;
@@ -1269,7 +1270,19 @@ try { const p = JSON.parse(localStorage.getItem('koide-pref') || '{}'), d = docu
       <div class="page-top"><div><p class="eyebrow">${esc(S.month.dept.name)}</p><h1>${esc(r.name || '')}</h1></div><p class="date">${todayLabel()}</p></div>
       ${!R ? '<p class="loading">불러오는 중…</p>' : `<section class="card">${cordHtml()}<div class="actions"><button class="btn" data-act="roomknot" data-v="${esc(r.id)}">${ICON.hands}이 ${esc(grp())}을 위해 기도하기</button></div>
         <p class="hint">리더·목사님 항목까지 보여요. "${esc(words().only)}" 항목은 보이지 않아요.</p></section>
-        ${R.families.length ? `<div class="fam-grid">${R.families.map(famCard).join('')}</div>` : `<p class="hint">이 ${esc(grp())}에는 아직 ${words().members}이 없어요.</p>`}`}`;
+        ${R.families.length ? `<div class="fam-grid">${R.families.map(famCard).join('')}</div>${famTlCard(R.families)}` : `<p class="hint">이 ${esc(grp())}에는 아직 ${words().members}이 없어요.</p>`}`}`;
+  }
+  // 목사님·장로님: 사랑방 가정 하나를 골라 기도 타임라인(설계서 S5). 돌봄 신호의 이름을 눌러도 여기로 온다
+  function famTlCard(fams) {
+    const id = fams.some(f => f.id === S.famTlId) ? S.famTlId : null, T = id && S.famTl && S.famTl.id === id ? S.famTl : null;
+    return `<section id="famtl" style="margin-top:20px"><h2 class="section-title">${words().one}별 기도 타임라인</h2>
+      <div class="mchips" style="margin-top:8px" role="radiogroup" aria-label="${words().one}">${fams.map(f => `<button class="mchip${f.id === id ? ' on' : ''}" role="radio" aria-checked="${f.id === id}" data-act="famtl" data-v="${esc(f.id)}">${esc(f.name)}</button>`).join('')}</div>
+      ${!id ? `<p class="hint">${words().one}을 누르면 기도제목마다 처음 올린 달부터 지금까지 한 줄로 보여요.</p>` : !T ? '<p class="loading">불러오는 중…</p>' : timelineCard(T, T.name)}</section>`;
+  }
+  async function loadFamTl(id) {
+    S.famTlId = id; S.famTl = null; render();
+    try { const t = await api('famTimeline', { familyId: id }); if (S.famTlId === id) { S.famTl = t; render(); } }
+    catch (e) { if (e.code === 'bad') toast('서버를 새 버전으로 배포하면 기도 타임라인을 볼 수 있어요.'); else oops(e); S.famTlId = null; render(); }
   }
   // 목사님·장로님이 보는 사랑방 하나(목사님 홈에서 연 사랑방, 기도하기의 오늘의 사랑방). 한 번에 하나만 들고 있다
   function loadRoom(id) {
@@ -1441,9 +1454,9 @@ try { const p = JSON.parse(localStorage.getItem('koide-pref') || '{}'), d = docu
       + (more > 0 ? `<button class="link" data-act="famtoggle" data-id="${esc(id)}" aria-expanded="${open}">${open ? '접기' : '더 보기 · ' + more + '개'}</button>` : '');
   }
   function historyView() {
-    const H = S.hist, tab = S.histTab || 'room';
-    const head = `<div class="page-top"><div><p class="eyebrow">${esc(H && H.room || S.month.room.name)}</p><h1>지난 기록 <span aria-hidden="true">📖</span></h1></div></div>
-      <div class="seg fit" style="--n:3" role="tablist" aria-label="지난 기록 보기">${[['room', grp()], ['mine', words().mine], ['timeline', '기도 타임라인']].map(([k, l]) => `<button class="${tab === k ? 'on' : ''}" role="tab" aria-selected="${tab === k}" data-act="histtab" data-v="${k}">${l}</button>`).join('')}</div>`;
+    const H = S.hist, tab = S.histTab || 'room', staff = staffMe();
+    const head = `<div class="page-top"><div><p class="eyebrow">${esc(staff ? S.month.dept.name : H && H.room || S.month.room.name)}</p><h1>지난 기록 <span aria-hidden="true">📖</span></h1></div></div>
+      <div class="seg fit" style="--n:3" role="tablist" aria-label="지난 기록 보기">${[['room', grp() + (staff ? '별' : '')], ['mine', words().mine], ['timeline', '기도 타임라인']].map(([k, l]) => `<button class="${tab === k ? 'on' : ''}" role="tab" aria-selected="${tab === k}" data-act="histtab" data-v="${k}">${l}</button>`).join('')}</div>`;
     if (!H) return head + '<p class="loading">불러오는 중…</p>';
     const past = H.months.filter(m => m < H.now);
     const first = past.length ? '' : `<section class="card"><p style="margin:0">지난 기록은 다음 달부터 쌓여요.</p>
@@ -1452,16 +1465,18 @@ try { const p = JSON.parse(localStorage.getItem('koide-pref') || '{}'), d = docu
     if (tab === 'mine') return head + first + (H.mine.length ? `<div class="fam-grid wide hist-grid">${H.mine.map(x => `<section class="card${S.hlMonth === x.month ? ' hl' : ''}" id="hm-${x.month}"><h3>${monthLabel(x.month, H.now)}${x.month === H.now ? '<span class="me-tag">이번 달</span>' : ''}</h3>${histItems(x.items, 'm' + x.month)}</section>`).join('')}</div>`
       : '<p class="hint" style="margin-top:12px">아직 올린 기도제목이 없어요.</p>');
     return head + first + `<div class="hist-chips" role="radiogroup" aria-label="달">${H.months.map(m => `<button class="chip-btn${m === H.month ? ' on' : ''}" role="radio" aria-checked="${m === H.month}" data-act="histmonth" data-v="${m}">${monthLabel(m, H.now)}${m === H.now ? '<small>이번 달</small>' : ''}</button>`).join('')}</div>
-      <p class="hint">그 달의 ${esc(grp())} 모습 그대로 보여요. 해가 바뀌어 편성이 달라져도 그때 그대로예요.</p>
-      ${H.families.length ? `<div class="fam-grid wide hist-grid">${H.families.map((f, k) => `<section class="card"><h3>${esc(f.name)}${f.own ? `<span class="me-tag">${words().mine}</span>` : ''}</h3>${histItems(f.items, H.month + '-' + k)}</section>`).join('')}</div>`
+      ${staff && H.rooms ? (H.rooms.length ? `<div class="mchips" style="margin:10px 0 4px" role="radiogroup" aria-label="${esc(grp())}">${H.rooms.map(r => `<button class="mchip${r.id === H.roomId ? ' on' : ''}" role="radio" aria-checked="${r.id === H.roomId}" data-act="histroom" data-v="${esc(r.id)}">${esc(r.name)}</button>`).join('')}</div>` : '') : ''}
+      <p class="hint">그 달의 ${esc(grp())} 모습 그대로 보여요. 해가 바뀌어 편성이 달라져도 그때 그대로예요.${staff ? ` 리더·목사님 항목까지 보이고, "${esc(words().only)}" 항목은 보이지 않아요.` : ''}</p>
+      ${H.families.length ? `<div class="fam-grid wide hist-grid">${H.families.map((f, k) => `<section class="card"><h3>${esc(f.name)}${f.own ? `<span class="me-tag">${words().mine}</span>` : ''}${f.role === '리더' || f.role === '코리더' ? `<span class="me-tag">${f.role}</span>` : ''}</h3>${histItems(f.items, H.month + '-' + k)}</section>`).join('')}</div>`
         : `<p class="hint">이 달의 ${esc(grp())} 기록을 찾지 못했어요.</p>`}`;
   }
   // 기도 타임라인(우리 가정만 봄): 기도제목마다 처음 올린 달부터 마지막 달까지 한 줄. 이전 항목ID로 이어진 것을 서버가 묶어 준다.
   //  누르면 처음 올린 달의 우리 가정 카드로 가서 잠깐 강조한다
   const prevMon = m => { const [y, mo] = m.split('-').map(Number); return mo === 1 ? (y - 1) + '-12' : y + '-' + String(mo - 1).padStart(2, '0'); };
-  function timelineCard(H) {
+  //  F가 있으면 목사님·장로님이 보는 다른 가정의 타임라인(리더·목사님 항목까지). 줄을 눌러 가는 곳은 없다
+  function timelineCard(H, F) {
     const T = H.threads || [], now = H.now;
-    if (!T.length) return '<p class="hint" style="margin-top:12px">아직 올린 기도제목이 없어요.</p>';
+    if (!T.length) return `<p class="hint" style="margin-top:12px">${F ? '이 ' + words().one + '은 ' : ''}아직 올린 기도제목이 없어요.</p>`;
     // 열은 가장 오래된 기도제목이 시작한 달부터 이번 달까지, 많아도 12달
     const oldest = T.reduce((a, t) => t.from < a ? t.from : a, now), cols = [now];
     while (cols.length < 12 && cols[0] > oldest) cols.unshift(prevMon(cols[0]));
@@ -1470,16 +1485,17 @@ try { const p = JSON.parse(localStorage.getItem('koide-pref') || '{}'), d = docu
     const cell = (t, m, k) => m < t.from || m > t.to
       ? `<td class="tl-cell">${k && cols[k - 1] === t.to ? `<span class="tl-end">${t.ended ? '마침' : '내림'}</span>` : ''}</td>`
       : `<td class="tl-cell on${m === t.from || k === 0 ? ' start' : ''}${m === t.to ? ' end' : ''}" title="${monthLabel(m, now)}"></td>`;
-    return `<section class="card" style="margin-top:12px"><div class="row"><p class="label" style="margin:0">기도 타임라인</p><span class="only">${ICON.lock}${esc(words().only)} 보여요</span></div>
-      <p class="hint">지금 이어지는 기도제목 ${live.length}개${live.length ? ` · 가장 오래된 것은 ${Math.max(...live.map(len))}개월째예요` : ''}. 기도제목을 누르면 처음 올린 달의 카드로 가요.</p>
+    const head = t => `<span class="tgt">${esc(t.target)}</span><span class="tl-text">${esc(t.text)}</span>`;
+    return `<section class="card" style="margin-top:12px"><div class="row"><p class="label" style="margin:0">기도 타임라인${F ? ' · ' + esc(F) : ''}</p><span class="only">${ICON.lock}${F ? '목사님·장로님만' : esc(words().only) + ' 보여요'}</span></div>
+      <p class="hint">지금 이어지는 기도제목 ${live.length}개${live.length ? ` · 가장 오래된 것은 ${Math.max(...live.map(len))}개월째예요` : ''}. ${F ? `리더·목사님 항목까지 보이고, "${esc(words().only)}" 항목은 빠져요.` : '기도제목을 누르면 처음 올린 달의 카드로 가요.'}</p>
       <div class="table-wrap"><table class="tl-table">
         <thead><tr><th scope="col"><span class="sr">기도제목</span></th>${cols.map(m => `<th scope="col"${m === now ? ' class="now"' : ''}>${Number(m.slice(5))}월</th>`).join('')}</tr></thead>
-        <tbody>${rows.map(t => `<tr><th scope="row"><button class="tl-go" data-act="tlgo" data-v="${t.from}" title="${monthLabel(t.from, now)} 기도제목으로 가기: ${esc(t.text)}"><span class="tgt">${esc(t.target)}</span><span class="tl-text">${esc(t.text)}</span></button></th>${cols.map((m, k) => cell(t, m, k)).join('')}</tr>`).join('')}</tbody>
+        <tbody>${rows.map(t => `<tr><th scope="row">${F ? `<span class="tl-go" title="${esc(t.text)}">${head(t)}</span>` : `<button class="tl-go" data-act="tlgo" data-v="${t.from}" title="${monthLabel(t.from, now)} 기도제목으로 가기: ${esc(t.text)}">${head(t)}</button>`}</th>${cols.map((m, k) => cell(t, m, k)).join('')}</tr>`).join('')}</tbody>
       </table></div>
       <ul class="legend"><li><i class="sw edited"></i>그 달에 올린 기도제목</li><li>마침: 이뤄졌거나 맡겨 둠 · 내림: 더 올리지 않음</li></ul></section>`;
   }
   async function loadHist(month) {
-    try { S.hist = await api('history', month ? { month } : {}); }
+    try { S.hist = await api('history', Object.assign(month ? { month } : {}, S.histRoom ? { roomId: S.histRoom } : {})); }
     catch (e) { if (e.code === 'bad') toast('서버를 새 버전으로 배포하면 지난 기록을 볼 수 있어요.'); else oops(e); S.hist = S.hist || null; }
     render();
   }
@@ -1590,7 +1606,9 @@ try { const p = JSON.parse(localStorage.getItem('koide-pref') || '{}'), d = docu
   //  기도의 끈과 '기도했어요' 횟수는 사랑방 가정을 위한 기도만 센다(가정마다 하루 3번까지)
   // 순서는 우리 사랑방 → 우리 가정 → 섬기는 분들(있을 때) → 하나님의 나라. 목사님·장로님은 맡은 사랑방 대신 오늘의 사랑방
   const serveList = () => (S.month && S.month.serve) || [];
-  const PS_KINDS = () => [['room', (staffMe() ? '오늘의 ' : '우리 ') + grp()], ['me', words().mine], ...(serveList().length ? [['serve', '섬기는 분들']] : []), ['world', '하나님의 나라']];
+  // 목사님·장로님은 섬기는 분들 자리에 함께 섬기는 분들(사랑방 리더·코리더와 본인을 뺀 동역자)을 둔다. 고른 것은 같은 자리(serve)에 기억한다
+  const PS_KINDS = () => staffMe() ? [['room', '오늘의 ' + grp()], ['serve', '함께 섬기는 분들'], ['me', words().mine], ['world', '하나님의 나라']]
+    : [['room', '우리 ' + grp()], ['me', words().mine], ...(serveList().length ? [['serve', '섬기는 분들']] : []), ['world', '하나님의 나라']];
   const PS_TIMES = [[0, '시간 없이'], [60, '1분'], [180, '3분'], [300, '5분']];
   // 주기도문(개역개정 이전 번역)과 하나님의 나라 주제 6개. 주제마다 주기도문 간구 하나씩 짝지어 그 순서대로 둔다(lines: 장 위에 다는 구절 번호)
   //  송영에 짝지은 "감사와 찬양"은 고르는 주제가 아니라 하나님의 나라를 고르면 늘 마지막 장으로 나온다
@@ -1760,7 +1778,10 @@ try { const p = JSON.parse(localStorage.getItem('koide-pref') || '{}'), d = docu
   const psOrder = () => roomFams().slice().sort((a, b) => ((a.today || 0) > 0) - ((b.today || 0) > 0) || a.prayed - b.prayed).map(f => f.id);
   function psList() {
     const K = PSET.kinds;
-    return [...(K.includes('room') ? psOrder().map(id => 'f:' + id) : []), ...(K.includes('me') ? ['me'] : []), ...(K.includes('serve') && serveList().length ? ['s'] : []),
+    const room = K.includes('room') ? psOrder().map(id => 'f:' + id) : [];
+    if (staffMe()) return [...room, ...(K.includes('serve') ? ['c'] : []), ...(K.includes('me') ? ['me'] : []),
+      ...(K.includes('world') ? [...PRAY_TOPICS.filter(t => PSET.topics.includes(t.k)), PRAY_THANKS].map(t => 't:' + t.k) : [])];
+    return [...room, ...(K.includes('me') ? ['me'] : []), ...(K.includes('serve') && serveList().length ? ['s'] : []),
       ...(K.includes('world') ? [...PRAY_TOPICS.filter(t => PSET.topics.includes(t.k)), PRAY_THANKS].map(t => 't:' + t.k) : [])];
   }
   // 목사님·장로님의 오늘의 사랑방: 날마다 한 사랑방씩 돌아가고, 다른 사랑방을 골라도 된다
@@ -1823,7 +1844,7 @@ try { const p = JSON.parse(localStorage.getItem('koide-pref') || '{}'), d = docu
         <ol class="ps-list">${list.map(id => { const f = id.startsWith('f:') && famById(id.slice(2));
           return f ? `<li><span>${esc(f.name)}</span><span class="${f.today ? 'ok' : ''}">${f.today ? '오늘 ' + f.today + '번' : '아직'}</span></li>` : `<li><span>${esc(psPageName(id))}</span><span>${id === 'me' ? words().mine : id === 's' ? '함께 기억해요' : '하나님의 나라'}</span></li>`; }).join('')}</ol></section></div></div>`;
   }
-  const psPageName = id => id.startsWith('f:') ? (famById(id.slice(2)) || {}).name || '' : id === 'me' ? words().mine : id === 's' ? '섬기는 분들' : topicOf(id).name;
+  const psPageName = id => id.startsWith('f:') ? (famById(id.slice(2)) || {}).name || '' : id === 'me' ? words().mine : id === 's' ? '섬기는 분들' : id === 'c' ? '함께 섬기는 분들' : topicOf(id).name;
   // 받침에 맞춰 '와/과'로 잇는다(목사님 부부와 조믿음 장로님)
   const andJoin = L => L.map((x, k) => k === L.length - 1 ? x : x + ((c => c >= 0 && c % 28 ? '과' : '와')(x.charCodeAt(x.length - 1) - 0xAC00))).join(' ');
   const musicBtn = () => `<span class="pss-mus"><button class="pss-music${PSET.music ? ' on' : ''}" data-act="psmusic" aria-pressed="${PSET.music}">♪ <span class="trk">${PSET.music ? HYMNS[PSET.track].label : '음악 꺼짐'}</span></button>${PSET.music ? '<button class="pss-music" data-act="psnexttrack" aria-label="다음 곡">다음 곡 ›</button>' : ''}</span>`;
@@ -1833,7 +1854,7 @@ try { const p = JSON.parse(localStorage.getItem('koide-pref') || '{}'), d = docu
       const names = ps.prayed.map(id => (famById(id) || {}).name).filter(Boolean), n = names.length;
       return `<div class="pss-top"><span></span>${musicBtn()}</div>
         <div class="pss-body" style="justify-content:center"><p class="eyebrow">오늘의 기도</p><h2>${n ? n + words().count + '을 위해 기도했어요' : ps.extra.length ? '함께 기도했어요' : '오늘은 여기까지 해요'}</h2>
-          ${n ? `<p>${names.map(esc).join(', ')}</p>` : ''}${ps.extra.filter(x => x !== 's').length ? `<p class="hint">함께 기도한 것 · ${ps.extra.filter(x => x !== 's').map(psPageName).map(esc).join(', ')}</p>` : ''}${ps.extra.includes('s') ? `<p class="hint">${esc(andJoin(serveList().map(s => s.label)))}도 함께 기억했어요</p>` : ''}
+          ${n ? `<p>${names.map(esc).join(', ')}</p>` : ''}${ps.extra.filter(x => x !== 's' && x !== 'c').length ? `<p class="hint">함께 기도한 것 · ${ps.extra.filter(x => x !== 's' && x !== 'c').map(psPageName).map(esc).join(', ')}</p>` : ''}${ps.extra.includes('s') ? `<p class="hint">${esc(andJoin(serveList().map(s => s.label)))}도 함께 기억했어요</p>` : ''}${ps.extra.includes('c') ? '<p class="hint">리더와 동역자도 함께 기억했어요</p>' : ''}
           ${staffMe() ? roomCordHtml() : PSET.kinds.includes('room') || n ? cordHtml() : ''}</div>
         <div class="pss-nav one"><button data-act="psclose">마치기</button></div>`;
     }
@@ -1848,6 +1869,13 @@ try { const p = JSON.parse(localStorage.getItem('koide-pref') || '{}'), d = docu
       pray = `<button class="pss-pray${ready ? ' ready' : ''}" data-act="pspray" ${capped ? 'disabled' : ''}>${capped ? ICON.check + ' 오늘은 여기까지' : ICON.hands.replace('<svg', '<svg width="20" height="20"') + ' 기도했어요'}</button>`;
     } else {
       if (id === 's') body = `<p class="eyebrow">섬기는 분들</p><h2>${esc(andJoin(serveList().map(s => s.label)))}</h2>${serveList().map(s => `<p class="label serve-who">${esc(s.label)}</p>${s.items.length ? `<ul>${s.items.map(i => li(i.target, i.text)).join('')}</ul>` : '<p class="hint">이번 달 기도제목이 아직 없어요. 이분들을 떠올리며 기도해요.</p>'}`).join('')}`;
+      // 목사님·장로님: 함께 섬기는 분들. 사랑방마다 리더·코리더 이름, 본인을 뺀 섬기는 분들의 기도제목, 그 밖의 동역자 이름
+      else if (id === 'c') { const others = serveList().filter(s => s.familyId !== S.month.me.familyId), mates = S.month.mates || [];
+        const lead = r => [...(r.lead || r.leaders || []), ...(r.co || []).map(n => '코리더 ' + n)].join(', ');
+        body = `<p class="eyebrow">함께 섬기는 분들</p><h2>리더와 동역자</h2><p class="label serve-who">${esc(grp())} 리더</p>
+          <ul>${(S.month.rooms || []).map(r => li(r.name, lead(r) || '리더 미지정')).join('')}</ul>
+          ${others.map(s => `<p class="label serve-who">${esc(s.label)}</p>${s.items.length ? `<ul>${s.items.map(i => li(i.target, i.text)).join('')}</ul>` : '<p class="hint">이번 달 기도제목이 아직 없어요.</p>'}`).join('')}
+          ${mates.length ? `<p class="label serve-who">함께 섬기는 교역자</p><ul>${li('', andJoin(mates))}</ul>` : ''}`; }
       else if (id === 'me') { const m = S.month.families.find(f => f.own);
         body = `<p class="eyebrow">${words().mine}</p><h2>${esc(m.name)}</h2>${m.items.length ? `<ul>${m.items.map(i => li(i.target, i.text)).join('')}</ul>` : '<p class="hint">이번 달 기도제목이 아직 없어요.</p>'}`; }
       // 하나님의 나라: 오늘의 간구 문장 하나와 성경의 기도 하나만 보여 주고, 남은 시간은 "내 말로 이어서" 기도한다
@@ -2653,8 +2681,15 @@ try { const p = JSON.parse(localStorage.getItem('koide-pref') || '{}'), d = docu
         return;
       }
       case 'histmonth': if (S.hist) S.hist.month = v; render(); return loadHist(v);
+      case 'histroom': S.histRoom = v; if (S.hist) S.hist.roomId = v; render(); return loadHist(S.hist && S.hist.month);
+      case 'famtl': return loadFamTl(v);
+      case 'sigfam': {
+        S.openRoom = b.dataset.room; await loadFamTl(v);
+        const c = document.getElementById('famtl'); if (c) c.scrollIntoView({ block: 'start', behavior: matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth' });
+        return;
+      }
       case 'openroom': S.openRoom = v; render(); return window.scrollTo(0, 0);
-      case 'roomclose': S.openRoom = null; render(); return window.scrollTo(0, 0);
+      case 'roomclose': S.openRoom = null; S.famTlId = null; render(); return window.scrollTo(0, 0);
       case 'roomknot': S.psRoom = v; if (PSET.kinds.indexOf('room') < 0) { PSET.kinds.unshift('room'); savePset(); } S.tab = 'pray'; render(); return window.scrollTo(0, 0);
       case 'psroom': S.psRoom = v; return render();
       case 'sigtype': S.sigType = v; S.sigMore = false; return render();

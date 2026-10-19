@@ -55,7 +55,7 @@ const FIRST_DEPT = { id: 'D1', name: '청장년부', group: '사랑방', unit: '
 // ── 요청 받기 ─────────────────────────────────────────────
 
 // 서버 코드를 고칠 때마다 바꾼다. 웹 앱 주소를 열면 보여서, 새 버전으로 배포됐는지 확인할 수 있다
-const VERSION = '2026-10-19 분석 탭';
+const VERSION = '2026-10-19 목사님 지난 기록';
 function doGet() {
   return ContentService.createTextOutput('코이데 서버가 켜져 있어요. (버전: ' + VERSION + ')');
 }
@@ -91,7 +91,8 @@ const ACTIONS = {
   requestLink: requestLink_,
   month: body => monthView_(member_(body)),
   room: body => staffRoomView_(member_(body), body.roomId),
-  history: body => historyView_(member_(body), String(body.month || '')),
+  history: body => historyView_(member_(body), String(body.month || ''), String(body.roomId || '')),
+  famTimeline: body => famTimeline_(member_(body), String(body.familyId || '')),
   saveItem: saveItem_,
   endItem: body => setItemState_(body, '마침'),
   reopenItem: body => setItemState_(body, '이어짐'),
@@ -414,7 +415,8 @@ function canManage_(c, familyId) {
 //  그 달이 속한 해의 편성에서 우리 가정이 있던 사랑방을 보여 주고, 사랑방 공개 항목(그때 리더·코리더였으면 리더·목사님 항목까지)을,
 //  우리 가정은 모든 항목을 보여 준다. 마친 항목도 그 달의 기록이라 '마침'으로 남긴다
 //  돌려주는 것: months(볼 수 있는 달, 최근 순), month(고른 달), room, families(그 달 사랑방), mine(우리 가정의 달마다 기도제목)
-function historyView_(c, want) {
+function historyView_(c, want, roomId) {
+  if (c.staff) return staffHistory_(c, want, roomId);
   const items = read_('items'), rooms = read_('rooms'), fams = read_('families'), roster = read_('roster');
   // 그 달에 적용 중이던 편성에서 우리 가정이 속한 사랑방(12월부터 새 편성이면 12월은 새 사랑방)
   const myRows = roster.filter(r => r.familyId === c.familyId), at = {};
@@ -436,6 +438,40 @@ function historyView_(c, want) {
     .filter(x => x.items.length);
   const room = r ? rooms.find(x => x.id === r.roomId) : null;
   return { months, month: m, now: month_(), room: room ? room.name : '', families, mine, threads: threads_(items.filter(i => i.familyId === c.familyId)) };
+}
+
+// 목사님·장로님의 지난 기록: 달과 사랑방을 골라 그 달의 사랑방 모습(그때 편성 그대로). 리더·목사님 항목까지, 우리 가정만 항목은 빼고.
+//  우리 가정 지난 기도제목과 기도 타임라인은 회원과 같다
+function staffHistory_(c, want, roomId) {
+  const items = read_('items'), fams = read_('families'), roster = read_('roster');
+  const deptRooms = read_('rooms').filter(r => deptOfRoom_(r.id).id === c.deptId).sort((a, b) => a.order - b.order), ids = deptRooms.map(r => r.id);
+  const seen = {};
+  items.forEach(i => { if (i.familyId === c.familyId || ids.indexOf(i.roomId) >= 0) seen[i.month] = true; });
+  const months = Object.keys(seen).sort().reverse();
+  const m = months.indexOf(want) >= 0 ? want : (months.find(x => x < month_()) || months[0] || month_());
+  // 그 달에 적용 중이던 편성에 가정이 있던 사랑방만 고를 수 있다
+  const term = termAt_(c.deptId, m), rows = roster.filter(r => String(r.year) === term && ids.indexOf(r.roomId) >= 0);
+  const rooms = deptRooms.filter(r => rows.some(x => x.roomId === r.id)).map(r => ({ id: r.id, name: r.name }));
+  const room = rooms.find(r => r.id === roomId) || rooms[0] || null;
+  const show = i => ({ target: i.target, text: i.text, scope: i.scope, ended: i.state === '마침' });
+  const families = !room ? [] : rows.filter(x => x.roomId === room.id).map(x => {
+    const f = fams.find(y => y.id === x.familyId); if (!f) return null;
+    const its = items.filter(i => i.month === m && i.familyId === f.id && i.scope !== 'family').sort((a, b) => a.order - b.order).map(show);
+    return { id: f.id, name: f.name, own: false, role: x.role, items: its };
+  }).filter(Boolean).sort((a, b) => (b.role === '리더') - (a.role === '리더') || (b.role === '코리더') - (a.role === '코리더'));
+  const mine = months.map(mm => ({ month: mm, items: items.filter(i => i.month === mm && i.familyId === c.familyId).sort((a, b) => a.order - b.order).map(show) }))
+    .filter(x => x.items.length);
+  return { months, month: m, now: month_(), room: room ? room.name : '', roomId: room ? room.id : '', rooms, families, mine, threads: threads_(items.filter(i => i.familyId === c.familyId)) };
+}
+
+// 목사님·장로님이 사랑방 가정 하나의 기도 타임라인을 본다(설계서 S5). 리더·목사님 항목까지, 우리 가정만 항목은 빼고.
+//  우리 부서의 어느 편성에든 있었던 가정만
+function famTimeline_(c, familyId) {
+  if (!c.staff) throw fail_('forbidden', '목사님·장로님만 볼 수 있어요.');
+  const row = read_('roster').filter(r => r.familyId === familyId && deptOfRoom_(r.roomId).id === c.deptId).pop();
+  const f = read_('families').find(x => x.id === familyId);
+  if (!row || !f) throw fail_('bad', '우리 부서 ' + (c.dept.unit === '개인' ? '사람' : '가정') + '이 아니에요.');
+  return { id: f.id, name: f.name, now: month_(), threads: threads_(read_('items').filter(i => i.familyId === familyId && i.scope !== 'family')) };
 }
 
 // 기도 타임라인(우리 가정만 봄): 이전 항목ID로 이어진 기도제목을 한 줄로. 처음 올린 달(from)부터 마지막 달(to)까지,
@@ -467,7 +503,9 @@ function staffMonthView_(c) {
     items: all.filter(i => i.state !== '마침').sort((a, b) => a.order - b.order).map(i => Object.assign(show(i), { same: yes_(i.same), isNew: !i.prevId && !yes_(i.same), editedBy: i.editedBy, editedAt: fmtDay_(i.editedAt) })),
     ended: all.filter(i => i.state === '마침').map(show) };
   return { month: m, term: termNow_(c.deptId), dept: c.dept, room: { id: '', name: c.dept.name }, me: { person: c.person, familyId: c.familyId, role: c.role, admin: c.admin, staff: true, label: c.label },
-    families: [own], received: { n: 0, of: 0 }, serve: serveView_(c.deptId), rooms: staffRooms_(c, m), signals: careSignals_(roomIds, m) };
+    families: [own], received: { n: 0, of: 0 }, serve: serveView_(c.deptId), rooms: staffRooms_(c, m), signals: careSignals_(roomIds, m),
+    // 함께 섬기는 교역자: 섬기는 분들 카드에 나오지 않는 동역자(본인 빼고). 기도하기의 '함께 섬기는 분들' 장에 이름만
+    mates: activeStaff_(c.deptId).filter(s => s.familyId !== c.familyId && !yes_(s.serve)).map(s => s.label) };
 }
 
 // 목사님 홈: 부서의 사랑방마다 이번 달 손봄·확인 수, 새 기도제목 수, 리더, 이번 주에 내가 그 사랑방을 위해 기도했는지(청장년부 기도의 끈)
@@ -482,6 +520,7 @@ function staffRooms_(c, m) {
     const st = k => ids.filter(id => (monthly.find(x => x.familyId === id) || {}).status === k).length;
     return { id: r.id, name: r.name, n: ids.length, edited: st('edited'), confirmed: st('confirmed'),
       leaders: rs.filter(x => x.role === '리더' || x.role === '코리더').map(x => fam(x.familyId).name),
+      lead: rs.filter(x => x.role === '리더').map(x => fam(x.familyId).name), co: rs.filter(x => x.role === '코리더').map(x => fam(x.familyId).name),
       fresh: items.filter(i => ids.indexOf(i.familyId) >= 0 && !i.prevId && !yes_(i.same)).length,
       week: week.some(p => ids.indexOf(p.familyId) >= 0) };
   });
