@@ -249,6 +249,71 @@ h2 { font-size: 1.05em; margin: 0; }
 .album-item figcaption { font-size: .84em; font-weight: 600; }
 .coll-year > .btn { margin: .8em 0 .4em; }
 /* 코이데 소개 */
+/* 코이데 소개 영상: 화면 전체, 테마색을 따른다. 자막은 늘 나온다 */
+.ab-play { display: inline-flex; align-items: center; gap: .5em; margin-top: .4em; }
+.ab-play svg { width: 18px; height: 18px; }
+html.iv-open { overflow: hidden; }
+.ivid { position: fixed; inset: 0; z-index: 120; background: var(--page); color: var(--ink); display: flex; flex-direction: column; }
+.iv-top { display: flex; align-items: center; gap: 12px; padding: calc(12px + env(safe-area-inset-top, 0px)) 16px 4px; }
+.iv-bars { flex: 1; display: flex; gap: 4px; }
+.iv-bars i { flex: 1; height: 3px; border-radius: 2px; background: var(--line); overflow: hidden; }
+.iv-bars b { display: block; height: 100%; width: 0; background: var(--accent); }
+.iv-btn { width: 48px; height: 48px; border-radius: 50%; border: 1px solid var(--line); background: var(--surface); color: var(--ink); display: grid; place-items: center; cursor: pointer; padding: 0; }
+.iv-btn svg { width: 22px; height: 22px; }
+.iv-btn.sm { width: 40px; height: 40px; border: 0; background: none; }
+.iv-btn.main { width: 60px; height: 60px; background: var(--accent); color: var(--on-accent); border-color: var(--accent); }
+.iv-btn:disabled { opacity: .35; cursor: default; }
+.iv-stage { flex: 1; min-height: 0; display: grid; place-items: center; padding: 8px 16px; overflow: hidden; cursor: pointer; }
+.iv-sc { width: min(560px, 100%); display: flex; flex-direction: column; align-items: center; gap: 16px; text-align: center; }
+.iv-cap { margin: 0 auto; padding: 0 16px; max-width: 30em; min-height: 3.4em; font-family: var(--f-display); font-size: clamp(1.05rem, 1.6vw + .8rem, 1.45rem); line-height: 1.6; word-break: keep-all; text-wrap: balance; text-align: center; }
+.iv-ctl { display: flex; justify-content: center; align-items: center; gap: 20px; padding: 12px 16px calc(18px + env(safe-area-inset-bottom, 0px)); }
+.iv-mark { width: 104px; height: 104px; border-radius: 50%; background: var(--accent); color: var(--on-accent); display: grid; place-items: center; }
+.iv-mark svg { width: 64px; height: 64px; fill: none; stroke: currentColor; stroke-width: 1.6; stroke-linecap: round; stroke-linejoin: round; overflow: visible; }
+.iv-draw { stroke-dasharray: 44; stroke-dashoffset: 44; animation: iv-draw 1s .3s ease-out forwards; }
+.iv-title { font-family: var(--f-display); font-size: clamp(2.2rem, 7vw, 3.4rem); margin: 0; line-height: 1.1; }
+.iv-sub { margin: 0; color: var(--ink-2); font-size: 1rem; word-break: keep-all; }
+.iv-big { margin: 0; font-family: var(--f-display); font-size: clamp(1.4rem, 4.6vw, 2.1rem); line-height: 1.45; word-break: keep-all; }
+.iv-big b { color: var(--accent); }
+.iv-words { display: flex; align-items: center; justify-content: center; gap: 10px; }
+.iv-w { display: flex; flex-direction: column; align-items: center; gap: 2px; padding: .7em 1em; border: 1px solid var(--line); border-radius: 16px; background: var(--surface); min-width: 7.4em; }
+.iv-w b { font-weight: 600; } .iv-w i { font-style: normal; font-family: var(--f-display); color: var(--accent); font-size: 1.15em; } .iv-w small { color: var(--ink-2); font-size: .8em; }
+.iv-words em { font-style: normal; color: var(--ink-2); font-size: 1.3em; }
+.iv-cord { width: 100%; max-width: 440px; height: auto; overflow: visible; }
+.iv-seg { fill: none; stroke-width: 3; stroke-linecap: round; }
+.iv-seg.loose { stroke: var(--line-strong); }
+.iv-seg.loose[style] { animation: iv-out .5s var(--d) forwards; }
+.iv-seg.loose.gone { opacity: 0; }
+.iv-seg.taut { stroke: var(--accent); opacity: 0; animation: iv-fade .5s var(--d) forwards; }
+.iv-seg.taut.on { opacity: 1; animation: none; }
+.iv-slot { fill: var(--surface); stroke: var(--line-strong); stroke-width: 1.5; }
+.iv-kbg { fill: var(--accent-soft); }
+.iv-knot path { fill: none; stroke: var(--accent); stroke-width: 3; stroke-linecap: round; stroke-linejoin: round; }
+.iv-home { fill: none; stroke: var(--ink-2); stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+.iv-num { opacity: 0; animation: iv-fade .4s var(--d) forwards, iv-out .5s 2.6s forwards; }
+.iv-num rect { fill: var(--surface); stroke: var(--line-strong); } .iv-num text { fill: var(--ink-2); font-size: 12px; font-weight: 600; }
+.iv-chip { margin: 0; padding: .45em 1em; border-radius: 999px; background: var(--accent-soft); color: var(--accent); font-weight: 600; }
+.iv-kinds { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; width: min(380px, 100%); }
+.iv-card { display: flex; align-items: center; gap: .6em; padding: .9em 1em; border: 1px solid var(--line); border-radius: 14px; background: var(--surface); font-weight: 600; text-align: left; word-break: keep-all; }
+.iv-card small { width: 1.7em; height: 1.7em; flex: none; border-radius: 50%; background: var(--accent-soft); color: var(--accent); display: grid; place-items: center; font-size: .8em; }
+.iv-art { position: relative; width: min(460px, 100%); border-radius: 16px; overflow: hidden; border: 1px solid var(--line); }
+.iv-art svg { display: block; width: 100%; height: auto; }
+.iv-layer + .iv-layer { position: absolute; inset: 0; }
+.iv-show { opacity: 0; animation: iv-fade .8s var(--d) forwards; }
+.iv-end { display: flex; gap: 10px; justify-content: center; margin-top: 4px; }
+.iv-in { opacity: 0; animation: iv-in .7s var(--d, 0s) cubic-bezier(.2,.7,.3,1) forwards; }
+.iv-pop { opacity: 0; transform-box: fill-box; transform-origin: center; animation: iv-pop .6s var(--d, 0s) cubic-bezier(.3,1.6,.5,1) forwards; }
+.iv-from-l { opacity: 0; animation: iv-from-l .8s var(--d) cubic-bezier(.2,.7,.3,1) forwards; }
+.iv-from-r { opacity: 0; animation: iv-from-r .8s var(--d) cubic-bezier(.2,.7,.3,1) forwards; }
+.ivid.paused *, .ivid.paused *::before { animation-play-state: paused !important; }
+@keyframes iv-in { from { opacity: 0; transform: translateY(12px); } to { opacity: 1; transform: none; } }
+@keyframes iv-pop { 0% { opacity: 0; transform: scale(.4) rotate(-30deg); } 100% { opacity: 1; transform: none; } }
+@keyframes iv-from-l { from { opacity: 0; transform: translateX(-40px); } to { opacity: 1; transform: none; } }
+@keyframes iv-from-r { from { opacity: 0; transform: translateX(40px); } to { opacity: 1; transform: none; } }
+@keyframes iv-fade { to { opacity: 1; } }
+@keyframes iv-out { to { opacity: 0; } }
+@keyframes iv-draw { to { stroke-dashoffset: 0; } }
+@media (max-height: 560px) { .iv-cap { min-height: 0; font-size: 1rem; } .iv-ctl { padding-top: 6px; padding-bottom: 10px; } .iv-mark { width: 72px; height: 72px; } }
+@media (prefers-reduced-motion: reduce) { .ivid *, .ivid *::before { animation-duration: 1ms !important; animation-delay: 0s !important; } }
 .about { display: flex; flex-direction: column; gap: 12px; margin-top: 8px; }
 .ab-hero { align-items: center; text-align: center; padding: 1.6em 1.2em 1.3em; gap: .5em; }
 .ab-mark { width: 64px; height: 64px; border-radius: 50%; background: var(--accent); color: var(--on-accent); display: grid; place-items: center; }
@@ -895,6 +960,29 @@ body.pop-open { overflow: hidden; }
 .staff-list li:first-child { border-top: 0; }
 .staff-list li > div { display: flex; flex-wrap: wrap; align-items: center; gap: .2em .5em; min-width: 0; }
 .staff-list small { flex-basis: 100%; color: var(--ink-2); font-size: .875em; }
+/* 관리 › 운영: 앱 상태(문제가 없으면 한 줄로 접힘)와 개인정보 요청 */
+.ops-head { display: flex; align-items: center; gap: .7em; width: 100%; background: none; border: 0; padding: 0; color: inherit; font: inherit; text-align: left; cursor: pointer; }
+.ops-head > span:nth-child(2) { flex: 1; display: flex; flex-direction: column; gap: .15em; min-width: 0; }
+.ops-head small { color: var(--ink-2); font-size: .875em; }
+.ops-dot { width: .7em; height: .7em; border-radius: 50%; background: var(--accent); flex: none; }
+.ops-dot.bad { background: var(--warn); box-shadow: 0 0 0 4px var(--warn-soft); }
+.ops-chev { display: inline-flex; color: var(--ink-2); transition: transform .2s; }
+.ops-head[aria-expanded="true"] .ops-chev { transform: rotate(180deg); }
+.ops-rows { display: flex; flex-direction: column; margin-top: .8em; }
+.ops-row { display: grid; grid-template-columns: 5.5em 1fr; gap: .8em; padding: .65em 0; border-top: 1px solid var(--line); font-size: .94em; }
+.ops-row > div { display: flex; flex-direction: column; align-items: flex-start; gap: .3em; min-width: 0; }
+.ops-row small { color: var(--ink-2); font-size: .9em; }
+.ops-row p { margin: .1em 0 0; }
+.ops-row a { color: var(--accent); }
+.ops-k { color: var(--ink-2); font-size: .9em; }
+.ops-errs { list-style: none; margin: 0; padding: 0; width: 100%; font-size: .88em; }
+.ops-errs li { display: flex; justify-content: space-between; gap: .6em; padding: .2em 0; color: var(--ink-2); overflow-wrap: anywhere; }
+.ops-n { display: inline-flex; align-items: center; justify-content: center; min-width: 1.5em; height: 1.5em; padding: 0 .4em; border-radius: 999px; background: var(--warn); color: var(--on-accent); font-size: .7em; vertical-align: .15em; }
+.staff-list .foot-acts { flex: none; white-space: nowrap; }
+.fam-rec .link { font-size: 1em; }
+.erase-ask { flex-basis: 100%; background: var(--warn-soft); border-radius: 12px; padding: 10px 12px; margin-top: .4em; }
+.erase-ask p { margin: 0 0 .5em; }
+.fam-rec { display: flex; flex-wrap: wrap; align-items: center; gap: .3em 1em; margin: .9em 0 0; padding-top: .7em; border-top: 1px solid var(--line); font-size: .9em; color: var(--ink-2); }
 .staff-form { display: flex; flex-direction: column; gap: .5em; border-top: 1px solid var(--line); padding-top: .8em; }
 .serve-who { margin: .4em 0 0; }
 .choice-sub { display: block; font-size: .8em; color: var(--ink-2); margin-top: .15em; }
@@ -2100,7 +2188,7 @@ try { const p = JSON.parse(localStorage.getItem('koide-pref') || '{}'), d = docu
     const sheetXml = T => { const rows = T.rows.map((r, i) => `<row r="${i + 3}" ht="${height(r.lines)}" customHeight="1">${cell('A' + (i + 3), r.name, 3)}${cell('B' + (i + 3), r.lines.join('\n'), 4)}</row>`).join('');
     const sheet = `<?xml version="1.0" encoding="UTF-8" standalone="yes"?><worksheet xmlns="${NS}" xmlns:r="${R}"><sheetViews><sheetView workbookViewId="0"><pane ySplit="2" topLeftCell="A3" activePane="bottomLeft" state="frozen"/></sheetView></sheetViews>
 <cols><col min="1" max="1" width="20" customWidth="1"/><col min="2" max="2" width="90" customWidth="1"/></cols>
-<sheetData><row r="1" ht="26" customHeight="1">${cell('A1', T.title, 1)}</row><row r="2">${cell('A2', T.solo ? '이름' : '가정', 2)}${cell('B2', '기도제목', 2)}</row>${rows}</sheetData>
+<sheetData><row r="1" ht="26" customHeight="1">${cell('A1', T.title, 1)}</row><row r="2">${cell('A2', T.head || (T.solo ? '이름' : '가정'), 2)}${cell('B2', '기도제목', 2)}</row>${rows}</sheetData>
 <mergeCells count="1"><mergeCell ref="A1:B1"/></mergeCells><pageMargins left="0.5" right="0.5" top="0.6" bottom="0.6" header="0.3" footer="0.3"/></worksheet>`; return sheet; };
     const styles = `<?xml version="1.0" encoding="UTF-8" standalone="yes"?><styleSheet xmlns="${NS}">
 <fonts count="3"><font><sz val="11"/><name val="맑은 고딕"/></font><font><b/><sz val="14"/><name val="맑은 고딕"/></font><font><b/><sz val="11"/><name val="맑은 고딕"/></font></fonts>
@@ -2113,7 +2201,7 @@ try { const p = JSON.parse(localStorage.getItem('koide-pref') || '{}'), d = docu
 <xf numFmtId="0" fontId="2" fillId="0" borderId="1" xfId="0" applyFont="1" applyBorder="1" applyAlignment="1"><alignment vertical="top" wrapText="1"/></xf>
 <xf numFmtId="0" fontId="0" fillId="0" borderId="1" xfId="0" applyBorder="1" applyAlignment="1"><alignment vertical="top" wrapText="1"/></xf></cellXfs>
 <cellStyles count="1"><cellStyle name="Normal" xfId="0" builtinId="0"/></cellStyles></styleSheet>`;
-    const names = sheets.map(T => xml((T.month.slice(0, 4) + '년 ' + Number(T.month.slice(5)) + '월').replace(/[\[\]:*?\/\\]/g, ' ').slice(0, 31)));
+    const names = sheets.map(T => xml((T.tab || T.month.slice(0, 4) + '년 ' + Number(T.month.slice(5)) + '월').replace(/[\[\]:*?\/\\]/g, ' ').slice(0, 31)));
     return zip([
       { name: '[Content_Types].xml', data: `<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types"><Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/><Default Extension="xml" ContentType="application/xml"/><Override PartName="/xl/workbook.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet.main+xml"/>${sheets.map((_, k) => `<Override PartName="/xl/worksheets/sheet${k + 1}.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.worksheet+xml"/>`).join('')}<Override PartName="/xl/styles.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.styles+xml"/></Types>` },
       { name: '_rels/.rels', data: `<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rId1" Type="${R}/officeDocument" Target="xl/workbook.xml"/></Relationships>` },
@@ -2729,7 +2817,9 @@ try { const p = JSON.parse(localStorage.getItem('koide-pref') || '{}'), d = docu
     if (!E) return `<section class="card"><div class="row"><p class="label">${solo() ? '내 정보' : '우리 가정 정보'}</p><button class="btn small ghost" data-act="famedit">고치기</button></div>
       <h3>${esc(mine.name)}</h3>
       ${solo() ? '' : `<div class="kids">${mine.kids.length ? mine.kids.map((k, n) => `<span class="kid"><small>${n + 1}</small>${esc(k)}</span>`).join('') : '<span class="hint">등록한 자녀가 없어요</span>'}</div>
-      <p class="hint">${S.famMsg ? `<span class="ok">${esc(S.famMsg)}</span>` : '자녀 이름을 넣어 두면 기도제목의 대상이 이름으로 붙어요.'}</p>`}</section>`;
+      <p class="hint">${S.famMsg ? `<span class="ok">${esc(S.famMsg)}</span>` : '자녀 이름을 넣어 두면 기도제목의 대상이 이름으로 붙어요.'}</p>`}
+      <p class="fam-rec"><button class="link quiet" data-act="myexport">${solo() ? '내' : '우리 가정'} 기록 내려받기</button>
+        ${S.month.eraseReq ? '<span>기록 지우기를 요청했어요</span><button class="link quiet" data-act="erasereqoff">요청 거두기</button>' : '<button class="link quiet" data-act="erasereq">기록 지우기 요청</button>'}</p></section>`;
     return `<section class="card"><p class="label">${solo() ? '내 정보 고치기' : '우리 가정 정보 고치기'}</p>
       <form class="plain-form" data-form="famsave">
         <label class="label" for="fi-a">${solo() ? '이름' : '남편 또는 본인 이름'}</label><input id="fi-a" class="field" value="${esc(E.a)}" required maxlength="10" autocomplete="off">
@@ -2765,6 +2855,135 @@ try { const p = JSON.parse(localStorage.getItem('koide-pref') || '{}'), d = docu
           <button class="card menu-card" data-act="logout"><span><b>이 기기에서 로그아웃</b><small>다시 들어올 때 카카오로 로그인해요</small></span>${ICON.chevR}</button>
         </div></div>`;
   }
+  // 코이데 소개 영상(더보기 › 코이데 소개): 앱 안에서 재생하는 1분 남짓의 움직이는 소개. 영상 파일 없이 앱의 그림(매듭, 기도의 끈, 이달의 그림)으로 장면을 만든다.
+  //  화면 전체를 다시 그려도 끊기지 않게 body에 따로 붙인 판에서 스스로 돈다. 글자 자막이 늘 나오고 소리는 없다(예배당·모임에서도 틀 수 있게).
+  //  누르면 멈춤, 옆 버튼으로 장면 넘기기, 마지막 장면에서 멈춘다. 움직임 줄이기를 켠 기기에서는 장면마다 다 된 모습으로 바로 보인다
+  const IntroVideo = (() => {
+    let el = null, SC = [], i = 0, left = 0, t0 = 0, timer = null, raf = 0, playing = false, opener = null, O = {};
+    const ico = d => `<svg viewBox="0 0 24 24" aria-hidden="true">${d}</svg>`;
+    const I = { play: ico('<path d="M8 5.5v13l10.5-6.5z" fill="currentColor"/>'), pause: ico('<path d="M8 5h3v14H8zM13 5h3v14h-3z" fill="currentColor"/>'),
+      prev: ico('<path d="M15 6l-6 6 6 6" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>'),
+      next: ico('<path d="M9 6l6 6-6 6" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>'),
+      x: ico('<path d="M6 6l12 12M18 6L6 18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>') };
+    const d = s => `style="--d:${s}s"`;
+    // 매듭(묶인 모양): 이번 달 기도의 끈의 매듭과 같은 꼴. 바깥 g가 자리(transform 속성), 안쪽 g가 움직임(CSS)을 맡아 서로 덮지 않게 한다. s가 없으면 처음부터 묶여 있다
+    const KNOT = (x, y, s) => `<g transform="translate(${x - 16} ${y - 16})"><g class="iv-knot${s == null ? '' : ' iv-pop'}" ${s == null ? '' : d(s)}><circle cx="16" cy="16" r="15" class="iv-kbg"/><path d="M2 16H8.5C11 16 12 13 12 10.5C12 6.5 14.5 4 18 4S24 6.5 24 10.2 21 16 16.5 16.4"/><path d="M11 19.2C15 17 19 16 30 16"/></g></g>`;
+    // 끈: 처진 줄과 팽팽한 줄을 겹쳐 두고, 이웃한 두 매듭이 다 지어지면 팽팽한 줄로 바뀐다(모든 브라우저에서 되도록 모양 대신 투명도를 바꾼다)
+    function cord({ tie = [], all = false, homes = false, nums = null } = {}) {
+      const N = 6, W = 340, Y = homes ? 92 : 40, x = k => 24 + k * (W - 48) / (N - 1), at = k => all ? 0 : tie[k];
+      let s = '';
+      for (let k = 0; k < N - 1; k++) {
+        const x1 = x(k), x2 = x(k + 1), a = at(k), b = at(k + 1), both = a != null && b != null ? Math.max(a, b) + .5 : null;
+        s += `<path class="iv-seg loose${all ? ' gone' : ''}" ${both != null && !all ? `style="--d:${both}s"` : ''} d="M${x1} ${Y}Q${(x1 + x2) / 2} ${Y + 30} ${x2} ${Y}"/>`;
+        if (both != null) s += `<path class="iv-seg taut${all ? ' on' : ''}" ${all ? '' : `style="--d:${both}s"`} d="M${x1} ${Y}H${x2}"/>`;
+      }
+      for (let k = 0; k < N; k++) {
+        if (homes) s += `<g transform="translate(${x(k) - 15} ${Y - 62})"><g class="iv-home iv-in" ${d(.3 + k * .45)}>${O.solo ? '<circle cx="15" cy="10" r="7"/><path d="M3 34c0-8 5-13 12-13s12 5 12 13z"/>' : '<path d="M2 15L15 3l13 12M6 12v20h18V12"/><path d="M12 32v-8h6v8"/>'}</g></g>`;
+        s += `<circle class="iv-slot${homes ? ' iv-in' : ''}" ${homes ? d(.5 + k * .45) : ''} cx="${x(k)}" cy="${Y}" r="9"/>`;
+        if (at(k) != null) s += KNOT(x(k), Y, all ? null : at(k));
+        if (nums && nums[k]) s += `<g class="iv-num" ${d(.4 + k * .25)}><rect x="${x(k) - 20}" y="${Y - 50}" width="40" height="24" rx="12"/><text x="${x(k)}" y="${Y - 33}" text-anchor="middle">${nums[k]}번</text></g>`;
+      }
+      return `<svg class="iv-cord" viewBox="0 0 ${W} ${Y + 44}" aria-hidden="true">${s}</svg>`;
+    }
+    function scenes() {
+      const g = O.grp, one = O.one;
+      const L = [
+        { dur: 5200, cap: '코이데, 함께 기도하는 공동체',
+          html: `<span class="iv-mark iv-pop" ${d(.1)}><svg viewBox="0 0 32 32" aria-hidden="true"><path class="iv-draw" d="M2 16H8.5C11 16 12 13 12 10.5C12 6.5 14.5 4 18 4S24 6.5 24 10.2 21 16 16.5 16.4"/><path class="iv-draw" style="animation-delay:.9s" d="M11 19.2C15 17 19 16 30 16"/></svg></span>
+            <h2 class="iv-title iv-in" ${d(1.4)}>코이데</h2><p class="iv-sub iv-in" ${d(1.9)}>함께 기도하는 공동체</p>` },
+        { dur: 8500, cap: "'교제'를 뜻하는 코이노니아와 '간구'를 뜻하는 데에시스에서 영감을 얻은 이름이에요.",
+          html: `<div class="iv-words"><span class="iv-w iv-from-l" ${d(.3)}><b>코이노니아</b><i>κοινωνία</i><small>교제</small></span><em class="iv-in" ${d(1.4)}>+</em><span class="iv-w iv-from-r" ${d(1.1)}><b>데에시스</b><i>δέησις</i><small>간구</small></span></div>
+            <p class="iv-big iv-in" ${d(3.4)}><b>코이</b>노니아 + <b>데</b>에시스</p><p class="iv-sub iv-in" ${d(4.6)}>서로의 기도를 나누고, 함께 기도해요</p>` },
+        { dur: 7000, cap: `우리 ${g} ${one}마다 기도의 끈에 매듭 자리가 하나씩 있어요.`,
+          html: cord({ homes: true }) },
+        { dur: 9500, cap: `그 ${one}을 위해 기도하면 매듭이 지어지고, 이웃한 두 ${one}을 다 기도하면 그 사이 끈이 팽팽해져요.`,
+          html: cord({ tie: [.6, 1.6, 4.6, 2.6, 3.6, 5.8] }) + `<p class="iv-sub iv-in" ${d(6.8)}>처진 곳이 아직 기도하지 않은 ${one}이에요</p>` },
+        { dur: 8000, cap: '누가 몇 번 기도했는지는 보이지 않아요. 순위도 없어요. 끈이 이어진 모습만 보여요.',
+          html: cord({ all: true, nums: [3, 1, 5, 2, 4, 1] }) + `<p class="iv-chip iv-in" ${d(3.6)}>끈이 이어진 모습만</p>` },
+        { dur: 8000, cap: `기도하기에서는 한 장씩 넘기며 우리 ${g}, ${O.mine}, 섬기는 분들, 하나님 나라를 위해 기도해요.`,
+          html: `<div class="iv-kinds">${[`우리 ${g}`, O.mine, '섬기는 분들', '하나님 나라'].map((t, k) => `<span class="iv-card iv-pop" ${d(.4 + k * .7)}><small>${k + 1}</small>${t}</span>`).join('')}</div>
+            <p class="iv-sub iv-in" ${d(3.6)}>주기도문의 간구를 따라, 감사와 찬양으로 끝나요</p>` }
+      ];
+      if (O.art && O.art.length) L.push({ dur: 8000, cap: '기도한 날마다 이달의 그림이 조금씩 채워져요. 나만 보고, 남과 비교하지 않고, 줄어들지 않아요.',
+        html: `<div class="iv-art">${O.art.map((a, k) => `<div class="iv-layer${k ? ' iv-show' : ''}" ${k ? d(.8 + k * 1.5) : ''}>${a}</div>`).join('')}</div>` });
+      L.push({ dur: 6000, end: true, cap: '우리를 잇는 끈은 성령의 교통하심(코이노니아)입니다.',
+        html: cord({ all: true }) + `<p class="iv-big iv-in" ${d(.6)}>우리를 잇는 끈은<br>성령의 교통하심입니다</p><p class="iv-sub iv-in" ${d(1.4)}>고린도후서 13:13</p>
+          <div class="iv-end iv-in" ${d(2.4)}><button class="btn ghost" data-iv="replay">다시 보기</button>${O.cta ? `<button class="btn" data-iv="cta">${O.cta}</button>` : ''}</div>` });
+      return L;
+    }
+    const bar = k => el.querySelectorAll('.iv-bars b')[k];
+    function paintBars() { el.querySelectorAll('.iv-bars b').forEach((b, k) => { b.style.width = k < i ? '100%' : k > i ? '0%' : b.style.width; }); }
+    function tick() {
+      cancelAnimationFrame(raf);
+      if (!el) return;
+      const used = SC[i].dur - left + (playing ? performance.now() - t0 : 0);
+      bar(i).style.width = Math.min(100, used / SC[i].dur * 100) + '%';
+      if (playing) raf = requestAnimationFrame(tick);
+    }
+    function show(k) {
+      i = Math.max(0, Math.min(SC.length - 1, k)); left = SC[i].dur;
+      const st = el.querySelector('.iv-sc');
+      st.innerHTML = SC[i].html; st.className = 'iv-sc' + (SC[i].end ? ' last' : '');
+      el.querySelector('.iv-cap').textContent = SC[i].cap;
+      el.querySelector('[data-iv=prev]').disabled = i === 0;
+      el.querySelector('[data-iv=next]').disabled = i === SC.length - 1;
+      bar(i).style.width = '0%'; paintBars();
+      el.classList.toggle('paused', !playing);
+      if (playing) arm(); else tick();
+    }
+    function arm() { clearTimeout(timer); t0 = performance.now(); timer = setTimeout(() => { if (i < SC.length - 1) show(i + 1); else stop(true); }, left); tick(); }
+    function btn() { const b = el.querySelector('[data-iv=toggle]'); b.innerHTML = playing ? I.pause : I.play; b.setAttribute('aria-label', playing ? '멈추기' : '재생'); el.classList.toggle('paused', !playing); }
+    function stop(end) { if (!playing) return; playing = false; clearTimeout(timer); left = end ? 0 : Math.max(0, left - (performance.now() - t0)); tick(); btn(); }
+    function play() { if (playing) return; if (i === SC.length - 1 && left <= 0) { playing = true; btn(); return show(0); } playing = true; btn(); arm(); }
+    function close() {
+      if (!el) return;
+      clearTimeout(timer); cancelAnimationFrame(raf); playing = false;
+      document.removeEventListener('keydown', onKey, true); document.removeEventListener('visibilitychange', onHide);
+      el.remove(); el = null; document.documentElement.classList.remove('iv-open');
+      if (O.onEvent) O.onEvent('close', i + 1, SC.length);
+      if (opener && opener.isConnected) opener.focus();
+    }
+    function onKey(e) {
+      if (!el) return;
+      if (e.key === 'Escape') { e.preventDefault(); e.stopPropagation(); close(); }
+      else if (e.key === ' ' && !(e.target.closest && e.target.closest('button'))) { e.preventDefault(); playing ? stop() : play(); }
+      else if (e.key === 'ArrowRight') { e.preventDefault(); show(i + 1); }
+      else if (e.key === 'ArrowLeft') { e.preventDefault(); show(i - 1); }
+      else if (e.key === 'Tab') { const f = [...el.querySelectorAll('button:not([disabled])')]; if (!f.length) return;
+        if (e.shiftKey && document.activeElement === f[0]) { e.preventDefault(); f[f.length - 1].focus(); }
+        else if (!e.shiftKey && document.activeElement === f[f.length - 1]) { e.preventDefault(); f[0].focus(); } }
+    }
+    const onHide = () => { if (document.hidden) stop(); };
+    function open(opts) {
+      if (el) close();
+      O = opts || {}; SC = scenes(); opener = document.activeElement; playing = true;
+      el = document.createElement('div');
+      el.className = 'ivid'; el.setAttribute('role', 'dialog'); el.setAttribute('aria-modal', 'true'); el.setAttribute('aria-label', '코이데 소개 영상');
+      el.innerHTML = `<div class="iv-top"><div class="iv-bars" aria-hidden="true">${SC.map(() => '<i><b></b></i>').join('')}</div>
+          <button class="iv-btn sm" data-iv="x" aria-label="닫기">${I.x}</button></div>
+        <div class="iv-stage" data-iv="stage"><div class="iv-sc"></div></div>
+        <p class="iv-cap" aria-live="polite"></p>
+        <div class="iv-ctl"><button class="iv-btn" data-iv="prev" aria-label="이전 장면">${I.prev}</button>
+          <button class="iv-btn main" data-iv="toggle" aria-label="멈추기">${I.pause}</button>
+          <button class="iv-btn" data-iv="next" aria-label="다음 장면">${I.next}</button></div>`;
+      el.addEventListener('click', e => {
+        const b = e.target.closest('[data-iv]'); if (!b) return;
+        const a = b.dataset.iv;
+        if (a === 'x') close();
+        else if (a === 'prev') show(i - 1);
+        else if (a === 'next') show(i + 1);
+        else if (a === 'toggle' || a === 'stage') playing ? stop() : play();
+        else if (a === 'replay') { playing = true; btn(); show(0); }
+        else if (a === 'cta') { close(); if (O.onCta) O.onCta(); }
+      });
+      document.body.appendChild(el); document.documentElement.classList.add('iv-open');
+      document.addEventListener('keydown', onKey, true); document.addEventListener('visibilitychange', onHide);
+      show(0); btn(); el.querySelector('[data-iv=toggle]').focus();
+      if (O.onEvent) O.onEvent('open', 1, SC.length);
+    }
+    return { open, close };
+  })();
+
   // 코이데 소개(더보기, 시안과 같게): 앱 이름의 뜻과 앱이 왜 이렇게 생겼는지. 문단마다 그 뜻이 담긴 기능으로 가는 링크를 둔다
   const aboutLink = (label, tab, h) => `<button class="link ab-go" data-act="aboutgo" data-v="${tab}"${h ? ` data-h="${h}"` : ''}>${label}${ICON.chevR}</button>`;
   function aboutCord() {
@@ -2793,6 +3012,7 @@ try { const p = JSON.parse(localStorage.getItem('koide-pref') || '{}'), d = docu
       <section class="card ab-hero">
         <span class="ab-mark" aria-hidden="true">${ICON.knot}</span>
         <h1>코이데</h1><p class="ab-tag">함께 기도하는 공동체</p>
+        <button class="btn ab-play" data-act="ivid"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M8 5.5v13l10.5-6.5z" fill="currentColor"/></svg>영상으로 보기 · 1분</button>
         <div class="ab-words" aria-hidden="true"><span><b>코이노니아</b><i>κοινωνία</i><small>교제</small></span><em>+</em><span><b>데에시스</b><i>δέησις</i><small>간구</small></span></div>
         <p class="ab-lead">코이데는 '교제'를 뜻하는 코이노니아(κοινωνία, koinōnia)와 '간구'를 뜻하는 데에시스(δέησις, deēsis)에서 영감을 얻은 이름입니다. 서로의 기도를 나누고, 함께 기도하는 공동체를 뜻합니다. 우리를 잇는 끈은 성령의 교통하심(코이노니아)입니다.</p>
         <p class="hint">"성령의 교통하심" · 고린도후서 13:13</p>
@@ -2988,6 +3208,7 @@ try { const p = JSON.parse(localStorage.getItem('koide-pref') || '{}'), d = docu
     if (tab === 'analysis') return head + analysisView();
     return `${head}
       <div class="two-col"><div class="col">${manageCard()}</div><div class="col side">
+        ${opsProblems().length ? opsCard() : ''}${privacyN() ? privacyCard() : ''}
         ${groupCard()}
         ${reorgCard()}
         ${staffCard()}
@@ -2995,6 +3216,7 @@ try { const p = JSON.parse(localStorage.getItem('koide-pref') || '{}'), d = docu
           <button class="btn small ghost" data-act="tab" data-v="import">가져오기 열기</button></section>`}
         ${DEMO ? '' : `<section class="card"><h2>데모로 둘러보기</h2><p class="hint">지어낸 예시 데이터로 리더·회원 화면을 눌러 봐요. 실제 데이터와 로그인은 그대로예요.</p>
           <a class="btn small ghost" href="?demo" target="_blank" rel="noopener" style="text-decoration:none;align-self:flex-start">데모 열기</a></section>`}
+        ${privacyN() ? '' : privacyCard()}${opsProblems().length ? '' : opsCard()}
       </div></div>`;
   }
   // 소그룹 이름(관리자): 우리 부서에서 소그룹을 부르는 말. 앱 곳곳의 말과 조사가 이 이름을 따른다
@@ -3007,6 +3229,61 @@ try { const p = JSON.parse(localStorage.getItem('koide-pref') || '{}'), d = docu
       <form class="kid-form" data-form="grpcustom" style="margin-top:8px"><input class="field" name="g" placeholder="직접 쓰기 (예: 가정교회, 다락방)" aria-label="소그룹 이름 직접 쓰기" maxlength="6" autocomplete="off"><button class="btn small ghost" type="submit">쓰기</button></form>
       ${pick !== cur ? `<label class="check"><input type="checkbox" id="grp-rename"${S.grpRename === false ? '' : ' checked'}> 이름 끝의 "${esc(cur)}"도 함께 바꾸기 <span class="hint">(예: ${esc(ex)} → ${esc(after)})</span></label>
         <div class="actions"><button class="btn" data-act="grpsave" ${S.busy ? 'disabled' : ''}>${esc(euro(pick))} 바꾸기</button><button class="btn ghost" data-act="grppick" data-v="${esc(cur)}">그대로 두기</button></div>` : ''}</section>`;
+  }
+  // ── 관리 › 운영 (설계서 S7): ① 앱 상태 ② 개인정보 요청. 할 일이 있는 카드만 관리 탭 위로 올라온다 ──
+  //  NEED_SERVER: 이 화면이 바라는 서버 버전(서버 VERSION 앞 날짜). 서버 코드를 고쳐 배포해야 하는 기능을 넣을 때 함께 올린다
+  const NEED_SERVER = '2026-10-21';
+  const DOC = 'https://github.com/kwjgl/pray-for/blob/main/docs/';
+  async function loadOps() { try { S.ops = await api('ops'); S.opsErr = null; } catch (e) { S.ops = null; S.opsErr = e.code === 'bad' ? 'old' : e.code === 'forbidden' ? null : e.message; } render(); }
+  const opsWhen = iso => { const d = new Date(iso); return isNaN(d) ? '' : `${d.getMonth() + 1}월 ${d.getDate()}일 ${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`; };
+  function opsProblems() {
+    const O = S.ops;
+    if (S.opsErr === 'old' || (O && O.version.slice(0, 10) < NEED_SERVER)) return ['서버가 옛 버전이에요'];
+    if (!O) return [];
+    return [O.errors.n ? `최근 7일 서버 오류 ${O.errors.n}번` : '', O.admins < 2 ? '관리자가 한 명뿐이에요' : ''].filter(Boolean);
+  }
+  function opsCard() {
+    const O = S.ops, probs = opsProblems(), open = S.opsOpen !== undefined ? S.opsOpen : probs.length > 0, old = probs[0] === '서버가 옛 버전이에요';
+    const sum = !O && !S.opsErr ? '불러오는 중…' : probs.length ? probs.join(' · ') : S.opsErr && !old ? S.opsErr : `모두 괜찮아요 · 서버 ${O.version.slice(0, 10)}`;
+    const row = (k, v) => `<div class="ops-row"><span class="ops-k">${k}</span><div>${v}</div></div>`;
+    const ver = row('버전', `<span>서버 <b>${O ? esc(O.version) : '옛 버전'}</b></span><small>이 화면은 ${NEED_SERVER} 이후 서버가 필요해요</small>${old ? `<p class="warn-text">Apps Script를 새 버전으로 배포해 주세요. 배포 관리 › 연필 › 새 버전이에요. <a href="${DOC}setup.md" target="_blank" rel="noopener">배포 순서</a></p>` : ''}`);
+    const body = !open ? '' : !O ? (old ? `<div class="ops-rows">${ver}</div>` : '') : `<div class="ops-rows">${ver}
+      ${row('새 달', `${Number(O.month.month.slice(5))}월 · ${O.month.opened ? opsWhen(O.month.opened) + '에 처음 열림' : '아직 넘어온 기도제목이 없어요'}<small>지난달에서 넘어온 기도제목 ${O.month.carried}개</small>
+        ${O.month.waiting ? `<p class="hint">아직 아무도 열지 않은 ${esc(grp())} ${O.month.waiting}곳은 처음 열 때 넘어와요.</p><button class="btn small ghost" data-act="opsmonth" ${S.busy ? 'disabled' : ''}>지금 모두 넘기기</button>` : ''}`)}
+      ${row('최근 오류', O.errors.n ? `7일 동안 ${O.errors.n}번 · 마지막 ${opsWhen(O.errors.last)}<ul class="ops-errs">${O.errors.kinds.map(k => `<li><span>${esc(k.kind)}</span><b>${k.n}</b></li>`).join('')}</ul>` : '7일 동안 없어요')}
+      ${row('관리자', `${O.admins}명${O.admins < 2 ? `<p class="warn-text">한 사람이 빠져도 멈추지 않게 관리자를 한 명 더 정해 주세요. 구글 시트 가정 탭의 관리자 칸에 "예"를 써요.</p>` : ''}`)}
+      ${row('인수인계', `${O.handover ? '마지막 확인 ' + O.handover.slice(5).replace('-', '/') : '아직 확인한 적 없어요'}<small><a href="${DOC}design.md" target="_blank" rel="noopener">설계서 9장 체크리스트</a></small>
+        <button class="link" data-act="opshand">오늘 확인했어요</button>`)}</div>`;
+    return `<section class="card ops"><button class="ops-head" data-act="opsopen" aria-expanded="${open}">
+        <span class="ops-dot${probs.length ? ' bad' : ''}" aria-hidden="true"></span><span><b>앱 상태</b><small>${esc(sum)}</small></span><span class="ops-chev" aria-hidden="true">${ICON.chev}</span></button>${body}</section>`;
+  }
+  const privacyN = () => S.ops && S.ops.privacy ? S.ops.privacy.due.length + S.ops.privacy.requests.length : 0;
+  function privacyCard() {
+    const P = S.ops && S.ops.privacy;
+    if (!P) return '';
+    const X = S.eraseAsk, unit = words().one, n = privacyN();
+    const ask = (f, req) => X !== f.id ? '' : `<div class="erase-ask"><p class="plain">${esc(f.name)}의 기도제목 내용, ${solo() ? '' : '자녀 이름, '}카카오 연결을 지워요. <b>되돌릴 수 없어요.</b> 기도제목 개수와 기도한 횟수만 남아요.</p>
+      ${req ? `<p class="hint">지우기 전에 "더보기 › ${solo() ? '내' : '우리 가정'} 기록 내려받기"를 한 번 권해 주세요.</p>` : ''}
+      <div class="actions"><button class="btn small danger" data-act="erasedo" data-v="${esc(f.id)}" data-n="${esc(f.name)}" ${S.busy ? 'disabled' : ''}>${esc(f.name)} 기록 지우기</button><button class="btn small ghost" data-act="eraseask" data-v="">그만두기</button></div></div>`;
+    const li = (f, why, req) => `<li><div><b>${esc(f.name)}</b><small>${why}</small>${ask(f, req)}</div>
+      ${X === f.id ? '' : f.id === S.month.me.familyId ? '<span class="hint">다른 관리자가 지워요</span>' : `<span class="foot-acts">${req ? '' : `<button class="link quiet" data-act="keepfam" data-v="${esc(f.id)}">1년 더 두기</button>`}<button class="link danger" data-act="eraseask" data-v="${esc(f.id)}">지우기</button></span>`}</li>`;
+    return `<section class="card"><h2>개인정보 요청${n ? ` <span class="ops-n">${n}</span>` : ''}</h2>
+      ${n ? `<ul class="staff-list">${P.requests.map(f => li(f, esc(f.at) + ' 기록 지우기 요청', true)).join('')}${P.due.map(f => li(f, `${monName(f.since)}부터 함께하지 않아요 · 1년이 지났어요${f.kept ? ' (한 번 더 둠)' : ''}`, false)).join('')}</ul>`
+        : '<p class="hint">지울 기록이 없어요.</p>'}
+      <p class="hint">떠난 지 1년이 된 ${unit}과 기록을 지워 달라고 한 ${unit}이 여기 올라와요. 저절로 지우지 않아요.${P.later ? ` 떠난 ${unit} ${P.later}곳은 1년이 되면 올라와요.` : ''}</p></section>`;
+  }
+  // 우리 가정 기록 내려받기: 해마다 탭 하나, 달마다 한 줄. "우리 가정만" 항목도 넣는다(우리 가정 것이라서)
+  async function myExportXlsx() {
+    const R = await api('myExport'), years = [...new Set(R.months.map(x => x.month.slice(0, 4)))];
+    if (!years.length) return toast('아직 내려받을 기도제목이 없어요.');
+    const tag = i => (i.scope === 'family' ? ' (' + words().only + ')' : i.scope === 'leader' ? ' (리더·목사님)' : i.scope === 'dept' ? '' : '') + (i.ended ? ' (마침)' : '');
+    const sheets = years.map(y => ({ month: y + '-01', tab: y + '년', head: '달', title: R.name + ' · ' + y + '년 기도제목',
+      rows: R.months.filter(x => x.month.startsWith(y)).map(x => ({ name: Number(x.month.slice(5)) + '월', lines: x.items.map(i => '[' + i.target + '] ' + i.text + tag(i)) })) }));
+    const url = URL.createObjectURL(xlsxBlob(sheets)), a = document.createElement('a');
+    a.href = url; a.download = R.name + ' 기도 기록.xlsx';
+    document.body.appendChild(a); a.click(); a.remove(); setTimeout(() => URL.revokeObjectURL(url), 10000);
+    track('내려받기', { range: 'mine' });
+    toast('엑셀 파일을 내려받았어요.');
   }
   // 분석 ① 우리 공동체(설계서 10장): 부서 단위 합계만. 가정 이름·가정별 숫자·순위는 없고, 사랑방은 늘 같은 순서
   //  색은 주 색 하나의 진하기로만 나누고 칸마다 숫자를 적어 색만으로 읽지 않게 한다
@@ -3385,6 +3662,14 @@ try { const p = JSON.parse(localStorage.getItem('koide-pref') || '{}'), d = docu
       case 'album': S.album = v; render(); return track('화면 보기', { screen: '한 해 앨범' });
       case 'albumclose': S.album = null; return render();
       case 'bigclose': S.bigView = null; render(); if (document.fullscreenElement) document.exitFullscreen().catch(() => {}); return;
+      case 'ivid': {
+        const w = words(), k = sceneKey(S.month.month), sc = SCENES[k], all = sc.props.length;
+        const art = staffMe() ? [] : [[2, 1, 0], [8, 3, 1], [15, 5, 3], [24, all, 5]].map(([hero, props, hearts]) => sceneSvg(k, { hero, props: Math.min(props, all), hearts }));
+        IntroVideo.open({ grp: grp(), one: w.one, mine: w.mine, solo: solo(), art, cta: '기도하기 시작',
+          onCta: () => { S.tab = 'pray'; render(); window.scrollTo(0, 0); },
+          onEvent: (e, at, n) => track(e === 'open' ? '화면 보기' : '소개 영상 닫음', e === 'open' ? { screen: '소개 영상' } : { scene: at, of: n }) });
+        return;
+      }
       case 'aboutgo':
         if (b.dataset.h) { S.histTab = b.dataset.h; S.sr = null; }
         S.tab = v; render(); window.scrollTo(0, 0);
@@ -3401,6 +3686,27 @@ try { const p = JSON.parse(localStorage.getItem('koide-pref') || '{}'), d = docu
       case 'tdtopic': S.tdTopic = v; return render();
       case 'tdmore': S.tdMore = !S.tdMore; return render();
       case 'tdrm': { const [t, w] = v.split('|'); if (confirm(t + '에서 "' + w + '"을(를) 뺄까요?')) topicWord(t, w, true); return; }
+      case 'opsopen': S.opsOpen = !(S.opsOpen !== undefined ? S.opsOpen : opsProblems().length > 0); return render();
+      case 'opsmonth': case 'opshand': case 'keepfam': case 'erasedo': {
+        const a = b.dataset.act;
+        if (a === 'erasedo' && !confirm(b.dataset.n + ' 기록을 지울까요? 되돌릴 수 없어요.')) return;
+        S.busy = true; render();
+        try {
+          S.ops = await api(a === 'opsmonth' ? 'openMonth' : a === 'opshand' ? 'handover' : a === 'keepfam' ? 'keepFamily' : 'eraseFamily', a === 'erasedo' ? { familyId: v, name: b.dataset.n } : { familyId: v });
+          toast(a === 'opsmonth' ? '이번 달로 모두 넘겼어요.' : a === 'opshand' ? '오늘 확인한 것으로 적었어요.' : a === 'keepfam' ? '1년 더 두었어요.' : '기록을 지웠어요.');
+          if (a === 'erasedo') { S.eraseAsk = null; S.pending = await api('pending'); S.month = await api('month'); }
+        } catch (err) { oops(err); }
+        S.busy = false; return render();
+      }
+      case 'eraseask': S.eraseAsk = v || null; return render();
+      case 'myexport': try { await myExportXlsx(); } catch (err) { oops(err.code === 'bad' ? { message: '서버를 새 버전으로 배포하면 내려받을 수 있어요.' } : err); } return;
+      case 'erasereq': case 'erasereqoff': {
+        const a = b.dataset.act;
+        if (a === 'erasereq' && !confirm(`${solo() ? '내' : '우리 가정'} 기록(기도제목, ${solo() ? '' : '자녀 이름, '}카카오 연결)을 지워 달라고 관리자에게 요청할까요?\n지우면 되돌릴 수 없고 이 앱에서도 빠져요. 먼저 기록을 내려받아 두면 좋아요.`)) return;
+        try { const r = await api(a === 'erasereq' ? 'eraseRequest' : 'eraseRequestCancel'); S.month.eraseReq = r.eraseReq; toast(r.eraseReq ? '관리자에게 요청했어요.' : '요청을 거두었어요.'); render(); }
+        catch (err) { oops(err.code === 'bad' ? { message: '서버를 새 버전으로 배포하면 요청할 수 있어요.' } : err); }
+        return;
+      }
       case 'admintab':
         S.adminTab = v; render();
         if (v === 'analysis') { track('화면 보기', { screen: '분석' }); loadAnalysis(); }
@@ -3411,7 +3717,7 @@ try { const p = JSON.parse(localStorage.getItem('koide-pref') || '{}'), d = docu
         S.tab = v; S.copied = null; render(); window.scrollTo(0, 0);
         if (v === 'history') { loadHist(S.hist && S.hist.month); track('화면 보기', { screen: '지난 기록' }); }
         if (v === 'status' || v === 'admin') { try { S.pending = await api('pending'); render(); } catch (err) { oops(err); } }
-        if (v === 'admin') { loadReorg(); if (S.adminTab === 'analysis') loadAnalysis(); }
+        if (v === 'admin') { loadReorg(); loadOps(); if (S.adminTab === 'analysis') loadAnalysis(); }
         return;
       case 'confirm': return save(() => api('confirmSame'), ok => ok && toast(staffMe() ? '이번 달도 그대로라고 표시했어요.' : '이번 달도 그대로라고 리더에게 알렸어요.'));
       case 'pray': {
