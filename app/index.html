@@ -4138,8 +4138,13 @@ try { const p = JSON.parse(localStorage.getItem('koide-pref') || '{}'), d = docu
     lastSig = sig;
     const t0 = performance.now(), y0 = scrollY;
     draw();
-    // 처음 들어온 사람에게 사용법 안내를 한 번(이번 달 화면이 그려진 뒤, 기도하는 중·모임·운영 화면이 아닐 때)
-    if (S.view === 'app' && S.tab === 'home' && !S.op && !S.grp && !S.ps && S.meet == null && !S.tourAsked && !tourSeen()) { S.tourAsked = true; setTimeout(() => { if (!Tour.isOpen() && S.view === 'app' && !S.ps) Tour.open(); }, 500); }
+    // 처음 들어온 사람에게 사용법 안내를 한 번(이번 달 화면이 그려진 뒤, 기도하는 중·모임·운영 화면이 아닐 때).
+    //  시작 화면(매듭이 지어지는 로고)을 가리지 않게, 시작 화면이 다 사라진 뒤 조금 있다가 띄운다
+    if (S.view === 'app' && S.tab === 'home' && !S.op && !S.grp && !S.ps && S.meet == null && !S.tourAsked && !tourSeen()) {
+      S.tourAsked = true;
+      const later = () => { if ($('#splash')) return setTimeout(later, 150); setTimeout(() => { if (!Tour.isOpen() && S.view === 'app' && S.tab === 'home' && !S.ps && S.meet == null) Tour.open(); else S.tourAsked = false; }, 400); };
+      later();
+    }
     // 같은 화면 안에서 다시 그릴 때(고르기, 펼치기 등)는 보던 자리를 지킨다. 화면을 통째로 바꾸면 위로 튀는 브라우저가 있다(아이폰 사파리).
     //  다른 화면으로 갈 때 맨 위로 올리는 것은 부르는 쪽이 그린 뒤에 한다
     if (!kind && S.view === 'app' && Math.abs(scrollY - y0) > 1) window.scrollTo(0, y0);
