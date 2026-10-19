@@ -1013,6 +1013,14 @@ body.pop-open { overflow: hidden; }
 .mrow > .ic, .mrow > .ops-chev { color: var(--ink-2); flex: none; }
 .mrow[aria-expanded="true"] .ops-chev { transform: rotate(180deg); }
 .mset { display: flex; flex-direction: column; gap: 12px; padding: .2em 0 .9em; }
+.chg-list { list-style: none; margin: 0; padding: 0; }
+.chg-list li { display: flex; flex-direction: column; gap: .1em; padding: .55em 0; border-top: 1px solid var(--line); font-size: .92em; }
+.chg-list li:first-child { border-top: 0; }
+.chg-list small { color: var(--ink-2); font-size: .85em; }
+.rs-links { list-style: none; margin: 0; padding: 0; }
+.rs-links li { display: flex; justify-content: space-between; align-items: center; gap: .6em; padding: .3em 0; }
+.rs-links small { color: var(--ink-2); }
+.ga-acts { flex-basis: 100%; margin-top: .4em; }
 .ch-grid { display: grid; gap: 12px; grid-template-columns: minmax(0, 1fr); }
 @media (min-width: 640px) { .ch-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
 .ch-dept { display: flex; flex-direction: column; gap: .4em; text-align: left; color: inherit; font: inherit; cursor: pointer; margin: 0; }
@@ -1425,6 +1433,8 @@ try { const p = JSON.parse(localStorage.getItem('koide-pref') || '{}'), d = docu
   const euro = w => { const c = w.charCodeAt(w.length - 1) - 0xAC00; return w + (c >= 0 && c < 11172 && c % 28 && c % 28 !== 8 ? '으로' : '로'); };
   // 기도 문장처럼 미리 적어 둔 글 속의 '사랑방'도 소그룹 이름으로
   const locG = x => typeof x === 'string' ? x.replace(/사랑방/g, grp()) : x;
+  // 고른 소그룹의 가정 목록을 받았는지(그 소그룹 초대 링크로 들어왔을 때만)
+  const roomListed = () => { const r = (S.rooms || []).find(x => x.id === S.pick.roomId); return !!(r && r.families); };
   function pickDept(id) { S.pick = { deptId: id }; S.rooms = S.depts.find(d => d.id === id).rooms; S.view = 'room'; }
 
   // ── 화면 ──
@@ -1489,12 +1499,20 @@ try { const p = JSON.parse(localStorage.getItem('koide-pref') || '{}'), d = docu
       <div class="choices">${(S.depts || []).map(d => `<button class="choice" data-act="pickdept" data-v="${esc(d.id)}">${esc(d.name)}</button>`).join('')}</div>`,
     room: () => `${steps(1)}<p class="eyebrow">${dept().name ? esc(dept().name) : '처음 한 번만 확인할게요'}</p><h1>어느 ${esc(grp())}인가요?</h1>
       <div class="choices">${(S.rooms || []).map(r => `<button class="choice" data-act="pickroom" data-v="${esc(r.id)}">${esc(r.name)}</button>`).join('')}</div>
-      ${(dept().staff || []).length ? '<button class="choice new" data-act="staffstart">목사님·장로님으로 들어가기</button>' : ''}
+      ${dept().hasStaff || (dept().staff || []).length ? '<button class="choice new" data-act="staffstart">목사님·장로님으로 들어가기</button>' : ''}
       ${S.depts && S.depts.length > 1 ? '<button class="link" data-act="back" data-v="dept">뒤로</button>' : ''}`,
     staffpick: () => `${steps(2)}<p class="eyebrow">${esc(dept().name || '')}</p><h1>어느 분이세요?</h1>
       <div class="choices">${(dept().staff || []).map(s => `<button class="choice" data-act="pickstaff" data-v="${esc(s.id)}">${esc(s.label)}<small class="choice-sub">${esc(s.name)}</small></button>`).join('')}</div>
       <p class="hint">목록에 없으면 부서 관리자에게 교역자 목록에 더해 달라고 해 주세요. 연결은 관리자가 승인해요.</p>
       <button class="link" data-act="back" data-v="room">뒤로</button>`,
+    // 이름 쓰기: 소그룹 초대 링크 없이 들어오면 가정 목록 대신 내 이름을 써서 찾는다(교인 명단을 보여 주지 않는다)
+    typename: () => { const r = S.rooms.find(x => x.id === S.pick.roomId) || {};
+      return `${steps(2)}<p class="eyebrow">${S.pick.staff ? esc(dept().name || '') + ' · 목사님·장로님' : esc(r.name || '')}</p><h1>내 이름을 써 주세요</h1>
+      <form data-form="typename"><input id="tn-a" class="field" required maxlength="10" autocomplete="name" aria-label="내 이름" value="${esc(S.pick.person || '')}">
+        <p class="hint">${S.pick.staff ? '교역자 목록에 있는 이름과 같게 써요.' : `${esc(grp())} 명단에 있는 이름과 같게 써요.${solo() ? '' : ' 가정이면 남편이나 아내 중 내 이름이에요.'}`} 다른 분들의 이름은 보이지 않아요.</p>
+        <button class="btn wide" type="submit" style="margin-top:12px">다음</button></form>
+      ${S.pick.staff ? '' : `<button class="choice new" data-act="newfam">${solo() ? '처음 왔어요 · 새로 신청' : '새로 온 가정이에요 · 새 가정 신청'}</button>`}
+      <button class="link" data-act="back" data-v="room">뒤로</button>`; },
     family: () => { const r = S.rooms.find(x => x.id === S.pick.roomId);
       return `${steps(2)}<p class="eyebrow">${esc(r.name)}</p><h1>${solo() ? '내 이름을 골라 주세요' : '우리 가정을 골라 주세요'}</h1>
       <div class="choices">${r.families.map(f => `<button class="choice" data-act="pickfam" data-v="${esc(f.id)}">${esc(f.name)}</button>`).join('')}
@@ -1505,17 +1523,17 @@ try { const p = JSON.parse(localStorage.getItem('koide-pref') || '{}'), d = docu
       <div class="choices">${f.name.split(' · ').map(n => `<button class="choice" data-act="pickwho" data-v="${esc(n)}">${esc(n)}</button>`).join('')}</div>
       <p class="hint">우리 가정 안에서 누가 고쳤는지 보여 줄 때 써요.</p>
       <button class="link" data-act="back" data-v="${S.pick.staff ? 'staffpick' : 'family'}">뒤로</button>`; },
-    consent: () => `${steps(4)}<p class="eyebrow">${S.pick.newFamily ? (solo() ? '새로 왔어요' : '새 가정 신청') : solo() ? esc(S.pick.person) : famWho(famPicked().name, S.pick.person)}</p><h1>기도제목은 이렇게 지켜요</h1>
+    consent: () => `${steps(4)}<p class="eyebrow">${S.pick.newFamily ? (solo() ? '새로 왔어요' : '새 가정 신청') : S.pick.byName || solo() ? esc(S.pick.person) : famWho(famPicked().name, S.pick.person)}</p><h1>기도제목은 이렇게 지켜요</h1>
       ${consentList()}
       <button class="btn wide" data-act="request" ${S.busy ? 'disabled' : ''}>동의하고 연결 요청</button>
       <p class="hint">동의하지 않으면 앱을 쓸 수 없어요. 궁금한 점은 리더나 목사님께 물어봐 주세요.</p>
-      <button class="link" data-act="back" data-v="${S.pick.newFamily ? 'newfam' : 'who'}">뒤로</button>`,
+      <button class="link" data-act="back" data-v="${S.pick.newFamily ? 'newfam' : S.pick.byName ? 'typename' : 'who'}">뒤로</button>`,
     newfam: () => solo() ? `${steps(2)}<p class="eyebrow">새로 왔어요</p><h1>이름을 알려 주세요</h1>
       <form data-form="newfam">
         <label class="f" for="nf-a">이름</label><input id="nf-a" class="field" required maxlength="10" value="${esc((S.pick.newFamily || {}).a || '')}">
         <p class="hint">신청하면 리더가 확인한 뒤 승인해요.</p>
         <button class="btn wide" type="submit" style="margin-top:12px">다음</button></form>
-      <button class="link" data-act="back" data-v="family">뒤로</button>`
+      <button class="link" data-act="back" data-v="${roomListed() ? 'family' : 'typename'}">뒤로</button>`
       : `${steps(2)}<p class="eyebrow">새 가정 신청</p><h1>우리 가정을 알려 주세요</h1>
       <form data-form="newfam">
         <label class="f" for="nf-a">남편 또는 본인 이름</label><input id="nf-a" class="field" required maxlength="10" value="${esc((S.pick.newFamily || {}).a || '')}">
@@ -1523,7 +1541,7 @@ try { const p = JSON.parse(localStorage.getItem('koide-pref') || '{}'), d = docu
         <label class="f" for="nf-k">자녀 이름 · 선택, 쉼표로 구분</label><input id="nf-k" class="field" maxlength="40" value="${esc((S.pick.newFamily || {}).kids || '')}">
         <p class="hint">신청하면 리더가 확인한 뒤 승인해요. 배우자는 나중에 각자 카카오로 연결하면 돼요.</p>
         <button class="btn wide" type="submit" style="margin-top:12px">다음</button></form>
-      <button class="link" data-act="back" data-v="family">뒤로</button>`,
+      <button class="link" data-act="back" data-v="${roomListed() ? 'family' : 'typename'}">뒤로</button>`,
     wait: () => `${steps(4)}<p class="eyebrow">${esc(S.me.familyName || '')}</p><h1>연결을 요청했어요</h1>
       <p>${S.me.familyName && S.me.familyName !== S.me.link.person ? `${esc(S.me.link.person)} 님의 카카오 계정을 <b>${esc(S.me.familyName)}</b>에 연결해 달라고` : `${esc(S.me.link.person)} 님의 카카오 계정을 연결해 달라고`} ${S.me.staff ? '부서 관리자' : '리더'}에게 보냈어요. 승인되면 바로 열려요.</p>
       <div class="wait">${S.me.staff ? '관리자' : '리더'}가 확인하고 있어요</div>
@@ -3351,6 +3369,7 @@ try { const p = JSON.parse(localStorage.getItem('koide-pref') || '{}'), d = docu
       ops: [
         opsProblems().length ? '' : `<div class="fold ops-fold">${opsCard().replace(/^\s*<section[^>]*>/, '').replace(/<\/section>\s*$/, '')}</div>`,
         privacyN() ? '' : fold('privacy', '개인정보 요청', O ? (O.privacy.later ? `떠난 ${words().one} ${O.privacy.later}곳 · 1년이 되면 올라와요` : '지울 기록이 없어요') : '불러오는 중…', privacyCard()),
+        fold('changes', '변경 기록', '누가 언제 무엇을 바꿨는지', changesCard(false)),
         fbNew() ? '' : fold('feedback', '의견함', O ? (O.feedback.length ? `받은 의견 ${O.feedback.length}` : '아직 없어요') : '불러오는 중…', feedbackCard()),
       ],
       set: [
@@ -3432,6 +3451,7 @@ try { const p = JSON.parse(localStorage.getItem('koide-pref') || '{}'), d = docu
         ${groupsAllCard()}
       </div><div class="col side">
         ${opsAdminCard()}${deptCard()}
+        <section class="card mrows folds">${fold('chgall', '변경 기록', '모든 부서 · 누가 언제 무엇을 바꿨는지', changesCard(true))}</section>
       </div></div>`;
   }
   // ── 자율 모임 (설계서 13장): 회원 누구나 만드는 모임. 한 모임 12명, 한 사람 세 곳(원래 소그룹 포함), 모임장은 한 모임만 ──
@@ -3484,11 +3504,27 @@ try { const p = JSON.parse(localStorage.getItem('koide-pref') || '{}'), d = docu
   }
   // 관리자·운영 관리자·교역자: 교회 안 모임 목록(이름, 모임장, 사람 수). 기도제목은 보이지 않는다
   async function loadGroupsAll() { try { S.gAll = await api('groups'); } catch (e) { S.gAll = { err: e.code === 'bad' ? '서버를 새 버전으로 배포하면 볼 수 있어요.' : e.message }; } render(); }
+  // 변경 기록(부서 관리자: 우리 부서, 전체 관리자: 교회 전체). 최근 것부터 20줄씩
+  async function loadChanges(all) { try { S.chg = await api('changes', all ? { all: true } : {}); } catch (e) { S.chg = { err: e.code === 'bad' ? '서버를 새 버전으로 배포하면 볼 수 있어요.' : e.message }; } render(); }
+  function changesCard(all) {
+    const L = S.chg;
+    if (!L) return `<section class="card"><h2>변경 기록</h2><p class="hint">불러오는 중…</p></section>`;
+    if (L.err) return `<section class="card"><h2>변경 기록</h2><p class="hint">${esc(L.err)}</p></section>`;
+    const n = S.chgN || 20, list = L.slice(0, n);
+    return `<section class="card"><h2>변경 기록</h2>
+      ${list.length ? `<ul class="chg-list">${list.map(x => `<li><small>${opsWhen(x.at)}${all && x.dept ? ' · ' + esc(x.dept) : ''}</small>
+        <span><b>${esc(x.kind)}</b>${x.target ? ' ' + esc(x.target) : ''}${x.extra ? ` <small>(${esc(x.extra)})</small>` : ''}</span><small>${esc(x.who)}${x.role ? ' · ' + esc(x.role) : ''}</small></li>`).join('')}</ul>` : '<p class="hint">아직 기록이 없어요.</p>'}
+      ${L.length > n ? `<button class="link" data-act="chgmore">${L.length - n}개 더 보기</button>` : ''}
+      <p class="hint">누가 언제 무엇을 바꿨는지 남아요. 기도제목 내용은 남기지 않아요. 1년 1개월 뒤에 지워요.</p></section>`;
+  }
   function groupsAllCard() {
     const L = S.gAll;
     if (!L) return '';
     return `<section class="card"><h2>교회 안 모임</h2>
-      ${L.err ? `<p class="hint">${esc(L.err)}</p>` : L.length ? `<ul class="staff-list">${L.map(g => `<li><div><b>${esc(g.name)}</b><small>모임장 ${esc(g.lead)} · ${g.n}명 · ${esc(g.at)} 만듦</small></div></li>`).join('')}</ul>` : '<p class="hint">아직 만든 모임이 없어요.</p>'}
+      ${L.err ? `<p class="hint">${esc(L.err)}</p>` : L.length ? `<ul class="staff-list">${L.map(g => `<li><div><b>${esc(g.name)}</b><small>모임장 ${esc(g.lead || '없음')} · ${g.n}명 · ${esc(g.at)} 만듦</small>
+          ${g.people && S.gaSel === g.id ? `<div class="rs-acts ga-acts"><div class="kid-form"><select id="ga-lead" class="field" aria-label="새 모임장">${g.people.map(m => `<option value="${esc(m.id)}"${m.lead ? ' selected' : ''}>${esc(m.person)}${m.lead ? ' (지금 모임장)' : ''}</option>`).join('')}</select><button class="btn small ghost" data-act="galead" data-v="${esc(g.id)}" ${S.busy ? 'disabled' : ''}>모임장 바꾸기</button></div>
+            <button class="link danger" data-act="gaclose" data-v="${esc(g.id)}" data-n="${esc(g.name)}">모임 닫기</button></div>` : ''}</div>
+        ${g.people && S.gaSel !== g.id ? `<span class="foot-acts"><button class="link quiet" data-act="gasel" data-v="${esc(g.id)}">관리</button></span>` : ''}</li>`).join('')}</ul>` : '<p class="hint">아직 만든 모임이 없어요.</p>'}
       <p class="hint">회원 누구나 만드는 모임이에요. 이름과 사람 수만 보이고 기도제목은 보이지 않아요.</p></section>`;
   }
   // ── 운영 관리자 (설계서 13장): 맡은 부서를 가정 없이 꾸린다. 운영 화면에서는 관리 탭만 열고, 서버는 기도제목 내용을 보내지 않는다 ──
@@ -3579,6 +3615,7 @@ try { const p = JSON.parse(localStorage.getItem('koide-pref') || '{}'), d = docu
         <div class="set-row"><div><p class="label" style="margin:0">부서 관리자</p><p class="hint" style="margin:.2em 0 0">이 관리 화면을 함께 열어요.</p></div>
           <button type="button" class="switch${p.admin ? ' on' : ''}" role="switch" aria-checked="${p.admin}" aria-label="부서 관리자" data-act="rsadmin" ${S.busy || (p.admin && p.id === me.familyId) ? 'disabled' : ''}><span></span></button></div>
         ${R.rooms.length > 1 ? `<div class="kid-form"><select id="rs-move" class="field" aria-label="옮길 ${esc(grp())}">${R.rooms.filter(x => x.id !== r.id).map(x => `<option value="${esc(x.id)}">${esc(x.name)}</option>`).join('')}</select><button class="btn small ghost" data-act="rsmove" ${S.busy ? 'disabled' : ''}>옮기기</button></div>` : ''}
+        <p class="label">연결된 카카오</p>${p.links && p.links.length ? `<ul class="rs-links">${p.links.map(l => `<li><span>${esc(l.person)} <small>카카오 "${esc(l.nick)}" · ${esc(l.since)}</small></span>${l.me ? '<small>나</small>' : `<button class="link danger" data-act="rsunlink" data-v="${esc(l.kakaoId)}" data-n="${esc(l.person)}">해제</button>`}</li>`).join('')}</ul>` : '<p class="hint" style="margin:0">아직 연결 없음</p>'}
         ${p.id === me.familyId ? '' : `<button class="link danger" data-act="rsleave" data-n="${esc(p.name)}">${esc(R.term)}년 편성에서 빼기 (떠남)</button>`}</div>`;
     const room = r => {
       const on = !!open[r.id], E = S.rostEdit && S.rostEdit.roomId === r.id ? S.rostEdit : null;
@@ -3600,7 +3637,7 @@ try { const p = JSON.parse(localStorage.getItem('koide-pref') || '{}'), d = docu
   }
   // ── 관리 › 운영 (설계서 S7): ① 앱 상태 ② 개인정보 요청. 할 일이 있는 카드만 관리 탭 위로 올라온다 ──
   //  NEED_SERVER: 이 화면이 바라는 서버 버전(서버 VERSION 앞 날짜). 서버 코드를 고쳐 배포해야 하는 기능을 넣을 때 함께 올린다
-  const NEED_SERVER = '2026-10-27';
+  const NEED_SERVER = '2026-10-28';
   const DOC = 'https://github.com/kwjgl/pray-for/blob/main/docs/';
   async function loadOps() { try { S.ops = await api('ops'); S.opsErr = null; } catch (e) { S.ops = null; S.opsErr = e.code === 'bad' ? 'old' : e.code === 'forbidden' ? null : e.message; S.opsWhy = e.message || ''; } render(); }
   const opsWhen = iso => { const d = new Date(iso); return isNaN(d) ? '' : `${d.getMonth() + 1}월 ${d.getDate()}일 ${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`; };
@@ -3881,7 +3918,7 @@ try { const p = JSON.parse(localStorage.getItem('koide-pref') || '{}'), d = docu
       ${menu}</div>`;
   }
   // 첫 접속 단계마다 들어온 것을 남긴다(어디서 그만두는지 보려고). 연결이 되어 앱 화면에 처음 들어오면 마친 것
-  const ONBOARD = ['login', 'dept', 'room', 'staffpick', 'family', 'who', 'newfam', 'consent', 'wait'];
+  const ONBOARD = ['login', 'dept', 'room', 'staffpick', 'typename', 'family', 'who', 'newfam', 'consent', 'wait'];
   let lastView = null;
   function trackView(v) {
     if (v === lastView) return;
@@ -4100,20 +4137,25 @@ try { const p = JSON.parse(localStorage.getItem('koide-pref') || '{}'), d = docu
       case 'a2hsopen': S.a2hs = true; return render();
       case 'a2hshide': S.a2hs = false; return render();
       case 'a2hsinstall': if (installAsk) { installAsk.prompt(); const r = await installAsk.userChoice; installAsk = null; if (r.outcome === 'accepted') S.a2hs = false; render(); } return;
-      case 'pickroom': S.pick = { deptId: S.pick.deptId, roomId: v }; S.view = 'family'; return render();
+      case 'pickroom': S.pick = { deptId: S.pick.deptId, roomId: v }; S.view = roomListed() ? 'family' : 'typename'; return render();
       case 'pickfam': { S.pick.familyId = v; const ps = famPicked().name.split(' · '); if (ps.length > 1) S.view = 'who'; else { S.pick.person = ps[0]; S.view = 'consent'; } return render(); }
       case 'pickwho': S.pick.person = v; S.view = 'consent'; return render();
       case 'newfam': S.view = 'newfam'; return render();
       case 'back': S.view = v; if (v === 'who' && famPicked().name.indexOf(' · ') < 0) S.view = S.pick.staff ? 'staffpick' : 'family'; if (v === 'room') delete S.pick.staff; return render();
-      case 'staffstart': S.pick = { deptId: S.pick.deptId, staff: true }; S.view = 'staffpick'; return render();
+      case 'staffstart': S.pick = { deptId: S.pick.deptId, staff: true }; S.view = 'typename'; return render();
       case 'pickstaff': { S.pick.familyId = v; const ps = famPicked().name.split(' · '); if (ps.length > 1) S.view = 'who'; else { S.pick.person = ps[0]; S.view = 'consent'; } return render(); }
       case 'request': {
         S.busy = true; render();
         try {
-          S.me = await api('requestLink', S.pick.newFamily ? { newFamily: S.pick.newFamily, roomId: S.pick.roomId } : { familyId: S.pick.familyId, person: S.pick.person });
+          S.me = await api('requestLink', S.pick.newFamily ? { newFamily: S.pick.newFamily, roomId: S.pick.roomId }
+            : S.pick.byName ? { byName: true, person: S.pick.person, roomId: S.pick.roomId, staff: !!S.pick.staff, deptId: S.pick.deptId } : { familyId: S.pick.familyId, person: S.pick.person });
           S.view = S.me.link && S.me.link.status === '연결' ? 'app' : 'wait';
           if (S.view === 'app') await loadMonth();
-        } catch (err) { oops(err); }
+        } catch (err) {
+          // 이름을 찾지 못했으면: 소그룹은 새로 온 사람 신청으로(이름을 채워서), 교역자는 이름 쓰기로 돌아간다
+          if (err.code === 'notfound') { toast(err.message); S.pick.byName = false; if (!S.pick.staff) S.pick.newFamily = { a: S.pick.person }; S.view = S.pick.staff ? 'typename' : 'newfam'; }
+          else oops(err);
+        }
         S.busy = false; return render();
       }
       case 'bigview': {
@@ -4180,7 +4222,21 @@ try { const p = JSON.parse(localStorage.getItem('koide-pref') || '{}'), d = docu
         } catch (err) { oops(err); }
         S.busy = false; return render();
       }
-      case 'fold': S.fold = Object.assign({}, S.fold, { [v]: !(S.fold || {})[v] }); return render();
+      case 'fold': S.fold = Object.assign({}, S.fold, { [v]: !(S.fold || {})[v] }); render();
+        if ((v === 'changes' || v === 'chgall') && S.fold[v]) { S.chg = null; S.chgN = 20; render(); loadChanges(v === 'chgall'); }
+        return;
+      case 'chgmore': S.chgN = (S.chgN || 20) + 40; return render();
+      case 'rsunlink': if (!confirm(b.dataset.n + ' 님의 카카오 연결을 해제할까요? 휴대폰을 잃어버렸거나 잘못 고른 경우에만 해제해요.')) return; return rosterDo({ op: 'unlink', familyId: S.rostSel, kakaoId: v }, '연결을 해제했어요.');
+      case 'gasel': S.gaSel = v; return render();
+      case 'galead': case 'gaclose': {
+        const a = b.dataset.act, to = ($('#ga-lead') || {}).value;
+        if (a === 'gaclose' && !confirm(`"${b.dataset.n}" 모임을 닫을까요? 모임 사람들은 더 이상 이 모임을 열 수 없어요. 기록은 남아요.`)) return;
+        S.busy = true; render();
+        try { const L = await api('groupAdmin', a === 'galead' ? { op: 'lead', id: v, memberId: to } : { op: 'close', id: v });
+          S.gAll = L; if (S.church) S.church.groups = L; S.gaSel = null; toast(a === 'galead' ? '모임장을 바꿨어요.' : '모임을 닫았어요.'); }
+        catch (err) { oops(err); }
+        S.busy = false; return render();
+      }
       case 'gopen': S.menu = null; return enterGroup(v);
       case 'gback': S.menu = null; return leaveGroupView();
       case 'gnew': S.gNew = true; render(); { const f = $('[data-form="gcreate"] .field'); if (f) f.focus(); } return;
@@ -4541,6 +4597,10 @@ try { const p = JSON.parse(localStorage.getItem('koide-pref') || '{}'), d = docu
       keepStaff(); const E = S.staffEdit; S.busy = true; render();
       try { S.pending = await api('saveStaff', { familyId: E.familyId, a: E.a, b: E.b, title: E.title || STAFF_TITLES[0], label: E.label, serve: E.serve !== false }); S.staffEdit = null; toast('교역자를 저장했어요.'); } catch (err) { oops(err); }
       S.busy = false; return render();
+    }
+    if (f.dataset.form === 'typename') {
+      const n = ($('#tn-a') || {}).value.trim(); if (!n) return;
+      S.pick.person = n; S.pick.byName = true; delete S.pick.newFamily; S.view = 'consent'; return render();
     }
     if (f.dataset.form === 'newfam') {
       const val = id => { const x = $(id); return x ? x.value.trim() : ''; };
