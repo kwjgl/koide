@@ -55,7 +55,7 @@ const FIRST_DEPT = { id: 'D1', name: '청장년부', group: '사랑방', unit: '
 // ── 요청 받기 ─────────────────────────────────────────────
 
 // 서버 코드를 고칠 때마다 바꾼다. 웹 앱 주소를 열면 보여서, 새 버전으로 배포됐는지 확인할 수 있다
-const VERSION = '2026-10-19 목사님 지난 기록';
+const VERSION = '2026-10-19 분석 탭 ②';
 function doGet() {
   return ContentService.createTextOutput('코이데 서버가 켜져 있어요. (버전: ' + VERSION + ')');
 }
@@ -779,7 +779,56 @@ function analysisView_(c) {
       unreached: rooms.filter(r => now.some(x => x.roomId === r.id && !reached[x.familyId])).length, day: Number(today_().slice(8)) },
     weeks,
     rooms: rooms.map(r => ({ name: r.name, vals: months.map(mm => { const f = famsAt(mm).filter(x => x.roomId === r.id).map(x => x.familyId); return pct(f.filter(id => done(id, mm)).length, f.length); }) })),
-    time
+    time,
+    app: appStats_(m, seen)
+  };
+}
+
+// ── 분석 ② 앱 개선 (만드는 쪽, 설계서 10장) ─────────────────────
+// 교회 전체 합계만. 사용기록(기기ID는 무작위 값)과 '그달 들어온 가정'(seen)으로 센다. 이름·가정ID·기도제목은 내보내지 않는다
+//  - 계속 쓰기: 처음 들어온 달별로 1·2·3개월 뒤에도 들어온 가정 %. 최근 6개월 중 새로 들어온 가정이 있는 달만, 최근 4개
+//  - 첫 접속: 최근 90일, 단계마다 도착한 기기 수(뒤 단계에 간 기기는 앞 단계에도 센다)
+//  - 기능 사용·쓰는 환경: 이번 달 앱을 연 기기 중 %
+//  - 기도하기 한 번: 이번 달 마친 기도하기의 평균
+const FUNNEL_ = [['login', '로그인 화면', ['login']], ['room', '부서·사랑방 고르기', ['dept', 'room', 'staffpick']], ['family', '가정 고르기', ['family', 'who', 'newfam']],
+  ['consent', '동의', ['consent']], ['wait', '리더 승인 기다림', ['wait']], ['app', '연결 완료', ['app']], ['save', '첫 기도제목 저장', []]];
+function appStats_(m, seen) {
+  const pct = (k, n) => n ? Math.round(k / n * 100) : null;
+  const addM = (mm, k) => { const [y, mo] = mm.split('-').map(Number), t = y * 12 + mo - 1 + k; return Math.floor(t / 12) + '-' + String(t % 12 + 1).padStart(2, '0'); };
+  // 계속 쓰기: seen 열쇠는 '가정ID|달'
+  const first = {}, by = {};
+  Object.keys(seen).forEach(k => { const [f, mm] = k.split('|'); (by[f] = by[f] || {})[mm] = true; if (!first[f] || mm < first[f]) first[f] = mm; });
+  const cohorts = [0, 1, 2, 3, 4, 5].map(k => addM(m, k - 5)).map(cm => {
+    const fs = Object.keys(first).filter(f => first[f] === cm);
+    return { month: cm, n: fs.length, vals: [0, 1, 2, 3].map(k => addM(cm, k) > m ? null : pct(fs.filter(f => by[f][addM(cm, k)]).length, fs.length)) };
+  }).filter(c => c.n).slice(-4);
+  const rows = read_('usage').map(u => { let d = {}; try { d = JSON.parse(u.data || '{}'); } catch (e) { /* 깨진 줄은 비워 둔다 */ } return { at: u.at, device: u.device, event: u.event, d }; });
+  // 첫 접속: 최근 90일
+  const since = fmtDate_(new Date(Date.now() - 90 * 864e5)), steps = {}, linked = {};
+  rows.filter(u => fmtDate_(u.at) >= since && u.event === '첫접속 단계').forEach(u => {
+    const i = FUNNEL_.findIndex(s => s[2].indexOf(u.d.step) >= 0);
+    if (i < 0) return;
+    steps[u.device] = Math.max(steps[u.device] === undefined ? -1 : steps[u.device], i);
+    if (u.d.step === 'app' && !linked[u.device]) linked[u.device] = u.at;
+  });
+  rows.forEach(u => { if (u.event === '기도제목 저장' && linked[u.device] && u.at >= linked[u.device]) steps[u.device] = FUNNEL_.length - 1; });
+  const funnel = FUNNEL_.map((s, i) => ({ label: s[1], n: Object.keys(steps).filter(d => steps[d] >= i).length }));
+  // 이번 달: 앱을 연 기기(열기)마다 마지막 열기 값
+  const now = rows.filter(u => fmtMonth_(u.at) === m), opened = {}, used = {};
+  now.forEach(u => { if (u.event === '열기') opened[u.device] = u.d; });
+  const devs = Object.keys(opened), N = devs.length;
+  const FEATS = [['기도하기', u => u.event === '기도하기 시작'], ['기도제목 저장', u => u.event === '기도제목 저장'], ['카톡 글 붙여 넣기', u => u.event === '기도제목 저장' && u.d.split === true],
+    ['표 보기', u => u.event === '화면 보기' && u.d.screen === '표'], ['지난 기록', u => u.event === '화면 보기' && u.d.screen === '지난 기록'], ['모임 모드', u => u.event === '모임 모드 시작'], ['엑셀 내려받기', u => u.event === '내려받기']];
+  now.forEach(u => FEATS.forEach(([l, hit]) => { if (hit(u)) (used[l] = used[l] || {})[u.device] = true; }));
+  const ends = now.filter(u => u.event === '기도하기 마침'), starts = now.filter(u => u.event === '기도하기 시작');
+  const avg = k => ends.length ? Math.round(ends.reduce((a, u) => a + (Number(u.d[k]) || 0), 0) / ends.length * 10) / 10 : null;
+  const env = hit => pct(devs.filter(d => hit(opened[d])).length, N);
+  return {
+    cohorts, funnel, devices: N,
+    features: FEATS.map(([l]) => ({ label: l, pct: pct(devs.filter(d => used[l] && used[l][d]).length, N) })),
+    pray: { n: ends.length, done: pct(ends.filter(u => u.d.early === false).length, ends.length), seen: avg('seen'), mins: avg('mins'),
+      music: pct(starts.filter(u => u.d.music === true).length, starts.length), flow: pct(starts.filter(u => u.d.flow === true).length, starts.length) },
+    env: { phone: env(d => d.width === 'phone'), tablet: env(d => d.width === 'tablet'), pc: env(d => d.width === 'pc'), app: env(d => d.app === true), dark: env(d => d.mode === 'dark'), big: env(d => d.big === true) }
   };
 }
 
@@ -882,6 +931,32 @@ function sampleData() {
     }
   }
   appendMany_('prayers', plist);
+  // 분석 ② 예시: 지어낸 기기 24대의 사용기록(기기ID가 sample로 시작해서 clearSampleData가 지운다). 첫 접속 단계는 몇 대가 중간에 멈추게
+  const ulist = [], ev = (at, device, event, d) => ulist.push({ at, device, deptId: d1, event, data: JSON.stringify(d) });
+  for (let n = 0; n < 24; n++) {
+    const device = 'sample' + String(n).padStart(4, '0'), d0 = 10 + Math.floor(rnd() * 70), w = rnd();
+    const envD = { role: '회원', width: w < .8 ? 'phone' : w < .88 ? 'tablet' : 'pc', style: 'basic', group: '사랑방', big: rnd() < .1, mode: rnd() < .2 ? 'dark' : 'auto', app: rnd() < .4 };
+    // 첫날의 쓰기는 연결(at(d0, 0)) 뒤에 한 것으로 3.5시간 늦춘다
+    const at = (d, hh) => new Date(Date.now() - d * 864e5 - (hh || 0) * 36e5), t = (d, hh) => at(d, d === d0 ? hh - 3.5 : hh);
+    let reach = 0; while (reach < 6 && rnd() < .93) reach++;
+    ['login', 'room', 'family', 'consent', 'wait'].slice(0, reach).forEach((step, i) => ev(at(d0, 5 - i), device, '첫접속 단계', { step, done: false }));
+    if (reach < 6) continue;
+    ev(at(d0, 0), device, '첫접속 단계', { step: 'app', done: true });
+    const saver = rnd() < .8;
+    for (let d = d0; d >= 1; d--) {
+      if (d < d0 && rnd() > .25) continue;
+      ev(t(d, 3), device, '열기', envD);
+      if (saver && (d === d0 || rnd() < .08)) ev(t(d, 2.5), device, '기도제목 저장', { items: 1 + Math.floor(rnd() * 3), split: rnd() < .3 });
+      if (rnd() < .5) { const cards = 4 + Math.floor(rnd() * 4), seenN = rnd() < .8 ? cards : 1 + Math.floor(rnd() * (cards - 1)), music = rnd() < .35;
+        ev(t(d, 2), device, '기도하기 시작', { kinds: 'room', cards, secs: 60, music, flow: rnd() < .3 });
+        ev(t(d, 1.9), device, '기도하기 마침', { kinds: 'room', cards, seen: seenN, mins: Math.round((2 + rnd() * 8) * 10) / 10, music, early: seenN < cards }); }
+      if (rnd() < .15) ev(t(d, 1.5), device, '화면 보기', { screen: '표' });
+      if (rnd() < .1) ev(t(d, 1.4), device, '화면 보기', { screen: '지난 기록' });
+      if (rnd() < .04) ev(t(d, 1.3), device, '모임 모드 시작', { cards: 6 });
+      if (rnd() < .02) ev(t(d, 1.2), device, '내려받기', { range: 'this' });
+    }
+  }
+  appendMany_('usage', ulist);
   // 섬기는 분들(청장년부): 목사님 부부와 담당 장로님. 지어낸 이름
   append_('families', { id: 'S1', name: '한기쁨 · 서평안', kids: '은솔', status: '교역자', admin: '' });
   append_('staff', { familyId: 'S1', deptId: d1, label: '목사님 부부', title: '목사님', serve: '예', status: '활동', endedAt: '' });
@@ -910,6 +985,7 @@ function clearSampleData() {
     del('items', mine); del('roster', mine); del('monthly', mine); del('posts', mine); del('links', mine); del('visits', mine);
     del('prayers', p => mine(p) || ids.indexOf(p.by) >= 0);
     del('staff', mine);
+    del('usage', u => /^sample\d{4}$/.test(String(u.device)));
     del('families', f => ids.indexOf(f.id) >= 0);
     del('rooms', r => ['R1', 'R2', 'R3', 'R4'].indexOf(r.id) >= 0 && !read_('roster').some(x => x.roomId === r.id));
     if (admins.length) PropertiesService.getScriptProperties().setProperty('NEXT_ADMIN', admins.join(','));

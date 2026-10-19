@@ -450,6 +450,17 @@ h3 { font-size: 1.02em; font-weight: 600; margin: 0; }
 .an-heat td { text-align: center; padding: .55em .2em; border-radius: 4px; color: var(--ink); min-width: 2.2em; }
 .an-heat td[data-dark] { color: var(--on-accent); font-weight: 600; }
 .an-heat td.an-na { background: transparent; color: var(--ink-2); }
+.an-heat tbody th small { display: block; font-weight: 400; font-size: .85em; }
+.an-head { margin: 22px 2px 10px !important; display: flex; align-items: baseline; gap: .6em; }
+.an-sub { margin-top: .4em !important; padding-top: .9em; border-top: 1px solid var(--line); }
+.an-hbars { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: .45em; font-size: .86em; }
+.an-hbars li { display: grid; grid-template-columns: minmax(6.5em, 38%) 1fr 2.6em; align-items: center; gap: .6em; }
+.an-hbars .an-l { color: var(--ink-2); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.an-track { height: 10px; background: var(--surface-2); border-radius: 0 4px 4px 0; }
+.an-fill { display: block; height: 100%; background: var(--accent); border-radius: 0 4px 4px 0; }
+.an-hbars b { text-align: right; font-variant-numeric: tabular-nums; font-weight: 600; }
+.an-tiles { grid-template-columns: repeat(3, 1fr); row-gap: 12px; }
+.an-tiles .stat b { font-size: 1.3em; }
 .seg2 { display: grid; grid-template-columns: repeat(2, 1fr); gap: 3px; padding: 3px; background: var(--surface-2); border-radius: 10px; border: 1px solid var(--line); }
 .seg2 button { font-size: .8em; border: 0; border-radius: 8px; padding: .3em 1em; min-height: 34px; background: transparent; color: var(--ink-2); cursor: pointer; }
 .seg2 button.on { background: var(--surface); color: var(--ink); font-weight: 600; box-shadow: 0 1px 3px var(--shadow); }
@@ -2379,6 +2390,31 @@ try { const p = JSON.parse(localStorage.getItem('koide-pref') || '{}'), d = docu
       <section class="card an-sec"><p class="label">기도하는 때 <small class="hint">"기도했어요" 수 · 최근 4주</small></p>
         ${tsum ? `<div class="an-scroll"><table class="an-heat an-time"><thead><tr><th></th>${AN_SLOT.map(x => `<th scope="col">${x}</th>`).join('')}</tr></thead><tbody>${timeRows}</tbody></table></div>` : '<p class="hint">최근 4주에 누른 "기도했어요"가 아직 없어요.</p>'}
         <p class="hint">새벽 5~9시 · 오전 9~12시 · 오후 12~18시 · 저녁 18~22시 · 밤 22시~. 나중에 기도 알림 시간을 정할 때 써요.</p></section>
+    </div></div>${appStatsView(A.app)}`;
+  }
+  // 분석 ② 앱 개선(만드는 쪽): 교회 전체 합계. 계속 쓰는지, 어디서 막히는지, 무엇을 쓰는지
+  function appStatsView(P) {
+    if (!P) return '';
+    const mon = mm => Number(mm.slice(5)) + '월', na = v => v == null ? '·' : v;
+    const cohort = P.cohorts.map(c => `<tr><th scope="row">${mon(c.month)}<small>${c.n}${words().count}</small></th>${c.vals.map((v, i) => v == null || !c.n ? '<td class="an-na">·</td>' : `<td ${heatAttr(Math.max(0, v - 40), 60)} title="${mon(c.month)}에 처음 들어온 ${c.n}${words().count} 중 ${i ? i + '개월 뒤' : '처음 달'} ${v}%">${v}</td>`).join('')}</tr>`).join('');
+    const hbars = (rows, max, unit) => rows.map(r => `<li><span class="an-l">${esc(r.label)}</span><span class="an-track"><span class="an-fill" style="width:${max ? ((r.v || 0) / max * 100).toFixed(1) : 0}%"></span></span><b>${na(r.v)}${r.v == null ? '' : unit}</b></li>`).join('');
+    const f0 = P.funnel[0].n, tile = (v, l) => `<div class="stat"><b>${v}</b><span>${l}</span></div>`, pc = v => v == null ? '·' : v + '%';
+    return `<h2 class="section-title an-head">앱 개선 <small class="hint">만드는 쪽 · 교회 전체 합계</small></h2>
+    <div class="an-grid"><div class="an-side">
+      <section class="card an-sec"><p class="label">계속 쓰기 <small class="hint">처음 들어온 달별로, 그 뒤에도 들어온 ${words().count} %</small></p>
+        <div class="an-scroll"><table class="an-heat"><thead><tr><th></th><th scope="col">처음 달</th><th scope="col">1개월 뒤</th><th scope="col">2개월 뒤</th><th scope="col">3개월 뒤</th></tr></thead><tbody>${cohort}</tbody></table></div>
+        <p class="hint">한 달 주기 앱이라 가장 중요한 숫자예요. 다른 교회에 보여 줄 근거가 돼요.</p></section>
+      <section class="card an-sec"><p class="label">첫 접속 <small class="hint">최근 90일, 단계마다 도착한 기기 수</small></p>
+        ${f0 ? `<ol class="an-hbars">${hbars(P.funnel.map(x => ({ label: x.label, v: x.n })), f0, '')}</ol>` : '<p class="hint">최근 90일에 처음 들어온 기기가 없어요.</p>'}
+        <p class="hint">숫자가 크게 줄어드는 단계가 처음 쓰는 분이 막히는 곳이에요. 처음부터 관리자인 분은 승인 기다림을 건너뛰어요.</p></section>
+    </div><div class="an-side">
+      <section class="card an-sec"><p class="label">기능 사용 <small class="hint">이번 달 앱을 연 기기 ${P.devices}대 중 %</small></p>
+        ${P.devices ? `<ul class="an-hbars">${hbars(P.features.map(x => ({ label: x.label, v: x.pct })), 100, '%')}</ul>` : '<p class="hint">이번 달 사용 기록이 아직 없어요.</p>'}</section>
+      <section class="card an-sec"><p class="label">기도하기 한 번에 <small class="hint">이번 달 ${P.pray.n}번</small></p>
+        <div class="stats an-tiles">${tile(pc(P.pray.done), '끝까지 마침')}${tile(na(P.pray.seen) + (P.pray.seen == null ? '' : '장'), '평균 넘긴 장')}${tile(na(P.pray.mins) + (P.pray.mins == null ? '' : '분'), '평균 머문 시간')}${tile(pc(P.pray.music), '음악 켬')}${tile(pc(P.pray.flow), '자동으로 넘기기')}</div>
+        <p class="label an-sub">쓰는 환경 <small class="hint">이번 달 기기 %</small></p>
+        <div class="stats an-tiles">${tile(pc(P.env.phone), '휴대폰')}${tile(pc(P.env.tablet), '태블릿')}${tile(pc(P.env.pc), 'PC')}${tile(pc(P.env.app), '홈 화면 앱')}${tile(pc(P.env.dark), '어두운 화면')}${tile(pc(P.env.big), '큰 글씨')}</div>
+        <p class="hint">이름 없는 사용 기록으로 세요. 기도제목 내용, ${words().count} 이름, 누가 누구를 위해 기도했는지는 세지 않아요.</p></section>
     </div></div>`;
   }
   async function loadAnalysis() {
