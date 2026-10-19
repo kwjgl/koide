@@ -414,6 +414,36 @@ h3 { font-size: 1.02em; font-weight: 600; margin: 0; }
 .tl-end { font-size: .74em; color: var(--ink-2); white-space: nowrap; }
 .only { display: inline-flex; align-items: center; gap: .25em; font-size: .75em; color: var(--ink-2); white-space: nowrap; }
 .only svg { width: 1.1em; height: 1.1em; }
+/* 연도 개편 마법사 */
+.stepper { list-style: none; margin: 0 0 12px; padding: 0; display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: .4em; }
+.stepper li { display: flex; flex-direction: column; gap: .3em; font-size: .76em; color: var(--ink-2); border-top: 3px solid var(--line); padding-top: .45em; }
+.stepper li b { font-family: var(--f-display); font-size: 1.2em; }
+.stepper li.done { border-color: var(--accent-mid); }
+.stepper li.on { border-color: var(--accent); color: var(--ink); font-weight: 600; }
+.rg-text { min-height: 12em; font-size: .86em; line-height: 1.6; resize: vertical; font-variant-numeric: tabular-nums; }
+.sum-chips { display: flex; flex-wrap: wrap; gap: .5em; }
+.sum-chip { display: inline-flex; align-items: baseline; gap: .35em; font-size: .84em; padding: .35em .8em; border-radius: 999px; background: var(--surface-2); color: var(--ink-2); }
+.sum-chip b { font-size: 1.15em; color: var(--ink); font-variant-numeric: tabular-nums; }
+.sum-chip.ok { background: var(--accent-soft); }
+.sum-chip.warn { background: var(--warn-soft); }
+.sum-chip.warn b { color: var(--warn); }
+.rg-row { display: flex; justify-content: space-between; align-items: center; gap: .6em; flex-wrap: wrap; border-top: 1px solid var(--line); padding: .6em 0 0; margin-top: .6em; }
+.rg-row > div:first-child { display: flex; flex-direction: column; gap: .1em; min-width: 0; }
+.rg-row small { font-size: .76em; color: var(--ink-2); }
+.rg-match summary { cursor: pointer; font-size: .9em; font-weight: 600; color: var(--accent); min-height: 28px; }
+.comp { display: flex; flex-wrap: wrap; gap: .3em; margin: .4em 0; }
+.comp-chip { font-size: .72em; padding: .15em .6em; border-radius: 999px; background: var(--surface-2); color: var(--ink-2); font-variant-numeric: tabular-nums; }
+.rg-fams { list-style: none; margin: .4em 0 0; padding: 0; font-size: .9em; }
+.rg-fams li { padding: .25em 0; display: flex; gap: .4em; align-items: baseline; flex-wrap: wrap; }
+.rg-fams small { color: var(--ink-2); font-size: .8em; }
+.mv-table { width: 100%; border-collapse: collapse; font-size: .88em; min-width: 320px; }
+.mv-table th, .mv-table td { text-align: left; padding: .45em .5em; border-top: 1px solid var(--line); }
+.mv-table thead th { font-size: .8em; color: var(--ink-2); font-weight: 600; border-top: 0; }
+.mv-table tbody th { font-weight: 500; }
+.mv-table td.to { color: var(--accent); font-weight: 600; }
+.mv-table td.muted { color: var(--ink-2); }
+.rg-dates { display: grid; gap: 10px; }
+.rg-dates label { display: flex; flex-direction: column; gap: .3em; font-size: .9em; font-weight: 600; }
 .card.hl { animation: hl-flash 2.4s ease-out; }
 @keyframes hl-flash { 0%, 40% { box-shadow: 0 0 0 4px var(--accent-mid); } 100% { box-shadow: 0 0 0 4px transparent; } }
 @media (prefers-reduced-motion: reduce) { .card.hl { animation: none; box-shadow: 0 0 0 3px var(--accent-mid); } }
@@ -1012,7 +1042,7 @@ try { const p = JSON.parse(localStorage.getItem('koide-pref') || '{}'), d = docu
       <button class="btn wide" data-act="retry">승인됐는지 다시 확인</button>
       <p class="hint">${DEMO ? '데모: 로그아웃하고 그 부서의 리더(청장년부는 김도윤, 청년부는 윤하람)로 들어가 더보기에서 승인해 보세요.' : '보통 하루 안에 끝나요.'}</p>
       <button class="link" data-act="logout">로그아웃</button>`,
-    app: () => ({ home: homeView, mine: mineView, pray: prayView, history: historyView, more: moreView, status: statusView, admin: adminView, import: importView })[S.tab]()
+    app: () => ({ home: homeView, mine: mineView, pray: prayView, history: historyView, more: moreView, status: statusView, admin: adminView, import: importView, reorg: reorgView })[S.tab]()
   };
   // 고른 가정: 사랑방 가정, 또는 '목사님·장로님으로 들어가기'에서 고른 교역자 가정
   const famPicked = () => S.pick.staff ? (dept().staff || []).find(f => f.id === S.pick.familyId) : S.rooms.find(x => x.id === S.pick.roomId).families.find(f => f.id === S.pick.familyId);
@@ -2016,10 +2046,137 @@ try { const p = JSON.parse(localStorage.getItem('koide-pref') || '{}'), d = docu
       <p class="hint">교역자는 첫 접속에서 "목사님·장로님으로 들어가기"로 이름을 골라요. 연결 신청은 위 관리 카드에서 승인해요. 부서를 떠나면 "마침"을 눌러요(기록은 남아요).</p></section>`;
   }
   // 관리(관리자): 우리 부서의 연결 승인·해제, 교역자, 기존 시트 가져오기, 데모로 둘러보기
+  // ── 연도 개편 마법사 (설계서 6장) ──
+  // 편성표 붙여 넣기 → 이름 맞추기 → 리더 → 미리보기·날짜·예약. 화면에서 단계를 밟고, 예약할 때 서버가 한 번에 저장한다.
+  //  예약한 새 편성은 적용 시작 달 1일에 저절로 적용되고, 그 전까지는 아무에게도 보이지 않는다
+  const RG_STEPS = ['편성표 붙여 넣기', '이름 맞추기', '리더 정하기', '확인과 예약'];
+  const dayAdd = (d, n) => { const x = new Date(d + 'T00:00:00Z'); x.setUTCDate(x.getUTCDate() + n); return x.toISOString().slice(0, 10); };
+  const monAdd = (m, n) => { const [y, mo] = m.split('-').map(Number), k = y * 12 + mo - 1 + n; return Math.floor(k / 12) + '-' + String(k % 12 + 1).padStart(2, '0'); };
+  const monName = m => m.slice(0, 4) + '년 ' + Number(m.slice(5)) + '월';
+  const nameParts = s => s.replace(/가정/g, '').split(/[\/·,]|\s+/).map(x => x.trim()).filter(Boolean);
+  const nameKey = parts => parts.slice().sort().join('|');
+  // 관리 화면의 연도 개편 카드: 예약이 있으면 무엇을 언제 바꾸는지, 없으면 시작 버튼
+  function reorgCard() {
+    const D = S.rgData, P = D && D.plan;
+    return `<section class="card"><h2>연도 개편</h2>
+      ${!D ? '<p class="hint">불러오는 중…</p>'
+        : P ? `<p><b>${D.next}년 편성</b>을 예약해 두었어요. ${monName(P.start)} 1일에 바뀌어요.</p>
+          <p class="hint">${new Set(P.rows.map(r => r.room)).size}개 ${esc(grp())} · ${P.rows.length}${words().count} · 리더 미리 보기 ${P.leaderFrom.slice(5).replace('-', '/')}부터 · 회원 안내 ${P.memberFrom.slice(5).replace('-', '/')}부터${P.by ? ` · ${esc(P.by)} ${esc(P.at)}` : ''}</p>
+          <div class="actions"><button class="btn small" data-act="rgopen">예약 고치기</button><button class="btn small ghost" data-act="rgcancel">예약 취소</button></div>`
+        : `<p class="hint">교회에서 받은 편성표를 붙여 넣어 ${D.next}년 편성을 만들고, 바뀌는 날을 예약해요. 그날까지는 지금 편성(${D.now}년)이 그대로예요.</p>
+          <button class="btn small ghost" data-act="rgopen">${D.next}년 개편 시작</button>`}</section>`;
+  }
+  async function loadReorg() { try { S.rgData = await api('reorg'); } catch (e) { S.rgData = null; if (e.code !== 'forbidden') oops(e); } render(); }
+  // 마법사 상태 만들기: 예약이 있으면 그 내용으로 채워 둔다(고치기)
+  function rgStart() {
+    const D = S.rgData, P = D.plan, def = monAdd(D.month, Number(D.month.slice(5)) < 12 ? 12 - Number(D.month.slice(5)) : 1);
+    const start = P ? P.start : def;
+    S.rg = { step: 1, text: P ? P.rows.map(r => `${r.room}\t${r.name.split(' · ').join('/')}`).join('\n') : '', dec: {}, miss: {}, leaders: {}, co: {}, find: '',
+      start, lf: P ? P.leaderFrom : dayAdd(start + '-01', -14), mf: P ? P.memberFrom : dayAdd(start + '-01', -7) };
+    if (P) {
+      rgMatch();
+      P.leave.forEach(id => { S.rg.miss[id] = 'leave'; }); P.hold.forEach(id => { S.rg.miss[id] = 'hold'; });
+      S.rg.res.rows.forEach((r, i) => { const p = P.rows.find(x => r.ex && x.familyId === r.ex.id); if (p && p.role === '리더') S.rg.leaders[r.room] = i; if (p && p.role === '코리더') S.rg.co[r.room] = i; });
+    }
+  }
+  // 붙여 넣은 편성표를 지금 가정과 이름으로 맞춘다: 표기만 다르면(/, 띄어쓰기, 부부 순서) 자동, 한 사람만 같으면 확인, 처음 보는 이름은 새 가정
+  function rgMatch() {
+    const D = S.rgData, rg = S.rg, grpWord = grp().replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    const pool = D.current.map(f => ({ ...f, parts: f.name.split(' · '), key: nameKey(f.name.split(' · ')) }));
+    (D.plan ? D.plan.rows : []).forEach(r => { if (!pool.some(f => f.id === r.familyId)) pool.push({ id: r.familyId, name: r.name, room: '', parts: r.name.split(' · '), key: nameKey(r.name.split(' · ')) }); });
+    const used = new Set(), bad = [];
+    const rows = rg.text.split(/\n+/).map(l => l.trim()).filter(Boolean).map(l => {
+      const cut = l.indexOf('\t') > 0 ? [l.slice(0, l.indexOf('\t')), l.slice(l.indexOf('\t') + 1)] : (l.match(new RegExp('^(.+?' + grpWord + ')\\s*(.+)$')) || []).slice(1);
+      if (cut.length < 2 || !cut[1].trim()) { bad.push(l); return null; }
+      const parts = nameParts(cut[1]); if (!parts.length) { bad.push(l); return null; }
+      const hit = pool.find(f => !used.has(f.id) && f.key === nameKey(parts));
+      if (hit) used.add(hit.id);
+      return { room: cut[0].trim(), raw: parts.join(' · '), parts, status: hit ? 'match' : '', ex: hit || null };
+    }).filter(Boolean);
+    rows.forEach(r => { if (r.status) return;
+      const near = pool.find(f => !used.has(f.id) && f.parts.some(x => r.parts.includes(x)));
+      if (near) { used.add(near.id); r.status = 'check'; r.ex = near; } else r.status = 'new'; });
+    rg.res = { rows, bad, missing: D.current.filter(f => !used.has(f.id)) };
+  }
+  // 이 줄이 기존 가정인지(자동으로 맞췄거나 '같은 가정이에요'를 고름)
+  const rgSame = i => { const r = S.rg.res.rows[i]; return r.status === 'match' || (r.status === 'check' && S.rg.dec[i] === 'same'); };
+  const rgLabel = i => rgSame(i) ? S.rg.res.rows[i].ex.name : S.rg.res.rows[i].raw;
+  const rgRooms = () => { const m = {}; S.rg.res.rows.forEach((r, i) => { (m[r.room] = m[r.room] || []).push(i); }); return m; };
+  // 편성표에 없는 가정: 같은 가정이 아니라고 고른 '확인' 줄의 기존 가정도 여기로
+  const rgMissing = () => [...S.rg.res.missing, ...S.rg.res.rows.filter((r, i) => r.status === 'check' && S.rg.dec[i] === 'new').map(r => r.ex)];
+  function reorgView() {
+    const D = S.rgData, rg = S.rg;
+    const head = `<button class="link back" data-act="tab" data-v="admin">${ICON.chevL}관리</button>
+      <div class="page-top"><div><p class="eyebrow">관리자 · ${esc(D ? D.dept.name : '')}</p><h1>${D ? D.next + '년 ' : ''}${esc(grp())} 개편</h1></div></div>`;
+    if (!D || !rg) return head + '<p class="loading">불러오는 중…</p>';
+    const stepper = `<ol class="stepper">${RG_STEPS.map((x, i) => `<li class="${i + 1 === rg.step ? 'on' : i + 1 < rg.step ? 'done' : ''}"><b>${i + 1}</b>${x}</li>`).join('')}</ol>`;
+    const nav = (next, label, off) => `<div class="actions" style="margin-top:12px">${rg.step > 1 ? '<button class="btn ghost" data-act="rgback">이전</button>' : ''}<button class="btn" data-act="${next}"${off ? ' disabled' : ''}>${label}</button></div>`;
+    if (rg.step === 1) return `${head}${stepper}<section class="card">
+        <label class="label" for="rg-text">교회에서 받은 ${D.next}년 편성표를 그대로 붙여 넣으세요</label>
+        <p class="hint">한 줄에 "${esc(grp())} 이름 + ${solo() ? '이름' : '가정 이름'}"이면 돼요. 엑셀에서 두 칸을 복사해 붙여도 되고, ${solo() ? '' : '"홍길동/김영희", "김영희 홍길동"처럼 '}표기가 달라도 괜찮아요. ${esc(grp())} 이름이 지금과 같으면 그대로 이어지고, 바뀐 이름은 새 ${esc(grp())}이 돼요.</p>
+        <textarea id="rg-text" class="field rg-text" rows="10" placeholder="1-1 ${esc(grp())}&#9;${solo() ? '홍길동' : '홍길동/김영희'}">${esc(rg.text)}</textarea>
+        ${rg.msg ? `<p class="hint warn-text">${esc(rg.msg)}</p>` : ''}
+        ${nav('rgmatch', '맞춰 보기')}</section>`;
+    const res = rg.res, idx = s => res.rows.map((r, i) => ({ r, i })).filter(x => x.r.status === s);
+    if (rg.step === 2) {
+      const checks = idx('check'), news = idx('new'), matches = idx('match'), undecided = checks.filter(x => !rg.dec[x.i]).length, miss = rgMissing();
+      const names = Object.keys(rgRooms()), nowRooms = [...new Set(D.current.map(f => f.room))];
+      const chip = (n, l, cls) => `<span class="sum-chip ${cls || ''}"><b>${n}</b>${l}</span>`;
+      return `${head}${stepper}
+        <section class="card"><div class="sum-chips">${chip(matches.length, '자동으로 맞춤', 'ok')}${chip(checks.length, '확인 필요', checks.length ? 'warn' : '')}${chip(news.length, '새 ' + words().one)}${chip(miss.length, '편성표에 없음')}</div>
+          <p class="hint">표기만 다른 ${words().one}(/, 띄어쓰기, 부부 순서)은 자동으로 같은 ${words().one}으로 맞췄어요. 아래만 확인해 주세요.</p>
+          ${res.bad.length ? `<p class="hint warn-text">읽지 못한 줄 ${res.bad.length}개: ${res.bad.slice(0, 3).map(esc).join(' / ')}${res.bad.length > 3 ? ' …' : ''}</p>` : ''}</section>
+        <section class="card"><p class="label">${esc(grp())} ${names.length}곳</p>
+          <ul class="rg-fams">${names.map(n => `<li><b>${esc(n)}</b><small>${nowRooms.includes(n) ? '그대로 이어져요' : '새 ' + esc(grp())}</small></li>`).join('')}</ul>
+          ${nowRooms.filter(n => !names.includes(n)).length ? `<p class="hint">새 편성에 없는 ${esc(grp())}: ${nowRooms.filter(n => !names.includes(n)).map(esc).join(', ')}. 지난 기록에는 그대로 남아요.</p>` : ''}</section>
+        ${checks.length ? `<section class="card"><p class="label">확인 필요 · 비슷한 이름</p>${checks.map(({ r, i }) => `<div class="rg-row">
+            <div><b>${esc(r.raw)}</b><small>편성표 · ${esc(r.room)}</small><small>지금: ${esc(r.ex.name)} (${esc(r.ex.room)})</small></div>
+            <div class="seg2">${[['same', '같은 ' + words().one + '이에요'], ['new', '새 ' + words().one + '이에요']].map(([v, l]) => `<button class="${rg.dec[i] === v ? 'on' : ''}" data-act="rgdec" data-v="${i}:${v}" aria-pressed="${rg.dec[i] === v}">${l}</button>`).join('')}</div></div>`).join('')}</section>` : ''}
+        ${news.length ? `<section class="card"><p class="label">새 ${words().one} · 바뀌는 날부터 목록에 나오고, 처음 들어올 때 카카오로 연결해요</p><ul class="rg-fams">${news.map(({ r }) => `<li>${esc(r.raw)} <small>${esc(r.room)}</small></li>`).join('')}</ul></section>` : ''}
+        ${miss.length ? `<section class="card"><p class="label">편성표에 없는 ${words().one}</p>${miss.map(f => `<div class="rg-row">
+            <div><b>${esc(f.name)}</b><small>${D.now}년 ${esc(f.room || '')}</small></div>
+            <div class="seg2">${[['leave', '떠남'], ['hold', '편성 보류']].map(([v, l]) => `<button class="${(rg.miss[f.id] || 'leave') === v ? 'on' : ''}" data-act="rgmiss" data-v="${esc(f.id)}:${v}" aria-pressed="${(rg.miss[f.id] || 'leave') === v}">${l}</button>`).join('')}</div></div>`).join('')}
+          <p class="hint">떠남이어도 기록은 남고 목록에서만 빠져요. 편성 보류는 사랑방이 정해질 때까지 "새 편성을 정하고 있어요" 안내가 나와요. 둘 다 바뀌는 날부터예요.</p></section>` : ''}
+        ${matches.length ? `<details class="card rg-match"><summary>자동으로 맞춘 ${words().one} ${matches.length}${words().count} 보기</summary><ul class="rg-fams">${matches.map(({ r }) => `<li>${esc(r.raw)} → ${esc(r.ex.name)} <small>${esc(r.room)}</small></li>`).join('')}</ul></details>` : ''}
+        ${nav('rgnext', undecided ? `확인 필요 ${undecided}개 남음` : '다음: 리더 정하기', undecided)}`;
+    }
+    const rooms = rgRooms();
+    if (rg.step === 3) return `${head}${stepper}<div class="room-board">${Object.keys(rooms).map((n, k) => `<section class="card">
+        <h3>${esc(n)}</h3><p class="hint">${rooms[n].length}${words().count}</p>
+        <label class="label" for="rg-l-${k}">리더</label><select id="rg-l-${k}" class="field" data-rg="leaders" data-room="${esc(n)}"><option value="">아직 안 정함</option>${rooms[n].map(i => `<option value="${i}"${rg.leaders[n] === i ? ' selected' : ''}>${esc(rgLabel(i))}</option>`).join('')}</select>
+        <label class="label" for="rg-c-${k}" style="margin-top:8px">코리더 · 없으면 비워 두세요</label><select id="rg-c-${k}" class="field" data-rg="co" data-room="${esc(n)}"><option value="">없음</option>${rooms[n].map(i => `<option value="${i}"${rg.co[n] === i ? ' selected' : ''}>${esc(rgLabel(i))}</option>`).join('')}</select>
+      </section>`).join('')}</div>
+      <p class="hint">리더를 정하지 않은 ${esc(grp())}은 바뀐 뒤 관리 화면에서 정할 수 있어요.</p>${nav('rgnext', '다음: 확인과 예약')}`;
+    // 4. 미리보기(구성과 이동만, 기도제목 내용은 바뀌는 날부터)와 날짜
+    const from = i => rgSame(i) ? (res.rows[i].ex.room || '') : '';
+    const moves = [...res.rows.map((r, i) => ({ name: rgLabel(i), from: from(i) || '새 ' + words().one, to: r.room })),
+      ...rgMissing().map(f => ({ name: f.name, from: f.room, to: (rg.miss[f.id] || 'leave') === 'leave' ? '떠남' : '편성 보류' }))];
+    const role = (n, i) => rg.leaders[n] === i ? ' <small>리더</small>' : rg.co[n] === i ? ' <small>코리더</small>' : '';
+    const months = Array.from({ length: 6 }, (_, k) => monAdd(D.month, k + 1));
+    return `${head}${stepper}
+      <section class="card"><p><b>${Object.keys(rooms).length}개 ${esc(grp())}, ${res.rows.length}${words().count}</b>으로 ${D.next}년 편성을 만들어요.</p>
+        <p class="hint">미리보기에는 구성과 이동만 나와요. 기도제목 내용은 바뀌는 날부터 새 ${esc(grp())}에 보여요.</p></section>
+      <div class="room-board">${Object.keys(rooms).map(n => { const c = {}; rooms[n].forEach(i => { const k = from(i) || '새 ' + words().one; c[k] = (c[k] || 0) + 1; });
+        return `<section class="card"><h3>${esc(n)}</h3><div class="comp">${Object.entries(c).map(([k, v]) => `<span class="comp-chip">${esc(k)}${k.startsWith('새 ') ? '' : '에서'} ${v}</span>`).join('')}</div>
+          <ul class="rg-fams">${rooms[n].map(i => `<li>${esc(rgLabel(i))}${role(n, i)}</li>`).join('')}</ul></section>`; }).join('')}</div>
+      <section class="card"><p class="label">${words().one}별 이동표</p>
+        <input id="rg-find" class="field" type="search" placeholder="이름으로 찾기" aria-label="이름으로 찾기" value="${esc(rg.find)}" autocomplete="off">
+        <div class="table-wrap"><table class="mv-table"><thead><tr><th scope="col">${solo() ? '이름' : '가정'}</th><th scope="col">${D.now}년</th><th scope="col">${D.next}년</th></tr></thead>
+          <tbody>${moves.map(m => `<tr data-name="${esc(m.name)}"${rg.find && !m.name.includes(rg.find) ? ' hidden' : ''}><th scope="row">${esc(m.name)}</th><td>${esc(m.from)}</td><td class="${m.to === '떠남' || m.to === '편성 보류' ? 'muted' : 'to'}">${esc(m.to)}</td></tr>`).join('')}</tbody></table></div></section>
+      <section class="card"><p class="label">날짜</p><div class="rg-dates">
+        <label>바뀌는 날<select class="field" data-rg="start">${months.map(m => `<option value="${m}"${rg.start === m ? ' selected' : ''}>${monName(m)} 1일</option>`).join('')}</select></label>
+        <label>새 리더에게 맡을 ${words().one} 명단 보여 주기<input class="field" type="date" data-rg="lf" value="${rg.lf}" max="${dayAdd(rg.start + '-01', -1)}"></label>
+        <label>회원에게 "${Number(rg.start.slice(5))}월부터 ○○ ${esc(grp())}이에요" 안내하기<input class="field" type="date" data-rg="mf" value="${rg.mf}" max="${dayAdd(rg.start + '-01', -1)}"></label></div>
+        <p class="hint">바뀌는 날 0시에 새 편성이 저절로 적용돼요. 그 전까지는 ${D.now}년 편성이 그대로이고, 예약은 언제든 고치거나 취소할 수 있어요. 카카오 연결과 기도 기록은 그대로 따라가요.</p></section>
+      ${rg.msg ? `<p class="hint warn-text">${esc(rg.msg)}</p>` : ''}
+      ${nav('rgsave', S.busy ? '예약하는 중…' : `${monName(rg.start)} 1일에 바뀌도록 예약`, S.busy)}`;
+  }
+
   function adminView() {
     return `<button class="link back" data-act="tab" data-v="more">${ICON.chevL}더보기</button>
       <div class="page-top"><div><p class="eyebrow">${S.month.dept && S.month.dept.name ? esc(S.month.dept.name) : '관리자'}</p><h1>관리</h1></div></div>
       <div class="two-col"><div class="col">${manageCard()}</div><div class="col side">
+        ${reorgCard()}
         ${staffCard()}
         ${solo() ? '' : `<section class="card"><h2>기존 기도제목 가져오기</h2><p class="hint">지금 쓰는 구글 시트의 ${esc(grp())} 탭을 붙여 넣어 이번 달 기도제목으로 옮겨요.</p>
           <button class="btn small ghost" data-act="tab" data-v="import">가져오기 열기</button></section>`}
@@ -2058,7 +2215,7 @@ try { const p = JSON.parse(localStorage.getItem('koide-pref') || '{}'), d = docu
       <div class="set-row"><div><p class="label" style="margin:0">큰 글씨 모드</p><p class="hint" style="margin:.2em 0 0">글씨를 조금 더 크게 보여 줘요.</p></div>${bigSwitch()}</div>
       <p class="hint">이 기기에만 적용돼요.</p></section>`;
   }
-  const tabOn = () => ['import', 'status', 'admin'].includes(S.tab) ? 'more' : S.tab;
+  const tabOn = () => ['import', 'status', 'admin', 'reorg'].includes(S.tab) ? 'more' : S.tab;
   // 상단 바: 로고(누르면 이번 달), PC에서는 메뉴, 사랑방 배지(누르면 사랑방 정보), 설정
   function topHtml() {
     const brand = `<button class="brand"${S.view === 'app' ? ' data-act="tab" data-v="home"' : ''} aria-label="코이데 홈"><span class="brand-mark">${ICON.knot}</span><span class="brand-name">코이데</span></button>`;
@@ -2224,6 +2381,7 @@ try { const p = JSON.parse(localStorage.getItem('koide-pref') || '{}'), d = docu
         S.tab = v; S.copied = null; render(); window.scrollTo(0, 0);
         if (v === 'history') { loadHist(S.hist && S.hist.month); track('화면 보기', { screen: '지난 기록' }); }
         if (v === 'status' || v === 'admin') { try { S.pending = await api('pending'); render(); } catch (err) { oops(err); } }
+        if (v === 'admin') loadReorg();
         return;
       case 'confirm': return save(() => api('confirmSame'), ok => ok && toast(staffMe() ? '이번 달도 그대로라고 표시했어요.' : '이번 달도 그대로라고 리더에게 알렸어요.'));
       case 'pray': {
@@ -2284,6 +2442,32 @@ try { const p = JSON.parse(localStorage.getItem('koide-pref') || '{}'), d = docu
       case 'famtoggle': S.openFams.has(id) ? S.openFams.delete(id) : S.openFams.add(id); return render();
       case 'servetoggle': S.serveOpen = !S.serveOpen; return render();
       case 'histtab': S.histTab = v; return render();
+      case 'rgopen': if (!S.rgData) return; rgStart(); S.tab = 'reorg'; render(); return window.scrollTo(0, 0);
+      case 'rgback': S.rg.step--; S.rg.msg = ''; render(); return window.scrollTo(0, 0);
+      case 'rgmatch': {
+        S.rg.text = $('#rg-text').value; rgMatch();
+        if (!S.rg.res.rows.length) { S.rg.msg = '읽을 수 있는 줄이 없어요. "' + grp() + ' 이름 + 이름" 모양인지 확인해 주세요.'; return render(); }
+        S.rg.msg = ''; S.rg.step = 2; render(); return window.scrollTo(0, 0);
+      }
+      case 'rgdec': { const [i, x] = v.split(':'); S.rg.dec[i] = x; return render(); }
+      case 'rgmiss': { const [id, x] = v.split(':'); S.rg.miss[id] = x; return render(); }
+      case 'rgnext': S.rg.step++; render(); return window.scrollTo(0, 0);
+      case 'rgsave': {
+        const rg = S.rg, rooms = rgRooms();
+        const rows = rg.res.rows.map((r, i) => ({ room: r.room, familyId: rgSame(i) ? r.ex.id : '', name: rgLabel(i), role: rg.leaders[r.room] === i ? '리더' : rg.co[r.room] === i ? '코리더' : '회원' }));
+        const miss = rgMissing();
+        S.busy = true; rg.msg = ''; render();
+        try {
+          S.rgData = await api('reorgSave', { start: rg.start, leaderFrom: rg.lf, memberFrom: rg.mf, rooms: Object.keys(rooms), rows,
+            leave: miss.filter(f => (rg.miss[f.id] || 'leave') === 'leave').map(f => f.id), hold: miss.filter(f => rg.miss[f.id] === 'hold').map(f => f.id) });
+          S.rg = null; S.tab = 'admin'; toast('예약했어요. ' + monName(S.rgData.plan.start) + ' 1일에 바뀌어요.');
+        } catch (err) { rg.msg = err.message; }
+        S.busy = false; render(); return window.scrollTo(0, 0);
+      }
+      case 'rgcancel':
+        if (!confirm('예약한 새 편성을 취소할까요? 예약 때 새로 만든 ' + grp() + '과 ' + words().one + '도 지워져요.')) return;
+        try { S.rgData = await api('reorgCancel'); toast('예약을 취소했어요.'); } catch (err) { oops(err); }
+        return render();
       case 'tlgo': {
         S.histTab = 'mine'; S.hlMonth = v; S.openFams.add('h-m' + v); render(); S.hlMonth = null;
         const c = document.getElementById('hm-' + v); if (c) c.scrollIntoView({ block: 'center', behavior: matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth' });
@@ -2387,11 +2571,23 @@ try { const p = JSON.parse(localStorage.getItem('koide-pref') || '{}'), d = docu
   });
   // 글을 쓰는 칸은 글 길이에 맞춰 높이가 늘어난다(길게 써도 칸 안에서 스크롤하지 않게)
   function autosize(t) { t.style.height = 'auto'; t.style.height = (t.scrollHeight + 2) + 'px'; }
-  document.addEventListener('input', e => { if (e.target.matches('textarea.field')) autosize(e.target); });
+  document.addEventListener('input', e => {
+    if (e.target.matches('textarea.field')) autosize(e.target);
+    // 개편 미리보기의 이동표 찾기: 다시 그리지 않고 줄만 숨긴다
+    if (e.target.id === 'rg-find' && S.rg) { S.rg.find = e.target.value.trim(); document.querySelectorAll('.mv-table tbody tr').forEach(tr => { tr.hidden = !!S.rg.find && !tr.dataset.name.includes(S.rg.find); }); }
+  });
   // 칸을 벗어나면(내용·대상) 저장
   document.addEventListener('change', e => {
     const t = e.target;
     if (t.dataset.imp) { const [fi, ii] = t.dataset.imp.split('.').map(Number); S.imp.families[fi].items[ii].target = t.value; return; }
+    // 연도 개편: 리더·코리더 고르기, 날짜(바뀌는 달을 바꾸면 안내 날짜도 2주·1주 전으로 다시 맞춘다)
+    if (t.dataset.rg && S.rg) {
+      const k = t.dataset.rg, rg = S.rg;
+      if (k === 'leaders' || k === 'co') { if (t.value === '') delete rg[k][t.dataset.room]; else rg[k][t.dataset.room] = Number(t.value); }
+      else if (k === 'start') { rg.start = t.value; rg.lf = dayAdd(t.value + '-01', -14); rg.mf = dayAdd(t.value + '-01', -7); }
+      else if (t.value) rg[k] = t.value;
+      return render();
+    }
     if (t.matches('textarea[data-id]')) {
       const id = t.dataset.id, i = itemOf(id), text = t.value.trim(), target = i.target;
       if (!text || text === i.text) return;

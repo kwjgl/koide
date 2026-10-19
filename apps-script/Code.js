@@ -27,7 +27,9 @@ const SCHEMA = {
   roster: ['편성', [['year', '연도'], ['roomId', '사랑방ID'], ['familyId', '가정ID'], ['role', '역할']]],
   // 편성 일정: 부서마다 그 해 편성(편성 탭의 연도)이 시작하는 달. 적어 두지 않은 편성은 그 해 1월부터다(예: 2027년 편성을 2026-12부터).
   //  리더 미리 보기·회원 안내 시작일은 개편 때 새 편성을 미리 알리는 날
-  terms: ['편성 일정', [['deptId', '부서ID'], ['year', '편성 연도'], ['start', '적용 시작 달'], ['leaderFrom', '리더 미리 보기 시작일'], ['memberFrom', '회원 안내 시작일'], ['status', '상태'], ['by', '만든 사람'], ['at', '만든 날']]],
+  //  떠남·보류: 새 편성에 넣지 않은 가정(적용 날짜부터 그 안내가 나온다). 새 사랑방·새 가정: 예약할 때 만든 것(고치거나 취소하면 지운다)
+  terms: ['편성 일정', [['deptId', '부서ID'], ['year', '편성 연도'], ['start', '적용 시작 달'], ['leaderFrom', '리더 미리 보기 시작일'], ['memberFrom', '회원 안내 시작일'], ['status', '상태'], ['by', '만든 사람'], ['at', '만든 날'],
+    ['leave', '떠남 가정ID'], ['hold', '보류 가정ID'], ['newRooms', '새 사랑방ID'], ['newFams', '새 가정ID']]],
   links: ['연결', [['kakaoId', '카카오ID'], ['nick', '닉네임'], ['familyId', '가정ID'], ['person', '사람'], ['status', '상태'], ['requestedAt', '요청일'], ['approvedBy', '승인한 사람'], ['lastSeen', '마지막 접속']]],
   sessions: ['로그인', [['hash', '로그인 표시'], ['kakaoId', '카카오ID'], ['nick', '닉네임'], ['expires', '만료']]],
   items: ['기도제목', [['id', '항목ID'], ['month', '월'], ['familyId', '가정ID'], ['roomId', '당시 사랑방'], ['target', '대상'], ['text', '내용'], ['scope', '공개범위'], ['state', '상태'], ['prevId', '이전 항목ID'], ['same', '지난달과 같음'], ['order', '순서'], ['editedAt', '수정일'], ['editedBy', '고친 사람']]],
@@ -51,7 +53,7 @@ const FIRST_DEPT = { id: 'D1', name: '청장년부', group: '사랑방', unit: '
 // ── 요청 받기 ─────────────────────────────────────────────
 
 // 서버 코드를 고칠 때마다 바꾼다. 웹 앱 주소를 열면 보여서, 새 버전으로 배포됐는지 확인할 수 있다
-const VERSION = '2026-10-19 편성 일정';
+const VERSION = '2026-10-19 연도 개편 마법사';
 function doGet() {
   return ContentService.createTextOutput('코이데 서버가 켜져 있어요. (버전: ' + VERSION + ')');
 }
@@ -105,7 +107,10 @@ const ACTIONS = {
   logout: logout_,
   usage: body => usage_(who_(body), body),
   saveStaff: saveStaff_,
-  endStaff: endStaff_
+  endStaff: endStaff_,
+  reorg: body => reorgView_(adminOf_(body)),
+  reorgSave: reorgSave_,
+  reorgCancel: body => reorgCancel_(adminOf_(body))
 };
 
 // ── 로그인 ───────────────────────────────────────────────
@@ -166,7 +171,7 @@ function memberFrom_(w) {
   const r = read_('roster').find(x => activeRow_(x) && x.familyId === w.link.familyId);
   // 교역자는 사랑방 편성 없이 교역자 탭으로 부서에 속한다
   const st = !r && fam ? staffOf_(fam.id) : null;
-  if (!fam || (!r && !st)) throw fail_('notLinked', st === null && fam && fam.status === '교역자' ? '교역자 목록에서 빠졌어요. 관리자에게 알려 주세요.' : '올해 편성에서 우리 가정을 찾지 못했어요. 리더에게 알려 주세요.');
+  if (!fam || (!r && !st)) throw fail_('notLinked', st === null && fam && fam.status === '교역자' ? '교역자 목록에서 빠졌어요. 관리자에게 알려 주세요.' : notInTerm_(w.link.familyId));
   if (w.link.lastSeen !== today_()) { w.link.lastSeen = today_(); update_('links', w.link); }
   if (st) {
     const d = deptById_(st.deptId);
@@ -915,6 +920,116 @@ function withLock_(fn) {
   const lock = LockService.getScriptLock();
   if (!lock.tryLock(15000)) throw fail_('busy', '지금 사람이 많아요. 잠시 뒤 다시 해 주세요.');
   try { Object.keys(READ_CACHE_).forEach(k => delete READ_CACHE_[k]); return fn(); } finally { lock.releaseLock(); }
+}
+
+// ── 연도 개편 ─────────────────────────────────────────────
+// 관리자가 새 편성을 예약한다(설계서 6장). 새 편성은 편성 탭에 다음 연도로 미리 넣어 두고, 편성 일정의 시작 달이 되면 저절로 적용된다.
+//  그 전까지는 아무에게도 보이지 않는다. 다시 예약하면 지난 예약을 지우고 새로 넣고, 취소하면 예약 때 만든 사랑방·가정까지 지운다
+
+function adminOf_(body) {
+  const c = member_(body);
+  if (!c.admin) throw fail_('forbidden', '관리자만 할 수 있어요.');
+  return c;
+}
+const ids_ = v => String(v || '').split(/\s*,\s*/).filter(Boolean);
+// 그 부서의 그 연도 편성 일정(취소된 것은 빼고)
+function termRow_(deptId, year) { return read_('terms').filter(t => t.deptId === deptId && String(t.year) === String(year) && t.status !== '취소').pop() || null; }
+// 지금 편성에 없는 가정이 들어왔을 때: 개편 때 보류·떠남으로 정했으면 그 말로
+function notInTerm_(familyId) {
+  const last = read_('roster').filter(r => r.familyId === familyId).sort((a, b) => Number(b.year) - Number(a.year))[0];
+  const d = last ? deptOfRoom_(last.roomId).id : '', t = d ? termRow_(d, termNow_(d)) : null;
+  if (t && ids_(t.hold).indexOf(familyId) >= 0) return '새 편성을 정하고 있어요. 사랑방이 정해지면 열려요. 리더에게 알려 주세요.';
+  if (t && ids_(t.leave).indexOf(familyId) >= 0) return '올해 편성에 우리 가정이 없어요. 다시 함께하려면 리더에게 알려 주세요.';
+  return '올해 편성에서 우리 가정을 찾지 못했어요. 리더에게 알려 주세요.';
+}
+
+// 마법사가 여는 정보: 지금 편성(사랑방·가정), 새 편성 연도, 이미 예약한 것
+function reorgView_(c) {
+  const d = c.deptId, now = termNow_(d), next = String(Number(now) + 1), fams = read_('families'), rooms = read_('rooms');
+  const roomName = id => (rooms.find(r => r.id === id) || {}).name || '';
+  const famOf = id => fams.find(f => f.id === id) || {};
+  const current = read_('roster').filter(r => activeRow_(r) && deptOfRoom_(r.roomId).id === d && famOf(r.familyId).status === '활동')
+    .map(r => ({ id: r.familyId, name: famOf(r.familyId).name, room: roomName(r.roomId), role: r.role }));
+  const t = termRow_(d, next);
+  const plan = !t ? null : {
+    start: t.start, leaderFrom: String(t.leaderFrom).slice(0, 10), memberFrom: String(t.memberFrom).slice(0, 10), at: fmtDay_(t.at), by: t.by, leave: ids_(t.leave), hold: ids_(t.hold),
+    rows: read_('roster').filter(r => String(r.year) === next && deptOfRoom_(r.roomId).id === d)
+      .map(r => ({ room: roomName(r.roomId), familyId: r.familyId, name: famOf(r.familyId).name, role: r.role }))
+  };
+  return { dept: c.dept, now, next, month: month_(), current, plan };
+}
+
+// 예약(새로 하거나 고치기). body: { start: 'yyyy-MM', leaderFrom, memberFrom: 'yyyy-MM-dd',
+//  rooms: [사랑방 이름(순서대로)], rows: [{ room, familyId 또는 name(새 가정), role }], leave: [가정ID], hold: [가정ID] }
+function reorgSave_(body) {
+  const c = adminOf_(body), d = c.deptId;
+  const start = String(body.start || ''), lf = String(body.leaderFrom || ''), mf = String(body.memberFrom || '');
+  if (!/^\d{4}-\d{2}$/.test(start) || start <= month_()) throw fail_('bad', '적용 시작 달은 다음 달 이후로 골라 주세요.');
+  if (![lf, mf].every(x => /^\d{4}-\d{2}-\d{2}$/.test(x) && x < start + '-01')) throw fail_('bad', '안내 날짜는 적용 시작일보다 앞으로 골라 주세요.');
+  const names = (body.rooms || []).map(x => String(x).trim()).filter(Boolean);
+  const rows = (body.rows || []).map(r => ({ room: String(r.room || '').trim(), familyId: String(r.familyId || ''), name: String(r.name || '').trim(), role: ['리더', '코리더'].indexOf(r.role) >= 0 ? r.role : '회원' }));
+  if (!names.length || !rows.length || rows.some(r => names.indexOf(r.room) < 0 || (!r.familyId && !r.name))) throw fail_('bad', '편성표를 다시 확인해 주세요.');
+  const seen = {};
+  rows.forEach(r => { if (r.familyId && seen[r.familyId]) throw fail_('bad', '한 가정이 두 번 들어갔어요. 이름 맞추기를 다시 확인해 주세요.'); seen[r.familyId] = true; });
+  return withLock_(() => {
+    const now = termNow_(d), next = String(Number(now) + 1), old = termRow_(d, next);
+    // 지난 예약은 편성 줄만 지우고, 그때 만든 사랑방·가정은 새 예약이 다시 쓰면 이어 간다(쓰지 않게 된 것만 아래에서 지운다)
+    dropPlan_(d, next, true);
+    // 사랑방: 지금 부서에 같은 이름이 있으면 그대로 이어 가고, 없으면 새로 만든다(이름을 바꾼 사랑방도 새 사랑방. 예전 이름은 지난 기록에 남는다)
+    const rooms = read_('rooms'), mine = rooms.filter(r => deptOfRoom_(r.id).id === d), newRooms = [], newFams = [];
+    let order = rooms.reduce((a, r) => Math.max(a, r.order), 0);
+    const idOf = {};
+    names.forEach((n, k) => {
+      const hit = mine.filter(r => r.name === n).sort((a, b) => b.order - a.order)[0];
+      if (hit) { idOf[n] = hit.id; return; }
+      const id = 'R' + Date.now().toString(36) + k;
+      append_('rooms', { id, name: n, order: ++order, deptId: d });
+      idOf[n] = id; newRooms.push(id);
+    });
+    const fams = read_('families'), list = [];
+    rows.forEach((r, k) => {
+      let id = r.familyId;
+      if (!id || !fams.some(f => f.id === id)) {
+        // 처음 보는 가정: 새로 등록한다. 적용 날짜가 되면 목록에 나오고, 처음 들어올 때 카카오로 연결을 요청한다
+        id = 'F' + Date.now().toString(36) + 'n' + k;
+        append_('families', { id, name: r.name.slice(0, 40), kids: '', status: '활동', admin: '' });
+        newFams.push(id);
+      }
+      list.push({ year: next, roomId: idOf[r.room], familyId: id, role: r.role });
+    });
+    appendMany_('roster', list);
+    if (old) {
+      const usedNow = id => list.some(r => r.roomId === id || r.familyId === id);
+      ids_(old.newRooms).forEach(id => { if (usedNow(id)) newRooms.push(id); });
+      ids_(old.newFams).forEach(id => { if (usedNow(id)) newFams.push(id); });
+      cleanPlan_(old);
+    }
+    const keep = x => ids_((x || []).join(',')).filter(id => !seen[id]);
+    append_('terms', { deptId: d, year: next, start, leaderFrom: lf, memberFrom: mf, status: '예약', by: c.person, at: new Date(),
+      leave: keep(body.leave).join(','), hold: keep(body.hold).join(','), newRooms: newRooms.join(','), newFams: newFams.join(',') });
+    return reorgView_(c);
+  });
+}
+
+function reorgCancel_(c) {
+  return withLock_(() => { const now = termNow_(c.deptId); dropPlan_(c.deptId, String(Number(now) + 1)); return reorgView_(c); });
+}
+
+// 아직 적용되지 않은 다음 편성을 지운다: 그 연도의 편성 줄을 지우고 일정은 '취소'로 남긴다.
+//  keep이 아니면(예약 취소) 예약 때 만든 사랑방·가정도 지운다
+function dropPlan_(d, year, keep) {
+  const t = termRow_(d, year);
+  if (t && t.start <= month_()) throw fail_('bad', '이미 적용된 편성은 고칠 수 없어요.');
+  read_('roster').filter(r => String(r.year) === year && deptOfRoom_(r.roomId).id === d).sort((a, b) => b._row - a._row).forEach(r => remove_('roster', r));
+  if (!t) return;
+  t.status = '취소'; update_('terms', t);
+  if (!keep) cleanPlan_(t);
+}
+// 예약 때 만든 사랑방·가정 중 이제 어디에도 쓰이지 않는 것을 지운다(편성·연결이 하나라도 있으면 둔다)
+function cleanPlan_(t) {
+  const used = id => read_('roster').some(r => r.roomId === id || r.familyId === id) || read_('links').some(l => l.familyId === id);
+  read_('rooms').filter(r => ids_(t.newRooms).indexOf(r.id) >= 0 && !used(r.id)).sort((a, b) => b._row - a._row).forEach(r => remove_('rooms', r));
+  read_('families').filter(f => ids_(t.newFams).indexOf(f.id) >= 0 && !used(f.id)).sort((a, b) => b._row - a._row).forEach(f => remove_('families', f));
 }
 
 // ── 작은 도구 ────────────────────────────────────────────
