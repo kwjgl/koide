@@ -53,7 +53,7 @@ const FIRST_DEPT = { id: 'D1', name: '청장년부', group: '사랑방', unit: '
 // ── 요청 받기 ─────────────────────────────────────────────
 
 // 서버 코드를 고칠 때마다 바꾼다. 웹 앱 주소를 열면 보여서, 새 버전으로 배포됐는지 확인할 수 있다
-const VERSION = '2026-10-19 개편 안내';
+const VERSION = '2026-10-19 업데이트 이력';
 function doGet() {
   return ContentService.createTextOutput('코이데 서버가 켜져 있어요. (버전: ' + VERSION + ')');
 }
@@ -274,7 +274,24 @@ function pendingView_(c) {
   read_('posts').filter(p => p.roomId === c.roomId).forEach(p => { if (!posts[p.familyId] || p.date > posts[p.familyId]) posts[p.familyId] = p.date; });
   // 돌봄 신호: 리더·코리더가 우리 사랑방 것을 본다
   const lead = c.role === '리더' || c.role === '코리더';
-  return { requests, families, posts, today: today_(), staff: c.admin ? staffList_(c.deptId) : undefined, signals: lead ? careSignals_([c.roomId], month_()) : undefined };
+  return { requests, families, posts, today: today_(), staff: c.admin ? staffList_(c.deptId) : undefined, signals: lead ? careSignals_([c.roomId], month_()) : undefined,
+    history: lead ? updateHistory_(c.roomId, c.deptId, month_()) : undefined };
+}
+
+// 가정별 업데이트 이력(설계서 10장): 지금 편성의 담당 리더·코리더만 본다. 편성이 시작한 달부터 이번 달까지, 가정마다 달의 상태만.
+//  edited 손봄 / confirmed 그대로 확인 / same 지난달 그대로 / none 그 달 기도제목이 없음. 비율·순위는 만들지 않는다.
+//  월별 상태가 적혀 있지 않은 달은 기도제목으로 짐작한다(새로 쓰거나 고친 항목이 있으면 손봄, 모두 이어 온 것이면 그대로)
+function updateHistory_(roomId, deptId, m) {
+  const t = terms_(deptId).filter(x => x.start <= m).pop(), from = t ? t.start : m.slice(0, 4) + '-01';
+  const months = [];
+  for (let mm = m; mm >= from && months.length < 24; mm = prevMonth_(mm)) months.unshift(mm);
+  const status = {}, guess = {};
+  read_('monthly').forEach(x => { status[x.familyId + '|' + x.month] = x.status; });
+  read_('items').forEach(i => { const k = i.familyId + '|' + i.month; if (months.indexOf(i.month) >= 0) guess[k] = guess[k] === 'edited' || !yes_(i.same) ? 'edited' : 'same'; });
+  const fams = read_('families');
+  const rows = read_('roster').filter(r => activeRow_(r) && r.roomId === roomId).map(r => fams.find(f => f.id === r.familyId)).filter(f => f && f.status === '활동')
+    .map(f => ({ id: f.id, name: f.name, marks: months.map(mm => status[f.id + '|' + mm] || guess[f.id + '|' + mm] || 'none') }));
+  return { term: t ? t.year : m.slice(0, 4), months, rows };
 }
 
 // 기존 시트 가져오기(관리자): 사랑방 탭 하나를 화면에서 나눠 보낸 것을 이번 달 기도제목으로 넣는다.

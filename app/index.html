@@ -172,6 +172,17 @@ h2 { font-size: 1.05em; margin: 0; }
 .sig-tag { font-size: .75em; font-weight: 600; color: var(--leader); background: var(--leader-soft); border-radius: 999px; padding: .15em .7em; }
 .legend { list-style: none; margin: .6em 0 0; padding: 0; display: flex; flex-wrap: wrap; gap: .3em 1em; font-size: .78em; color: var(--ink-2); }
 .sw { display: inline-block; width: .8em; height: .8em; border-radius: 3px; margin-right: .35em; vertical-align: -.05em; }
+.sw.hollow { border: 1.5px solid var(--line-strong); box-sizing: border-box; }
+/* 리더: 가정별 업데이트 이력(가정 × 월). 칠한 칸만 있고 비율·순위는 없다 */
+.hist-table { border-collapse: separate; border-spacing: 4px; font-size: .84em; margin: 6px 0 0; }
+.hist-table th { font-weight: 500; color: var(--ink-2); text-align: center; font-size: .86em; font-variant-numeric: tabular-nums; white-space: nowrap; }
+.hist-table th.now { color: var(--accent); font-weight: 700; }
+.hist-table tbody th { position: sticky; left: 0; background: var(--surface); text-align: left; color: var(--ink); padding-right: .5em; font-size: .92em; }
+.hist-table td { padding: 0; }
+.hc { display: block; width: 20px; height: 20px; border-radius: 5px; margin: 0 auto; box-sizing: border-box; }
+.hc.h-edited { background: var(--accent); }
+.hc.h-confirmed { background: var(--accent-mid); }
+.hc.h-same { border: 1.5px solid var(--line-strong); }
 .group { border-top: 1px solid var(--line); margin-top: 12px; padding-top: 10px; }
 .label { font-size: .82em; font-weight: 600; color: var(--ink-2); margin: 0 0 .3em; }
 .names { margin: 0 0 .5em; font-size: .92em; }
@@ -1335,6 +1346,25 @@ try { const p = JSON.parse(localStorage.getItem('koide-pref') || '{}'), d = docu
       <ul class="legend"><li><i class="sw edited"></i>이번 달 손봄 ${e}</li><li><i class="sw confirmed"></i>그대로 확인 ${c}</li><li><i class="sw same"></i>지난달 그대로 ${s}</li></ul>
       ${group('same', `<button class="btn small ghost" data-act="copyremind">안부 문구 복사</button>${copyNote('remind', remindText())}`)}${group('edited')}${group('confirmed')}</section>`;
   }
+  // 가정별 업데이트 이력: 지금 편성의 리더·코리더만(서버도 리더에게만 보낸다). 편성이 시작한 달부터 이번 달까지 칠한 칸만, 비율·순위는 없다
+  const HIST_LABEL = { edited: '손봄', confirmed: '그대로 확인', same: '지난달 그대로', none: '기도제목 없음' };
+  function histCard() {
+    const H = S.pending && S.pending.history;
+    if (!H || !H.rows.length) return '';
+    const ms = H.months, y = m => m.slice(0, 4), n = m => Number(m.slice(5));
+    const span = y(ms[0]) === y(ms[ms.length - 1]) ? `${y(ms[0])}년 ${n(ms[0])}${ms.length > 1 ? '~' + n(ms[ms.length - 1]) : ''}월` : `${y(ms[0])}년 ${n(ms[0])}월 ~ ${y(ms[ms.length - 1])}년 ${n(ms[ms.length - 1])}월`;
+    // 해가 바뀌는 달(1월)에는 위에 연도를 작게 단다
+    const head = ms.map((m, i) => `<th scope="col"${i === ms.length - 1 ? ' class="now"' : ''}>${i && n(m) === 1 ? `<small>${y(m).slice(2)}년</small><br>` : ''}${n(m)}</th>`).join('');
+    return `<section class="card">
+      <div class="row"><p class="label" style="margin:0">${words().one}별 업데이트 이력 · ${esc(H.term)}년 편성</p><span class="only">${ICON.lock}지금 리더만</span></div>
+      <p class="hint" style="margin-top:2px">${span}</p>
+      <div class="table-wrap"><table class="hist-table">
+        <thead><tr><th scope="col"><span class="sr">${words().one}</span></th>${head}</tr></thead>
+        <tbody>${H.rows.map(r => `<tr><th scope="row">${esc(r.name)}</th>${r.marks.map((k, i) => `<td><span class="hc h-${k}" title="${n(ms[i])}월 ${HIST_LABEL[k]}"><span class="sr">${n(ms[i])}월 ${HIST_LABEL[k]}</span></span></td>`).join('')}</tr>`).join('')}</tbody>
+      </table></div>
+      <ul class="legend"><li><i class="sw edited"></i>손봄</li><li><i class="sw confirmed"></i>그대로 확인</li><li><i class="sw hollow"></i>지난달 그대로</li><li>빈칸: 기도제목 없음</li></ul>
+      <p class="hint">${words().members}의 형편을 살피는 데 써요. 비율이나 순위는 보여 주지 않아요.</p></section>`;
+  }
   // 카톡방에 올릴 가정: 올린 지 오래된 가정부터(아직 안 올린 가정이 맨 앞). 맨 앞 가정을 "차례"로 골라 둔다
   function shareCard() {
     const P = S.pending, title = `<h2><span aria-hidden="true">💬 </span>카톡방에 올릴 ${words().one}</h2>`;
@@ -2034,7 +2064,7 @@ try { const p = JSON.parse(localStorage.getItem('koide-pref') || '{}'), d = docu
   function statusView() {
     return `<button class="link back" data-act="tab" data-v="more">${ICON.chevL}더보기</button>
       <div class="page-top"><div><p class="eyebrow">${esc(S.month.room.name)} · ${esc(S.month.me.role)}</p><h1>이번 달 현황</h1></div><p class="date">${todayLabel()}</p></div>
-      <div class="two-col"><div class="col">${statusCard()}${signalCard(S.pending && S.pending.signals)}${manageCard()}</div><div class="col side">${shareCard()}</div></div>`;
+      <div class="two-col"><div class="col">${statusCard()}${histCard()}${signalCard(S.pending && S.pending.signals)}${manageCard()}</div><div class="col side">${shareCard()}</div></div>`;
   }
   // 교역자(관리자): 우리 부서를 섬기는 목사님 부부·장로님 등. 섬기는 분들 카드에 나올지, 카드 이름, 연결된 사람.
   //  교역자는 첫 접속의 '목사님·장로님으로 들어가기'에서 이름을 고르고, 연결은 여기(위 관리 카드의 신청)에서 승인한다
