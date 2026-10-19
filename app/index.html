@@ -732,6 +732,11 @@ h3 { font-size: 1.02em; font-weight: 600; margin: 0; }
 .export .seg { margin: 0; background: var(--surface); }
 .check { display: flex; align-items: center; gap: .5em; font-size: .92em; cursor: pointer; }
 .check input { width: 1.2em; height: 1.2em; accent-color: var(--accent); }
+/* 소그룹 이름 바꾸기: 설명과 예를 한 줄씩(줄바꿈 없이) */
+.grp-ren { align-items: flex-start; }
+.grp-ren > span { display: flex; flex-direction: column; gap: .15em; min-width: 0; }
+.grp-ren > span > * { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.grp-ren small { margin: 0; font-size: .9em; }
 .warn-text { color: var(--warn); }
 @media print {
   body { background: #fff; }
@@ -982,6 +987,22 @@ body.pop-open { overflow: hidden; }
 .fam-rec .link { font-size: 1em; }
 .erase-ask { flex-basis: 100%; background: var(--warn-soft); border-radius: 12px; padding: 10px 12px; margin-top: .4em; }
 .erase-ask p { margin: 0 0 .5em; }
+.inv-list li { flex-wrap: wrap; }
+.inv-list li > div { flex: 1; }
+.inv-list li > .qr-box, .inv-list li > .hint, .inv-list li > .copybox { flex: 0 0 100%; }
+.qr-box { flex-basis: 100%; display: flex; flex-direction: column; align-items: center; gap: .6em; padding: .4em 0 .2em; }
+.qr-box svg { width: 180px; height: 180px; background: #fff; border-radius: 8px; }
+.qr-box path, .qr-box rect { shape-rendering: crispEdges; }
+.fb-form { display: flex; flex-direction: column; gap: .7em; }
+.fb-form .hint { margin: 0; }
+.fb-n { text-align: right; }
+.fb-list { list-style: none; margin: .6em 0 0; padding: 0; }
+.fb-list li { padding: .6em 0; border-top: 1px solid var(--line); display: flex; flex-direction: column; align-items: flex-start; gap: .25em; }
+.fb-list li .row { width: 100%; }
+.fb-list li p { margin: 0; white-space: pre-wrap; }
+.fb-list li small { color: var(--ink-2); }
+.fb-kind { font-size: .78em; font-weight: 600; color: var(--accent); background: var(--accent-soft); border-radius: 999px; padding: .1em .6em; }
+.fb-list li.new .fb-kind::before { content: ''; display: inline-block; width: .45em; height: .45em; border-radius: 50%; background: var(--warn); margin-right: .35em; vertical-align: .1em; }
 .fam-rec { display: flex; flex-wrap: wrap; align-items: center; gap: .3em 1em; margin: .9em 0 0; padding-top: .7em; border-top: 1px solid var(--line); font-size: .9em; color: var(--ink-2); }
 .staff-form { display: flex; flex-direction: column; gap: .5em; border-top: 1px solid var(--line); padding-top: .8em; }
 .serve-who { margin: .4em 0 0; }
@@ -1248,6 +1269,8 @@ try { const p = JSON.parse(localStorage.getItem('koide-pref') || '{}'), d = docu
   async function boot() {
     if (DEMO) { await loadDemo(); $('#demo').hidden = false; $('#demo').innerHTML = '데모 모드 · 지어낸 예시 데이터예요 <button data-act="demoreset">데모 데이터 지우기</button>' + (DEMO_LINK ? ' · <a href="./">실제 앱으로</a>' : ''); }
     const q = new URLSearchParams(location.search);
+    // 초대 링크: 카카오 로그인을 다녀와도 남게 기기에 적어 두고 주소에서 뺀다
+    if (q.get('join')) { try { localStorage.setItem(JOIN, q.get('join')); } catch (e) { /* 이번만 */ } q.delete('join'); history.replaceState(null, '', location.pathname + (q.toString() ? '?' + q.toString().replace(/=(&|$)/g, '$1') : '')); }
     if (q.get('code')) {
       try { const r = await api('login', { code: q.get('code'), redirectUri: CFG.REDIRECT_URI || '' }); setToken(r.token); }
       catch (e) { oops(e); }
@@ -1274,14 +1297,23 @@ try { const p = JSON.parse(localStorage.getItem('koide-pref') || '{}'), d = docu
       let r;
       // start가 없는 예전 서버 코드여도 열리게 예전 방식(me → month)으로 이어 간다
       const part = usagePart();
-      try { r = await api('start', part); usageSent(part, r.usage); } catch (e) { if (e.code !== 'bad') throw e; r = { me: await api('me') }; }
+      let join = null; try { join = localStorage.getItem(JOIN); } catch (e) { /* 없음 */ }
+      try { r = await api('start', Object.assign({}, part, join ? { join } : {})); usageSent(part, r.usage); } catch (e) { if (e.code !== 'bad') throw e; r = { me: await api('me') }; }
       S.me = r.me;
       if (!S.me.link) {
         // 부서를 모르는 예전 서버면 사랑방 목록을 부서 하나로 본다
         S.depts = r.depts || [Object.assign({ id: '', name: '' }, DEPT0, { rooms: r.rooms || await api('rooms') })];
         S.pick = {};
         if (S.depts.length === 1) pickDept(S.depts[0].id); else S.view = 'dept';
+        // 초대 링크로 왔으면 그 부서(와 사랑방)를 미리 고른다. 막힌 링크면 알리고 직접 고르게
+        const J = r.join;
+        if (J && J.bad) { toast('이 초대 링크는 더 이상 쓰지 않아요. 직접 골라 주세요.'); try { localStorage.removeItem(JOIN); } catch (e) { /* 무시 */ } }
+        else if (J && S.depts.some(d => d.id === J.deptId)) {
+          pickDept(J.deptId);
+          if (J.roomId && S.rooms.some(x => x.id === J.roomId)) { S.pick.roomId = J.roomId; S.view = 'family'; }
+        }
       }
+      else if (join) { try { localStorage.removeItem(JOIN); } catch (e) { /* 무시 */ } }
       else if (S.me.link.status === '요청') S.view = 'wait';
       else { const m = r.month || await api('month'); if (!waiting) S.month = m; S.view = 'app'; trackOpen(); }
     } catch (e) {
@@ -1426,7 +1458,7 @@ try { const p = JSON.parse(localStorage.getItem('koide-pref') || '{}'), d = docu
       <button class="btn wide" data-act="retry">승인됐는지 다시 확인</button>
       <p class="hint">${DEMO ? '데모: 로그아웃하고 그 부서의 리더(청장년부는 김도윤, 청년부는 윤하람)로 들어가 더보기에서 승인해 보세요.' : '보통 하루 안에 끝나요.'}</p>
       <button class="link" data-act="logout">로그아웃</button>`,
-    app: () => ({ home: homeView, mine: mineView, pray: prayView, history: historyView, more: moreView, about: aboutView, status: statusView, admin: adminView, import: importView, reorg: reorgView })[S.tab]()
+    app: () => ({ home: homeView, mine: mineView, pray: prayView, history: historyView, more: moreView, about: aboutView, feedback: feedbackView, status: statusView, admin: adminView, import: importView, reorg: reorgView })[S.tab]()
   };
   // 고른 가정: 사랑방 가정, 또는 '목사님·장로님으로 들어가기'에서 고른 교역자 가정
   const famPicked = () => S.pick.staff ? (dept().staff || []).find(f => f.id === S.pick.familyId) : S.rooms.find(x => x.id === S.pick.roomId).families.find(f => f.id === S.pick.familyId);
@@ -2852,6 +2884,7 @@ try { const p = JSON.parse(localStorage.getItem('koide-pref') || '{}'), d = docu
           ${STANDALONE ? '' : `<button class="card menu-card" data-act="a2hsopen"><span><b>홈 화면에 앱처럼 두기</b><small>아이콘을 눌러 바로 열 수 있게 해요</small></span>${ICON.chevR}</button>`}
           ${settingsCard()}
           <button class="card menu-card" data-act="tab" data-v="about"><span><b>코이데 소개</b><small>이름의 뜻과 코이데가 지키는 것</small></span>${ICON.chevR}</button>
+          <button class="card menu-card" data-act="tab" data-v="feedback"><span><b>의견 보내기</b><small>불편한 점, 바라는 점, 고마운 점</small></span>${ICON.chevR}</button>
           <button class="card menu-card" data-act="logout"><span><b>이 기기에서 로그아웃</b><small>다시 들어올 때 카카오로 로그인해요</small></span>${ICON.chevR}</button>
         </div></div>`;
   }
@@ -3035,7 +3068,8 @@ try { const p = JSON.parse(localStorage.getItem('koide-pref') || '{}'), d = docu
             <p class="plain">달마다 그 달 주제의 그림이 하나씩 있어요. 기도한 날마다 그림이 조금씩 채워지고, 나만 봐요. 남과 비교하지 않고 줄어들지도 않아요.</p>
             ${aboutLink('지난 기록 › 달마다 모은 그림', 'history', 'pray')}</section>`}
           <section class="card"><p class="label">만든 곳 · 의견 보내기</p>
-            <p class="plain">${esc(josa(S.month.dept.name, '이/가'))} 함께 만들어 가고 있어요. 불편한 점이나 바라는 점은 ${g} 리더에게 카톡으로 알려 주세요.</p></section>
+            <p class="plain">${esc(josa(S.month.dept.name, '이/가'))} 함께 만들어 가고 있어요. 불편한 점이나 바라는 점, 고마운 점을 보내 주세요.</p>
+            ${aboutLink('의견 보내기', 'feedback')}</section>
           <section class="card"><p class="label">쓴 것들</p>
             <ul class="ab-credit">
               <li><b>그림</b><span>이달의 그림과 하트는 AI로 만들었어요.</span></li>
@@ -3047,10 +3081,17 @@ try { const p = JSON.parse(localStorage.getItem('koide-pref') || '{}'), d = docu
     </div>`;
   }
   // 사랑방 현황(리더·코리더): 이번 달 현황과 가정 관리, 오른쪽에 카톡방에 올릴 가정
+  // 리더: 우리 사랑방 초대 링크. 이 링크로 들어오면 사랑방 고르기를 건너뛰고, 연결 요청은 여기 관리 카드로 온다
+  function leadInviteCard() {
+    const t = S.pending && S.pending.invite;
+    if (!t) return '';
+    return `<section class="card"><h2>${esc(grp())} 초대 링크</h2><p class="hint">새로 온 ${words().one}에게 카톡으로 보내요. 이 링크로 들어오면 ${esc(gj('을/를'))} 고르지 않고 바로 ${words().one} 고르기부터 해요. 연결 요청은 위 관리 카드로 와요.</p>
+      <button class="btn small ghost" data-act="invcopy" data-v="${esc(t)}" data-n="${esc(S.month.room.name)}">초대 링크 복사</button>${copyNote('inv' + t, inviteUrl(t))}</section>`;
+  }
   function statusView() {
     return `<button class="link back" data-act="tab" data-v="more">${ICON.chevL}더보기</button>
       <div class="page-top"><div><p class="eyebrow">${esc(S.month.room.name)} · ${esc(S.month.me.role)}</p><h1>이번 달 현황</h1></div><p class="date">${todayLabel()}</p></div>
-      <div class="two-col"><div class="col">${statusCard()}${trendCard()}${histCard()}${signalCard(S.pending && S.pending.signals)}${manageCard()}</div><div class="col side">${shareCard()}</div></div>`;
+      <div class="two-col"><div class="col">${statusCard()}${trendCard()}${histCard()}${signalCard(S.pending && S.pending.signals)}${manageCard()}</div><div class="col side">${shareCard()}${leadInviteCard()}</div></div>`;
   }
   // 교역자(관리자): 우리 부서를 섬기는 목사님 부부·장로님 등. 섬기는 분들 카드에 나올지, 카드 이름, 연결된 사람.
   //  교역자는 첫 접속의 '목사님·장로님으로 들어가기'에서 이름을 고르고, 연결은 여기(위 관리 카드의 신청)에서 승인한다
@@ -3208,7 +3249,7 @@ try { const p = JSON.parse(localStorage.getItem('koide-pref') || '{}'), d = docu
     if (tab === 'analysis') return head + analysisView();
     return `${head}
       <div class="two-col"><div class="col">${manageCard()}</div><div class="col side">
-        ${opsProblems().length ? opsCard() : ''}${privacyN() ? privacyCard() : ''}
+        ${opsProblems().length ? opsCard() : ''}${privacyN() ? privacyCard() : ''}${fbNew() ? feedbackCard() : ''}
         ${groupCard()}
         ${reorgCard()}
         ${staffCard()}
@@ -3216,7 +3257,7 @@ try { const p = JSON.parse(localStorage.getItem('koide-pref') || '{}'), d = docu
           <button class="btn small ghost" data-act="tab" data-v="import">가져오기 열기</button></section>`}
         ${DEMO ? '' : `<section class="card"><h2>데모로 둘러보기</h2><p class="hint">지어낸 예시 데이터로 리더·회원 화면을 눌러 봐요. 실제 데이터와 로그인은 그대로예요.</p>
           <a class="btn small ghost" href="?demo" target="_blank" rel="noopener" style="text-decoration:none;align-self:flex-start">데모 열기</a></section>`}
-        ${privacyN() ? '' : privacyCard()}${opsProblems().length ? '' : opsCard()}
+        ${inviteCard()}${fbNew() ? '' : feedbackCard()}${privacyN() ? '' : privacyCard()}${opsProblems().length ? '' : opsCard()}
       </div></div>`;
   }
   // 소그룹 이름(관리자): 우리 부서에서 소그룹을 부르는 말. 앱 곳곳의 말과 조사가 이 이름을 따른다
@@ -3227,12 +3268,12 @@ try { const p = JSON.parse(localStorage.getItem('koide-pref') || '{}'), d = docu
     return `<section class="card"><h2>소그룹 이름</h2><p class="hint">우리 ${esc(S.month.dept.name)}에서 소그룹을 부르는 말을 골라요. 앱 곳곳의 ${esc(gj('이/가'))} 이 이름으로 바뀌어요. 모두에게 똑같이 보여요.</p>
       <div class="mchips" role="radiogroup" aria-label="소그룹 이름">${[...new Set([...GROUP_PRESETS, cur, pick])].map(g => `<button class="mchip${pick === g ? ' on' : ''}" role="radio" aria-checked="${pick === g}" data-act="grppick" data-v="${esc(g)}">${esc(g)}</button>`).join('')}</div>
       <form class="kid-form" data-form="grpcustom" style="margin-top:8px"><input class="field" name="g" placeholder="직접 쓰기 (예: 가정교회, 다락방)" aria-label="소그룹 이름 직접 쓰기" maxlength="6" autocomplete="off"><button class="btn small ghost" type="submit">쓰기</button></form>
-      ${pick !== cur ? `<label class="check"><input type="checkbox" id="grp-rename"${S.grpRename === false ? '' : ' checked'}> 이름 끝의 "${esc(cur)}"도 함께 바꾸기 <span class="hint">(예: ${esc(ex)} → ${esc(after)})</span></label>
+      ${pick !== cur ? `<label class="check grp-ren"><input type="checkbox" id="grp-rename"${S.grpRename === false ? '' : ' checked'}><span><span>이름 끝의 "${esc(cur)}"도 함께 바꾸기</span><small class="hint">예: ${esc(ex)} → ${esc(after)}</small></span></label>
         <div class="actions"><button class="btn" data-act="grpsave" ${S.busy ? 'disabled' : ''}>${esc(euro(pick))} 바꾸기</button><button class="btn ghost" data-act="grppick" data-v="${esc(cur)}">그대로 두기</button></div>` : ''}</section>`;
   }
   // ── 관리 › 운영 (설계서 S7): ① 앱 상태 ② 개인정보 요청. 할 일이 있는 카드만 관리 탭 위로 올라온다 ──
   //  NEED_SERVER: 이 화면이 바라는 서버 버전(서버 VERSION 앞 날짜). 서버 코드를 고쳐 배포해야 하는 기능을 넣을 때 함께 올린다
-  const NEED_SERVER = '2026-10-21';
+  const NEED_SERVER = '2026-10-22';
   const DOC = 'https://github.com/kwjgl/pray-for/blob/main/docs/';
   async function loadOps() { try { S.ops = await api('ops'); S.opsErr = null; } catch (e) { S.ops = null; S.opsErr = e.code === 'bad' ? 'old' : e.code === 'forbidden' ? null : e.message; } render(); }
   const opsWhen = iso => { const d = new Date(iso); return isNaN(d) ? '' : `${d.getMonth() + 1}월 ${d.getDate()}일 ${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`; };
@@ -3248,7 +3289,7 @@ try { const p = JSON.parse(localStorage.getItem('koide-pref') || '{}'), d = docu
     const row = (k, v) => `<div class="ops-row"><span class="ops-k">${k}</span><div>${v}</div></div>`;
     const ver = row('버전', `<span>서버 <b>${O ? esc(O.version) : '옛 버전'}</b></span><small>이 화면은 ${NEED_SERVER} 이후 서버가 필요해요</small>${old ? `<p class="warn-text">Apps Script를 새 버전으로 배포해 주세요. 배포 관리 › 연필 › 새 버전이에요. <a href="${DOC}setup.md" target="_blank" rel="noopener">배포 순서</a></p>` : ''}`);
     const body = !open ? '' : !O ? (old ? `<div class="ops-rows">${ver}</div>` : '') : `<div class="ops-rows">${ver}
-      ${row('새 달', `${Number(O.month.month.slice(5))}월 · ${O.month.opened ? opsWhen(O.month.opened) + '에 처음 열림' : '아직 넘어온 기도제목이 없어요'}<small>지난달에서 넘어온 기도제목 ${O.month.carried}개</small>
+      ${row('새 달', `${Number(O.month.month.slice(5))}월 · ${O.month.opened ? opsWhen(O.month.opened) + '에 처음 열림' : O.month.carried || O.month.waiting ? '' : '지난달 기도제목이 없어서 넘어올 것이 없어요'}<small>${O.month.opened || O.month.carried ? `지난달에서 넘어온 기도제목 ${O.month.carried}개` : '다음 달부터 여기에 보여요'}</small>
         ${O.month.waiting ? `<p class="hint">아직 아무도 열지 않은 ${esc(grp())} ${O.month.waiting}곳은 처음 열 때 넘어와요.</p><button class="btn small ghost" data-act="opsmonth" ${S.busy ? 'disabled' : ''}>지금 모두 넘기기</button>` : ''}`)}
       ${row('최근 오류', O.errors.n ? `7일 동안 ${O.errors.n}번 · 마지막 ${opsWhen(O.errors.last)}<ul class="ops-errs">${O.errors.kinds.map(k => `<li><span>${esc(k.kind)}</span><b>${k.n}</b></li>`).join('')}</ul>` : '7일 동안 없어요')}
       ${row('관리자', `${O.admins}명${O.admins < 2 ? `<p class="warn-text">한 사람이 빠져도 멈추지 않게 관리자를 한 명 더 정해 주세요. 구글 시트 가정 탭의 관리자 칸에 "예"를 써요.</p>` : ''}`)}
@@ -3271,6 +3312,64 @@ try { const p = JSON.parse(localStorage.getItem('koide-pref') || '{}'), d = docu
       ${n ? `<ul class="staff-list">${P.requests.map(f => li(f, esc(f.at) + ' 기록 지우기 요청', true)).join('')}${P.due.map(f => li(f, `${monName(f.since)}부터 함께하지 않아요 · 1년이 지났어요${f.kept ? ' (한 번 더 둠)' : ''}`, false)).join('')}</ul>`
         : '<p class="hint">지울 기록이 없어요.</p>'}
       <p class="hint">떠난 지 1년이 된 ${unit}과 기록을 지워 달라고 한 ${unit}이 여기 올라와요. 저절로 지우지 않아요.${P.later ? ` 떠난 ${unit} ${P.later}곳은 1년이 되면 올라와요.` : ''}</p></section>`;
+  }
+  // ── ⑤ 초대 링크 · QR: 링크로 들어온 사람은 부서·사랑방 고르기를 건너뛴다. 승인은 지금처럼 리더가 ──
+  const JOIN = 'koide-join';
+  const inviteUrl = t => (CFG.REDIRECT_URI || location.origin + location.pathname) + (DEMO_LINK ? '?demo&' : '?') + 'join=' + t;
+  // QR 그림은 관리자가 볼 때만 앱 안의 vendor/qrcode.js(MIT, Kazuhiko Arase)를 불러 만든다
+  const loadQR = () => window.qrcode ? Promise.resolve() : new Promise((ok, bad) => { const s = document.createElement('script'); s.src = 'vendor/qrcode.js'; s.onload = ok; s.onerror = bad; document.head.appendChild(s); });
+  const qrOf = url => { const q = qrcode(0, 'M'); q.addData(url); q.make(); return q; };
+  // 내려받기: 흰 바탕에 QR과 아래 이름(주보·교회 화면에 쓰기 좋게)
+  function qrPng(url, label) {
+    const q = qrOf(url), n = q.getModuleCount(), k = 12, pad = 4 * k, W = n * k + pad * 2, H = W + 70, cv = document.createElement('canvas'), g = cv.getContext('2d');
+    cv.width = W; cv.height = H; g.fillStyle = '#fff'; g.fillRect(0, 0, W, H); g.fillStyle = '#16211E';
+    for (let r = 0; r < n; r++) for (let c = 0; c < n; c++) if (q.isDark(r, c)) g.fillRect(pad + c * k, pad + r * k, k, k);
+    g.font = '600 26px "IBM Plex Sans KR", sans-serif'; g.textAlign = 'center'; g.fillText(label, W / 2, W + 30);
+    g.font = '18px "IBM Plex Sans KR", sans-serif'; g.fillStyle = '#5B6B66'; g.fillText('코이데 · 함께 기도하는 공동체', W / 2, W + 58);
+    const a = document.createElement('a'); a.href = cv.toDataURL('image/png'); a.download = label + ' 코이데 QR.png'; document.body.appendChild(a); a.click(); a.remove();
+  }
+  function inviteCard() {
+    const I = S.ops && S.ops.invites;
+    if (!I) return '';
+    const Q = S.qrOpen, dname = S.month.dept.name;
+    const qr = (key, label) => Q !== key ? '' : `<div class="qr-box">${window.qrcode ? qrOf(inviteUrl(key)).createSvgTag({ cellSize: 5, margin: 2, scalable: true }) : '<p class="hint">QR을 만드는 중…</p>'}
+      <div class="actions"><button class="btn small ghost" data-act="qrpng" data-v="${esc(key)}" data-n="${esc(label)}">그림으로 내려받기</button></div></div>`;
+    const row = (key, label, roomId, main) => `<li class="inv${main ? ' main' : ''}"><div><b>${esc(label)}</b></div>
+      <span class="foot-acts"><button class="link" data-act="invcopy" data-v="${esc(key)}" data-n="${esc(label)}">복사</button><button class="link quiet" data-act="qropen" data-v="${esc(key)}" aria-expanded="${Q === key}">QR</button><button class="link quiet" data-act="invrenew" data-v="${esc(roomId)}" data-n="${esc(label)}">새로</button></span>${qr(key, label)}${copyNote('inv' + key, inviteUrl(key))}</li>`;
+    return `<section class="card"><h2>초대 링크 · QR</h2>
+      <ul class="staff-list inv-list">${row(I.dept, dname + ' 전체', '', true)}${I.rooms.map(r => row(r.token, r.name, r.id)).join('')}</ul>
+      <p class="hint">${esc(dname)} 전체 링크는 새가족 환영, 주보, 교회 화면에 써요. ${esc(grp())} 링크로 들어오면 ${esc(gj('을/를'))} 고르지 않고 바로 ${words().one} 고르기부터 해요. 링크로 들어와도 연결 승인은 지금처럼 리더가 해요. 링크가 엉뚱한 곳에 퍼졌으면 "새로"를 눌러요(예전 링크는 막혀요).</p></section>`;
+  }
+
+  // ── ⑥ 의견함: 회원은 더보기에서 보내고, 관리자는 관리 탭에서 읽는다. 답장은 두지 않는다 ──
+  const FB_KINDS = ['불편해요', '이랬으면', '고마워요'];
+  function feedbackView() {
+    const F = S.fb || (S.fb = { kind: '이랬으면', text: '', named: false });
+    return `<button class="link back" data-act="tab" data-v="more">${ICON.chevL}더보기</button>
+      <div class="page-top"><div><p class="eyebrow">코이데를 함께 만들어요</p><h1>의견 보내기</h1></div></div>
+      <section class="card fb-form" style="margin-top:12px">
+        <div class="seg" style="--n:3" role="radiogroup" aria-label="의견 종류">${FB_KINDS.map(k => `<button class="${F.kind === k ? 'on' : ''}" role="radio" aria-checked="${F.kind === k}" data-act="fbkind" data-v="${k}">${k}</button>`).join('')}</div>
+        <p class="hint warn-text">기도제목은 여기 쓰지 말아 주세요.</p>
+        <textarea id="fb-t" class="field" rows="6" maxlength="500" placeholder="불편한 점, 바라는 점, 고마운 점 무엇이든 좋아요." aria-label="의견">${esc(F.text)}</textarea>
+        <p class="hint fb-n"><span id="fb-n">${[...F.text].length}</span>/500</p>
+        <div class="set-row"><div><p class="label" style="margin:0">이름 밝히기</p><p class="hint" style="margin:.2em 0 0">${F.named ? `관리자가 보낸 사람(${esc(S.month.me.person)})을 봐요.` : '끄면 누가 보냈는지 남기지 않아요.'}</p></div>
+          <button type="button" class="switch${F.named ? ' on' : ''}" role="switch" aria-checked="${F.named}" aria-label="이름 밝히기" data-act="fbnamed"><span></span></button></div>
+        <div class="actions"><button class="btn" data-act="fbsend" ${S.busy ? 'disabled' : ''}>${S.busy ? '보내는 중…' : '보내기'}</button></div>
+        <p class="hint">${esc(S.month.dept.name)} 관리자가 읽어요. 답장은 따로 오지 않아요. 이야기가 필요하면 ${esc(grp())} 리더에게 카톡으로 알려 주세요.</p></section>`;
+  }
+  const keepFb = () => { const t = $('#fb-t'); if (t && S.fb) S.fb.text = t.value; };
+  const fbNew = () => S.ops && S.ops.feedback ? S.ops.feedback.filter(x => !x.read).length : 0;
+  function feedbackCard() {
+    const L = S.ops && S.ops.feedback;
+    if (!L) return '';
+    const k = S.fbFilter || '', list = L.filter(x => !k || x.kind === k), n = fbNew(), more = S.fbMore ? list : list.slice(0, 5);
+    const day = iso => { const d = new Date(iso); return isNaN(d) ? '' : `${d.getMonth() + 1}/${d.getDate()}`; };
+    return `<section class="card"><h2>의견함${n ? ` <span class="ops-n">${n}</span>` : ''}</h2>
+      ${L.length ? `<div class="mchips" role="radiogroup" aria-label="의견 종류">${[['', '전체'], ...FB_KINDS.map(x => [x, x])].map(([v, l]) => `<button class="mchip${k === v ? ' on' : ''}" role="radio" aria-checked="${k === v}" data-act="fbfilter" data-v="${v}">${l}</button>`).join('')}</div>
+        <ul class="fb-list">${more.map(x => `<li class="${x.read ? '' : 'new'}"><div class="row"><span class="fb-kind">${esc(x.kind)}</span><small>${day(x.at)}${x.who ? ' · ' + esc(x.who) : ''}</small></div>
+          <p class="plain">${esc(x.text)}</p>${x.read ? '' : `<button class="link" data-act="fbread" data-v="${esc(x.id)}">읽음</button>`}</li>`).join('') || '<li class="hint">이 종류의 의견은 아직 없어요.</li>'}</ul>
+        ${list.length > 5 ? `<button class="link" data-act="fbmore">${S.fbMore ? '접기' : `${list.length - 5}개 더 보기`}</button>` : ''}` : '<p class="hint">아직 받은 의견이 없어요. 회원은 더보기 › 의견 보내기에서 보내요.</p>'}
+      <p class="hint">이름을 밝힌 의견에만 보낸 사람이 나와요. 1년 1개월 뒤에 지워요.</p></section>`;
   }
   // 우리 가정 기록 내려받기: 해마다 탭 하나, 달마다 한 줄. "우리 가정만" 항목도 넣는다(우리 가정 것이라서)
   async function myExportXlsx() {
@@ -3699,6 +3798,30 @@ try { const p = JSON.parse(localStorage.getItem('koide-pref') || '{}'), d = docu
         S.busy = false; return render();
       }
       case 'eraseask': S.eraseAsk = v || null; return render();
+      case 'invcopy': {
+        const url = inviteUrl(v);
+        let ok = false; try { await navigator.clipboard.writeText(url); ok = true; } catch (err) { /* 막힌 기기 */ }
+        S.copied = { key: 'inv' + v, ok }; render(); if (ok) toast(b.dataset.n + ' 초대 링크를 복사했어요.'); return;
+      }
+      case 'qropen': S.qrOpen = S.qrOpen === v ? null : v; render(); if (S.qrOpen && !window.qrcode) loadQR().then(render, () => toast('QR을 만들지 못했어요.')); return;
+      case 'qrpng': try { await loadQR(); qrPng(inviteUrl(v), b.dataset.n); } catch (err) { toast('QR을 만들지 못했어요.'); } return;
+      case 'invrenew':
+        if (!confirm(b.dataset.n + ' 초대 링크를 새로 만들까요? 예전 링크로는 더 들어올 수 없어요.')) return;
+        S.busy = true; render();
+        try { S.ops = await api('inviteRenew', { roomId: v }); S.qrOpen = null; toast('새 링크를 만들었어요.'); } catch (err) { oops(err); }
+        S.busy = false; return render();
+      case 'fbkind': keepFb(); S.fb.kind = v; return render();
+      case 'fbnamed': keepFb(); S.fb.named = !S.fb.named; return render();
+      case 'fbsend': {
+        keepFb(); const F = S.fb; if (!F.text.trim()) return toast('내용을 적어 주세요.');
+        S.busy = true; render();
+        try { await api('sendFeedback', { kind: F.kind, text: F.text, named: F.named, ver: NEED_SERVER, width: widthKind() }); S.fb = null; S.tab = 'more'; toast('보냈어요. 고마워요.'); window.scrollTo(0, 0); }
+        catch (err) { oops(err.code === 'bad' && /모르는 요청/.test(err.message) ? { message: '서버를 새 버전으로 배포하면 보낼 수 있어요.' } : err); }
+        S.busy = false; return render();
+      }
+      case 'fbfilter': S.fbFilter = v; return render();
+      case 'fbmore': S.fbMore = !S.fbMore; return render();
+      case 'fbread': try { S.ops = await api('feedbackRead', { id: v }); render(); } catch (err) { oops(err); } return;
       case 'myexport': try { await myExportXlsx(); } catch (err) { oops(err.code === 'bad' ? { message: '서버를 새 버전으로 배포하면 내려받을 수 있어요.' } : err); } return;
       case 'erasereq': case 'erasereqoff': {
         const a = b.dataset.act;
@@ -3921,6 +4044,7 @@ try { const p = JSON.parse(localStorage.getItem('koide-pref') || '{}'), d = docu
   // 글을 쓰는 칸은 글 길이에 맞춰 높이가 늘어난다(길게 써도 칸 안에서 스크롤하지 않게)
   function autosize(t) { t.style.height = 'auto'; t.style.height = (t.scrollHeight + 2) + 'px'; }
   document.addEventListener('input', e => {
+    if (e.target.id === 'fb-t') { const n = $('#fb-n'); if (n) n.textContent = [...e.target.value].length; }
     if (e.target.matches('textarea.field')) autosize(e.target);
     // 개편 미리보기의 이동표 찾기: 다시 그리지 않고 줄만 숨긴다
     if (e.target.id === 'rg-find' && S.rg) { S.rg.find = e.target.value.trim(); document.querySelectorAll('.mv-table tbody tr').forEach(tr => { tr.hidden = !!S.rg.find && !tr.dataset.name.includes(S.rg.find); }); }
