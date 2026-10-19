@@ -21,7 +21,8 @@ const SESSION_DAYS = 30;
 
 // 시트 이름과 칸. 칸 이름(오른쪽)은 시트 첫 줄에 그대로 쓰여서 사람이 시트를 열어도 읽을 수 있다
 const SCHEMA = {
-  depts: ['부서', [['id', '부서ID'], ['name', '이름'], ['group', '소그룹 이름'], ['unit', '단위'], ['order', '순서']]],
+  // 상태: 비어 있으면 쓰는 중, '닫음'이면 첫 접속에서 빠지고 그 부서 사람은 들어오지 못한다(기록은 남고 다시 열 수 있다), '지움'이면 기록까지 지운 부서
+  depts: ['부서', [['id', '부서ID'], ['name', '이름'], ['group', '소그룹 이름'], ['unit', '단위'], ['order', '순서'], ['status', '상태'], ['closedAt', '닫은 날']]],
   rooms: ['사랑방', [['id', '사랑방ID'], ['name', '이름'], ['order', '순서'], ['deptId', '부서ID']]],
   families: ['가정', [['id', '가정ID'], ['name', '이름'], ['kids', '자녀'], ['status', '상태'], ['admin', '관리자']]],
   roster: ['편성', [['year', '연도'], ['roomId', '사랑방ID'], ['familyId', '가정ID'], ['role', '역할']]],
@@ -46,7 +47,24 @@ const SCHEMA = {
   visits: ['접속 기록', [['month', '월'], ['familyId', '가정ID']]],
   // 주제사전(설계서 10장 주제 자동 분류): 주제마다 키워드를 쉼표로. 기도제목 내용에 키워드가 있으면 그 주제(여럿 가능), 없으면 기타.
   //  분류는 저장하지 않고 볼 때마다 해서, 사전을 고치면 지난 달까지 다시 분류된다. 비어 있으면 처음 읽을 때 기본 사전을 넣는다
-  topics: ['주제사전', [['topic', '주제'], ['words', '키워드'], ['order', '순서']]]
+  topics: ['주제사전', [['topic', '주제'], ['words', '키워드'], ['order', '순서']]],
+  // 변경기록(설계서 S7 › ④): 누가 언제 무엇을 바꿨는지. 기도제목 내용은 넣지 않는다. 13개월 뒤 지운다
+  changes: ['변경기록', [['at', '날짜시각'], ['deptId', '부서ID'], ['who', '한 사람'], ['role', '역할'], ['kind', '종류'], ['target', '대상'], ['extra', '덧붙임']]],
+  // 요청(설계서 S7 › ②): 가정의 '기록 지우기' 요청과, 관리자가 떠난 가정을 '1년 더 두기'로 미룬 것
+  requests: ['요청', [['familyId', '가정ID'], ['deptId', '부서ID'], ['kind', '종류'], ['at', '요청한 날'], ['status', '상태'], ['doneAt', '처리한 날'], ['doneBy', '처리한 사람']]],
+  // 오류 기록(설계서 S7 › ①): 서버에서 뜻밖에 난 오류의 요청 이름과 종류만. 이름·기도제목은 없다. 30일 뒤 지운다
+  errors: ['오류 기록', [['at', '날짜시각'], ['action', '요청'], ['kind', '종류']]],
+  // 초대 링크(설계서 S7 › ⑤): 부서 링크(사랑방ID 비움)와 사랑방 링크. 링크 값은 무작위. 새로 만들면 예전 링크는 '막힘'
+  invites: ['초대링크', [['token', '링크 값'], ['deptId', '부서ID'], ['roomId', '사랑방ID'], ['at', '만든 날'], ['status', '상태']]],
+  // 의견함(설계서 S7 › ⑥): 이름을 밝히지 않으면 가정ID와 사람을 남기지 않는다. 13개월 뒤 지운다
+  // 운영 관리자(설계서 13장): 부서에 속하지 않고, 기도제목 내용을 보지 않고 맡은 부서를 꾸리는 사람. 범위는 부서ID들(쉼표) 또는 '전체'.
+  //  맨 처음 한 사람은 시트에 직접 적는다(카카오ID는 연결 탭에서). 그다음부터는 앱의 일회용 초대 링크(초대 값)로 붙는다
+  opsAdmins: ['전체 관리자', [['kakaoId', '카카오ID'], ['name', '이름'], ['scope', '범위'], ['status', '상태'], ['token', '초대 값'], ['at', '만든 날'], ['by', '만든 사람']]],
+  // 자율 모임(설계서 13장, 2026-10-23): 회원 누구나 만드는 모임. 한 모임 12명, 한 사람 3곳(원래 소그룹 포함), 모임장은 한 사람당 1곳.
+  //  사람마다 모임 안의 ID(모임 사람ID)가 있어서, 기도제목·기도했어요는 그 ID를 가정ID 자리에 쓴다(모임마다 따로)
+  groups: ['모임', [['id', '모임ID'], ['name', '이름'], ['owner', '모임장 카카오ID'], ['token', '초대 값'], ['status', '상태'], ['at', '만든 날']]],
+  gmembers: ['모임 사람', [['groupId', '모임ID'], ['id', '모임 사람ID'], ['kakaoId', '카카오ID'], ['person', '이름'], ['role', '역할'], ['status', '상태'], ['at', '들어온 날']]],
+  feedback: ['의견', [['at', '보낸 날'], ['deptId', '부서ID'], ['kind', '종류'], ['text', '내용'], ['familyId', '가정ID'], ['person', '사람'], ['ver', '화면 버전'], ['width', '기기 폭'], ['read', '읽음']]]
 };
 const SCOPES = ['room', 'leader', 'family'];
 // 교역자의 공개 범위: dept(부서 공개, 섬기는 분들 카드에 나옴) / family(우리 가정만)
@@ -58,21 +76,24 @@ const FIRST_DEPT = { id: 'D1', name: '청장년부', group: '사랑방', unit: '
 // ── 요청 받기 ─────────────────────────────────────────────
 
 // 서버 코드를 고칠 때마다 바꾼다. 웹 앱 주소를 열면 보여서, 새 버전으로 배포됐는지 확인할 수 있다
-const VERSION = '2026-10-20 소그룹 이름';
+const VERSION = '2026-10-29 함께 기도해요';
 function doGet() {
   return ContentService.createTextOutput('코이데 서버가 켜져 있어요. (버전: ' + VERSION + ')');
 }
 
 function doPost(e) {
-  let out;
+  let out, body = {};
   try {
     Object.keys(READ_CACHE_).forEach(k => delete READ_CACHE_[k]);
-    const body = JSON.parse((e && e.postData && e.postData.contents) || '{}');
+    body = JSON.parse((e && e.postData && e.postData.contents) || '{}');
     const fn = ACTIONS[body.action];
     if (!fn) throw fail_('bad', '모르는 요청이에요.');
+    // 운영 관리자로 보낸 요청은 운영에 쓰는 일만(내 가정의 일은 운영 화면에서 하지 않는다)
+    if (body.ops && OPS_ACTIONS_.indexOf(body.action) < 0) throw fail_('forbidden', '운영 화면에서는 할 수 없는 일이에요.');
     out = { ok: true, data: fn(body) };
   } catch (err) {
     out = err && err.code ? { ok: false, code: err.code, message: err.message } : { ok: false, code: 'server', message: String(err && err.message || err) };
+    if (!(err && err.code)) logError_(body.action, err);
   }
   return ContentService.createTextOutput(JSON.stringify(out)).setMimeType(ContentService.MimeType.JSON);
 }
@@ -86,11 +107,15 @@ const ACTIONS = {
     const w = who_(body), me = meInfo_(w);
     // 기기에 모아 둔 사용기록을 앱을 열 때 함께 받는다(요청을 따로 보내지 않게)
     const usage = body.events ? usage_(w, body) : undefined;
-    if (!w.link) return { me, depts: deptsWithRooms_(), usage };
+    // 초대 링크로 들어왔으면 그 부서·사랑방(막힌 링크면 bad)
+    if (!w.link) {
+      const join = body.join ? inviteOf_(String(body.join)) || { bad: true } : undefined;
+      return { me, depts: deptsWithRooms_(join && join.roomId), usage, join };
+    }
     if (w.link.status === '연결') return { me, month: monthView_(memberFrom_(w)), usage };
     return { me, usage };
   },
-  rooms: body => { who_(body); return roomsWithFamilies_(); },
+  rooms: body => { who_(body); return roomsWithFamilies_(''); },
   requestLink: requestLink_,
   month: body => monthView_(member_(body)),
   room: body => staffRoomView_(member_(body), body.roomId),
@@ -122,8 +147,52 @@ const ACTIONS = {
   topics: body => topicFlow_(staffOrAdmin_(body)),
   topicWord: topicWord_,
   myPrayers: body => myPrayers_(member_(body)),
-  search: body => search_(member_(body), String(body.q || ''))
+  search: body => search_(member_(body), String(body.q || '')),
+  // 관리 › 운영(설계서 S7): 앱 상태, 개인정보 요청
+  ops: body => opsView_(adminOf_(body)),
+  openMonth: openMonth_,
+  handover: handover_,
+  eraseFamily: eraseFamily_,
+  keepFamily: keepFamily_,
+  // 가정: 우리 가정 기록 내려받기, 지우기 요청
+  myExport: body => myExport_(member_(body)),
+  eraseRequest: body => eraseRequest_(member_(body), true),
+  eraseRequestCancel: body => eraseRequest_(member_(body), false),
+  // 초대 링크(관리자: 부서와 모든 사랑방, 리더: 리더 현황에서 우리 사랑방) · 의견함
+  inviteRenew: inviteRenew_,
+  feedbackRead: feedbackRead_,
+  sendFeedback: sendFeedback_,
+  // 자율 모임
+  groupCreate: groupCreate_,
+  groupInfo: body => groupInfo_(groupMember_(body)),
+  groupJoin: groupJoin_,
+  groupDecide: groupDecide_,
+  groupLeave: groupLeave_,
+  groupRename: groupRename_,
+  groupRemove: groupRemove_,
+  groupRenew: groupRenew_,
+  // 운영 관리자·부서 만들기·소그룹과 사람(편성 관리)
+  opsCtx: body => opsCtxView_(adminOf_(body)),
+  church: churchView_,
+  churchAnalysis: churchAnalysis_,
+  groupAdmin: groupAdmin_,
+  together: body => togetherItems_(togetherOf_(body).deptId, true),
+  togetherSave: togetherSave_,
+  togetherState: togetherState_,
+  changes: changesView_,
+  opsJoin: opsJoin_,
+  opsInvite: opsInvite_,
+  opsRemove: opsRemove_,
+  deptSave: deptSave_,
+  deptClose: body => deptState_(body, '닫음'),
+  deptReopen: body => deptState_(body, ''),
+  deptErase: deptErase_,
+  roster: body => rosterView_(adminOf_(body)),
+  groups: body => groupsAll_(adminOrStaff_(body)),
+  rosterSave: rosterSave_
 };
+const OPS_ACTIONS_ = ['opsCtx', 'church', 'churchAnalysis', 'groupAdmin', 'changes', 'together', 'togetherSave', 'togetherState', 'opsInvite', 'opsRemove', 'deptSave', 'deptClose', 'deptReopen', 'deptErase', 'roster', 'rosterSave', 'pending', 'approve', 'reject', 'unlink', 'saveStaff', 'endStaff',
+  'reorg', 'reorgSave', 'reorgCancel', 'analysis', 'saveGroup', 'ops', 'groups', 'openMonth', 'handover', 'eraseFamily', 'keepFamily', 'inviteRenew', 'feedbackRead', 'usage'];
 
 // ── 로그인 ───────────────────────────────────────────────
 
@@ -176,7 +245,7 @@ function who_(body) {
 }
 
 // 연결이 승인된 회원: 가정, 올해 사랑방과 그 부서, 역할(회원/리더/코리더), 관리자 여부(자기 부서)
-function member_(body) { return memberFrom_(who_(body)); }
+function member_(body) { return body.grp ? groupMember_(body) : memberFrom_(who_(body)); }
 function memberFrom_(w) {
   if (!w.link || w.link.status !== '연결') throw fail_('notLinked', '아직 리더의 승인을 기다리고 있어요.');
   const fam = read_('families').find(f => f.id === w.link.familyId);
@@ -185,22 +254,24 @@ function memberFrom_(w) {
   const st = !r && fam ? staffOf_(fam.id) : null;
   if (!fam || (!r && !st)) throw fail_('notLinked', st === null && fam && fam.status === '교역자' ? '교역자 목록에서 빠졌어요. 관리자에게 알려 주세요.' : notInTerm_(w.link.familyId));
   if (w.link.lastSeen !== today_()) { w.link.lastSeen = today_(); update_('links', w.link); markVisit_(fam.id); }
+  const shut = d => { if (d && d.status) throw fail_('notLinked', d.name + '는 지금 닫혀 있어요. 다시 열리면 들어올 수 있어요.'); };
   if (st) {
-    const d = deptById_(st.deptId);
+    const d = deptById_(st.deptId); shut(d);
     return { kakaoId: w.kakaoId, person: w.link.person, familyId: fam.id, family: fam, roomId: '', deptId: d.id, dept: deptInfo_(d), role: st.title, admin: yes_(fam.admin), staff: true, label: st.label };
   }
-  const dept = deptOfRoom_(r.roomId);
+  const dept = deptOfRoom_(r.roomId); shut(dept);
   return { kakaoId: w.kakaoId, person: w.link.person, familyId: fam.id, family: fam, roomId: r.roomId, deptId: dept.id, dept: deptInfo_(dept), role: r.role, admin: yes_(fam.admin) };
 }
 
 function leaderOrAdmin_(body) {
+  if (body.ops) return opsOf_(body);
   const c = member_(body);
   if (!c.admin && c.role !== '리더' && c.role !== '코리더') throw fail_('forbidden', '리더만 할 수 있어요.');
   return c;
 }
 
 function meInfo_(w) {
-  const out = { nick: w.nick, link: w.link ? { status: w.link.status, familyId: w.link.familyId, person: w.link.person } : null };
+  const out = { nick: w.nick, link: w.link ? { status: w.link.status, familyId: w.link.familyId, person: w.link.person } : null, ops: opsScope_(w.kakaoId), groups: myGroups_(w.kakaoId) };
   if (w.link && w.link.status === '연결') return Object.assign(out, memberFrom_(w));
   if (w.link) {
     const fam = read_('families').find(f => f.id === w.link.familyId);
@@ -212,22 +283,30 @@ function meInfo_(w) {
 
 // ── 연결 요청 ─────────────────────────────────────────────
 
-function roomsWithFamilies_() {
+// 첫 접속의 소그룹 목록. 가정 이름은 그 소그룹 초대 링크로 들어온 사람에게만(openRoom) 보여 준다.
+//  링크 없이(또는 부서 링크로) 들어오면 소그룹 이름까지만 보이고, 내 이름을 직접 써서 찾는다(교인 명단이 퍼지지 않게)
+function roomsWithFamilies_(openRoom) {
   const fams = read_('families'), roster = read_('roster').filter(activeRow_);
   return activeRooms_().sort((a, b) => a.order - b.order).map(r => ({
     id: r.id, name: r.name, deptId: deptOfRoom_(r.id).id,
-    families: roster.filter(x => x.roomId === r.id).map(x => fams.find(f => f.id === x.familyId))
+    families: r.id !== openRoom ? undefined : roster.filter(x => x.roomId === r.id).map(x => fams.find(f => f.id === x.familyId))
       .filter(f => f && f.status === '활동').map(f => ({ id: f.id, name: f.name }))
   }));
 }
 // 첫 접속에서 고르는 순서대로: 부서 → 그 부서의 사랑방 → 가정
-function deptsWithRooms_() {
-  const rooms = roomsWithFamilies_();
-  // 교역자는 사랑방 대신 '목사님·장로님으로 들어가기'에서 고른다
+function deptsWithRooms_(openRoom) {
+  const rooms = roomsWithFamilies_(openRoom || '');
+  // 교역자는 사랑방 대신 '목사님·장로님으로 들어가기'에서 이름을 써서 찾는다(교역자 명단도 보여 주지 않는다)
+  return depts_().filter(deptOpen_).map(d => Object.assign(deptInfo_(d), { rooms: rooms.filter(r => r.deptId === d.id), hasStaff: activeStaff_(d.id).length > 0 }))
+    .filter(d => d.rooms.length || d.hasStaff);
+}
+// 이름으로 가정 찾기: 그 소그룹(또는 부서의 교역자) 가정 중 이름이 같은 사람. 띄어쓰기는 무시한다
+function findByName_(body, person) {
+  const key = x => String(x).replace(/\s+/g, '');
+  const has = f => f && String(f.name).split(' · ').some(n => key(n) === key(person));
   const fams = read_('families');
-  return depts_().map(d => Object.assign(deptInfo_(d), { rooms: rooms.filter(r => r.deptId === d.id),
-    staff: activeStaff_(d.id).map(s => ({ id: s.familyId, name: (fams.find(f => f.id === s.familyId) || {}).name || '', label: s.label })).filter(s => s.name) }))
-    .filter(d => d.rooms.length || d.staff.length);
+  if (body.staff) return activeStaff_(String(body.deptId || '')).map(x => fams.find(f => f.id === x.familyId)).find(has) || null;
+  return read_('roster').filter(r => activeRow_(r) && r.roomId === body.roomId).map(r => fams.find(f => f.id === r.familyId)).filter(f => f && f.status === '활동').find(has) || null;
 }
 
 // 이미 있는 가정에 연결(familyId + person) 또는 새 가정 신청(newFamily: {a, b, kids}, roomId)
@@ -246,6 +325,10 @@ function requestLink_(body) {
       append_('families', { id: familyId, name: b && !one ? a + ' · ' + b : a, kids: one ? '' : String(body.newFamily.kids || ''), status: '승인 대기', admin: '' });
       append_('roster', { year: termNow_(deptOfRoom_(body.roomId).id), roomId: body.roomId, familyId, role: '회원' });
       person = a;
+    } else if (body.byName) {
+      const fam = findByName_(body, person);
+      if (!fam) throw fail_('notfound', body.staff ? '교역자 목록에서 그 이름을 찾지 못했어요. 부서 관리자에게 알려 주세요.' : '이 소그룹에서 그 이름을 찾지 못했어요.');
+      familyId = fam.id; person = fam.name.split(' · ').find(n => n.replace(/\s+/g, '') === person.replace(/\s+/g, '')) || person;
     } else {
       const fam = read_('families').find(f => f.id === familyId);
       if (!fam || fam.name.split(' · ').indexOf(person) < 0) throw fail_('bad', '가정과 사람을 다시 골라 주세요.');
@@ -287,7 +370,8 @@ function pendingView_(c) {
   // 돌봄 신호: 리더·코리더가 우리 사랑방 것을 본다
   const lead = c.role === '리더' || c.role === '코리더';
   return { requests, families, posts, today: today_(), staff: c.admin ? staffList_(c.deptId) : undefined, signals: lead ? careSignals_([c.roomId], month_()) : undefined,
-    history: lead ? updateHistory_(c.roomId, c.deptId, month_()) : undefined, trend: lead ? updateTrend_(c.roomId, c.deptId, month_()) : undefined };
+    history: lead ? updateHistory_(c.roomId, c.deptId, month_()) : undefined, trend: lead ? updateTrend_(c.roomId, c.deptId, month_()) : undefined,
+    invite: lead ? (invites_(c).rooms.find(r => r.id === c.roomId) || {}).token : undefined };
 }
 
 // 월별 업데이트 추이(설계서 10장, 리더): 최근 12개월, 그달 편성에서 우리 사랑방 가정 수와 손봄·그대로 확인 수. 사랑방 합계만.
@@ -367,6 +451,7 @@ function importRoom_(body) {
     drop.sort((p, q) => q._row - p._row).forEach(i => remove_('items', i));
     appendMany_('families', newFams); appendMany_('roster', newRoster); appendMany_('items', newItems);
     monthly.forEach(id => setMonthly_(id, m, 'same'));
+    logChange_(c, '시트 가져오기', room.name, '가정 ' + list.length + ' · 새 가정 ' + made + ' · 기도제목 ' + count);
     return { room: room.name, families: list.length, made, replaced, items: count };
   });
 }
@@ -408,6 +493,7 @@ function decide_(body, ok) {
     if (!l || !canManage_(c, l.familyId)) throw fail_('bad', '요청을 찾지 못했어요.');
     l.status = ok ? '연결' : '해제'; l.approvedBy = c.person; update_('links', l);
     const f = read_('families').find(x => x.id === l.familyId);
+    logChange_(c, (f && f.status === '승인 대기' ? '새 가정 ' : '연결 ') + (ok ? '승인' : '거절'), (f ? f.name + ' · ' : '') + l.person);
     if (f && f.status === '승인 대기') { f.status = ok ? '활동' : '거절'; update_('families', f); }
     return pendingView_(c);
   });
@@ -420,6 +506,7 @@ function unlink_(body) {
     if (!l || !canManage_(c, l.familyId)) throw fail_('bad', '연결을 찾지 못했어요.');
     if (String(l.kakaoId) === c.kakaoId) throw fail_('bad', '내 연결은 여기서 해제할 수 없어요.');
     l.status = '해제'; l.approvedBy = c.person; update_('links', l);
+    logChange_(c, '연결 해제', ((read_('families').find(x => x.id === l.familyId) || {}).name || '') + ' · ' + l.person);
     return pendingView_(c);
   });
 }
@@ -439,6 +526,7 @@ function canManage_(c, familyId) {
 //  돌려주는 것: months(볼 수 있는 달, 최근 순), month(고른 달), room, families(그 달 사랑방), mine(우리 가정의 달마다 기도제목)
 function historyView_(c, want, roomId) {
   if (c.staff) return staffHistory_(c, want, roomId);
+  if (c.grp) return groupHistory_(c, want);
   const items = read_('items'), rooms = read_('rooms'), fams = read_('families'), roster = read_('roster');
   // 그 달에 적용 중이던 편성에서 우리 가정이 속한 사랑방(12월부터 새 편성이면 12월은 새 사랑방)
   const myRows = roster.filter(r => r.familyId === c.familyId), at = {};
@@ -450,7 +538,7 @@ function historyView_(c, want, roomId) {
   const r = myRoom(m), lead = !!r && (r.role === '리더' || r.role === '코리더');
   const show = i => ({ target: i.target, text: i.text, scope: i.scope, ended: i.state === '마침' });
   const families = !r ? [] : roster.filter(x => String(x.year) === String(r.year) && x.roomId === r.roomId).map(x => {
-    const f = fams.find(y => y.id === x.familyId); if (!f) return null;
+    const f = fams.find(y => y.id === x.familyId); if (!f || f.status === '지움') return null;
     const own = f.id === c.familyId;
     const its = items.filter(i => i.month === m && i.familyId === f.id && (own || i.scope === 'room' || (i.scope === 'leader' && lead)))
       .sort((a, b) => a.order - b.order).map(show);
@@ -506,7 +594,7 @@ function staffHistory_(c, want, roomId) {
   const room = rooms.find(r => r.id === roomId) || rooms[0] || null;
   const show = i => ({ target: i.target, text: i.text, scope: i.scope, ended: i.state === '마침' });
   const families = !room ? [] : rows.filter(x => x.roomId === room.id).map(x => {
-    const f = fams.find(y => y.id === x.familyId); if (!f) return null;
+    const f = fams.find(y => y.id === x.familyId); if (!f || f.status === '지움') return null;
     const its = items.filter(i => i.month === m && i.familyId === f.id && i.scope !== 'family').sort((a, b) => a.order - b.order).map(show);
     return { id: f.id, name: f.name, own: false, role: x.role, items: its };
   }).filter(Boolean).sort((a, b) => (b.role === '리더') - (a.role === '리더') || (b.role === '코리더') - (a.role === '코리더'));
@@ -556,7 +644,7 @@ function staffMonthView_(c) {
   return { month: m, term: termNow_(c.deptId), dept: c.dept, room: { id: '', name: c.dept.name }, me: { person: c.person, familyId: c.familyId, role: c.role, admin: c.admin, staff: true, label: c.label },
     families: [own], received: { n: 0, of: 0 }, serve: serveView_(c.deptId), rooms: staffRooms_(c, m), signals: careSignals_(roomIds, m),
     // 함께 섬기는 교역자: 섬기는 분들 카드에 나오지 않는 동역자(본인 빼고). 기도하기의 '함께 섬기는 분들' 장에 이름만
-    mates: activeStaff_(c.deptId).filter(s => s.familyId !== c.familyId && !yes_(s.serve)).map(s => s.label) };
+    mates: activeStaff_(c.deptId).filter(s => s.familyId !== c.familyId && !yes_(s.serve)).map(s => s.label), eraseReq: eraseAsked_(c.familyId), together: togetherItems_(c.deptId) };
 }
 
 // 목사님 홈: 부서의 사랑방마다 이번 달 손봄·확인 수, 새 기도제목 수, 리더, 이번 주에 내가 그 사랑방을 위해 기도했는지(청장년부 기도의 끈)
@@ -612,6 +700,7 @@ function staffRoomView_(c, roomId) {
 
 function monthView_(c) {
   if (c.staff) return staffMonthView_(c);
+  if (c.grp) return groupMonthView_(c);
   const m = month_();
   const isLeader = c.role === '리더' || c.role === '코리더';
   const room = read_('rooms').find(r => r.id === c.roomId) || {};
@@ -620,7 +709,7 @@ function monthView_(c) {
   const by = {}; read_('prayers').forEach(p => { if (p.familyId === c.familyId && p.by !== c.familyId && fmtMonth_(p.at) === m) by[p.by] = true; });
   const received = { n: Object.keys(by).length, of: Math.max(0, families.length - 1) };
   return { month: m, term: termNow_(c.deptId), shift: shift_(c), dept: c.dept, room: { id: room.id, name: room.name }, me: { person: c.person, familyId: c.familyId, role: c.role, admin: c.admin }, families, received, serve: serveView_(c.deptId),
-    art: artNums_(c, [m])[0] };
+    art: artNums_(c, [m])[0], eraseReq: eraseAsked_(c.familyId), together: togetherItems_(c.deptId) };
 }
 
 // 이달의 그림 모으기(설계서 4장): 내가 누른 '기도했어요'로 달마다 세 숫자를 센다. 나만 본다. 기도기록에서 바로 세어서 줄지 않는다.
@@ -698,6 +787,8 @@ function ensureFamilies_(famIds, m, roomOf) {
       }));
       setMonthly_(id, m, 'same');
     });
+    // 앱 상태(관리 › 운영)에 보여 줄 '새 달이 처음 열린 때'
+    if (!props_()['OPENED_' + m]) PropertiesService.getScriptProperties().setProperty('OPENED_' + m, new Date().toISOString());
   });
 }
 
@@ -705,7 +796,7 @@ function saveItem_(body) {
   const c = member_(body), m = month_();
   const text = String(body.text || '').trim(), target = String(body.target || (c.staff ? '함께' : c.dept.unit === '개인' ? '나' : '우리 가정')).trim().slice(0, 10);
   // 교역자는 부서 공개 / 우리 가정만, 회원은 사랑방 공개 / 리더·목사님 / 우리 가정만
-  const allowed = c.staff ? STAFF_SCOPES : SCOPES, scope = allowed.indexOf(body.scope) >= 0 ? body.scope : allowed[0];
+  const allowed = c.staff ? STAFF_SCOPES : c.grp ? GROUP_SCOPES : SCOPES, scope = allowed.indexOf(body.scope) >= 0 ? body.scope : allowed[0];
   if (!text) throw fail_('bad', '내용을 적어 주세요.');
   return withLock_(() => {
     if (body.id) {
@@ -751,7 +842,7 @@ function pray_(body) {
   const c = member_(body);
   // 목사님·장로님은 부서의 모든 사랑방 가정을 위해 기도한다
   const ok = r => activeRow_(r) && r.familyId === body.familyId && (c.staff ? deptOfRoom_(r.roomId).id === c.deptId : r.roomId === c.roomId);
-  if (!read_('roster').some(ok)) throw fail_('bad', c.staff ? '우리 부서 사랑방 가정이 아니에요.' : '우리 사랑방 가정이 아니에요.');
+  if (c.grp ? !groupPeople_(c.grp).some(m => m.id === body.familyId) : !read_('roster').some(ok)) throw fail_('bad', c.staff ? '우리 부서 사랑방 가정이 아니에요.' : '우리 사랑방 가정이 아니에요.');
   // prayed: 이번 달 내 횟수, today: 오늘 내 횟수(가정마다 하루 3번까지)
   const mine = read_('prayers').filter(p => p.kakaoId === c.kakaoId && p.familyId === body.familyId && fmtMonth_(p.at) === month_());
   const n = mine.filter(p => fmtDate_(p.at) === today_()).length;
@@ -844,8 +935,7 @@ function analysisView_(c) {
     weeks,
     rooms: rooms.map(r => ({ name: r.name, vals: months.map(mm => { const f = famsAt(mm).filter(x => x.roomId === r.id).map(x => x.familyId); return pct(f.filter(id => done(id, mm)).length, f.length); }) })),
     time,
-    topics: topicFlow_(c),
-    app: appStats_(m, seen)
+    topics: topicFlow_(c)
   };
 }
 
@@ -897,11 +987,11 @@ function staffOrAdmin_(body) {
 // 부서의 최근 6개월 기도제목을 주제로 나눠 센다(합계만, 이름 없이). 우리 가정만 항목도 개수에는 넣고 내용은 내보내지 않는다.
 //  목사님·장로님에게만 이번 달 '기타'로 빠진 사랑방 공개 항목의 내용(가정 이름 없이)과 사전을 함께 준다(키워드 다듬기용).
 //  관리자는 다른 사랑방 기도제목 내용을 보지 않으므로 주제별 숫자만 본다
-function topicFlow_(c) {
+function topicFlow_(c, allRooms) {
   const m = month_(), months = [m];
   while (months.length < 6) months.unshift(prevMonth_(months[0]));
   const dict = topicDict_(), names = dict.map(d => d.topic).concat('기타');
-  const rooms = roomIdsOfDept_(c.deptId), items = read_('items').filter(i => months.indexOf(i.month) >= 0 && rooms.indexOf(i.roomId) >= 0);
+  const rooms = allRooms || roomIdsOfDept_(c.deptId), items = read_('items').filter(i => months.indexOf(i.month) >= 0 && rooms.indexOf(i.roomId) >= 0);
   const flow = months.map(mm => {
     const list = items.filter(i => i.month === mm), counts = {};
     names.forEach(t => { counts[t] = 0; });
@@ -934,7 +1024,7 @@ function topicWord_(body) {
 //  - 첫 접속: 최근 90일, 단계마다 도착한 기기 수(뒤 단계에 간 기기는 앞 단계에도 센다)
 //  - 기능 사용·쓰는 환경: 이번 달 앱을 연 기기 중 %
 //  - 기도하기 한 번: 이번 달 마친 기도하기의 평균
-const FUNNEL_ = [['login', '로그인 화면', ['login']], ['room', '부서·사랑방 고르기', ['dept', 'room', 'staffpick']], ['family', '가정 고르기', ['family', 'who', 'newfam']],
+const FUNNEL_ = [['login', '로그인 화면', ['login']], ['room', '부서·사랑방 고르기', ['dept', 'room', 'staffpick']], ['family', '가정 고르기', ['family', 'who', 'newfam', 'typename']],
   ['consent', '동의', ['consent']], ['wait', '리더 승인 기다림', ['wait']], ['app', '연결 완료', ['app']], ['save', '첫 기도제목 저장', []]];
 function appStats_(m, seen) {
   const pct = (k, n) => n ? Math.round(k / n * 100) : null;
@@ -982,6 +1072,750 @@ function setMonthly_(familyId, m, status) {
   else append_('monthly', { month: m, familyId, status });
 }
 
+// ── 관리 › 운영 (설계서 S7) ─────────────────────────────────
+
+// 변경기록: 관리자·리더가 바꾼 것. 기록하다 실패해도 하던 일은 그대로 마친다
+function logChange_(c, kind, target, extra) {
+  try { append_('changes', { at: new Date(), deptId: c.deptId, who: c.person, role: c.ops ? (c.all ? '전체 관리자' : '운영 지원') : c.admin ? '부서 관리자' : c.role, kind, target: target || '', extra: extra || '' }); }
+  catch (e) { /* 기록을 못 남겨도 하던 일은 마친다 */ }
+}
+// 오류 기록: 요청 이름과 오류 종류만(오류 글은 80자까지)
+function logError_(action, err) {
+  try {
+    Object.keys(READ_CACHE_).forEach(k => delete READ_CACHE_[k]);
+    append_('errors', { at: new Date(), action: String(action || '').slice(0, 20), kind: (String(err && err.name || 'Error') + ': ' + String(err && err.message || err)).slice(0, 100) });
+  } catch (e) { /* 오류 기록도 못 하면 그냥 둔다 */ }
+}
+// 오래된 기록 지우기: 오류 30일, 변경기록 13개월. 관리자가 운영을 열 때 함께 한다
+function trimLogs_() {
+  const cut = (key, ms) => read_(key).filter(x => !(Date.parse(x.at) > Date.now() - ms)).sort((a, b) => b._row - a._row).forEach(x => remove_(key, x));
+  cut('errors', 30 * 864e5);
+  cut('changes', 396 * 864e5);
+  cut('feedback', 396 * 864e5);
+}
+const monAdd_ = (m, k) => { const [y, mo] = m.split('-').map(Number), t = y * 12 + mo - 1 + k; return Math.floor(t / 12) + '-' + String(t % 12 + 1).padStart(2, '0'); };
+
+// ① 앱 상태와 ② 개인정보 요청을 한 번에
+function opsView_(c) {
+  trimLogs_();
+  const d = c.deptId, m = month_(), prev = prevMonth_(m), p = props_();
+  // 새 달: 이번 달로 넘어온 기도제목 수, 아직 아무도 열지 않아 넘어오기를 기다리는 소그룹 수
+  const rooms = activeRooms_(d).map(r => r.id), roster = read_('roster').filter(r => activeRow_(r) && rooms.indexOf(r.roomId) >= 0);
+  const has = {}, open = {};
+  read_('items').forEach(i => { has[i.familyId + '|' + i.month] = true; if (i.month === prev && i.state !== '마침') open[i.familyId] = true; });
+  const carried = read_('items').filter(i => i.month === m && i.prevId && yes_(i.same) && roster.some(r => r.familyId === i.familyId)).length;
+  const waiting = rooms.filter(id => roster.some(r => r.roomId === id && !has[r.familyId + '|' + m] && open[r.familyId])).length;
+  // 최근 7일 오류
+  const errs = read_('errors').filter(e => Date.parse(e.at) > Date.now() - 7 * 864e5), kinds = {};
+  errs.forEach(e => { const k = e.action + ' · ' + e.kind; kinds[k] = (kinds[k] || 0) + 1; });
+  // 관리자 수: 우리 부서(지금 편성·교역자) 가정 중 관리자
+  const mine = {}; roster.forEach(r => { mine[r.familyId] = true; }); activeStaff_(d).forEach(s => { mine[s.familyId] = true; });
+  // 운영 관리자도 함께 센다(부서 관리자 1명 + 운영 관리자 1명이면 둘)
+  const admins = read_('families').filter(f => mine[f.id] && yes_(f.admin)).length + opsList_(c).live.length;
+  return {
+    version: VERSION,
+    month: { month: m, opened: p['OPENED_' + m] || '', carried, waiting },
+    errors: { n: errs.length, last: errs.length ? errs[errs.length - 1].at : '', kinds: Object.keys(kinds).map(k => ({ kind: k, n: kinds[k] })).sort((a, b) => b.n - a.n).slice(0, 8) },
+    admins, handover: p['HANDOVER_' + d] || '',
+    privacy: privacy_(c),
+    invites: invites_(c),
+    feedback: feedbackList_(c),
+    opsList: opsList_(c)
+  };
+}
+
+// 아직 아무도 열지 않은 소그룹까지 이번 달로 넘긴다(앱을 처음 열 때 저절로 되는 일을 지금 한꺼번에)
+function openMonth_(body) {
+  const c = adminOf_(body), m = month_();
+  activeRooms_(c.deptId).forEach(r => ensureMonth_(r.id, m));
+  logChange_(c, '새 달 열기', m);
+  return opsView_(c);
+}
+// 인수인계 체크리스트를 확인한 날
+function handover_(body) {
+  const c = adminOf_(body);
+  PropertiesService.getScriptProperties().setProperty('HANDOVER_' + c.deptId, today_());
+  logChange_(c, '인수인계 확인', c.dept.name);
+  return opsView_(c);
+}
+
+// 떠난 가정과 지우기 요청. 떠난 달은 그 가정이 마지막으로 있던 편성 다음 편성이 시작한 달(교역자는 마친 날).
+//  떠난 달(또는 '1년 더 두기'를 누른 달)부터 12개월이 지나면 '지울 날이 된 가정'에 올라온다. 저절로 지우지 않는다
+function privacy_(c) {
+  const d = c.deptId, m = month_(), fams = read_('families'), roster = read_('roster'), ids = roomIdsOfDept_(d), terms = terms_(d);
+  const active = {}; roster.filter(activeRow_).forEach(r => { active[r.familyId] = true; }); activeStaff_().forEach(s => { active[s.familyId] = true; });
+  const reqs = read_('requests'), kept = {};
+  reqs.filter(q => q.kind === '더 두기').forEach(q => { const k = String(q.at).slice(0, 7); if (!kept[q.familyId] || k > kept[q.familyId]) kept[q.familyId] = k; });
+  const due = []; let later = 0;
+  const closed = deptById_(d).status === '닫음' ? String(deptById_(d).closedAt).slice(0, 7) : '';
+  if (closed) {
+    roster.filter(r => ids.indexOf(r.roomId) >= 0).forEach(r => { active[r.familyId] = false; });
+    activeStaff_(d).forEach(s2 => { active[s2.familyId] = false; });
+  }
+  fams.filter(f => !active[f.id] && ['지움', '승인 대기', '거절'].indexOf(f.status) < 0).forEach(f => {
+    let since = '';
+    if (closed && (roster.some(r => r.familyId === f.id && ids.indexOf(r.roomId) >= 0) || read_('staff').some(x => x.familyId === f.id && x.deptId === d))) since = closed;
+    else {
+    const st = read_('staff').filter(s => s.familyId === f.id && s.deptId === d).pop();
+    if (st) { if (st.status === '종료') since = String(st.endedAt).slice(0, 7); }
+    else {
+      const rows = roster.filter(r => r.familyId === f.id && ids.indexOf(r.roomId) >= 0);
+      if (!rows.length) return;
+      const last = Math.max.apply(null, rows.map(r => Number(r.year))), next = terms.find(t => Number(t.year) > last);
+      since = next ? next.start : '';
+    }
+    }
+    if (!/^\d{4}-\d{2}$/.test(since)) return;
+    const from = kept[f.id] && kept[f.id] > since ? kept[f.id] : since;
+    if (monAdd_(from, 12) <= m) due.push({ id: f.id, name: f.name, since, kept: !!kept[f.id] });
+    else later++;
+  });
+  const requests = reqs.filter(q => q.kind === '기록 지우기' && q.status === '요청' && q.deptId === d)
+    .map(q => ({ id: q.familyId, name: (fams.find(f => f.id === q.familyId) || {}).name || '', at: fmtDay_(q.at) })).filter(q => q.name);
+  return { due, requests, later };
+}
+
+// 기록 지우기(관리자): 지울 날이 된 가정이나 지워 달라고 한 가정만. 기도제목 내용·대상, 가정 이름·자녀, 연결·로그인을 지우고
+//  기도제목 개수와 '기도했어요' 횟수만 남긴다. 되돌릴 수 없어서 화면에서 가정 이름을 한 번 더 확인해 보낸다
+function eraseFamily_(body) {
+  const c = adminOf_(body), id = String(body.familyId || '');
+  if (id === c.familyId) throw fail_('bad', '우리 가정 기록은 여기서 지울 수 없어요. 다른 관리자에게 부탁해 주세요.');
+  return withLock_(() => {
+    const P = privacy_(c);
+    if (!P.due.some(x => x.id === id) && !P.requests.some(x => x.id === id)) throw fail_('bad', '지울 수 있는 가정이 아니에요.');
+    const fam = read_('families').find(f => f.id === id);
+    if (!fam || fam.name !== String(body.name || '')) throw fail_('bad', '가정 이름이 맞지 않아요. 다시 골라 주세요.');
+    eraseFam_(c, fam);
+    return opsView_(c);
+  });
+}
+// 한 가정(사람)의 기록 지우기: 기도제목 내용·대상, 이름·자녀, 연결·로그인·카톡 공유, 의견의 이름, 모임 자리와 모임 기도제목. 개수는 남는다
+function eraseFam_(c, fam) {
+    const id = fam.id, name = fam.name, items = read_('items').filter(i => i.familyId === id);
+    items.forEach(i => { i.text = ''; i.target = ''; i.editedBy = ''; update_('items', i); });
+    const kakao = read_('links').filter(l => l.familyId === id).map(l => String(l.kakaoId));
+    read_('links').filter(l => l.familyId === id).sort((a, b) => b._row - a._row).forEach(l => remove_('links', l));
+    read_('sessions').filter(s => kakao.indexOf(String(s.kakaoId)) >= 0).sort((a, b) => b._row - a._row).forEach(s => remove_('sessions', s));
+    read_('posts').filter(x => x.familyId === id).sort((a, b) => b._row - a._row).forEach(x => remove_('posts', x));
+    read_('feedback').filter(x => x.familyId === id).forEach(x => { x.familyId = ''; x.person = ''; update_('feedback', x); });
+    // 자율 모임: 그 가정 사람의 모임 자리와 모임 기도제목도 지운다(개수는 남는다)
+    read_('gmembers').filter(m => kakao.indexOf(String(m.kakaoId)) >= 0).forEach(m => {
+      read_('items').filter(i => i.familyId === m.id).forEach(i => { i.text = ''; i.target = ''; i.editedBy = ''; update_('items', i); });
+      const lead = m.role === '모임장' && m.status === '함께';
+      Object.assign(m, { kakaoId: '', person: '(지운 기록)', status: '나감' }); update_('gmembers', m);
+      if (lead) passGroup_(m.groupId);
+    });
+    Object.assign(fam, { name: '(지운 기록)', kids: '', status: '지움', admin: '' }); update_('families', fam);
+    read_('requests').filter(q => q.familyId === id && q.kind === '기록 지우기' && q.status === '요청')
+      .forEach(q => { Object.assign(q, { status: '처리', doneAt: today_(), doneBy: c.person }); update_('requests', q); });
+    logChange_(c, '기록 지움', name, '기도제목 ' + items.length + '개');
+    return items.length;
+}
+// 떠난 가정을 1년 더 두기(돌아올 수도 있을 때)
+function keepFamily_(body) {
+  const c = adminOf_(body), id = String(body.familyId || '');
+  return withLock_(() => {
+    const f = privacy_(c).due.find(x => x.id === id);
+    if (!f) throw fail_('bad', '가정을 찾지 못했어요.');
+    append_('requests', { familyId: id, deptId: c.deptId, kind: '더 두기', at: today_(), status: '처리', doneAt: today_(), doneBy: c.person });
+    logChange_(c, '떠난 가정 1년 더 두기', f.name);
+    return opsView_(c);
+  });
+}
+
+// 우리 가정이 기록 지우기를 요청했는지
+function eraseAsked_(familyId) { return read_('requests').some(q => q.familyId === familyId && q.kind === '기록 지우기' && q.status === '요청'); }
+// 가정: 기록 지우기 요청 / 요청 거두기. 관리자 운영 화면의 '개인정보 요청'에 올라간다
+function eraseRequest_(c, on) {
+  return withLock_(() => {
+    const open = read_('requests').filter(q => q.familyId === c.familyId && q.kind === '기록 지우기' && q.status === '요청');
+    if (on && !open.length) append_('requests', { familyId: c.familyId, deptId: c.deptId, kind: '기록 지우기', at: today_(), status: '요청', doneAt: '', doneBy: '' });
+    if (!on) open.forEach(q => { Object.assign(q, { status: '거둠', doneAt: today_(), doneBy: c.person }); update_('requests', q); });
+    return { eraseReq: on };
+  });
+}
+// 우리 가정 기록 내려받기: 달마다 우리 가정이 쓴 기도제목 전부("우리 가정만" 포함). 화면이 엑셀로 만든다
+function myExport_(c) {
+  const items = read_('items').filter(i => i.familyId === c.familyId && i.text !== ''), months = {};
+  items.forEach(i => { (months[i.month] = months[i.month] || []).push(i); });
+  return { name: c.family.name, months: Object.keys(months).sort().map(mm => ({ month: mm,
+    items: months[mm].sort((a, b) => a.order - b.order).map(i => ({ target: i.target, text: i.text, scope: i.scope, ended: i.state === '마침' })) })) };
+}
+
+// ── 초대 링크 · QR (설계서 S7 › ⑤) ─────────────────────────
+// 부서 링크 하나와 지금 쓰는 사랑방마다 링크 하나. 없으면 만든다. 개편으로 쓰지 않게 된 사랑방의 링크는 열어도 막힌 것으로 본다
+//  (새 편성의 새 사랑방은 처음 볼 때 새 링크가 생긴다). 링크는 들어오는 길만 줄이고, 연결 승인은 지금처럼 리더가 한다
+const newToken_ = () => Utilities.getUuid().replace(/-/g, '').slice(0, 12);
+function invites_(c) {
+  const d = c.deptId, rooms = activeRooms_(d).sort((a, b) => a.order - b.order);
+  const live = () => read_('invites').filter(x => x.deptId === d && x.status === '쓰는 중');
+  const need = [''].concat(rooms.map(r => r.id)).filter(id => !live().some(x => x.roomId === id));
+  if (need.length) appendMany_('invites', need.map(id => ({ token: newToken_(), deptId: d, roomId: id, at: new Date(), status: '쓰는 중' })));
+  const tok = id => (live().filter(x => x.roomId === id).pop() || {}).token;
+  return { dept: tok(''), rooms: rooms.map(r => ({ id: r.id, name: r.name, token: tok(r.id) })) };
+}
+// 링크 값으로 부서·사랑방을 찾는다. 막혔거나, 사랑방이 지금 쓰지 않는 사랑방이면 null
+function inviteOf_(token) {
+  const x = read_('invites').filter(i => i.token === token && i.status === '쓰는 중').pop();
+  if (!x) return null;
+  if (x.roomId && !activeRooms_(x.deptId).some(r => r.id === x.roomId)) return null;
+  return { deptId: x.deptId, roomId: x.roomId };
+}
+// 링크 새로 만들기(관리자): 예전 링크는 막힌다(링크가 엉뚱한 곳에 퍼졌을 때)
+function inviteRenew_(body) {
+  const c = adminOf_(body), id = String(body.roomId || '');
+  if (id && !activeRooms_(c.deptId).some(r => r.id === id)) throw fail_('bad', '우리 부서 소그룹이 아니에요.');
+  return withLock_(() => {
+    read_('invites').filter(x => x.deptId === c.deptId && x.roomId === id && x.status === '쓰는 중').forEach(x => { x.status = '막힘'; update_('invites', x); });
+    append_('invites', { token: newToken_(), deptId: c.deptId, roomId: id, at: new Date(), status: '쓰는 중' });
+    logChange_(c, '초대 링크 새로 만들기', id ? (read_('rooms').find(r => r.id === id) || {}).name : c.dept.name + ' 전체');
+    return opsView_(c);
+  });
+}
+
+// ── 의견함 (설계서 S7 › ⑥) ───────────────────────────────
+const FEEDBACK_KINDS = ['불편해요', '이랬으면', '고마워요'];
+// 회원이 의견을 보낸다. 이름을 밝히면 가정ID와 사람을 함께 남긴다. 한 사람이 하루 10번까지
+function sendFeedback_(body) {
+  const c = member_(body), text = String(body.text || '').trim().slice(0, 500);
+  if (!text) throw fail_('bad', '내용을 적어 주세요.');
+  const kind = FEEDBACK_KINDS.indexOf(body.kind) >= 0 ? body.kind : FEEDBACK_KINDS[1];
+  const cache = CacheService.getScriptCache(), key = 'fb:' + c.kakaoId + ':' + today_(), n = Number(cache.get(key) || 0);
+  if (n >= 10) throw fail_('busy', '오늘은 충분히 보내 주셨어요. 내일 다시 보내 주세요.');
+  cache.put(key, String(n + 1), 86400);
+  const named = body.named === true;
+  append_('feedback', { at: new Date(), deptId: c.deptId, kind, text, familyId: named ? c.familyId : '', person: named ? c.person : '',
+    ver: String(body.ver || '').slice(0, 20), width: ['phone', 'tablet', 'pc'].indexOf(body.width) >= 0 ? body.width : '', read: '' });
+  return { ok: true };
+}
+// 관리자: 우리 부서 의견, 새것부터 100개. 이름을 밝힌 의견에만 보낸 사람
+function feedbackList_(c) {
+  const fams = read_('families');
+  return read_('feedback').filter(x => x.deptId === c.deptId).sort((a, b) => a.at < b.at ? 1 : -1).slice(0, 100).map(x => ({
+    id: x.at, at: x.at, kind: x.kind, text: x.text, read: yes_(x.read),
+    who: x.familyId ? whoOf_(fams.find(f => f.id === x.familyId), x.person) : '' }));
+}
+// 보낸 사람: 가정 이름에 그 사람 이름이 있으면 사람만, 아니면 사람 · 가정(가정을 지웠으면 사람만)
+function whoOf_(f, person) {
+  if (!f || f.status === '지움') return person || '';
+  return String(f.name).split(' · ').indexOf(person) >= 0 ? person : (person ? person + ' · ' : '') + f.name;
+}
+function feedbackRead_(body) {
+  const c = adminOf_(body);
+  return withLock_(() => {
+    const x = read_('feedback').find(f => f.deptId === c.deptId && f.at === String(body.id || ''));
+    if (!x) throw fail_('bad', '의견을 찾지 못했어요.');
+    x.read = body.read === false ? '' : '예'; update_('feedback', x);
+    return opsView_(c);
+  });
+}
+
+// ── 운영 관리자 (설계서 13장) ─────────────────────────────────
+// 운영 관리자의 요청에는 기도제목 내용을 담지 않는다(화면에서 숨기는 것이 아니라 보내지 않는다). 쓰는 요청은 OPS_ACTIONS_만
+function opsRows_(kakaoId) { return read_('opsAdmins').filter(o => String(o.kakaoId) === String(kakaoId) && o.status === '활동'); }
+// 맡은 부서 [{ id, name }]과 교회 전체인지
+function opsScope_(kakaoId) {
+  const rows = opsRows_(kakaoId);
+  if (!rows.length) return null;
+  const all = rows.some(o => String(o.scope).trim() === '전체'), ids = {};
+  rows.forEach(o => ids_(o.scope).forEach(id => { ids[id] = true; }));
+  return { all, depts: depts_().filter(d => d.status !== '지움' && (all || (ids[d.id] && deptOpen_(d)))).map(d => ({ id: d.id, name: d.name, closed: !!d.status })) };
+}
+// 운영 관리자로 보낸 요청의 사람: body.ops가 맡은 부서여야 한다. 가정·소그룹이 없고, 관리자처럼 부서를 꾸린다
+function opsOf_(body) {
+  const a = auth_(body.token), sc = opsScope_(a.kakaoId), id = String(body.ops || '');
+  if (!sc || !sc.depts.some(d => d.id === id)) throw fail_('forbidden', '맡은 부서가 아니에요.');
+  const row = opsRows_(a.kakaoId)[0], d = deptById_(id);
+  return { kakaoId: a.kakaoId, person: row.name || a.nick, familyId: '', roomId: '', deptId: d.id, dept: deptInfo_(d), role: '운영', admin: true, ops: true, all: sc.all };
+}
+// 운영 화면을 열 때: 부서, 소그룹 목록, 맡은 부서들. 이번 달 화면 대신 쓴다
+function opsCtxView_(c) {
+  const sc = opsScope_(c.kakaoId);
+  return { month: month_(), term: termNow_(c.deptId), dept: c.dept, room: { id: '', name: c.dept.name }, families: [], serve: [],
+    rooms: activeRooms_(c.deptId).sort((a, b) => a.order - b.order).map(r => ({ id: r.id, name: r.name })),
+    me: { person: c.person, familyId: '', role: '운영', admin: true, ops: true, all: sc.all }, scope: sc.depts, opsList: opsList_(c) };
+}
+// 이 부서를 맡은 운영 관리자 목록(교회 전체를 맡은 사람 포함)과 아직 쓰지 않은 초대
+function opsList_(c) {
+  const isAll = o => String(o.scope).trim() === '전체';
+  const live = read_('opsAdmins').filter(o => o.status === '활동' && (isAll(o) || ids_(o.scope).indexOf(c.deptId) >= 0));
+  const wait = read_('opsAdmins').filter(o => o.status === '초대' && isAll(o) && Date.parse(o.at) > Date.now() - 7 * 864e5);
+  return { live: live.map(o => ({ id: String(o.kakaoId), name: o.name, all: isAll(o), me: String(o.kakaoId) === c.kakaoId })),
+    wait: wait.map(o => ({ token: o.token, at: fmtDay_(o.at) })) };
+}
+// 전체 관리자 초대(전체 관리자만): 일회용 링크, 7일 안에 한 번. 한 사람이 빠져도 멈추지 않게 둘 이상 두려고
+function opsInvite_(body) {
+  const c = allAdmin_(body);
+  return withLock_(() => {
+    const token = newToken_() + newToken_().slice(0, 4);
+    append_('opsAdmins', { kakaoId: '', name: '', scope: '전체', status: '초대', token, at: new Date(), by: c.person });
+    logChange_(c, '전체 관리자 초대', '');
+    return { token, list: opsList_(c) };
+  });
+}
+// 초대 링크로 들어온 사람: 로그인한 카카오 계정에 역할을 붙인다
+function opsJoin_(body) {
+  const w = who_(body), t = String(body.invite || '');
+  return withLock_(() => {
+    const row = read_('opsAdmins').find(o => o.token === t && o.status === '초대');
+    if (!row || !(Date.parse(row.at) > Date.now() - 7 * 864e5)) throw fail_('bad', '쓸 수 없는 초대 링크예요. 새 링크를 받아 주세요.');
+    const has = opsRows_(w.kakaoId).find(o => ids_(o.scope).indexOf(row.scope) >= 0 || String(o.scope).trim() === '전체');
+    if (has) { row.status = '쓴 초대'; update_('opsAdmins', row); }
+    else { Object.assign(row, { kakaoId: w.kakaoId, name: (w.link && w.link.person) || w.nick, status: '활동', token: '' }); update_('opsAdmins', row); }
+    return meInfo_(who_(body));
+  });
+}
+// 전체 관리자 빼기·초대 취소(전체 관리자만, 나는 뺄 수 없다)
+function opsRemove_(body) {
+  const c = allAdmin_(body);
+  return withLock_(() => {
+    const rows = read_('opsAdmins');
+    const row = body.invite ? rows.find(o => o.token === String(body.invite) && o.status === '초대')
+      : rows.find(o => String(o.kakaoId) === String(body.kakaoId) && o.status === '활동' && String(o.kakaoId) !== c.kakaoId);
+    if (!row) throw fail_('bad', '뺄 수 있는 사람이 아니에요.');
+    row.status = '마침'; update_('opsAdmins', row);
+    logChange_(c, body.invite ? '전체 관리자 초대 취소' : '전체 관리자 뺌', body.invite ? '' : row.name);
+    return opsList_(c);
+  });
+}
+// 교회 전체(전체 관리자의 첫 화면): 부서마다 요약과 할 일 수, 앱 상태, 교회 안 모임, 전체 관리자. 기도제목은 없다
+function churchView_(body) {
+  const c = allAdmin_(body), m = month_(), p = props_();
+  const fams = read_('families'), links = read_('links'), fb = read_('feedback');
+  const list = read_('depts').filter(d => d.status !== '지움').sort((a, b) => a.order - b.order).map(d => {
+    const cx = Object.assign({}, c, { deptId: d.id, dept: deptInfo_(d) }), rooms = activeRooms_(d.id).map(r => r.id);
+    const ids = {}; read_('roster').filter(r => activeRow_(r) && rooms.indexOf(r.roomId) >= 0).forEach(r => { ids[r.familyId] = true; });
+    activeStaff_(d.id).forEach(x => { ids[x.familyId] = true; });
+    const people = fams.filter(f => ids[f.id] && (f.status === '활동' || f.status === '교역자'));
+    const P = privacy_(cx);
+    return { id: d.id, name: d.name, group: d.group || '사랑방', unit: d.unit === '개인' ? '개인' : '가정', closed: !!d.status, closedAt: d.closedAt ? String(d.closedAt).slice(0, 10) : '',
+      rooms: rooms.length, n: people.length, linked: people.filter(f => links.some(l => l.familyId === f.id && l.status === '연결')).length,
+      asks: links.filter(l => l.status === '요청' && ids[l.familyId]).length, privacy: P.due.length + P.requests.length,
+      feedback: fb.filter(x => x.deptId === d.id && !yes_(x.read)).length, admins: people.filter(f => yes_(f.admin)).length };
+  });
+  trimLogs_();
+  const errs = read_('errors').filter(e => Date.parse(e.at) > Date.now() - 7 * 864e5);
+  return { depts: list, version: VERSION, month: { month: m, opened: p['OPENED_' + m] || '' }, errors: { n: errs.length, last: errs.length ? errs[errs.length - 1].at : '' },
+    groups: groupsAll_(c), opsList: opsList_(c), handover: p['HANDOVER_church'] || '' };
+}
+// 부서 만들기·고치기(교회 전체를 맡은 운영 관리자): 이름, 소그룹 이름, 단위(가정/개인)
+function deptSave_(body) {
+  const c = adminOf_(body);
+  if (!c.ops || !c.all) throw fail_('forbidden', '전체 관리자만 부서를 만들어요.');
+  const name = String(body.name || '').trim().slice(0, 12), group = String(body.group || '').trim(), unit = body.unit === '개인' ? '개인' : '가정';
+  if (!name) throw fail_('bad', '부서 이름을 적어 주세요.');
+  if (!/^[가-힣A-Za-z0-9]{1,6}$/.test(group)) throw fail_('bad', '소그룹 이름은 띄어쓰기 없이 6글자까지 써 주세요.');
+  return withLock_(() => {
+    const all = read_('depts');
+    if (all.some(d => d.name === name)) throw fail_('bad', '같은 이름의 부서가 있어요.');
+    let n = all.length + 1; while (all.some(d => d.id === 'D' + n)) n++;
+    append_('depts', { id: 'D' + n, name, group, unit, order: all.reduce((a, d) => Math.max(a, Number(d.order) || 0), 0) + 1 });
+    logChange_(c, '부서 만들기', name, group + ' · ' + unit);
+    return { id: 'D' + n, me: meInfo_(who_(body)) };
+  });
+}
+
+// ── 전체 관리자(범위 '전체'인 운영 지원): 부서 닫기·다시 열기·기록 모두 지우기 ─────────────
+// 닫기: 첫 접속 목록에서 빠지고 그 부서 사람은 들어오지 못한다. 기록은 남아서 다시 열 수 있다.
+//  닫은 부서 사람들은 닫은 달부터 1년이 지나면 개인정보 요청에 올라온다. 바로 지워야 하면 '기록 모두 지우기'(부서 이름을 그대로 써야 한다)
+function allAdmin_(body) {
+  const c = adminOf_(body);
+  if (!c.ops || !c.all) throw fail_('forbidden', '전체 관리자만 할 수 있어요.');
+  return c;
+}
+function deptState_(body, status) {
+  const c = allAdmin_(body), id = String(body.deptId || '');
+  return withLock_(() => {
+    setup(); // 부서 탭 첫 줄에 늘어난 칸(상태, 닫은 날) 이름을 더한다
+    const d = read_('depts').find(x => x.id === id && x.status !== '지움');
+    if (!d) throw fail_('bad', '부서를 찾지 못했어요.');
+    if (status && depts_().filter(x => x.id !== id && deptOpen_(x)).length === 0) throw fail_('bad', '하나뿐인 부서는 닫을 수 없어요.');
+    d.status = status; d.closedAt = status ? today_() : ''; update_('depts', d);
+    logChange_(Object.assign({}, c, { deptId: id }), status ? '부서 닫기' : '부서 다시 열기', d.name);
+    return { me: meInfo_(who_(body)) };
+  });
+}
+function deptErase_(body) {
+  const c = allAdmin_(body), id = String(body.deptId || '');
+  return withLock_(() => {
+    const d = read_('depts').find(x => x.id === id);
+    if (!d || d.status !== '닫음') throw fail_('bad', '닫은 부서만 기록을 지울 수 있어요.');
+    if (String(body.name || '').trim() !== d.name) throw fail_('bad', '부서 이름이 맞지 않아요.');
+    const ids = roomIdsOfDept_(id), cx = Object.assign({}, c, { deptId: id });
+    const famIds = {};
+    read_('roster').forEach(r => { if (ids.indexOf(r.roomId) >= 0) famIds[r.familyId] = true; });
+    read_('staff').forEach(x => { if (x.deptId === id) famIds[x.familyId] = true; });
+    let n = 0, items = 0;
+    read_('families').filter(f => famIds[f.id] && f.status !== '지움').forEach(f => { items += eraseFam_(cx, f); n++; });
+    d.status = '지움'; update_('depts', d);
+    logChange_(cx, '부서 기록 모두 지움', d.name, n + '곳 · 기도제목 ' + items + '개');
+    return { me: meInfo_(who_(body)), n };
+  });
+}
+
+// 교회 전체 분석(전체 관리자): 부서를 합친 숫자와 부서 × 달 손봄·확인 비율(부서는 정해 둔 순서, 순위 없음), 기도하는 때, 기도 주제 흐름(숫자만),
+//  앱 개선(교회 전체 사용기록). 이름·가정별 숫자·기도제목 내용은 없다. 닫은 부서는 빼고 센다
+function churchAnalysis_(body) {
+  const c = allAdmin_(body), m = month_(), months = [m];
+  while (months.length < 6) months.unshift(prevMonth_(months[0]));
+  const depts = depts_().filter(deptOpen_);
+  const fams = read_('families'), live = id => (fams.find(f => f.id === id) || {}).status === '활동';
+  const seen = {}, st = {}, mark = (f, mm) => { seen[f + '|' + mm] = true; };
+  read_('visits').forEach(v => mark(v.familyId, v.month));
+  read_('monthly').forEach(x => { st[x.familyId + '|' + x.month] = x.status; if (x.status !== 'same') mark(x.familyId, x.month); });
+  read_('prayers').forEach(p => mark(p.by, fmtMonth_(p.at)));
+  const done = (f, mm) => st[f + '|' + mm] === 'edited' || st[f + '|' + mm] === 'confirmed';
+  const pct = (k, n) => n ? Math.round(k / n * 100) : null;
+  const roster = read_('roster'), allRooms = [];
+  // 부서마다 그달 편성의 활동 가정
+  const per = depts.map(d => {
+    const rooms = roomIdsOfDept_(d.id); allRooms.push.apply(allRooms, rooms);
+    const rows = roster.filter(r => rooms.indexOf(r.roomId) >= 0 && live(r.familyId));
+    const at = mm => { const y = termAt_(d.id, mm); return rows.filter(r => String(r.year) === y).map(r => r.familyId); };
+    return { d, at };
+  });
+  const famsAt = mm => per.reduce((a, x) => a.concat(x.at(mm)), []);
+  const trend = months.map(mm => { const ids = famsAt(mm); return { month: mm, n: ids.length, visit: pct(ids.filter(f => seen[f + '|' + mm]).length, ids.length), edit: pct(ids.filter(f => done(f, mm)).length, ids.length) }; });
+  const now = famsAt(m), inChurch = {}; per.forEach(x => x.at(m).forEach(f => { inChurch[f] = true; }));
+  const prayers = read_('prayers');
+  const day = 864e5, start = Date.parse(weekStart_() + 'T00:00:00Z') - 7 * 7 * day;
+  const weeks = Array.from({ length: 8 }, (_, i) => { const dd = new Date(start + i * 7 * day); return { label: (dd.getUTCMonth() + 1) + '/' + dd.getUTCDate(), n: 0 }; });
+  prayers.forEach(p => { const i = Math.floor((Date.parse(fmtDate_(p.at) + 'T00:00:00Z') - start) / (7 * day)); if (i >= 0 && i < 8) weeks[i].n++; });
+  const since = Date.now() - 28 * day, time = Array.from({ length: 7 }, () => [0, 0, 0, 0, 0]);
+  prayers.forEach(p => {
+    const t = new Date(p.at).getTime(); if (!(t > since)) return;
+    const k = new Date(t + 9 * 3600e3), h = k.getUTCHours();
+    time[(k.getUTCDay() + 6) % 7][h >= 5 && h < 9 ? 0 : h >= 9 && h < 12 ? 1 : h >= 12 && h < 18 ? 2 : h >= 18 && h < 22 ? 3 : 4]++;
+  });
+  const gs = read_('groups').filter(g => g.status === '활동'), gm = read_('gmembers').filter(x => x.status === '함께' && gs.some(g => g.id === x.groupId));
+  const people = {}; gm.forEach(x => { people[x.kakaoId] = true; });
+  return {
+    month: m, months, trend,
+    now: { n: now.length, visit: now.filter(f => seen[f + '|' + m]).length, edit: now.filter(f => done(f, m)).length, day: Number(today_().slice(8)) },
+    weeks, time,
+    depts: per.map(x => ({ name: x.d.name, vals: months.map(mm => { const ids = x.at(mm); return pct(ids.filter(f => done(f, mm)).length, ids.length); }) })),
+    groups: { n: gs.length, people: Object.keys(people).length },
+    topics: topicFlow_(c, allRooms),
+    app: appStats_(m, seen)
+  };
+}
+
+// ── 함께 기도해요(부서 기도제목) ─────────────────────────────────
+// 교역자·부서 관리자·전체 관리자가 쓰는 부서의 이번 달 기도제목(수련회, 선교사님, 새가족, 아픈 성도 등). 회원의 이번 달 화면 '함께 기도해요'와
+//  기도하기 › 하나님 나라 › 우리 교회 장에 나온다. 기도제목 시트에 가정ID 대신 'DEPT-부서ID'로 쌓고, 다음 달로 그대로 이어진다(마치기 전까지)
+const togetherKey_ = deptId => 'DEPT-' + deptId;
+function togetherItems_(deptId, withEnded) {
+  if (!deptId) return [];
+  const m = month_(), key = togetherKey_(deptId);
+  ensureFamilies_([key], m, () => '');
+  const all = read_('items').filter(i => i.month === m && i.familyId === key).sort((a, b) => a.order - b.order);
+  const show = i => ({ id: i.id, target: i.target, text: i.text, isNew: !i.prevId && !yes_(i.same), by: i.editedBy, at: fmtDay_(i.editedAt) });
+  return withEnded ? { list: all.filter(i => i.state !== '마침').map(show), ended: all.filter(i => i.state === '마침').map(show) } : all.filter(i => i.state !== '마침').map(show);
+}
+function togetherOf_(body) {
+  if (body.ops) return opsOf_(body);
+  const c = member_(body);
+  if (!c.staff && !c.admin) throw fail_('forbidden', '교역자와 부서 관리자만 쓸 수 있어요.');
+  return c;
+}
+// 쓰기·고치기: id가 있으면 고치기. 대상(선택, 10자)과 내용
+function togetherSave_(body) {
+  const c = togetherOf_(body), m = month_(), key = togetherKey_(c.deptId);
+  const text = String(body.text || '').trim().slice(0, 300), target = String(body.target || '함께').trim().slice(0, 10) || '함께';
+  if (!text) throw fail_('bad', '내용을 적어 주세요.');
+  return withLock_(() => {
+    togetherItems_(c.deptId);
+    if (body.id) {
+      const i = read_('items').find(x => x.id === body.id && x.familyId === key && x.month === m);
+      if (!i) throw fail_('bad', '고칠 기도제목을 찾지 못했어요.');
+      Object.assign(i, { text, target, same: '아니오', editedAt: new Date(), editedBy: c.person }); update_('items', i);
+    } else {
+      const order = read_('items').filter(x => x.familyId === key && x.month === m).reduce((a, x) => Math.max(a, Number(x.order) || 0), 0) + 1;
+      append_('items', { id: newId_(), month: m, familyId: key, roomId: '', target, text, scope: 'dept', state: '이어짐', prevId: '', same: '아니오', order, editedAt: new Date(), editedBy: c.person });
+      logChange_(c, '함께 기도해요 더하기', target);
+    }
+    return togetherItems_(c.deptId, true);
+  });
+}
+// 마치기(end)·다시 이어가기(reopen)·지우기(delete)
+function togetherState_(body) {
+  const c = togetherOf_(body), m = month_(), key = togetherKey_(c.deptId);
+  return withLock_(() => {
+    const i = read_('items').find(x => x.id === body.id && x.familyId === key && x.month === m);
+    if (!i) throw fail_('bad', '기도제목을 찾지 못했어요.');
+    if (body.op === 'delete') remove_('items', i);
+    else { i.state = body.op === 'reopen' ? '이어짐' : '마침'; i.editedAt = new Date(); i.editedBy = c.person; update_('items', i); }
+    return togetherItems_(c.deptId, true);
+  });
+}
+
+// ── 소그룹과 사람 (관리자·운영 관리자) ───────────────────────────
+// 지금 편성의 소그룹마다 사람(가정)과 역할, 부서 관리자 여부, 연결된 사람 수. 기도제목은 없다
+function rosterView_(c) {
+  const fams = read_('families'), links = read_('links'), y = termNow_(c.deptId);
+  const roster = read_('roster').filter(r => String(r.year) === y);
+  const ROLE = { 리더: 0, 코리더: 1, 회원: 2 };
+  return { term: y, unit: c.dept.unit, rooms: activeRooms_(c.deptId).sort((a, b) => a.order - b.order).map(r => ({ id: r.id, name: r.name,
+    people: roster.filter(x => x.roomId === r.id).map(x => ({ x, f: fams.find(f => f.id === x.familyId) })).filter(o => o.f && o.f.status === '활동')
+      .sort((a, b) => ROLE[a.x.role] - ROLE[b.x.role]).map(o => ({ id: o.f.id, name: o.f.name, role: o.x.role, admin: yes_(o.f.admin),
+        linked: links.filter(l => l.familyId === o.f.id && l.status === '연결').length,
+        links: links.filter(l => l.familyId === o.f.id && l.status === '연결').map(l => ({ kakaoId: String(l.kakaoId), person: l.person, nick: l.nick, since: fmtDay_(l.requestedAt), me: String(l.kakaoId) === c.kakaoId })) })) })) };
+}
+// 바꾸기: addRoom / renameRoom / dropRoom(빈 소그룹만) / addPerson / move / role / admin / leave
+function rosterSave_(body) {
+  const c = adminOf_(body), d = c.deptId, op = String(body.op || '');
+  return withLock_(() => {
+    const y = termNow_(d), rooms = activeRooms_(d), roomOf = id => rooms.find(r => r.id === id);
+    const rowOf = id => read_('roster').find(r => String(r.year) === y && r.familyId === id && roomOf(r.roomId));
+    const famOf = id => read_('families').find(f => f.id === id);
+    const clean = (v, n) => String(v || '').trim().replace(/\s+/g, ' ').slice(0, n);
+    if (op === 'addRoom' || op === 'renameRoom') {
+      const name = clean(body.name, 20);
+      if (!name) throw fail_('bad', '이름을 적어 주세요.');
+      if (rooms.some(r => r.name === name && r.id !== body.roomId)) throw fail_('bad', '같은 이름이 있어요.');
+      if (op === 'addRoom') {
+        const all = read_('rooms');
+        append_('rooms', { id: 'R' + Date.now().toString(36), name, order: all.reduce((a, r) => Math.max(a, r.order), 0) + 1, deptId: d });
+        logChange_(c, c.dept.group + ' 만들기', name);
+      } else {
+        const r = read_('rooms').find(x => x.id === body.roomId && roomOf(x.id));
+        if (!r) throw fail_('bad', '찾지 못했어요.');
+        logChange_(c, c.dept.group + ' 이름 바꾸기', r.name + ' → ' + name);
+        r.name = name; update_('rooms', r);
+      }
+    } else if (op === 'dropRoom') {
+      const r = read_('rooms').find(x => x.id === body.roomId && roomOf(x.id));
+      if (!r) throw fail_('bad', '찾지 못했어요.');
+      if (read_('roster').some(x => x.roomId === r.id)) throw fail_('bad', '사람이 있었던 ' + c.dept.group + '은 지울 수 없어요. 사람을 모두 옮기면 다음 개편 때 빠져요.');
+      remove_('rooms', r); logChange_(c, c.dept.group + ' 지우기', r.name);
+    } else if (op === 'addPerson') {
+      const r = roomOf(body.roomId), a = clean(body.a, 10), b = c.dept.unit === '개인' ? '' : clean(body.b, 10);
+      if (!r || !a) throw fail_('bad', '이름과 ' + c.dept.group + '을 확인해 주세요.');
+      const name = b ? a + ' · ' + b : a;
+      const same = read_('roster').filter(x => String(x.year) === y && roomOf(x.roomId)).some(x => (famOf(x.familyId) || {}).name === name);
+      if (same && !body.force) throw fail_('same', '같은 이름이 이미 있어요. 그래도 더할까요?');
+      const id = 'F' + Date.now().toString(36);
+      append_('families', { id, name, kids: '', status: '활동', admin: '' });
+      append_('roster', { year: y, roomId: r.id, familyId: id, role: '회원' });
+      logChange_(c, '사람 더하기', name, r.name);
+    } else {
+      const row = rowOf(String(body.familyId || '')), f = row && famOf(row.familyId);
+      if (!row || !f) throw fail_('bad', '지금 편성에서 찾지 못했어요.');
+      if (op === 'move') {
+        const to = roomOf(body.roomId);
+        if (!to) throw fail_('bad', c.dept.group + '을 골라 주세요.');
+        logChange_(c, '옮기기', f.name, roomOf(row.roomId).name + ' → ' + to.name);
+        row.roomId = to.id; update_('roster', row);
+      } else if (op === 'role') {
+        const role = ['리더', '코리더', '회원'].indexOf(body.role) >= 0 ? body.role : '회원';
+        row.role = role; update_('roster', row); logChange_(c, '역할 지정', f.name, role);
+      } else if (op === 'admin') {
+        if (!body.on && f.id === c.familyId) throw fail_('bad', '내 관리자 표시는 여기서 뺄 수 없어요.');
+        f.admin = body.on ? '예' : ''; update_('families', f); logChange_(c, body.on ? '부서 관리자 지정' : '부서 관리자 해제', f.name);
+      } else if (op === 'unlink') {
+        const l = read_('links').find(x => String(x.kakaoId) === String(body.kakaoId) && x.familyId === f.id && x.status === '연결');
+        if (!l) throw fail_('bad', '연결을 찾지 못했어요.');
+        if (String(l.kakaoId) === c.kakaoId) throw fail_('bad', '내 연결은 여기서 해제할 수 없어요.');
+        l.status = '해제'; l.approvedBy = c.person; update_('links', l);
+        logChange_(c, '연결 해제', f.name + ' · ' + l.person);
+      } else if (op === 'leave') {
+        if (f.id === c.familyId) throw fail_('bad', '우리 가정은 여기서 뺄 수 없어요.');
+        remove_('roster', row); logChange_(c, '떠남', f.name, roomOf(row.roomId).name);
+      } else throw fail_('bad', '모르는 일이에요.');
+    }
+    return rosterView_(c);
+  });
+}
+
+// ── 자율 모임 (설계서 13장, 2026-10-23) ─────────────────────────
+// 우리 교회에 연결된 회원 누구나 만든다. 모임장의 초대 링크로 들어오고 모임장이 승인한다. 교회 밖 사람은 받지 않는다(서버를 옮긴 뒤).
+//  모임은 개인 단위라 사람마다 모임 사람ID가 있고, 이번 달·내 기도·기도하기는 사랑방과 같은 화면을 모임 것으로 쓴다
+const GROUP_SCOPES = ['room', 'family'];
+const GROUP_MAX = 12, PLACES_MAX = 3;
+const GROUP_DEPT = { id: '', name: '모임', group: '모임', unit: '개인' };
+function groupPeople_(gid, all) { return read_('gmembers').filter(m => m.groupId === gid && (all ? m.status !== '나감' : m.status === '함께')); }
+// 내가 속한(또는 신청한) 모임
+function myGroups_(kakaoId) {
+  const gs = read_('groups').filter(g => g.status === '활동');
+  return read_('gmembers').filter(m => String(m.kakaoId) === String(kakaoId) && (m.status === '함께' || m.status === '요청')).map(m => {
+    const g = gs.find(x => x.id === m.groupId); if (!g) return null;
+    return { id: g.id, name: g.name, role: m.role, wait: m.status === '요청', n: groupPeople_(g.id).length,
+      asks: m.role === '모임장' ? groupPeople_(g.id, true).filter(x => x.status === '요청').length : 0 };
+  }).filter(Boolean);
+}
+// 속한 곳 수: 원래 소그룹(연결돼 있으면 1) + 모임(함께·요청)
+function placesOf_(w) { return (w.link && w.link.status === '연결' ? 1 : 0) + myGroups_(w.kakaoId).length; }
+// 모임으로 보낸 요청의 사람: 그 모임에 '함께'인 사람
+function groupMember_(body) {
+  const w = who_(body), gid = String(body.grp || '');
+  const g = read_('groups').find(x => x.id === gid && x.status === '활동');
+  const m = g && read_('gmembers').find(x => x.groupId === gid && String(x.kakaoId) === w.kakaoId && x.status === '함께');
+  if (!m) throw fail_('forbidden', '이 모임에 함께하고 있지 않아요.');
+  return { kakaoId: w.kakaoId, person: m.person, familyId: m.id, family: { id: m.id, name: m.person, kids: '' }, roomId: g.id, deptId: '',
+    dept: Object.assign({}, GROUP_DEPT, { name: g.name }), role: m.role, admin: false, grp: g.id, group: g };
+}
+// 모임의 이번 달: 사랑방의 이번 달과 같은 모양(모임 사람이 한 사람씩 카드)
+function groupMonthView_(c) {
+  const m = month_(), people = groupPeople_(c.grp);
+  ensureFamilies_(people.map(p => p.id), m, () => c.grp);
+  const items = read_('items').filter(i => i.month === m && i.roomId === c.grp && i.state !== '마침');
+  const monthly = read_('monthly').filter(x => x.month === m);
+  const prayed = read_('prayers').filter(p => fmtMonth_(p.at) === m && p.kakaoId === c.kakaoId);
+  const families = people.map(p => {
+    const own = p.id === c.familyId, st = monthly.find(x => x.familyId === p.id);
+    return { id: p.id, name: p.person, kids: [], own, status: st ? st.status : 'same', role: p.role,
+      prayed: prayed.filter(x => x.familyId === p.id).length, today: prayed.filter(x => x.familyId === p.id && fmtDate_(x.at) === today_()).length,
+      items: items.filter(i => i.familyId === p.id && (own || i.scope === 'room')).sort((a, b) => a.order - b.order)
+        .map(i => ({ id: i.id, target: i.target, text: i.text, scope: i.scope, same: yes_(i.same), isNew: !i.prevId && !yes_(i.same), editedBy: own ? i.editedBy : '', editedAt: own ? fmtDay_(i.editedAt) : '' })),
+      ended: own ? read_('items').filter(i => i.month === m && i.familyId === p.id && i.state === '마침').map(i => ({ id: i.id, target: i.target, text: i.text, scope: i.scope })) : [] };
+  }).sort((a, b) => b.own - a.own);
+  const by = {}; read_('prayers').forEach(p => { if (p.familyId === c.familyId && p.kakaoId !== c.kakaoId && fmtMonth_(p.at) === m) by[p.kakaoId || p.by] = true; });
+  return { month: m, term: m.slice(0, 4), dept: c.dept, room: { id: c.grp, name: c.group.name }, group: groupInfo_(c),
+    me: { person: c.person, familyId: c.familyId, role: c.role, admin: false, grp: c.grp }, families, received: { n: Object.keys(by).length, of: Math.max(0, families.length - 1) }, serve: [],
+    art: artNums_(c, [m])[0] };
+}
+// 모임의 지난 기록: 그 모임에 쓰인 달들, 모임 공개 항목과 내 것
+function groupHistory_(c, want) {
+  const items = read_('items').filter(i => i.roomId === c.grp), months = Object.keys(items.reduce((a, i) => { a[i.month] = 1; return a; }, {})).sort().reverse();
+  const m = months.indexOf(want) >= 0 ? want : (months.find(x => x < month_()) || months[0] || month_());
+  const show = i => ({ target: i.target, text: i.text, scope: i.scope, ended: i.state === '마침' });
+  const people = groupPeople_(c.grp, true).filter(p => p.status === '함께' || items.some(i => i.familyId === p.id));
+  const families = people.map(p => ({ id: p.id, name: p.person, own: p.id === c.familyId,
+    items: items.filter(i => i.month === m && i.familyId === p.id && (p.id === c.familyId || i.scope === 'room')).sort((a, b) => a.order - b.order).map(show) })).sort((a, b) => b.own - a.own);
+  const mine = items.filter(i => i.familyId === c.familyId);
+  return { months, month: m, now: month_(), room: c.group.name, families,
+    mine: months.map(mm => ({ month: mm, items: mine.filter(i => i.month === mm).sort((a, b) => a.order - b.order).map(show) })).filter(x => x.items.length), threads: threads_(mine) };
+}
+// 모임 정보(모임 사람 누구나): 사람, 모임장에게는 신청과 초대 값
+function groupInfo_(c) {
+  const g = c.group, all = groupPeople_(g.id, true), lead = c.role === '모임장';
+  return { id: g.id, name: g.name, lead, max: GROUP_MAX, at: fmtDay_(g.at),
+    people: all.filter(m => m.status === '함께').map(m => ({ id: m.id, person: m.person, role: m.role, me: m.id === c.familyId })),
+    asks: lead ? all.filter(m => m.status === '요청').map(m => ({ id: m.id, person: m.person, at: fmtDay_(m.at) })) : [], token: lead ? g.token : '' };
+}
+// 모임 만들기: 연결된 회원, 모임장은 한 사람당 한 모임, 속한 곳은 세 곳까지
+function groupCreate_(body) {
+  const w = who_(body), name = String(body.name || '').trim().replace(/\s+/g, ' ').slice(0, 16);
+  if (!w.link || w.link.status !== '연결') throw fail_('forbidden', '우리 교회에 연결된 다음 모임을 만들 수 있어요.');
+  if (!name) throw fail_('bad', '모임 이름을 적어 주세요.');
+  return withLock_(() => {
+    const mine = myGroups_(w.kakaoId);
+    if (mine.some(g => g.role === '모임장')) throw fail_('bad', '모임장은 한 모임만 맡을 수 있어요.');
+    if (placesOf_(w) >= PLACES_MAX) throw fail_('bad', '모임은 원래 소그룹을 포함해 세 곳까지 함께할 수 있어요.');
+    const id = 'G' + Date.now().toString(36);
+    append_('groups', { id, name, owner: w.kakaoId, token: newToken_(), status: '활동', at: new Date() });
+    append_('gmembers', { groupId: id, id: 'M' + Date.now().toString(36), kakaoId: w.kakaoId, person: w.link.person, role: '모임장', status: '함께', at: new Date() });
+    return { id, me: meInfo_(who_(body)) };
+  });
+}
+// 초대 링크로 함께하기 신청: 연결된 회원만. 모임장이 승인하면 함께한다
+function groupJoin_(body) {
+  const w = who_(body), t = String(body.invite || '');
+  if (!w.link || w.link.status !== '연결') throw fail_('forbidden', '먼저 우리 교회 소그룹에 연결한 다음 모임에 함께할 수 있어요.');
+  return withLock_(() => {
+    const g = read_('groups').find(x => x.token === t && x.status === '활동');
+    if (!g) throw fail_('bad', '쓸 수 없는 모임 초대 링크예요. 모임장에게 새 링크를 받아 주세요.');
+    const had = read_('gmembers').find(m => m.groupId === g.id && String(m.kakaoId) === w.kakaoId && m.status !== '나감');
+    if (had) return { group: g.name, wait: had.status === '요청', me: meInfo_(w) };
+    if (placesOf_(w) >= PLACES_MAX) throw fail_('bad', '모임은 원래 소그룹을 포함해 세 곳까지 함께할 수 있어요. 다른 모임에서 나온 뒤 신청해 주세요.');
+    if (groupPeople_(g.id).length >= GROUP_MAX) throw fail_('bad', '이 모임은 ' + GROUP_MAX + '명이 다 찼어요.');
+    append_('gmembers', { groupId: g.id, id: 'M' + Date.now().toString(36), kakaoId: w.kakaoId, person: w.link.person, role: '회원', status: '요청', at: new Date() });
+    return { group: g.name, wait: true, me: meInfo_(who_(body)) };
+  });
+}
+// 모임장: 신청 승인·거절
+function groupDecide_(body) {
+  const c = groupMember_(body);
+  if (c.role !== '모임장') throw fail_('forbidden', '모임장만 할 수 있어요.');
+  return withLock_(() => {
+    const m = read_('gmembers').find(x => x.groupId === c.grp && x.id === body.id && x.status === '요청');
+    if (!m) throw fail_('bad', '신청을 찾지 못했어요.');
+    if (body.ok && groupPeople_(c.grp).length >= GROUP_MAX) throw fail_('bad', GROUP_MAX + '명이 다 찼어요.');
+    m.status = body.ok ? '함께' : '나감'; m.at = new Date(); update_('gmembers', m);
+    return groupMonthView_(groupMember_(body));
+  });
+}
+// 모임장: 사람 내보내기
+function groupRemove_(body) {
+  const c = groupMember_(body);
+  if (c.role !== '모임장') throw fail_('forbidden', '모임장만 할 수 있어요.');
+  return withLock_(() => {
+    const m = read_('gmembers').find(x => x.groupId === c.grp && x.id === body.id && x.status === '함께' && x.role !== '모임장');
+    if (!m) throw fail_('bad', '찾지 못했어요.');
+    m.status = '나감'; update_('gmembers', m);
+    return groupMonthView_(groupMember_(body));
+  });
+}
+// 나가기: 모임장이 나가면 가장 먼저 들어온 사람이 모임장이 되고, 아무도 없으면 모임을 닫는다(기록은 남는다)
+function groupLeave_(body) {
+  const c = groupMember_(body);
+  return withLock_(() => {
+    const me = read_('gmembers').find(x => x.groupId === c.grp && x.id === c.familyId);
+    me.status = '나감'; update_('gmembers', me);
+    if (c.role === '모임장') passGroup_(c.grp);
+    return { me: meInfo_(who_(body)) };
+  });
+}
+// 모임장이 빠지면 가장 먼저 들어온 사람이 모임장이 되고, 아무도 없으면 모임을 닫는다
+function passGroup_(gid) {
+  const next = groupPeople_(gid).sort((a, b) => a.at < b.at ? -1 : 1)[0], g = read_('groups').find(x => x.id === gid);
+  if (!g) return;
+  if (next) { next.role = '모임장'; update_('gmembers', next); g.owner = next.kakaoId; update_('groups', g); }
+  else { g.status = '닫음'; update_('groups', g); }
+}
+function groupRename_(body) {
+  const c = groupMember_(body), name = String(body.name || '').trim().replace(/\s+/g, ' ').slice(0, 16);
+  if (c.role !== '모임장') throw fail_('forbidden', '모임장만 할 수 있어요.');
+  if (!name) throw fail_('bad', '모임 이름을 적어 주세요.');
+  return withLock_(() => { const g = read_('groups').find(x => x.id === c.grp); g.name = name; update_('groups', g); return groupMonthView_(groupMember_(body)); });
+}
+// 초대 링크 새로 만들기(예전 링크는 막힌다)
+function groupRenew_(body) {
+  const c = groupMember_(body);
+  if (c.role !== '모임장') throw fail_('forbidden', '모임장만 할 수 있어요.');
+  return withLock_(() => { const g = read_('groups').find(x => x.id === c.grp); g.token = newToken_(); update_('groups', g); return groupMonthView_(groupMember_(body)); });
+}
+// 모임 목록(관리자·운영 관리자·교역자): 이름, 모임장, 사람 수, 만든 날. 기도제목은 없다
+function adminOrStaff_(body) {
+  if (body.ops) return opsOf_(body);
+  const c = member_(body);
+  if (!c.admin && !c.staff) throw fail_('forbidden', '관리자와 교역자만 볼 수 있어요.');
+  return c;
+}
+function groupsAll_(c) {
+  const mem = read_('gmembers');
+  return read_('groups').filter(g => g.status === '활동').map(g => {
+    const ps = mem.filter(m => m.groupId === g.id && m.status === '함께');
+    return { id: g.id, name: g.name, lead: (ps.find(m => m.role === '모임장') || {}).person || '', n: ps.length, at: fmtDay_(g.at),
+      people: c.ops && c.all ? ps.map(m => ({ id: m.id, person: m.person, lead: m.role === '모임장' })) : undefined };
+  }).sort((a, b) => b.n - a.n);
+}
+// 전체 관리자: 자율 모임 닫기(문제가 있을 때) · 모임장 바꾸기(모임장이 넘기지 못했을 때). 기도제목은 보지 않는다
+function groupAdmin_(body) {
+  const c = allAdmin_(body), id = String(body.id || '');
+  return withLock_(() => {
+    const g = read_('groups').find(x => x.id === id && x.status === '활동');
+    if (!g) throw fail_('bad', '모임을 찾지 못했어요.');
+    if (body.op === 'close') { g.status = '닫음'; update_('groups', g); logChange_(c, '모임 닫기', g.name); }
+    else if (body.op === 'lead') {
+      const ps = groupPeople_(id), to = ps.find(m => m.id === body.memberId);
+      if (!to) throw fail_('bad', '모임 사람을 골라 주세요.');
+      ps.filter(m => m.role === '모임장').forEach(m => { m.role = '회원'; update_('gmembers', m); });
+      to.role = '모임장'; update_('gmembers', to); g.owner = to.kakaoId; update_('groups', g);
+      logChange_(c, '모임장 바꾸기', g.name, to.person);
+    } else throw fail_('bad', '모르는 일이에요.');
+    return groupsAll_(c);
+  });
+}
+// 변경 기록 보기: 부서 관리자는 우리 부서, 전체 관리자는 교회 전체(all). 최근 것부터 300줄
+function changesView_(body) {
+  const c = adminOf_(body), all = !!body.all;
+  if (all && !(c.ops && c.all)) throw fail_('forbidden', '전체 관리자만 볼 수 있어요.');
+  const names = {}; read_('depts').forEach(d => { names[d.id] = d.name; });
+  return read_('changes').filter(x => all || x.deptId === c.deptId).sort((a, b) => a.at < b.at ? 1 : -1).slice(0, 300)
+    .map(x => ({ at: x.at, who: x.who, role: x.role, kind: x.kind, target: x.target, extra: x.extra, dept: names[x.deptId] || '' }));
+}
+
 // ── 처음 한 번: 시트 만들기와 예시 데이터 ─────────────────────
 
 // Apps Script 편집기에서 setup을 한 번 실행하면 시트(탭)와 첫 줄이 만들어진다. 이미 있으면 건드리지 않는다
@@ -989,6 +1823,7 @@ function setup() {
   const ss = ss_();
   Object.keys(SCHEMA).forEach(k => {
     const [name, cols] = SCHEMA[k];
+    renameLegacy_(ss, k);
     let sh = ss.getSheetByName(name);
     if (!sh) sh = ss.insertSheet(name);
     if (sh.getLastRow() === 0) { sh.getRange(1, 1, 1, cols.length).setValues([cols.map(c => c[1])]); sh.setFrozenRows(1); }
@@ -1101,6 +1936,25 @@ function sampleData() {
     }
   }
   appendMany_('usage', ulist);
+  // 관리 › 운영 예시: 재작년 편성에만 있던 떠난 가정(지울 날이 됨. 작년 편성이 있어야 떠난 달이 정해진다)과 기록 지우기 요청 하나
+  append_('families', { id: 'F12', name: '강민호 · 신유진', kids: '', status: '활동', admin: '' });
+  append_('roster', { year: String(Number(y) - 2), roomId: 'R1', familyId: 'F12', role: '회원' });
+  append_('roster', { year: String(Number(y) - 1), roomId: 'R1', familyId: 'F1', role: '리더' });
+  append_('requests', { familyId: 'F7', deptId: d1, kind: '기록 지우기', at: today_(), status: '요청', doneAt: '', doneBy: '' });
+  // 전체 관리자 예시: 가정 없이 교회 전체를 맡은 최운영(데모 로그인)
+  append_('opsAdmins', { kakaoId: 'd-최운영', name: '최운영', scope: '전체', status: '활동', token: '', at: new Date(), by: '예시' });
+  // 함께 기도해요 예시(청장년부)
+  append_('items', { id: newId_(), month: prev, familyId: 'DEPT-' + d1, roomId: '', target: '수련회', text: '11월 가을 수련회를 잘 준비하고, 모든 가정이 함께하도록', scope: 'dept', state: '이어짐', prevId: '', same: '아니오', order: 1, editedAt: new Date(), editedBy: '한기쁨' });
+  append_('items', { id: newId_(), month: prev, familyId: 'DEPT-' + d1, roomId: '', target: '선교', text: '캄보디아 김선교 선교사님 가정의 건강과 사역을 위해', scope: 'dept', state: '이어짐', prevId: '', same: '아니오', order: 2, editedAt: new Date(), editedBy: '한기쁨' });
+  // 자율 모임 예시: 박민재가 모임장인 '직장인 기도 모임'(김도윤·정우진 함께, 서준호 신청)
+  append_('groups', { id: 'G1', name: '직장인 기도 모임', owner: 'd-박민재', token: 'samplegroup1', status: '활동', at: new Date(Date.now() - 20 * 864e5) });
+  [['M1', 'd-박민재', '박민재', '모임장', '함께'], ['M2', 'd-김도윤', '김도윤', '회원', '함께'], ['M3', 'd-정우진', '정우진', '회원', '함께'], ['M4', 'd-서준호', '서준호', '회원', '요청']]
+    .forEach(([id, k, n, role, st], i) => append_('gmembers', { groupId: 'G1', id, kakaoId: k, person: n, role, status: st, at: new Date(Date.now() - (20 - i) * 864e5) }));
+  it('M1', 'G1', '나', '프로젝트 마감까지 지혜와 체력을 주시도록', 'room', 1, '박민재');
+  it('M2', 'G1', '나', '팀원들과 좋은 관계를 이어 가도록', 'room', 1, '김도윤');
+  // 의견함 예시: 이름 없는 것과 이름을 밝힌 것
+  append_('feedback', { at: new Date(Date.now() - 2 * 864e5), deptId: d1, kind: '이랬으면', text: '기도하기에서 음악 소리를 조금 더 작게 시작하면 좋겠어요.', familyId: '', person: '', ver: '2026-10-22', width: 'phone', read: '' });
+  append_('feedback', { at: new Date(Date.now() - 5 * 864e5), deptId: d1, kind: '고마워요', text: '매달 기도제목을 따로 모으지 않아도 돼서 편해요.', familyId: 'F3', person: '한지민', ver: '2026-10-22', width: 'phone', read: '예' });
   // 섬기는 분들(청장년부): 목사님 부부와 담당 장로님. 지어낸 이름
   append_('families', { id: 'S1', name: '한기쁨 · 서평안', kids: '은솔', status: '교역자', admin: '' });
   append_('staff', { familyId: 'S1', deptId: d1, label: '목사님 부부', title: '목사님', serve: '예', status: '활동', endedAt: '' });
@@ -1117,7 +1971,7 @@ function sampleData() {
 //  기도기록·카톡 공유·연결을 지우고, 가정이 남지 않은 예시 사랑방도 지운다. 부서(청장년부·청년부)는 그대로 둔다. Apps Script 편집기에서 실행한다.
 //  예시 가정에 연결돼 있던 관리자의 카카오 계정은 기억해 두었다가, 앱에서 실제 우리 가정을 고르면 승인 없이 연결하고 관리자로 만든다
 const SAMPLE_FAMILIES_ = [['F1', '김도윤 · 이수아'], ['F2', '박민재 · 최예린'], ['F3', '정우진 · 한지민'], ['F4', '오세훈 · 윤가은'], ['F5', '서준호 · 임채원'], ['F6', '임재현 · 고은비'], ['F7', '송민석 · 유하린'],
-  ['F8', '윤하람'], ['F9', '장서진'], ['F10', '문태오'], ['F11', '배유나'], ['S1', '한기쁨 · 서평안'], ['S2', '조믿음']];
+  ['F8', '윤하람'], ['F9', '장서진'], ['F10', '문태오'], ['F11', '배유나'], ['F12', '강민호 · 신유진'], ['S1', '한기쁨 · 서평안'], ['S2', '조믿음']];
 function clearSampleData() {
   return withLock_(() => {
     const fams = read_('families');
@@ -1128,7 +1982,9 @@ function clearSampleData() {
     const mine = o => ids.indexOf(o.familyId) >= 0;
     del('items', mine); del('roster', mine); del('monthly', mine); del('posts', mine); del('links', mine); del('visits', mine);
     del('prayers', p => mine(p) || ids.indexOf(p.by) >= 0);
-    del('staff', mine);
+    del('staff', mine); del('requests', mine);
+    del('opsAdmins', o => o.by === '예시');
+    del('gmembers', m => m.groupId === 'G1'); del('groups', g => g.id === 'G1'); del('items', i => i.roomId === 'G1');
     del('usage', u => /^sample\d{4}$/.test(String(u.device)));
     del('families', f => ids.indexOf(f.id) >= 0);
     del('rooms', r => ['R1', 'R2', 'R3', 'R4'].indexOf(r.id) >= 0 && !read_('roster').some(x => x.roomId === r.id));
@@ -1139,6 +1995,7 @@ function clearSampleData() {
 
 // ── 부서 ────────────────────────────────────────────────
 
+const deptOpen_ = d => !d.status;
 function depts_() {
   const seen = {};
   return read_('depts').sort((a, b) => a.order - b.order).filter(d => !seen[d.id] && (seen[d.id] = true));
@@ -1183,18 +2040,18 @@ function saveGroup_(body) {
     const d = read_('depts').find(x => x.id === c.deptId);
     if (!d) throw fail_('bad', '부서를 찾지 못했어요.');
     const old = d.group || '사랑방';
-    if (old !== name) { d.group = name; update_('depts', d); }
+    if (old !== name) { d.group = name; update_('depts', d); logChange_(c, '소그룹 이름', old + ' → ' + name); }
     let renamed = 0;
     if (body.rename && old !== name) {
       const re = new RegExp('\\s*' + old.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + '$');
       read_('rooms').filter(r => r.deptId === c.deptId && re.test(r.name)).forEach(r => { r.name = r.name.replace(re, ' ' + name).trim(); update_('rooms', r); renamed++; });
     }
-    return { group: name, renamed, month: monthView_(member_(body)) };
+    return { group: name, renamed, month: c.ops ? opsCtxView_(opsOf_(body)) : monthView_(member_(body)) };
   });
 }
 
 // 화면에 주는 부서: 소그룹 이름과 단위로 화면의 말이 바뀐다
-function deptInfo_(d) { return { id: d.id, name: d.name, group: d.group || '사랑방', unit: d.unit === '개인' ? '개인' : '가정' }; }
+function deptInfo_(d) { return { id: d.id, name: d.name, group: d.group || '사랑방', unit: d.unit === '개인' ? '개인' : '가정', closed: !!d.status }; }
 function deptById_(id) { const all = depts_(); return all.find(d => d.id === id) || all[0] || FIRST_DEPT; }
 
 // ── 교역자와 섬기는 분들 ─────────────────────────────────────
@@ -1219,8 +2076,7 @@ function staffList_(deptId) {
 }
 // 관리자가 교역자를 더하거나 고친다: 이름(부부면 두 이름), 카드 이름, 직분, 섬기는 분들에 나오는지
 function saveStaff_(body) {
-  const c = member_(body);
-  if (!c.admin) throw fail_('forbidden', '관리자만 할 수 있어요.');
+  const c = adminOf_(body);
   const a = String(body.a || '').trim().slice(0, 10), b = String(body.b || '').trim().slice(0, 10);
   const title = STAFF_TITLES.indexOf(body.title) >= 0 ? body.title : STAFF_TITLES[0];
   // 카드 이름을 비우면: 부부면 '목사님 부부', 한 분이면 '조믿음 장로님'처럼 이름과 직분
@@ -1233,23 +2089,25 @@ function saveStaff_(body) {
       const fam = read_('families').find(f => f.id === s.familyId);
       if (fam) { fam.name = b ? a + ' · ' + b : a; update_('families', fam); }
       Object.assign(s, { label, title, serve: body.serve ? '예' : '' }); update_('staff', s);
+      logChange_(c, '교역자 고침', label);
     } else {
       const id = 'S' + Date.now().toString(36);
       append_('families', { id, name: b ? a + ' · ' + b : a, kids: '', status: '교역자', admin: '' });
       append_('staff', { familyId: id, deptId: c.deptId, label, title, serve: body.serve ? '예' : '', status: '활동', endedAt: '' });
+      logChange_(c, '교역자 추가', label);
     }
     return pendingView_(c);
   });
 }
 // 교역자가 부서를 떠나면 '종료'로 두고 연결도 푼다. 기도제목 기록은 남는다
 function endStaff_(body) {
-  const c = member_(body);
-  if (!c.admin) throw fail_('forbidden', '관리자만 할 수 있어요.');
+  const c = adminOf_(body);
   return withLock_(() => {
     const s = activeStaff_(c.deptId).find(x => x.familyId === body.familyId);
     if (!s) throw fail_('bad', '교역자를 찾지 못했어요.');
     if (s.familyId === c.familyId) throw fail_('bad', '내 자리는 여기서 마칠 수 없어요.');
     Object.assign(s, { status: '종료', endedAt: today_() }); update_('staff', s);
+    logChange_(c, '교역자 마침', s.label);
     read_('links').filter(l => l.familyId === s.familyId && l.status !== '해제').forEach(l => { l.status = '해제'; l.approvedBy = c.person; update_('links', l); });
     return pendingView_(c);
   });
@@ -1259,7 +2117,15 @@ function endStaff_(body) {
 
 function ss_() { return SpreadsheetApp.getActiveSpreadsheet(); }
 function SCHEMA_NAMES_() { return Object.keys(SCHEMA).map(k => SCHEMA[k][0]); }
+// 이름을 바꾼 시트(탭): 예전 이름의 탭이 있으면 새 이름으로 바꿔 이어 쓴다
+const LEGACY_SHEETS_ = { opsAdmins: ['운영 관리자', '운영 지원'] };
+function renameLegacy_(ss, key) {
+  if (!LEGACY_SHEETS_[key] || ss.getSheetByName(SCHEMA[key][0])) return;
+  const old = LEGACY_SHEETS_[key].map(n => ss.getSheetByName(n)).filter(Boolean)[0];
+  if (old) old.setName(SCHEMA[key][0]);
+}
 function sheet_(key) {
+  renameLegacy_(ss_(), key);
   let sh = ss_().getSheetByName(SCHEMA[key][0]);
   // 새 버전에서 늘어난 시트(카톡 공유 등)는 처음 쓸 때 만든다. setup을 다시 실행하지 않아도 되게
   if (!sh) { setup(); sh = ss_().getSheetByName(SCHEMA[key][0]); }
@@ -1314,6 +2180,7 @@ function withLock_(fn) {
 //  그 전까지는 아무에게도 보이지 않는다. 다시 예약하면 지난 예약을 지우고 새로 넣고, 취소하면 예약 때 만든 사랑방·가정까지 지운다
 
 function adminOf_(body) {
+  if (body.ops) return opsOf_(body);
   const c = member_(body);
   if (!c.admin) throw fail_('forbidden', '관리자만 할 수 있어요.');
   return c;
@@ -1394,12 +2261,13 @@ function reorgSave_(body) {
     const keep = x => ids_((x || []).join(',')).filter(id => !seen[id]);
     append_('terms', { deptId: d, year: next, start, leaderFrom: lf, memberFrom: mf, status: '예약', by: c.person, at: new Date(),
       leave: keep(body.leave).join(','), hold: keep(body.hold).join(','), newRooms: newRooms.join(','), newFams: newFams.join(',') });
+    logChange_(c, old ? '편성 예약 고침' : '편성 예약', next + '년 편성', start + '부터 · ' + list.length + '줄');
     return reorgView_(c);
   });
 }
 
 function reorgCancel_(c) {
-  return withLock_(() => { const now = termNow_(c.deptId); dropPlan_(c.deptId, String(Number(now) + 1)); return reorgView_(c); });
+  return withLock_(() => { const now = termNow_(c.deptId), next = String(Number(now) + 1); dropPlan_(c.deptId, next); logChange_(c, '편성 예약 취소', next + '년 편성'); return reorgView_(c); });
 }
 
 // 아직 적용되지 않은 다음 편성을 지운다: 그 연도의 편성 줄을 지우고 일정은 '취소'로 남긴다.
