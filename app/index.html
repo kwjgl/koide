@@ -204,6 +204,15 @@ h2 { font-size: 1.05em; margin: 0; }
 .big-x { position: absolute; top: .7em; right: .7em; width: 44px; height: 44px; border-radius: 50%; border: 0; display: grid; place-items: center;
   background: rgba(255, 250, 242, .85); color: #4A3A2E; cursor: pointer; }
 .big-x .ic { width: 1.2em; height: 1.2em; stroke-width: 2; }
+/* 꾸미기 · 그림 저장 */
+.big-bar { position: absolute; right: .8em; bottom: .8em; display: flex; gap: .5em; }
+.big-btn { min-height: 40px; padding: .45em 1em; border-radius: 999px; border: 0; background: rgba(255, 250, 242, .88); color: #4A3A2E; font: inherit; font-size: .88em; font-weight: 600; cursor: pointer; }
+.big-btn.main { background: var(--accent); color: var(--on-accent); }
+.big-btn:disabled { opacity: .6; cursor: default; }
+.bigview.editing .big-stage { animation: none; }
+.bigview.editing .pasture { touch-action: none; }
+.bigview.editing .arr-it { cursor: grab; }
+.bigview.editing .arr-it.drag { cursor: grabbing; filter: drop-shadow(0 4px 6px rgba(0, 0, 0, .35)); }
 @media (prefers-reduced-motion: reduce) { .big-stage { animation: none; } }
 .coll-year { border-top: 1px solid var(--line); padding-top: .2em; }
 .coll-year > summary { cursor: pointer; display: flex; align-items: baseline; gap: .6em; min-height: 40px; padding: .4em 0; list-style-position: outside; }
@@ -2026,7 +2035,7 @@ try { const p = JSON.parse(localStorage.getItem('koide-pref') || '{}'), d = docu
   const artN = a => { const sc = SCENES[sceneKey(a.month)]; return { hero: a.hero, props: Math.min(sc.props.length, a.fams), hearts: a.hearts }; };
   function sceneHtml(month, n, opt) {
     const m = sceneKey(month), sc = SCENES[m], d = `data-act="bigview" data-m="${month}" data-n="${n.hero},${n.props},${n.hearts}"`;
-    return `<div class="ps-frame" ${d}>${sceneSvg(m, n, opt)}
+    return `<div class="ps-frame" ${d}>${sceneSvg(m, n, Object.assign({ month }, opt))}
       <button class="ps-big" ${d} aria-label="${Number(month.slice(5))}월 그림 크게 보기" title="크게 보기">${ICON.expand}</button></div>
       <ul class="ps-legend">
         <li><b>${artIco(m, 'hero')}${n.hero}</b><span>기도한 날</span></li>
@@ -2034,16 +2043,20 @@ try { const p = JSON.parse(localStorage.getItem('koide-pref') || '{}'), d = docu
         <li><b>${artIco('common', 'heart')}${n.hearts}</b><span>같은 날 기도</span></li>
       </ul>`;
   }
-  function sceneSvg(m, n, { compact, fx } = {}) {
+  function sceneSvg(m, n, { compact, fx, month, edit } = {}) {
     const sc = SCENES[m], R = ART_RATIO[m], shown = sc.props.slice(0, n.props);
-    const props = shown.map(([name, , x, y, w, mv], i) => ({ y, html: imgAt(m, name, x, y, w, fx === 'prop' && i === n.props - 1 ? 'pop-in' : '', false, mv, 0) }));
+    // 꾸민 자리(이 기기에만): 소품은 'p:이름', 주인공은 'h:순서'마다 [x, 바닥 y, 뒤집기]. 옮기지 않은 것은 정해진 자리 그대로
+    const pos = month ? artPos(month) : {};
+    const wrap = (k, x, y, f, html) => edit ? `<g class="arr-it" data-k="${k}" data-x="${x.toFixed(1)}" data-y="${y.toFixed(1)}" data-f="${f ? 1 : 0}">${html}</g>` : html;
+    const props = shown.map(([name, , x0, y0, w, mv], i) => { const o = pos['p:' + name], x = o ? o[0] : x0, y = o ? o[1] : y0, f = !!(o && o[2]);
+      return { y, html: wrap('p:' + name, x, y, f, imgAt(m, name, x, y, w, fx === 'prop' && i === n.props - 1 ? 'pop-in' : '', f, mv, 0)) }; });
     // 주인공은 정해진 구획에 선다(뒤 줄일수록 작고 촘촘). 소품 자리는 처음부터 비워 두고, 가장 먼 자리부터 채워 몇 개만 있어도 고르게 퍼진다
     const heroes = (sc.sky ? Array.from({ length: n.hero }, (_, i) => ({ i, x: 22 + ((i * .618 + spot(i, 1) * .12) % 1) * 276, y: 16 + spot(i, 2) * 76 }))
-      : planSlots(m).slice(0, n.hero).map((p, i) => ({ i, x: p.x, y: p.y }))).map(({ i, x, y }) => {
-      const w = sc.sky ? sc.heroW * (.7 + spot(i, 7) * .6) : heroSize(sc, y), flip = sc.heroFlip && spot(i, 3) < .45, head = (flip ? -1 : 1) * sc.heroHead;
+      : planSlots(m).slice(0, n.hero).map((p, i) => ({ i, x: p.x, y: p.y }))).map(p => { const o = pos['h:' + p.i]; return o ? { i: p.i, x: o[0], y: o[1], turn: !!o[2] } : p; }).map(({ i, x, y, turn }) => {
+      const w = sc.sky ? sc.heroW * (.7 + spot(i, 7) * .6) : heroSize(sc, y), flip = (sc.heroFlip && spot(i, 3) < .45) !== !!turn, head = (flip ? -1 : 1) * sc.heroHead;
       const hk = sc.heroes ? sc.heroes[i % sc.heroes.length] : 'hero', g = imgAt(m, hk, x, y, w, fx === 'hero' && i === n.hero - 1 ? 'pop-in' : '', flip, sc.heroMv, spot(i, 4) * 4);
       const h = i < n.hearts ? imgAt('common', 'heart', x + w * head, y - w * R[hk] - 1, Math.max(8, w * .36), fx === 'heart' && i === n.hearts - 1 ? 'pop-in' : '', false, 'mv-float', spot(i, 5) * 3) : '';
-      return { y, html: g + h };
+      return { y, html: wrap('h:' + i, x, y, turn, g + h) };
     });
     const items = [...props, ...heroes].sort((a, b) => a.y - b.y).map(o => o.html).join('');
     const base = sc.base ? imgAt(m, sc.base[0], sc.base[1], sc.base[2], sc.base[3], '', false, '', 0, sc.base[4]) : '';
@@ -2093,11 +2106,73 @@ try { const p = JSON.parse(localStorage.getItem('koide-pref') || '{}'), d = docu
   }
   // 크게 보기: 화면을 꽉 채우고, 세로로 든 휴대폰에서는 그림을 가로로 돌린다
   function bigHtml() {
-    const { month, n } = S.bigView, m = sceneKey(month), sc = SCENES[m];
-    return `<div class="bigview" role="dialog" aria-modal="true" aria-label="${Number(month.slice(5))}월 그림 크게 보기" data-act="bigclose"><div class="big-stage">
-      ${sceneSvg(m, n)}
-      <div class="big-cap"><b>${sc.title}</b><span>${sc.hero} ${n.hero}${sc.unit || '개'}, 소품 ${n.props}개, 하트 ${n.hearts}개를 모았어요</span></div>
-      <button class="big-x" data-act="bigclose" aria-label="닫기">${ICON.x}</button></div></div>`;
+    const { month, n, edit } = S.bigView, m = sceneKey(month), sc = SCENES[m], moved = Object.keys(artPos(month)).length;
+    return `<div class="bigview${edit ? ' editing' : ''}" role="dialog" aria-modal="true" aria-label="${Number(month.slice(5))}월 그림 크게 보기"${edit ? '' : ' data-act="bigclose"'}><div class="big-stage">
+      ${sceneSvg(m, n, { month, edit })}
+      <div class="big-cap">${edit ? `<b>꾸미기</b><span>끌어서 옮기고, 한 번 누르면 좌우가 바뀌어요. 이 기기에만 남아요</span>` : `<b>${sc.title}</b><span>${sc.hero} ${n.hero}${sc.unit || '개'}, 소품 ${n.props}개, 하트 ${n.hearts}개를 모았어요</span>`}</div>
+      <div class="big-bar">${edit ? `${moved ? '<button class="big-btn" data-act="artreset">처음 자리로</button>' : ''}<button class="big-btn main" data-act="artedit">다 했어요</button>`
+        : `<button class="big-btn" data-act="artedit">꾸미기</button><button class="big-btn" data-act="artsave"${S.artSaving ? ' disabled' : ''}>${S.artSaving ? '저장하는 중…' : '그림 저장'}</button>`}</div>
+      ${edit ? '' : `<button class="big-x" data-act="bigclose" aria-label="닫기">${ICON.x}</button>`}</div></div>`;
+  }
+  // ── 이달의 그림 꾸미기: 크게 보기에서 소품과 주인공을 끌어 옮기고, 한 번 누르면 좌우를 뒤집는다. 꾸민 자리는 이 기기에만 둔다 ──
+  const ART_POS = DEMO_LINK ? 'koide-demo-art-pos' : 'koide-art-pos';
+  const artPosKey = month => [ART_POS, (S.month && S.month.me && S.month.me.familyId) || '', S.grp || '', month].join(':');
+  function artPos(month) { try { return JSON.parse(localStorage.getItem(artPosKey(month)) || '{}') || {}; } catch (e) { return {}; } }
+  function setArtPos(month, P) { try { Object.keys(P).length ? localStorage.setItem(artPosKey(month), JSON.stringify(P)) : localStorage.removeItem(artPosKey(month)); } catch (e) { /* 이번만 */ } }
+  // 그림만 새로 그린다(크게 보기 전체를 다시 그리면 들어오는 움직임이 다시 나와서)
+  function redrawBig() { const V = S.bigView, st = $('#bigv .big-stage'); if (!V || !st) return render(); st.querySelector('svg').outerHTML = sceneSvg(sceneKey(V.month), V.n, { month: V.month, edit: V.edit }); }
+  let artDrag = null;
+  const svgPt = (svg, e) => { const p = svg.createSVGPoint(); p.x = e.clientX; p.y = e.clientY; return p.matrixTransform(svg.getScreenCTM().inverse()); };
+  document.addEventListener('pointerdown', e => {
+    const it = S.bigView && S.bigView.edit && e.target.closest && e.target.closest('#bigv .arr-it'); if (!it) return;
+    e.preventDefault(); const svg = it.ownerSVGElement, p = svgPt(svg, e);
+    artDrag = { it, svg, k: it.dataset.k, x: +it.dataset.x, y: +it.dataset.y, f: it.dataset.f === '1', px: p.x, py: p.y, dx: 0, dy: 0, moved: false };
+    try { it.setPointerCapture(e.pointerId); } catch (err) { /* 무시 */ }
+    it.classList.add('drag'); svg.appendChild(it);
+  });
+  document.addEventListener('pointermove', e => {
+    const D = artDrag; if (!D) return;
+    const p = svgPt(D.svg, e); D.dx = p.x - D.px; D.dy = p.y - D.py;
+    if (Math.abs(D.dx) + Math.abs(D.dy) > 2) D.moved = true;
+    D.it.setAttribute('transform', `translate(${D.dx.toFixed(1)} ${D.dy.toFixed(1)})`);
+  });
+  const endArt = () => {
+    const D = artDrag; if (!D) return; artDrag = null;
+    const V = S.bigView, P = artPos(V.month), sky = SCENES[sceneKey(V.month)].sky;
+    const x = Math.max(8, Math.min(312, D.x + (D.moved ? D.dx : 0))), y = Math.max(sky ? 14 : 50, Math.min(150, D.y + (D.moved ? D.dy : 0)));
+    P[D.k] = [+x.toFixed(1), +y.toFixed(1), D.moved ? D.f : !D.f];
+    setArtPos(V.month, P); redrawBig();
+    const bar = $('#bigv .big-bar'); if (bar && !bar.querySelector('[data-act=artreset]')) bar.insertAdjacentHTML('afterbegin', '<button class="big-btn" data-act="artreset">처음 자리로</button>');
+  };
+  document.addEventListener('pointerup', endArt); document.addEventListener('pointercancel', endArt);
+  // 그림 저장: 지금 보이는 그림(꾸민 자리 그대로)을 사진 한 장으로. 그림 파일을 글 안에 담아 그림판에 옮긴 뒤 아래에 달과 제목을 적는다.
+  //  기도한 날 같은 숫자는 넣지 않는다(공유해도 남과 견주지 않게). 휴대폰이면 공유하기, 아니면 내려받기
+  const artData = {};
+  async function asData(url) {
+    if (artData[url]) return artData[url];
+    const b = await (await fetch(url)).blob();
+    return (artData[url] = await new Promise((ok, bad) => { const r = new FileReader(); r.onload = () => ok(r.result); r.onerror = bad; r.readAsDataURL(b); }));
+  }
+  async function saveArt() {
+    const V = S.bigView, m = sceneKey(V.month), sc = SCENES[m];
+    const svg = new DOMParser().parseFromString(sceneSvg(m, V.n, { month: V.month }).replace('<svg ', '<svg xmlns="http://www.w3.org/2000/svg" '), 'image/svg+xml').documentElement;
+    await Promise.all([...svg.querySelectorAll('image')].map(async im => { im.setAttribute('href', await asData(new URL(im.getAttribute('href'), location.href).href)); }));
+    const W = 1600, H = 750, cap = 132;
+    svg.setAttribute('width', W); svg.setAttribute('height', H);
+    const pic = await new Promise((ok, bad) => { const i = new Image(); i.onload = () => ok(i); i.onerror = bad; i.src = URL.createObjectURL(new Blob([new XMLSerializer().serializeToString(svg)], { type: 'image/svg+xml' })); });
+    const c = document.createElement('canvas'); c.width = W; c.height = H + cap; const g = c.getContext('2d');
+    g.fillStyle = '#20160F'; g.fillRect(0, 0, W, H + cap); g.drawImage(pic, 0, 0, W, H); URL.revokeObjectURL(pic.src);
+    const [y, mo] = V.month.split('-');
+    g.fillStyle = '#FFFFFF'; g.textBaseline = 'middle';
+    g.font = '700 46px "Gowun Batang", serif'; g.fillText(sc.title.replace(/^\d+월\s*/, ''), 56, H + cap / 2);
+    g.fillStyle = 'rgba(255,255,255,.72)'; g.font = '500 30px "IBM Plex Sans KR", sans-serif'; g.textAlign = 'right'; g.fillText(`${y}년 ${Number(mo)}월 · 코이데`, W - 56, H + cap / 2);
+    const blob = await new Promise(ok => c.toBlob(ok, 'image/png'));
+    const file = new File([blob], `koide-${V.month}.png`, { type: 'image/png' });
+    if (navigator.canShare && navigator.canShare({ files: [file] }) && /Mobi|Android|iPhone|iPad/.test(navigator.userAgent)) {
+      try { await navigator.share({ files: [file], title: sc.title }); return; } catch (e) { if (e && e.name === 'AbortError') return; }
+    }
+    const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = file.name; document.body.appendChild(a); a.click(); a.remove(); setTimeout(() => URL.revokeObjectURL(a.href), 4000);
+    toast('그림을 저장했어요.');
   }
   // 나의 기도 맨 아래 "달마다 모은 그림": 연도별로 접고 펼친다(올해는 펼침). 다음 달은 "곧 열려요"
   function artCollection(list) {
@@ -4067,6 +4142,9 @@ try { const p = JSON.parse(localStorage.getItem('koide-pref') || '{}'), d = docu
       }
       case 'album': S.album = v; render(); return track('화면 보기', { screen: '한 해 앨범' });
       case 'albumclose': S.album = null; return render();
+      case 'artedit': S.bigView.edit = !S.bigView.edit; if (S.bigView.edit) track('화면 보기', { screen: '그림 꾸미기' }); return render();
+      case 'artreset': if (!confirm('이 달 그림을 처음 자리로 되돌릴까요?')) return; setArtPos(S.bigView.month, {}); return render();
+      case 'artsave': S.artSaving = true; render(); try { await saveArt(); track('화면 보기', { screen: '그림 저장' }); } catch (err) { toast('그림을 저장하지 못했어요. 다시 해 주세요.'); } S.artSaving = false; return render();
       case 'bigclose': S.bigView = null; render(); if (document.fullscreenElement) document.exitFullscreen().catch(() => {}); return;
       case 'tipok': tipDone(v); b.closest('.tg-tip').remove(); return;
       case 'tourre':

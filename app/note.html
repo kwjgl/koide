@@ -240,6 +240,9 @@ button.knot { cursor: pointer; }
 .bar b { display: block; height: 100%; background: var(--accent); }
 .toast { position: fixed; left: 50%; bottom: calc(84px + env(safe-area-inset-bottom, 0px)); transform: translateX(-50%); background: var(--ink); color: var(--page); padding: .55em 1.1em; border-radius: 999px; font-size: .88em; z-index: 50; }
 .empty { text-align: center; padding: 1.4em 1em; }
+.shelf-acts { display: flex; flex-wrap: wrap; align-items: center; justify-content: flex-end; gap: 8px; margin-top: 10px; }
+.shelf-acts .hint { margin: 0 auto 0 0; }
+.stage3d.editing canvas { touch-action: none !important; cursor: grab; }
 .notice { background: var(--warm-soft); color: var(--ink); border-radius: 14px; padding: .8em .9em; font-size: .86em; word-break: keep-all; margin-bottom: 12px; }
 .notice b { color: var(--warm); }
 .mrow { display: flex; justify-content: space-between; align-items: center; gap: 10px; background: none; border: 0; border-top: 1px solid var(--line); padding: .8em 0; width: 100%; text-align: left; cursor: pointer; }
@@ -711,7 +714,7 @@ button.knot { cursor: pointer; }
       <header class="top"><div><p class="eyebrow">나만 보는 기록</p><h1>나의 보관함</h1></div></header>
       <div class="seg" role="tablist" style="margin-bottom:12px">${KEEPS.map(([v, l]) => `<button class="${k === v ? 'on' : ''}" role="tab" aria-selected="${k === v}" data-a="keep" data-v="${v}">${l}</button>`).join('')}</div>
       <section class="card">${head}${k === 'shelf' ? shelfNav() : k === 'chest' ? chestNav() : ''}
-        <div class="stage3d ${k}" id="keep3d"><span class="wait">불러오는 중…</span></div>${k === 'shelf' ? monthStrip() : ''}
+        <div class="stage3d ${k}${k === 'shelf' && S.shelfEdit ? ' editing' : ''}" id="keep3d"><span class="wait">불러오는 중…</span></div>${k === 'shelf' ? shelfActs() + monthStrip() : ''}
         ${k === 'cord' ? '<div class="legend3d"><span><i class="k"></i>응답 매듭</span><span><i class="g"></i>감사의 금실</span><span>가닥 굵기 = 그 달에 기도한 날</span></div>' : ''}
         <div id="keep3d-pick"><p class="hint">${hint}</p></div></section>`;
   }
@@ -771,6 +774,37 @@ button.knot { cursor: pointer; }
     return { key, title: sc.title, hero: [(sc.heroes || ['hero'])[0], sc.hero, sc.heroW], props: sc.props.map(p => [p[0], p[1], p[4]]), days: dd, count: dd.length, total: sc.props.length + 1 };
   }
   const shelfData = () => [monthRow(keepMonth())];
+  // 선반 꾸미기: 소품을 선반 위로 끌어 옮긴다. 꾸민 자리는 이 기기에만(내 노트 자리 옆에 달마다) 둔다
+  const SHELF_KEY = KEY + ':shelf';
+  const shelfAll = () => { try { return JSON.parse(localStorage.getItem(SHELF_KEY) || '{}') || {}; } catch (e) { return {}; } };
+  const shelfPos = M => shelfAll()[M] || {};
+  function setShelfPos(M, P) { const all = shelfAll(); if (P && Object.keys(P).length) all[M] = P; else delete all[M]; try { localStorage.setItem(SHELF_KEY, JSON.stringify(all)); } catch (e) { /* 이번만 */ } }
+  function shelfActs() {
+    const M = keepMonth(), moved = Object.keys(shelfPos(M)).length, has = monthRow(M).count > 0;
+    if (!has) return '';
+    return `<div class="shelf-acts">${S.shelfEdit ? `<span class="hint">소품을 끌어 옮겨요. 이 기기에만 남아요.</span>${moved ? '<button class="btn ghost small" data-a="shelfreset">처음 자리로</button>' : ''}<button class="btn small" data-a="shelfedit">다 했어요</button>`
+      : `<button class="btn ghost small" data-a="shelfedit">꾸미기</button><button class="btn ghost small" data-a="shelfsave"${S.shelfSaving ? ' disabled' : ''}>${S.shelfSaving ? '저장하는 중…' : '그림 저장'}</button>`}</div>`;
+  }
+  // 그림 저장: 지금 보이는 선반을 사진 한 장으로, 아래에 달과 제목(기도한 날 같은 숫자는 넣지 않는다). 휴대폰이면 공유하기, 아니면 내려받기
+  async function saveShelf() {
+    const G = G3.shelf; if (!G) return;
+    const M = keepMonth(), R = monthRow(M), src = G.snap();
+    const pic = await new Promise((ok, bad) => { const i = new Image(); i.onload = () => ok(i); i.onerror = bad; i.src = src; });
+    const W = pic.width, H = pic.height, cap = Math.round(W * .085), c = document.createElement('canvas'); c.width = W; c.height = H + cap;
+    const g = c.getContext('2d'), cs = getComputedStyle(document.documentElement);
+    g.fillStyle = cs.getPropertyValue('--surface').trim() || '#fff'; g.fillRect(0, 0, W, H + cap); g.drawImage(pic, 0, 0);
+    const [y, mo] = M.split('-');
+    g.textBaseline = 'middle'; g.fillStyle = cs.getPropertyValue('--ink').trim() || '#1B2523'; g.font = `700 ${Math.round(cap * .36)}px "Gowun Batang", serif`;
+    g.fillText(R.title.replace(/^\d+월\s*/, ''), cap * .45, H + cap / 2);
+    g.fillStyle = cs.getPropertyValue('--ink-2').trim() || '#5B6965'; g.font = `500 ${Math.round(cap * .24)}px "IBM Plex Sans KR", sans-serif`; g.textAlign = 'right';
+    g.fillText(`${y}년 ${Number(mo)}월 · 나의 기도 노트`, W - cap * .45, H + cap / 2);
+    const blob = await new Promise(ok => c.toBlob(ok, 'image/png')), file = new File([blob], `koide-note-${M}.png`, { type: 'image/png' });
+    if (navigator.canShare && navigator.canShare({ files: [file] }) && /Mobi|Android|iPhone|iPad/.test(navigator.userAgent)) {
+      try { await navigator.share({ files: [file], title: R.title }); return; } catch (e) { if (e && e.name === 'AbortError') return; }
+    }
+    const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = file.name; document.body.appendChild(a); a.click(); a.remove(); setTimeout(() => URL.revokeObjectURL(a.href), 4000);
+    toast('그림을 저장했어요');
+  }
   // 끈 보관함: 세 해가 한 상자. 노트를 시작한 해부터 세 해씩 묶고, 고른 상자(S.keepY)가 없으면 올해가 든 상자
   const chestFirst = () => Number(firstMonth().slice(0, 4));
   const chestStart = () => { const f = chestFirst(), y = Number(yearOf()), cur = f + Math.floor((y - f) / 3) * 3; return S.keepY != null && S.keepY >= f && S.keepY <= cur && (S.keepY - f) % 3 === 0 ? S.keepY : cur; };
@@ -801,9 +835,11 @@ button.knot { cursor: pointer; }
     load3d().then(() => {
       const host = $('#keep3d'); if (S.tab !== 'keep' || !host) return;
       const X = window.KOIDE_NOTE3D, k = keepKind(), pick = () => $('#keep3d-pick');
-      const d = k === 'cord' ? cordData() : k === 'shelf' ? shelfData() : chestData(), sig = JSON.stringify(d) + (PREF.accent || '') + (PREF.mode || '');
+      const d = k === 'cord' ? cordData() : k === 'shelf' ? shelfData() : chestData(), M = keepMonth(), sig = JSON.stringify(d) + (PREF.accent || '') + (PREF.mode || '') + (k === 'shelf' ? JSON.stringify(shelfPos(M)) : '');
+      const arrange = { pos: shelfPos(M), on: () => !!S.shelfEdit, save: (n, x, z) => { const P = shelfPos(M); P[n] = [x, z]; setShelfPos(M, P); if (G3.shelf) G3.shelf.sig = JSON.stringify(shelfData()) + (PREF.accent || '') + (PREF.mode || '') + JSON.stringify(P);
+        const bar = document.querySelector('.shelf-acts'); if (bar && !bar.querySelector('[data-a=shelfreset]')) bar.querySelector('[data-a=shelfedit]').insertAdjacentHTML('beforebegin', '<button class="btn ghost small" data-a="shelfreset">처음 자리로</button>'); } };
       // 그림은 종류마다 만들어 두고, 기록이나 화면 설정이 바뀌었을 때만 새로 만든다
-      if (!G3[k] || G3[k].sig !== sig) { if (G3[k]) G3[k].dispose(); G3[k] = k === 'cord' ? X.cord(d, pick) : k === 'shelf' ? X.shelf(d, CFG.ART || 'img/', pick) : X.chest(d, pick); G3[k].sig = sig; }
+      if (!G3[k] || G3[k].sig !== sig) { if (G3[k]) G3[k].dispose(); G3[k] = k === 'cord' ? X.cord(d, pick) : k === 'shelf' ? X.shelf(d, CFG.ART || 'img/', pick, arrange) : X.chest(d, pick); G3[k].sig = sig; }
       const w = host.querySelector('.wait'); if (w) w.remove(); G3[k].attach(host);
     }).catch(off);
   }
@@ -1099,7 +1135,10 @@ button.knot { cursor: pointer; }
       case 'style': setPref('style', v); return render();
       case 'lookm': S.lookM = v; return render();
       case 'keep': S.keep = v || S.keep; if (v === 'shelf') S.keepM = null; S.tab = 'keep'; render(); return window.scrollTo(0, 0);
-      case 'keepm': S.keepM = v; return render();
+      case 'keepm': S.keepM = v; S.shelfEdit = false; return render();
+      case 'shelfedit': S.shelfEdit = !S.shelfEdit; return render();
+      case 'shelfreset': if (!confirm('이 달 선반을 처음 자리로 되돌릴까요?')) return; setShelfPos(keepMonth(), {}); return render();
+      case 'shelfsave': S.shelfSaving = true; render(); saveShelf().catch(() => toast('그림을 저장하지 못했어요. 다시 해 주세요')).then(() => { S.shelfSaving = false; render(); }); return;
       case 'keepy': S.keepY = Number(v); return render();
       case 'looktab': S.lookTab = v; return render();
       case 'big': setPref('big', !PREF.big); return render();

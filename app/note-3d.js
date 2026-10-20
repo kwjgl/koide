@@ -9,18 +9,33 @@ window.KOIDE_NOTE3D = (() => {
   const md = s => { const [, m, d] = s.split('-').map(Number); return `${m}월 ${d}일`; };
 
   // 공통 그림판: 붙일 자리(attach)가 바뀌어도 같은 그림을 이어 쓴다. 밀면 onDrag, 살짝 누르면 onTap(화면 좌표 -1~1)
-  function stage({ srgb, onDrag, onTap, frame }) {
+  //  grab이 있으면(꾸미기) 누른 자리에 잡을 것이 있을 때 grab.start가 true를 돌려주고, 그 뒤로는 돌리기 대신 grab.move · grab.end
+  function stage({ srgb, onDrag, onTap, frame, grab }) {
     const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
     renderer.setPixelRatio(Math.min(devicePixelRatio || 1, 2));
     if (srgb) renderer.outputEncoding = THREE.sRGBEncoding;
     const el = renderer.domElement; el.style.display = 'block'; el.style.width = '100%'; el.style.height = '100%'; el.style.touchAction = 'pan-y';
     const scene = new THREE.Scene(), camera = new THREE.PerspectiveCamera(30, 1.6, 0.1, 100);
     const S = { renderer, scene, camera, el, host: null, alive: true, idleAt: 0, draw: () => renderer.render(scene, camera) };
+    const ndc = e => { const r = el.getBoundingClientRect(); return [(e.clientX - r.left) / r.width * 2 - 1, -((e.clientY - r.top) / r.height) * 2 + 1]; };
+    // 그림 저장: 잠깐 크게(가로 1600 안팎) 한 번 그리고 바로 읽은 뒤 원래 크기로 돌린다. hide에 든 것(숫자가 적힌 이름표 등)은 그동안 감춘다
+    S.hide = [];
+    S.snap = () => {
+      const r0 = renderer.getPixelRatio(), w = S.host ? S.host.clientWidth : 400, k = Math.max(r0, Math.min(4, 1600 / Math.max(1, w)));
+      S.hide.forEach(o => { o.visible = false; }); renderer.setPixelRatio(k); S.resize();
+      renderer.render(scene, camera); const url = el.toDataURL('image/png');
+      S.hide.forEach(o => { o.visible = true; }); renderer.setPixelRatio(r0); S.resize(); return url;
+    };
+    let held = null;
     // 휴대폰에서 스크롤이 걸리지 않게: 손가락은 처음 움직인 방향을 보고 옆으로면 돌리고, 위아래면 손을 떼어 화면이 스크롤되게 둔다
     //  (그림판은 touch-action: pan-y라 위아래 밀기는 브라우저가 스크롤로 가져간다). 마우스는 위아래로 기울이기도 한다
     let drag = null;
-    el.addEventListener('pointerdown', e => { drag = { x: e.clientX, y: e.clientY, x0: e.clientX, y0: e.clientY, touch: e.pointerType !== 'mouse', axis: e.pointerType === 'mouse' ? 'xy' : '' }; });
+    el.addEventListener('pointerdown', e => {
+      if (grab && grab.on() && grab.start(...ndc(e))) { held = true; drag = null; try { el.setPointerCapture(e.pointerId); } catch (err) { /* 무시 */ } e.preventDefault(); return; }
+      drag = { x: e.clientX, y: e.clientY, x0: e.clientX, y0: e.clientY, touch: e.pointerType !== 'mouse', axis: e.pointerType === 'mouse' ? 'xy' : '' };
+    });
     el.addEventListener('pointermove', e => {
+      if (held) { grab.move(...ndc(e)); S.idleAt = performance.now(); S.draw(); return; }
       if (!drag) return;
       if (!drag.axis) {
         const ax = Math.abs(e.clientX - drag.x0), ay = Math.abs(e.clientY - drag.y0);
@@ -31,10 +46,11 @@ window.KOIDE_NOTE3D = (() => {
       onDrag(e.clientX - drag.x, drag.axis === 'xy' ? e.clientY - drag.y : 0); drag.x = e.clientX; drag.y = e.clientY; S.idleAt = performance.now(); S.draw();
     });
     el.addEventListener('pointerup', e => {
+      if (held) { held = null; grab.end(); S.draw(); return; }
       if (drag && Math.hypot(e.clientX - drag.x0, e.clientY - drag.y0) < 6) { const r = el.getBoundingClientRect(); onTap((e.clientX - r.left) / r.width * 2 - 1, -((e.clientY - r.top) / r.height) * 2 + 1); S.idleAt = performance.now(); }
       drag = null;
     });
-    el.addEventListener('pointercancel', () => { drag = null; });
+    el.addEventListener('pointercancel', () => { drag = null; if (held) { held = null; grab.end(); } });
     const ro = new ResizeObserver(() => S.resize());
     S.resize = () => { if (!S.host) return; const w = S.host.clientWidth, h = S.host.clientHeight; if (!w || !h) return; renderer.setSize(w, h, false); camera.aspect = w / h; S.fit && S.fit(); camera.updateProjectionMatrix(); S.draw(); };
     S.attach = host => { if (S.host !== host) { ro.disconnect(); S.host = host; host.appendChild(el); ro.observe(host); } S.resize(); };
@@ -112,10 +128,20 @@ window.KOIDE_NOTE3D = (() => {
 
   // ── 이달의 소품 선반: 한 달 한 칸(note.html이 고른 달 하나를 넘긴다). 그 달 첫 기도에 주인공, 그다음 기도한 날마다 소품 하나 ──────────
   //  rows: [{ key, title, hero, props: [[파일, 이름, 너비]], days: ['YYYY-MM-DD'…], count }], base: 그림 폴더
-  function shelf(rows, base, info) {
+  //  arrange: { pos: { 이름: [x, z] }, on: () => 꾸미는 중인지, save(이름, x, z) } — 꾸미기에서 소품을 선반 위로 끌어 옮긴다(이 기기에만)
+  function shelf(rows, base, info, arrange) {
     const W = 7.6, H = 2.5, D = 1.7, T = 0.16, R = Math.max(1, rows.length), top = R * H / 2;
-    let yaw = 0.3, pitch = 0.06, sel = null;
+    let yaw = 0.3, pitch = 0.06, sel = null, moving = null;
+    const A = arrange || { pos: {}, on: () => false, save: () => {} };
     const S = stage({
+      grab: {
+        on: () => A.on(),
+        start: (x, y) => { ray.setFromCamera(new THREE.Vector2(x, y), S.camera); const h = ray.intersectObjects(picks.map(g => g.userData.card).filter(Boolean))[0]; const g = h && picks.find(p => p.userData.card === h.object);
+          if (!g) return false; moving = { g, plane: new THREE.Plane(new THREE.Vector3(0, 1, 0), -g.position.y) }; select(g); return true; },
+        move: (x, y) => { if (!moving) return; ray.setFromCamera(new THREE.Vector2(x, y), S.camera); const p = new THREE.Vector3(); if (!ray.ray.intersectPlane(moving.plane, p)) return;
+          moving.g.position.x = Math.max(-W / 2 + 0.6, Math.min(W / 2 - 0.6, p.x)); moving.g.position.z = Math.max(-D / 2 + 0.3, Math.min(D / 2 - 0.15, p.z)); },
+        end: () => { if (!moving) return; const g = moving.g; moving = null; A.save(g.userData.name, +g.position.x.toFixed(2), +g.position.z.toFixed(2)); }
+      },
       srgb: true,
       onDrag: (dx, dy) => { yaw = Math.max(-0.7, Math.min(0.7, yaw + dx * 0.006)); pitch = Math.max(-0.25, Math.min(0.35, pitch + dy * 0.003)); place(); },
       onTap: (x, y) => { ray.setFromCamera(new THREE.Vector2(x, y), S.camera); const h = ray.intersectObjects(picks.map(g => g.userData.card).filter(Boolean))[0]; const g = h && picks.find(p => p.userData.card === h.object); select(g && g !== sel ? g : null); },
@@ -134,7 +160,7 @@ window.KOIDE_NOTE3D = (() => {
       g.fillStyle = css('--ink') || '#1B2523'; g.font = '700 44px "Gowun Batang", serif'; g.textAlign = 'center'; g.textBaseline = 'middle'; g.fillText(text, 256, 42);
       g.fillStyle = css('--ink-2') || '#5B6965'; g.font = '500 28px "IBM Plex Sans KR", sans-serif'; g.fillText(sub, 256, 88);
       const t = new THREE.CanvasTexture(c); t.encoding = THREE.sRGBEncoding;
-      const m = new THREE.Mesh(new THREE.PlaneGeometry(2.6, 0.57), new THREE.MeshBasicMaterial({ map: t })); m.position.set(0, y, D / 2 + 0.02); S.scene.add(m);
+      const m = new THREE.Mesh(new THREE.PlaneGeometry(2.6, 0.57), new THREE.MeshBasicMaterial({ map: t })); m.position.set(0, y, D / 2 + 0.02); S.scene.add(m); S.hide.push(m);
     };
     const loader = new THREE.TextureLoader(), picks = [], ray = new THREE.Raycaster();
     const shadow = new THREE.MeshBasicMaterial({ color: 0x000000, transparent: true, opacity: 0.16, depthWrite: false });
@@ -153,7 +179,8 @@ window.KOIDE_NOTE3D = (() => {
           const sh = new THREE.Mesh(new THREE.CircleGeometry(pw * 0.42, 24), shadow); sh.rotation.x = -Math.PI / 2; sh.scale.y = 0.35; sh.position.y = 0.01; g.add(sh);
           g.userData.card = card; S.draw();
         });
-        g.position.set(Math.min(W / 2 - 0.7, -W / 2 + 0.9 + (W - 1.6) * ((slot + 0.5) / cnt)), floor, w >= 40 ? -0.35 : 0.3); g.rotation.y = (slot % 2 ? -1 : 1) * 0.12;
+        const at = A.pos[name];
+        g.position.set(at ? at[0] : Math.min(W / 2 - 0.7, -W / 2 + 0.9 + (W - 1.6) * ((slot + 0.5) / cnt)), floor, at ? at[1] : w >= 40 ? -0.35 : 0.3); g.rotation.y = (slot % 2 ? -1 : 1) * 0.12;
         // 오늘 놓인 것은 톡 떨어지듯
         g.userData = { name, title: M.title, d: M.days[i], born: M.days[i] === today && !reduce() ? 0 : -1 };
         S.scene.add(g); picks.push(g);
