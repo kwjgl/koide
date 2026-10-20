@@ -625,6 +625,10 @@ h3 { font-size: 1.02em; font-weight: 600; margin: 0; }
 .received.r-plain { background: transparent; color: var(--ink-2); font-weight: 500; padding-inline: .1em; }
 .received.r-deep { background: var(--accent); color: var(--on-accent); }
 .fam-head { display: flex; justify-content: space-between; align-items: center; gap: .6em; }
+/* 가정 이름을 누르면 '지금 함께 기도할 가정'으로 올라온다: 글자는 그대로 두고 작은 위쪽 화살표만 곁들인다 */
+.fam-pick { display: inline-flex; align-items: center; gap: .35em; min-height: 0; padding: .25em 0; background: none; border: 0; box-shadow: none; border-radius: 6px; color: inherit; font: inherit; font-weight: 600; text-align: left; cursor: pointer; }
+.fam-pick svg { width: .8em; height: .8em; flex: none; color: var(--accent); opacity: .65; }
+.fam-pick:hover span { text-decoration: underline; text-decoration-color: var(--accent); text-underline-offset: .2em; }
 .chip-status { font-size: .72em; font-weight: 600; padding: .3em .75em; border-radius: 999px; white-space: nowrap; }
 .st-same { background: var(--surface-2); color: var(--ink-2); }
 .st-edited { background: var(--accent-soft); color: var(--accent); }
@@ -1422,7 +1426,7 @@ try { const p = JSON.parse(localStorage.getItem('koide-pref') || '{}'), d = docu
       { t: '누가 몇 번 기도했는지는 보이지 않아요', b: '목사님 화면에도 이름과 횟수는 없어요. 끈이 이어진 모습과 합계만 보여요. 궁금한 것은 더보기 › 코이데 소개에 있어요.', pic: 'cord' }
     ];
     return [
-      { t: `지금 함께 기도할 ${w.one}`, b: `"이번 달" 맨 위에 아직 기도하지 않은 ${w.one}부터 하나씩 나와요. 기도한 뒤 "기도했어요"를 누르면 그 ${w.one}의 매듭이 지어져요. 누가 눌렀는지는 아무에게도 보이지 않아요.`, pic: 'pray' },
+      { t: `지금 함께 기도할 ${w.one}`, b: `"이번 달" 맨 위에 아직 기도하지 않은 ${w.one}부터 하나씩 나와요. 기도한 뒤 "기도했어요"를 누르면 그 ${w.one}의 매듭이 지어져요. 아래 ${w.one} 카드의 이름을 누르면 그 ${w.one}이 맨 위로 올라와요. 누가 눌렀는지는 아무에게도 보이지 않아요.`, pic: 'pray' },
       { t: `${w.mine} 기도제목은 "내 기도"에서`, b: '지난달 기도제목이 그대로 넘어와 있어요. 바뀐 것만 고치고, 바뀐 게 없으면 "이번 달도 그대로예요"만 눌러도 돼요. 카톡에 쓰던 글을 붙여 넣으면 나눠 줘요.', pic: 'lines' },
       { t: '누가 볼지 직접 정해요', b: '기도제목마다 보이는 곳을 고를 수 있어요. 마음 편히 나누고 싶은 만큼만 나눠요.', pic: 'scope' },
       { t: '기도하기는 가운데 버튼', b: `한 장씩 넘기며 우리 ${g}, ${w.mine}, 섬기는 분들, 하나님 나라를 위해 기도해요. 기도한 장에서 "기도했어요"를 눌러요. 시간과 음악을 고를 수 있고, 시간을 정하면 "자동으로 넘기기"도 켤 수 있어요.`, pic: 'kinds', kinds: ['우리 ' + g, w.mine, '섬기는 분들', '하나님 나라'] }
@@ -1733,10 +1737,12 @@ try { const p = JSON.parse(localStorage.getItem('koide-pref') || '{}'), d = docu
     const [k, t] = !R.n ? ['plain', '그리스도께서 ' + me + ' 위해 간구하고 계세요.'] : R.n * 2 >= R.of ? ['deep', g + '들이 함께 ' + me + ' 위해 기도하고 있어요'] : ['soft', g + (solo() ? '가 ' : '이 ') + me + ' 위해 기도했어요'];
     return `<p class="received r-${k}">${ICON.hands}<span>${t}</span></p>`;
   }
-  function famCard(f) {
+  // pick: 회원 홈(이름을 누르면 '지금 함께 기도할 가정'으로 올라온다, 기도했어요는 그 카드에서만).
+  //  목사님·장로님이 사랑방을 들여다보는 화면에는 그 카드가 없어서 가정마다 기도했어요를 둔다
+  function famCard(f, staff) {
     // 펼치면 모든 항목을 접지 않고 다 보여 주고, 맨 아래 '접기' 하나로 다시 접는다
     const its = f.items.filter(i => !i.pending), open = S.openFams.has(f.id), more = its.length - 4;
-    return `<article class="card"><div class="fam-head"><h3>${esc(f.name)}</h3>${prayBtn(f, true)}</div>
+    return `<article class="card"><div class="fam-head"><h3>${staff ? esc(f.name) : `<button class="fam-pick" data-act="cordpick" data-v="${esc(f.id)}" aria-label="${esc(f.name)}, 누르면 지금 함께 기도할 ${words().one} 카드에 올라와요" title="지금 함께 기도할 ${words().one}으로 보기"><span>${esc(f.name)}</span>${ICON.up}</button>`}</h3>${staff ? prayBtn(f, true) : ''}</div>
       ${its.length ? (open ? itemList(its, false) : itemList(its.slice(0, 4), true, f.id)) : '<p class="hint">아직 올린 기도제목이 없어요.</p>'}
       ${open ? `<button class="link" data-act="famtoggle" data-id="${esc(f.id)}" aria-expanded="true">접기</button>`
         : more > 0 ? `<button class="link" data-act="famtoggle" data-id="${esc(f.id)}" aria-expanded="false">더 보기 · ${more}개</button>` : ''}</article>`;
@@ -1790,7 +1796,7 @@ try { const p = JSON.parse(localStorage.getItem('koide-pref') || '{}'), d = docu
         <div class="section-row"><div class="sr-title"><h2 class="section-title">${esc(grp())} ${words().members} ${others.length}</h2><span class="sr-legend"><i class="new-dot"></i>이번 달 새 기도제목</span></div>
           <div class="sr-tools"><button class="btn small ghost meet-btn" data-act="meet" title="모임 때 한 ${words().one}씩 크게 보기">${ICON.screen}모임 모드</button>
           <div class="seg2" role="tablist" aria-label="보기 방식">${[['card', '카드'], ['table', '표']].map(([k, l]) => `<button class="${(S.homeView || 'card') === k ? 'on' : ''}" role="tab" aria-selected="${(S.homeView || 'card') === k}" data-act="homeview" data-v="${k}">${l}</button>`).join('')}</div></div></div>
-        ${S.homeView === 'table' ? tableCard() : `<div class="fam-grid">${others.map(famCard).join('')}</div>`}
+        ${S.homeView === 'table' ? tableCard() : `<div class="fam-grid">${others.map(f => famCard(f)).join('')}</div>`}
         ${serveCard()}
       </div></div>`;
   }
@@ -1858,14 +1864,14 @@ try { const p = JSON.parse(localStorage.getItem('koide-pref') || '{}'), d = docu
       ${list.length > 5 ? `<button class="link" data-act="sigmore">${S.sigMore ? '접기' : `나머지 ${list.length - 5}건 더 보기`}</button>` : ''}
       <p class="hint">오래된 순이에요. 심방과 연락 참고용이고, ${words().count}끼리 비교하는 숫자는 보여 주지 않아요.</p></section>`;
   }
-  // 목사님 홈에서 고른 사랑방: 리더·목사님 항목까지 보고, 가정마다 기도했어요를 누른다
+  // 목사님 홈에서 고른 사랑방: 리더·목사님 항목까지 보고, 가정마다 기도했어요를 누른다(지금 함께 기도할 가정 카드가 없다)
   function staffRoomView() {
     const r = (S.month.rooms || []).find(x => x.id === S.openRoom) || {}, R = loadRoom(S.openRoom);
     return `<button class="link back" data-act="roomclose">${ICON.chevL}${esc(S.month.dept.name)} 전체로</button>
       <div class="page-top"><div><p class="eyebrow">${esc(S.month.dept.name)}</p><h1>${esc(r.name || '')}</h1></div><p class="date">${todayLabel()}</p></div>
       ${!R ? '<p class="loading">불러오는 중…</p>' : `<section class="card">${cordHtml()}<div class="actions"><button class="btn" data-act="roomknot" data-v="${esc(r.id)}">${ICON.hands}이 ${esc(gj('을/를'))} 위해 기도하기</button></div>
         <p class="hint">리더·목사님 항목까지 보여요. "${esc(words().only)}" 항목은 보이지 않아요.</p></section>
-        ${R.families.length ? `<div class="fam-grid">${R.families.map(famCard).join('')}</div>${famTlCard(R.families)}` : `<p class="hint">이 ${esc(grp())}에는 아직 ${words().members}이 없어요.</p>`}`}`;
+        ${R.families.length ? `<div class="fam-grid">${R.families.map(f => famCard(f, true)).join('')}</div>${famTlCard(R.families)}` : `<p class="hint">이 ${esc(grp())}에는 아직 ${words().members}이 없어요.</p>`}`}`;
   }
   // 목사님·장로님: 사랑방 가정 하나를 골라 기도 타임라인(설계서 S5). 돌봄 신호의 이름을 눌러도 여기로 온다
   function famTlCard(fams) {
