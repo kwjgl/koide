@@ -544,8 +544,8 @@ body.praying .tabs { display: none; }
 .pss-next { margin: 0; max-width: 32em; color: var(--ink-2); font-size: .95em; line-height: 1.6; word-break: keep-all; }
 .pss-nav { position: sticky; bottom: 0; display: grid; grid-template-columns: 1fr 1.4fr; gap: 10px; max-width: 640px; width: 100%; margin: 0 auto; padding: 12px 0 max(16px, env(safe-area-inset-bottom)); background: linear-gradient(transparent, var(--page) 30%); }
 .pss-nav.one { grid-template-columns: 1fr; }
-/* 기도하기: 이전·다음은 작게, 기도했어요는 크게 */
-.pss-nav.trio { grid-template-columns: 1fr 1fr 2.4fr; }
+/* 기도하기: 이전 | 기도했어요 | 다음 (기도 노트와 같게). 이전·다음은 작게, 기도했어요는 가운데에 크게 */
+.pss-nav.trio { grid-template-columns: 1fr 1.4fr 1fr; }
 .pss-nav button:disabled:not(.pss-pray) { opacity: .4; cursor: default; }
 .pss-nav button { font: inherit; font-weight: 600; min-height: 56px; border-radius: 14px; border: 1px solid var(--line); background: var(--surface); color: var(--ink); cursor: pointer; display: inline-flex; align-items: center; justify-content: center; gap: .4em; }
 .pss-nav .pss-pray { background: var(--accent); border-color: var(--accent); color: var(--on-accent); }
@@ -2794,7 +2794,7 @@ try { const p = JSON.parse(localStorage.getItem('koide-pref') || '{}'), d = docu
       pray = `<button class="pss-pray${ready ? ' ready' : ''}" data-act="psextra">${ICON.hands.replace('<svg', '<svg width="20" height="20"')} 기도했어요</button>`;
     }
     const cd = ps.cd ? `<div class="pss-cd" role="status"><span><b id="pss-cd">${ps.cd}</b>초 뒤 ${last ? '마쳐요' : '다음 장으로 넘어가요'}</span><button data-act="psstay">머무르기</button></div>` : '';
-    return `${top}<div class="pss-body">${body}</div><div class="pss-nav trio"><button data-act="psprev"${ps.i ? '' : ' disabled'}>이전</button><button data-act="psnext">${last ? '마치기' : '다음'}</button>${pray}${cd}</div>`;
+    return `${top}<div class="pss-body">${body}</div><div class="pss-nav trio"><button data-act="psprev"${ps.i ? '' : ' disabled'}>이전</button>${pray}<button data-act="psnext">${last ? '마치기' : '다음'}</button>${cd}</div>`;
   }
   // 한 장에 머무는 시간: 줄어드는 고리와 숫자. 다 되면 '기도했어요'가 부드럽게 반짝인다
   //  '저절로 다음 장으로'(flow)를 켰으면 3초 세고 기도한 것으로 세어 넘어간다. '머무르기'를 누르면 그 장에서는 멈춘다
