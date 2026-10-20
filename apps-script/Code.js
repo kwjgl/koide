@@ -1939,6 +1939,9 @@ function sampleData() {
       plist.push({ at: new Date(date + 'T' + String(hh).padStart(2, '0') + ':' + String(Math.floor(rnd() * 60)).padStart(2, '0') + ':00+09:00'), by, familyId: pick(g.filter(f => f !== by)), kakaoId: '' });
     }
   }
+  // 이달의 그림 예시: 박민재 가정(F2)은 이번 달 어제까지 날마다(많아야 20일) 기도해서 양이 넉넉하다
+  const thisMonth = month_(), dayNow = Number(today_().slice(8)), r1 = ['F1', 'F3', 'F4', 'F5'];
+  for (let d = 1; d < dayNow && d <= 20; d++) plist.push({ at: new Date(thisMonth + '-' + String(d).padStart(2, '0') + 'T07:' + String(10 + d).padStart(2, '0') + ':00+09:00'), by: 'F2', familyId: r1[d % 4], kakaoId: '' });
   appendMany_('prayers', plist);
   // 분석 ② 예시: 지어낸 기기 24대의 사용기록(기기ID가 sample로 시작해서 clearSampleData가 지운다). 첫 접속 단계는 몇 대가 중간에 멈추게
   const ulist = [], ev = (at, device, event, d) => ulist.push({ at, device, deptId: d1, event, data: JSON.stringify(d) });

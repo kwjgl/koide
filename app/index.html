@@ -212,7 +212,7 @@ h2 { font-size: 1.05em; margin: 0; }
 .bigview.editing .big-stage { animation: none; }
 .bigview.editing .pasture { touch-action: none; }
 .bigview.editing .arr-it { cursor: grab; }
-.bigview.editing .arr-it.drag { cursor: grabbing; filter: drop-shadow(0 4px 6px rgba(0, 0, 0, .35)); }
+.bigview.editing .arr-it.drag { cursor: grabbing; opacity: .85; }
 @media (prefers-reduced-motion: reduce) { .big-stage { animation: none; } }
 .coll-year { border-top: 1px solid var(--line); padding-top: .2em; }
 .coll-year > summary { cursor: pointer; display: flex; align-items: baseline; gap: .6em; min-height: 40px; padding: .4em 0; list-style-position: outside; }
@@ -2139,8 +2139,8 @@ try { const p = JSON.parse(localStorage.getItem('koide-pref') || '{}'), d = docu
     const r = hero && !sc.sky ? heroSize(sc, y) / heroSize(sc, oy) : 1, sx = (f !== (it.dataset.of === '1') ? -1 : 1) * r;
     it.setAttribute('transform', `translate(${x.toFixed(1)} ${y.toFixed(1)}) scale(${sx.toFixed(3)} ${r.toFixed(3)}) translate(${(-ox).toFixed(1)} ${(-oy).toFixed(1)})`);
     it.dataset.x = x.toFixed(1); it.dataset.y = y.toFixed(1); it.dataset.f = f ? 1 : 0;
-    const after = [...it.parentNode.children].find(o => o !== it && o.classList.contains('arr-it') && +o.dataset.y > y);
-    it.parentNode.insertBefore(it, after || null);
+    const after = [...it.parentNode.children].find(o => o !== it && o.classList.contains('arr-it') && +o.dataset.y > y) || null;
+    if (it.nextElementSibling !== after && !(after === null && !it.nextElementSibling)) it.parentNode.insertBefore(it, after);
   }
   let artDrag = null;
   const svgPt = (svg, e) => { const p = svg.createSVGPoint(); p.x = e.clientX; p.y = e.clientY; return p.matrixTransform(svg.getScreenCTM().inverse()); };
@@ -2149,7 +2149,7 @@ try { const p = JSON.parse(localStorage.getItem('koide-pref') || '{}'), d = docu
     e.preventDefault(); const svg = it.ownerSVGElement, p = svgPt(svg, e);
     artDrag = { it, svg, k: it.dataset.k, x: +it.dataset.x, y: +it.dataset.y, f: it.dataset.f === '1', px: p.x, py: p.y, dx: 0, dy: 0, moved: false, base: it.getAttribute('transform') || '' };
     try { it.setPointerCapture(e.pointerId); } catch (err) { /* 무시 */ }
-    it.classList.add('drag'); svg.appendChild(it);
+    it.classList.add('drag');
   });
   document.addEventListener('pointermove', e => {
     const D = artDrag; if (!D) return;
