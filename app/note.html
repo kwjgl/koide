@@ -129,7 +129,18 @@ textarea.field { min-height: 5.5em; resize: vertical; }
 .card-head span { font-size: .8em; color: var(--ink-2); font-variant-numeric: tabular-nums; }
 .stage3d { position: relative; width: 100%; border-radius: 12px; background: radial-gradient(120% 100% at 50% 40%, var(--surface), var(--surface-2)); cursor: grab; overflow: hidden; }
 .stage3d.cord { aspect-ratio: 16 / 9; }
-.stage3d.shelf { aspect-ratio: 4 / 5; max-height: 70vh; }
+.stage3d.shelf { aspect-ratio: 16 / 11; }
+.mn-t { display: flex; flex-direction: column; align-items: center; text-align: center; min-width: 0; }
+.mn-t small { font-size: .74em; color: var(--ink-2); }
+.mstrip { display: grid; grid-template-columns: repeat(6, 1fr); gap: 8px 4px; }
+.mstrip button { background: none; border: 0; padding: 0; display: flex; flex-direction: column; align-items: center; gap: 3px; cursor: pointer; font-size: .72em; color: var(--ink-2); }
+.mstrip i { width: 42px; height: 42px; border-radius: 50%; background: var(--surface-2); display: grid; place-items: center; overflow: hidden; border: 2px solid transparent; }
+.mstrip img { width: 80%; height: 80%; object-fit: contain; opacity: .35; filter: grayscale(1); }
+.mstrip .got img { opacity: 1; filter: none; }
+.mstrip .full i { border-color: var(--accent); }
+.mstrip .on span { color: var(--accent); font-weight: 700; }
+.mstrip .on i { box-shadow: 0 0 0 2px var(--surface), 0 0 0 4px var(--accent-mid); }
+.mstrip .off { cursor: default; opacity: .5; }
 .stage3d.chest { aspect-ratio: 16 / 11; }
 .stage3d .wait { position: absolute; inset: 0; display: grid; place-items: center; font-size: .82em; color: var(--ink-2); }
 .pick3d { border-left: 3px solid var(--accent); padding: .3em 0 .3em .8em; }
@@ -566,10 +577,32 @@ textarea.field { min-height: 5.5em; resize: vertical; }
     return `<button class="link" data-a="tab" data-v="look">‹ 지난 기록</button>
       <header class="top"><div><p class="eyebrow">나만 보는 기록</p><h1>나의 보관함</h1></div></header>
       <div class="seg" role="tablist" style="margin-bottom:12px">${KEEPS.map(([v, l]) => `<button class="${k === v ? 'on' : ''}" role="tab" aria-selected="${k === v}" data-a="keep" data-v="${v}">${l}</button>`).join('')}</div>
-      <section class="card">${head}
-        <div class="stage3d ${k}" id="keep3d"><span class="wait">불러오는 중…</span></div>
+      <section class="card">${head}${k === 'shelf' ? shelfNav() : k === 'chest' ? chestNav() : ''}
+        <div class="stage3d ${k}" id="keep3d"><span class="wait">불러오는 중…</span></div>${k === 'shelf' ? monthStrip() : ''}
         ${k === 'cord' ? '<div class="legend3d"><span><i class="k"></i>응답 매듭</span><span><i class="g"></i>감사의 금실</span><span>가닥 굵기 = 그 달에 기도한 날</span></div>' : ''}
         <div id="keep3d-pick"><p class="hint">${hint}</p></div></section>`;
+  }
+  function shelfNav() {
+    const M = keepMonth(), R = monthRow(M), [y, m] = M.split('-').map(Number);
+    return `<div class="month-nav"><button class="btn ghost small" data-a="keepm" data-v="${shiftM(M, -1)}"${M > firstMonth() ? '' : ' disabled'} aria-label="이전 달">‹</button>
+      <span class="mn-t"><b>${esc(R.title)}</b><small>${y}년 · 기도한 날 ${R.count}일 · 소품 ${Math.min(R.count, R.total)} / ${R.total}</small></span>
+      <button class="btn ghost small" data-a="keepm" data-v="${shiftM(M, 1)}"${M < TODAY().slice(0, 7) ? '' : ' disabled'} aria-label="다음 달">›</button></div>`;
+  }
+  // 열두 달 줄: 그 달 주인공 얼굴. 기도한 달은 또렷하게, 소품을 다 모은 달은 테두리를 채운다. 누르면 그 달로
+  function monthStrip() {
+    const M = keepMonth(), y = M.slice(0, 4), cur = TODAY().slice(0, 7), f = firstMonth(), A = window.KOIDE_ART, base = CFG.ART || 'img/';
+    return `<div class="mstrip" role="group" aria-label="${y}년 열두 달">${Array.from({ length: 12 }, (_, i) => {
+      const mm = y + '-' + String(i + 1).padStart(2, '0'), R = monthRow(mm), can = mm >= f && mm <= cur, sc = A.SCENES[R.key];
+      const cls = [mm === M ? 'on' : '', R.count ? 'got' : '', R.count >= R.total ? 'full' : '', can ? '' : 'off'].join(' ');
+      return `<button class="${cls}" data-a="keepm" data-v="${mm}"${can ? '' : ' disabled'} aria-label="${i + 1}월${R.count ? ' · 기도한 날 ' + R.count + '일' : ''}"><i><img src="${base}${R.key}/${(sc.heroes || ['hero'])[0]}.webp" alt="" loading="lazy"></i><span>${i + 1}월</span></button>`;
+    }).join('')}</div>`;
+  }
+  function chestNav() {
+    const st = chestStart(), f = chestFirst(), cur = f + Math.floor((Number(yearOf()) - f) / 3) * 3;
+    if (st === f && st === cur) return '';
+    return `<div class="month-nav"><button class="btn ghost small" data-a="keepy" data-v="${st - 3}"${st > f ? '' : ' disabled'} aria-label="이전 상자">‹</button>
+      <span class="mn-t"><b>${st} ~ ${st + 2}</b><small>상자 하나에 세 해</small></span>
+      <button class="btn ghost small" data-a="keepy" data-v="${st + 3}"${st < cur ? '' : ' disabled'} aria-label="다음 상자">›</button></div>`;
   }
   // 오늘 놓인 소품(오늘 처음 기도한 날이면 이달 선반에 하나 놓인다). 다 모았으면 all
   // 받침에 맞춰 이/가
@@ -594,25 +627,31 @@ textarea.field { min-height: 5.5em; resize: vertical; }
       thanks: T.filter(x => x.kind !== 'answer').map(x => ({ d: x.date, text: x.text })) };
   }
   // 소품 선반: 이번 달과 그 앞 두 달(노트를 시작한 달부터). 그 달 그림의 주인공과 소품
-  function shelfData() {
-    const A = window.KOIDE_ART, firsts = [...prays().map(p => p.d)].sort(), first = (firsts[0] || TODAY()).slice(0, 7), rows = [];
-    for (let k = 0; k < 3; k++) {
-      const d = new Date(); d.setDate(1); d.setMonth(d.getMonth() - k);
-      const M = d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0'); if (k && M < first) break;
-      const key = A.sceneKey(M), sc = A.SCENES[key], dd = [...new Set(prays().map(p => p.d).filter(x => x.startsWith(M)))].sort();
-      rows.push({ key, title: sc.title, hero: [(sc.heroes || ['hero'])[0], sc.hero, sc.heroW], props: sc.props.map(p => [p[0], p[1], p[4]]), days: dd, count: dd.length });
-    }
-    return rows;
+  // 달 고르기: 노트를 시작한 달부터 이번 달까지. 고른 달(S.keepM)이 없거나 범위 밖이면 이번 달
+  const monthKey = d => d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0');
+  const firstMonth = () => ([...prays().map(p => p.d)].sort()[0] || TODAY()).slice(0, 7);
+  const keepMonth = () => { const cur = TODAY().slice(0, 7), f = firstMonth(); return S.keepM && S.keepM >= f && S.keepM <= cur ? S.keepM : cur; };
+  const shiftM = (M, k) => { const [y, m] = M.split('-').map(Number); return monthKey(new Date(y, m - 1 + k, 1)); };
+  // 이달의 소품: 고른 달 한 칸. 첫 기도에 주인공, 그다음 기도한 날마다 소품 하나
+  function monthRow(M) {
+    const A = window.KOIDE_ART, key = A.sceneKey(M), sc = A.SCENES[key], dd = [...new Set(prays().map(p => p.d).filter(x => x.startsWith(M)))].sort();
+    return { key, title: sc.title, hero: [(sc.heroes || ['hero'])[0], sc.hero, sc.heroW], props: sc.props.map(p => [p[0], p[1], p[4]]), days: dd, count: dd.length, total: sc.props.length + 1 };
   }
-  // 끈 보관함: 지난해들(기도한 날이 있는 해)과 올해 칸
+  const shelfData = () => [monthRow(keepMonth())];
+  // 끈 보관함: 세 해가 한 상자. 노트를 시작한 해부터 세 해씩 묶고, 고른 상자(S.keepY)가 없으면 올해가 든 상자
+  const chestFirst = () => Number(firstMonth().slice(0, 4));
+  const chestStart = () => { const f = chestFirst(), y = Number(yearOf()), cur = f + Math.floor((y - f) / 3) * 3; return S.keepY != null && S.keepY >= f && S.keepY <= cur && (S.keepY - f) % 3 === 0 ? S.keepY : cur; };
   function chestData() {
-    const y = Number(yearOf()), years = [...new Set(prays().map(p => Number(p.d.slice(0, 4))))].filter(x => x < y).sort().slice(-2);
-    return [...years.map(Y => {
-      const k = String(Y), days = new Set(prays().map(p => p.d).filter(d => d.startsWith(k))).size;
-      const answers = D.thanks.filter(x => x.kind === 'answer' && x.date.startsWith(k)).map(x => x.text);
-      const long = D.items.filter(i => i.created.startsWith(k)).map(i => ({ i, n: Math.round((new Date(i.done ? i.done.date : TODAY()) - new Date(i.created)) / 864e5) + 1 })).sort((a, b) => b.n - a.n)[0];
+    const y = Number(yearOf()), st = chestStart();
+    return [0, 1, 2].map(k => {
+      const Y = st + k, key = String(Y);
+      if (Y === y) return { y: Y, now: true };
+      if (Y > y) return { y: Y, later: true };
+      const days = new Set(prays().map(p => p.d).filter(d => d.startsWith(key))).size;
+      const answers = D.thanks.filter(x => x.kind === 'answer' && x.date.startsWith(key)).map(x => x.text);
+      const long = D.items.filter(i => i.created.startsWith(key)).map(i => ({ i, n: Math.round((new Date(i.done ? i.done.date : TODAY()) - new Date(i.created)) / 864e5) + 1 })).sort((a, b) => b.n - a.n)[0];
       return { y: Y, days, answers, long: long ? `${long.i.text} · ${long.n}일` : '' };
-    }), { y, now: true }];
+    });
   }
   // 3D 도구(vendor/three.min.js)와 그림(note-3d.js)은 지난 기록을 처음 열 때 불러온다. 그림은 만들어 두고 다시 그릴 때 자리만 옮긴다
   const G3 = { ready: null };
@@ -849,7 +888,9 @@ textarea.field { min-height: 5.5em; resize: vertical; }
       case 'accent': setPref('accent', v); return render();
       case 'style': setPref('style', v); return render();
       case 'lookm': S.lookM = v; return render();
-      case 'keep': S.keep = v || S.keep; S.tab = 'keep'; render(); return window.scrollTo(0, 0);
+      case 'keep': S.keep = v || S.keep; if (v === 'shelf') S.keepM = null; S.tab = 'keep'; render(); return window.scrollTo(0, 0);
+      case 'keepm': S.keepM = v; return render();
+      case 'keepy': S.keepY = Number(v); return render();
       case 'looktab': S.lookTab = v; return render();
       case 'big': setPref('big', !PREF.big); return render();
       case 'tourgo': S.tour = v === 'restart' ? 0 : Math.max(0, Math.min(TOUR.length - 1, S.tour + Number(v))); return render();

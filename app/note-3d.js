@@ -99,7 +99,7 @@ window.KOIDE_NOTE3D = (() => {
     return S;
   }
 
-  // ── 이달의 소품 선반: 달마다 한 칸(최근 석 달). 그 달 첫 기도에 주인공, 그다음 기도한 날마다 소품 하나 ──────────
+  // ── 이달의 소품 선반: 한 달 한 칸(note.html이 고른 달 하나를 넘긴다). 그 달 첫 기도에 주인공, 그다음 기도한 날마다 소품 하나 ──────────
   //  rows: [{ key, title, hero, props: [[파일, 이름, 너비]], days: ['YYYY-MM-DD'…], count }], base: 그림 폴더
   function shelf(rows, base, info) {
     const W = 7.6, H = 2.5, D = 1.7, T = 0.16, R = Math.max(1, rows.length), top = R * H / 2;
@@ -162,9 +162,9 @@ window.KOIDE_NOTE3D = (() => {
   }
 
   // ── 끈 보관함: 한 해가 끝나면 그해 끈을 감아 상자에 넣는다(해마다 한 칸, 올해 칸은 비어 있다) ──────────
-  //  years: [{ y, days, answers: [글], long, now }]
+  //  years: 세 해 [{ y, days, answers: [글], long } | { y, now } | { y, later }]
   function chest(years, info) {
-    const CW = 2.6, CD = 2.6, WALL = 0.12, HGT = 0.7, N = Math.max(2, years.length), BW = N * CW + (N + 1) * WALL;
+    const CW = 2.6, CD = 2.6, WALL = 0.12, HGT = 0.7, N = Math.max(3, years.length), BW = N * CW + (N + 1) * WALL;
     let yaw = reduce() ? 0 : 0.5, pitch = reduce() ? 0.95 : 0.65, intro = reduce() ? 1 : 0, sel = null;
     const S = stage({
       srgb: true,
@@ -192,6 +192,7 @@ window.KOIDE_NOTE3D = (() => {
     const coils = [], ray = new THREE.Raycaster();
     years.forEach((Y, i) => {
       if (Y.now) { tag(String(Y.y), '12월 31일에 들어가요', cx(i)); return; }
+      if (Y.later || !Y.days) { tag(String(Y.y), '', cx(i)); return; }
       const g = new THREE.Group(), turns = 1.4 + Math.min(3, Y.days / 70), pts = [];
       for (let k = 0; k <= 240; k++) { const t = k / 240, a = t * turns * Math.PI * 2, r = 0.28 + 0.8 * t; pts.push(new THREE.Vector3(r * Math.cos(a), 0.17, r * Math.sin(a))); }
       const path = new THREE.CatmullRomCurve3(pts), seg = 400, F = path.computeFrenetFrames(seg, false), rho = 0.075, thick = 0.045 + 0.03 * Math.min(1, Y.days / 150);
