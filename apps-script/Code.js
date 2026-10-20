@@ -70,7 +70,8 @@ const SCHEMA = {
   // 운영 관리자(설계서 13장): 부서에 속하지 않고, 기도제목 내용을 보지 않고 맡은 부서를 꾸리는 사람. 범위는 부서ID들(쉼표) 또는 '전체'.
   //  맨 처음 한 사람은 시트에 직접 적는다(카카오ID는 연결 탭에서). 그다음부터는 앱의 일회용 초대 링크(초대 값)로 붙는다
   opsAdmins: ['전체 관리자', [['kakaoId', '카카오ID'], ['name', '이름'], ['scope', '범위'], ['status', '상태'], ['token', '초대 값'], ['at', '만든 날'], ['by', '만든 사람']]],
-  // 자율 모임(설계서 13장, 2026-10-23): 회원 누구나 만드는 모임. 한 모임 12명, 한 사람 3곳(원래 소그룹 포함), 모임장은 한 사람당 1곳.
+  // 자율 모임(설계서 13장, 2026-10-23 · 2026-10-21 기도 노트로 옮김): 카카오로 로그인한 누구나 만드는 모임. 한 모임 12명, 한 사람 3곳(원래 소그룹 포함), 모임장은 한 사람당 1곳.
+  //  교회가 꾸리는 것이 아니어서 관리 화면에는 나오지 않는다. 사람 이름은 교회에 연결된 사람은 명단 이름, 아니면 모임에 들어올 때 적은 이름
   //  사람마다 모임 안의 ID(모임 사람ID)가 있어서, 기도제목·기도했어요는 그 ID를 가정ID 자리에 쓴다(모임마다 따로)
   groups: ['모임', [['id', '모임ID'], ['name', '이름'], ['owner', '모임장 카카오ID'], ['token', '초대 값'], ['status', '상태'], ['at', '만든 날']]],
   gmembers: ['모임 사람', [['groupId', '모임ID'], ['id', '모임 사람ID'], ['kakaoId', '카카오ID'], ['person', '이름'], ['role', '역할'], ['status', '상태'], ['at', '들어온 날']]],
@@ -86,7 +87,7 @@ const FIRST_DEPT = { id: 'D1', name: '청장년부', group: '사랑방', unit: '
 // ── 요청 받기 ─────────────────────────────────────────────
 
 // 서버 코드를 고칠 때마다 바꾼다. 웹 앱 주소를 열면 보여서, 새 버전으로 배포됐는지 확인할 수 있다
-const VERSION = '2026-11-02 노트 주인';
+const VERSION = '2026-11-03 모임은 기도 노트로';
 function doGet() {
   return ContentService.createTextOutput('코이데 서버가 켜져 있어요. (버전: ' + VERSION + ')');
 }
@@ -181,6 +182,7 @@ const ACTIONS = {
   groupRename: groupRename_,
   groupRemove: groupRemove_,
   groupRenew: groupRenew_,
+  groupPeek: groupPeek_,
   // 운영 관리자·부서 만들기·소그룹과 사람(편성 관리)
   opsCtx: body => opsCtxView_(adminOf_(body)),
   church: churchView_,
@@ -198,7 +200,6 @@ const ACTIONS = {
   deptReopen: body => deptState_(body, ''),
   deptErase: deptErase_,
   roster: body => rosterView_(adminOf_(body)),
-  groups: body => groupsAll_(adminOrStaff_(body)),
   rosterSave: rosterSave_,
   // 나 · 기도 노트 이어 두기: 카카오로 로그인한 사람이면 누구나(교회에 연결되지 않아도). 잠긴 글만 주고받는다
   // 하나님 나라 기도 문장: 로그인한 사람은 읽고, 교역자·관리자가 주제마다 고친다
@@ -1112,6 +1113,7 @@ function trimLogs_() {
   cut('errors', 30 * 864e5);
   cut('changes', 396 * 864e5);
   cut('feedback', 396 * 864e5);
+  tidyGroups_();
   // 로그인 탭: 만료된 줄(카카오ID·닉네임)을 남겨 두지 않는다
   read_('sessions').filter(x => !(Date.parse(x.expires) > Date.now())).sort((a, b) => b._row - a._row).forEach(x => remove_('sessions', x));
 }
@@ -1418,7 +1420,7 @@ function churchView_(body) {
   trimLogs_();
   const errs = read_('errors').filter(e => Date.parse(e.at) > Date.now() - 7 * 864e5);
   return { depts: list, version: VERSION, month: { month: m, opened: p['OPENED_' + m] || '' }, errors: { n: errs.length, last: errs.length ? errs[errs.length - 1].at : '' },
-    groups: groupsAll_(c), opsList: opsList_(c), handover: p['HANDOVER_church'] || '' };
+    opsList: opsList_(c), handover: p['HANDOVER_church'] || '' };
 }
 // 부서 만들기·고치기(교회 전체를 맡은 운영 관리자): 이름, 소그룹 이름, 단위(가정/개인)
 function deptSave_(body) {
@@ -1509,14 +1511,11 @@ function churchAnalysis_(body) {
     const k = new Date(t + 9 * 3600e3), h = k.getUTCHours();
     time[(k.getUTCDay() + 6) % 7][h >= 5 && h < 9 ? 0 : h >= 9 && h < 12 ? 1 : h >= 12 && h < 18 ? 2 : h >= 18 && h < 22 ? 3 : 4]++;
   });
-  const gs = read_('groups').filter(g => g.status === '활동'), gm = read_('gmembers').filter(x => x.status === '함께' && gs.some(g => g.id === x.groupId));
-  const people = {}; gm.forEach(x => { people[x.kakaoId] = true; });
   return {
     month: m, months, trend,
     now: { n: now.length, visit: now.filter(f => seen[f + '|' + m]).length, edit: now.filter(f => done(f, m)).length, day: Number(today_().slice(8)) },
     weeks, time,
     depts: per.map(x => ({ name: x.d.name, vals: months.map(mm => { const ids = x.at(mm); return pct(ids.filter(f => done(f, mm)).length, ids.length); }) })),
-    groups: { n: gs.length, people: Object.keys(people).length },
     topics: topicFlow_(c, allRooms),
     app: appStats_(m, seen)
   };
@@ -1650,10 +1649,12 @@ function rosterSave_(body) {
 }
 
 // ── 자율 모임 (설계서 13장, 2026-10-23) ─────────────────────────
-// 우리 교회에 연결된 회원 누구나 만든다. 모임장의 초대 링크로 들어오고 모임장이 승인한다. 교회 밖 사람은 받지 않는다(서버를 옮긴 뒤).
+// 카카오로 로그인한 누구나 만든다(2026-10-21, 기도 노트의 '내 모임'으로 옮기며). 모임장의 초대 링크로 들어오고 모임장이 승인한다.
+//  교회에 연결되지 않은 사람은 모임에서 쓸 이름을 적는다. 관리 화면에는 나오지 않고, 전체 관리자는 문제가 있을 때 초대 링크로 그 모임 하나만 닫는다.
+//  오래(GROUP_IDLE_DAYS) 아무도 쓰지 않은 모임은 저절로 닫힌다(기록은 남는다)
 //  모임은 개인 단위라 사람마다 모임 사람ID가 있고, 이번 달·내 기도·기도하기는 사랑방과 같은 화면을 모임 것으로 쓴다
 const GROUP_SCOPES = ['room', 'family'];
-const GROUP_MAX = 12, PLACES_MAX = 3;
+const GROUP_MAX = 12, PLACES_MAX = 3, GROUP_IDLE_DAYS = 180;
 const GROUP_DEPT = { id: '', name: '모임', group: '모임', unit: '개인' };
 function groupPeople_(gid, all) { return read_('gmembers').filter(m => m.groupId === gid && (all ? m.status !== '나감' : m.status === '함께')); }
 // 내가 속한(또는 신청한) 모임
@@ -1715,33 +1716,48 @@ function groupInfo_(c) {
     people: all.filter(m => m.status === '함께').map(m => ({ id: m.id, person: m.person, role: m.role, me: m.id === c.familyId })),
     asks: lead ? all.filter(m => m.status === '요청').map(m => ({ id: m.id, person: m.person, at: fmtDay_(m.at) })) : [], token: lead ? g.token : '' };
 }
-// 모임 만들기: 연결된 회원, 모임장은 한 사람당 한 모임, 속한 곳은 세 곳까지
+// 모임 안에서 쓰는 이름: 교회에 연결된 사람은 명단 이름, 아니면 들어올 때 적은 이름
+function groupPerson_(w, body) {
+  if (w.link && w.link.status === '연결') return w.link.person;
+  const n = String(body.person || '').trim().replace(/\s+/g, ' ').slice(0, 10);
+  if (!n) throw fail_('bad', '모임에서 쓸 이름을 적어 주세요.');
+  return n;
+}
+// 모임 만들기: 카카오로 로그인한 누구나, 모임장은 한 사람당 한 모임, 속한 곳은 세 곳까지
 function groupCreate_(body) {
   const w = who_(body), name = String(body.name || '').trim().replace(/\s+/g, ' ').slice(0, 16);
-  if (!w.link || w.link.status !== '연결') throw fail_('forbidden', '우리 교회에 연결된 다음 모임을 만들 수 있어요.');
   if (!name) throw fail_('bad', '모임 이름을 적어 주세요.');
+  const person = groupPerson_(w, body);
   return withLock_(() => {
     const mine = myGroups_(w.kakaoId);
     if (mine.some(g => g.role === '모임장')) throw fail_('bad', '모임장은 한 모임만 맡을 수 있어요.');
-    if (placesOf_(w) >= PLACES_MAX) throw fail_('bad', '모임은 원래 소그룹을 포함해 세 곳까지 함께할 수 있어요.');
+    if (placesOf_(w) >= PLACES_MAX) throw fail_('bad', '모임은 교회 소그룹을 포함해 세 곳까지 함께할 수 있어요.');
     const id = 'G' + Date.now().toString(36);
     append_('groups', { id, name, owner: w.kakaoId, token: newToken_(), status: '활동', at: new Date() });
-    append_('gmembers', { groupId: id, id: 'M' + Date.now().toString(36), kakaoId: w.kakaoId, person: w.link.person, role: '모임장', status: '함께', at: new Date() });
+    append_('gmembers', { groupId: id, id: 'M' + Date.now().toString(36), kakaoId: w.kakaoId, person, role: '모임장', status: '함께', at: new Date() });
     return { id, me: meInfo_(who_(body)) };
   });
 }
-// 초대 링크로 함께하기 신청: 연결된 회원만. 모임장이 승인하면 함께한다
+// 초대 링크로 들어온 사람에게 보여 줄 모임: 이름, 모임장, 사람 수(기도제목은 없다)
+function groupPeek_(body) {
+  const w = who_(body), t = String(body.invite || '');
+  const g = read_('groups').find(x => x.token === t && x.status === '활동');
+  if (!g) throw fail_('bad', '쓸 수 없는 모임 초대 링크예요. 모임장에게 새 링크를 받아 주세요.');
+  const ps = groupPeople_(g.id), had = read_('gmembers').find(m => m.groupId === g.id && String(m.kakaoId) === w.kakaoId && m.status !== '나감');
+  return { name: g.name, lead: (ps.find(m => m.role === '모임장') || {}).person || '', n: ps.length, max: GROUP_MAX, places: placesOf_(w), placesMax: PLACES_MAX,
+    linked: !!(w.link && w.link.status === '연결'), had: had ? had.status : '' };
+}
+// 초대 링크로 함께하기 신청: 카카오로 로그인한 누구나. 모임장이 승인하면 함께한다
 function groupJoin_(body) {
   const w = who_(body), t = String(body.invite || '');
-  if (!w.link || w.link.status !== '연결') throw fail_('forbidden', '먼저 우리 교회 소그룹에 연결한 다음 모임에 함께할 수 있어요.');
   return withLock_(() => {
     const g = read_('groups').find(x => x.token === t && x.status === '활동');
     if (!g) throw fail_('bad', '쓸 수 없는 모임 초대 링크예요. 모임장에게 새 링크를 받아 주세요.');
     const had = read_('gmembers').find(m => m.groupId === g.id && String(m.kakaoId) === w.kakaoId && m.status !== '나감');
     if (had) return { group: g.name, wait: had.status === '요청', me: meInfo_(w) };
-    if (placesOf_(w) >= PLACES_MAX) throw fail_('bad', '모임은 원래 소그룹을 포함해 세 곳까지 함께할 수 있어요. 다른 모임에서 나온 뒤 신청해 주세요.');
+    if (placesOf_(w) >= PLACES_MAX) throw fail_('bad', '모임은 교회 소그룹을 포함해 세 곳까지 함께할 수 있어요. 다른 모임에서 나온 뒤 신청해 주세요.');
     if (groupPeople_(g.id).length >= GROUP_MAX) throw fail_('bad', '이 모임은 ' + GROUP_MAX + '명이 다 찼어요.');
-    append_('gmembers', { groupId: g.id, id: 'M' + Date.now().toString(36), kakaoId: w.kakaoId, person: w.link.person, role: '회원', status: '요청', at: new Date() });
+    append_('gmembers', { groupId: g.id, id: 'M' + Date.now().toString(36), kakaoId: w.kakaoId, person: groupPerson_(w, body), role: '회원', status: '요청', at: new Date() });
     return { group: g.name, wait: true, me: meInfo_(who_(body)) };
   });
 }
@@ -1797,37 +1813,29 @@ function groupRenew_(body) {
   if (c.role !== '모임장') throw fail_('forbidden', '모임장만 할 수 있어요.');
   return withLock_(() => { const g = read_('groups').find(x => x.id === c.grp); g.token = newToken_(); update_('groups', g); return groupMonthView_(groupMember_(body)); });
 }
-// 모임 목록(관리자·운영 관리자·교역자): 이름, 모임장, 사람 수, 만든 날. 기도제목은 없다
-function adminOrStaff_(body) {
-  if (body.ops) return opsOf_(body);
-  const c = member_(body);
-  if (!c.admin && !c.staff) throw fail_('forbidden', '관리자와 교역자만 볼 수 있어요.');
-  return c;
-}
-function groupsAll_(c) {
-  const mem = read_('gmembers');
-  return read_('groups').filter(g => g.status === '활동').map(g => {
-    const ps = mem.filter(m => m.groupId === g.id && m.status === '함께');
-    return { id: g.id, name: g.name, lead: (ps.find(m => m.role === '모임장') || {}).person || '', n: ps.length, at: fmtDay_(g.at),
-      people: c.ops && c.all ? ps.map(m => ({ id: m.id, person: m.person, lead: m.role === '모임장' })) : undefined };
-  }).sort((a, b) => b.n - a.n);
-}
-// 전체 관리자: 자율 모임 닫기(문제가 있을 때) · 모임장 바꾸기(모임장이 넘기지 못했을 때). 기도제목은 보지 않는다
+// 전체 관리자: 문제가 있는 자율 모임 하나를 초대 링크(또는 초대 값)로 닫는다. 모임 목록은 보여 주지 않고, 기도제목도 보지 않는다
 function groupAdmin_(body) {
-  const c = allAdmin_(body), id = String(body.id || '');
+  const c = allAdmin_(body), t = String(body.invite || '').trim().replace(/^.*[?&]gjoin=/, '').replace(/[&#].*$/, '');
+  if (!t) throw fail_('bad', '모임 초대 링크를 넣어 주세요.');
   return withLock_(() => {
-    const g = read_('groups').find(x => x.id === id && x.status === '활동');
-    if (!g) throw fail_('bad', '모임을 찾지 못했어요.');
-    if (body.op === 'close') { g.status = '닫음'; update_('groups', g); logChange_(c, '모임 닫기', g.name); }
-    else if (body.op === 'lead') {
-      const ps = groupPeople_(id), to = ps.find(m => m.id === body.memberId);
-      if (!to) throw fail_('bad', '모임 사람을 골라 주세요.');
-      ps.filter(m => m.role === '모임장').forEach(m => { m.role = '회원'; update_('gmembers', m); });
-      to.role = '모임장'; update_('gmembers', to); g.owner = to.kakaoId; update_('groups', g);
-      logChange_(c, '모임장 바꾸기', g.name, to.person);
-    } else throw fail_('bad', '모르는 일이에요.');
-    return groupsAll_(c);
+    const g = read_('groups').find(x => x.token === t && x.status === '활동');
+    if (!g) throw fail_('bad', '이 링크의 모임을 찾지 못했어요. 이미 닫혔거나 모임장이 링크를 새로 만들었을 수 있어요.');
+    if (body.op !== 'close') return { name: g.name, n: groupPeople_(g.id).length };
+    g.status = '닫음'; update_('groups', g); logChange_(c, '모임 닫기', g.name);
+    return { closed: g.name };
   });
+}
+// 오래 쓰지 않은 모임 닫기: 만든 날, 기도제목, 기도했어요 중 가장 나중 것이 GROUP_IDLE_DAYS보다 오래면 닫는다
+function tidyGroups_() {
+  const cut = Date.now() - GROUP_IDLE_DAYS * 864e5, gs = read_('groups').filter(g => g.status === '활동');
+  if (!gs.length) return;
+  const mem = read_('gmembers'), last = {};
+  const seen = (gid, t) => { const v = Date.parse(t); if (v > (last[gid] || 0)) last[gid] = v; };
+  gs.forEach(g => seen(g.id, g.at));
+  read_('items').forEach(i => { if (last[i.roomId] != null) seen(i.roomId, i.editedAt || (i.month + '-01')); });
+  const owner = {}; mem.forEach(m => { owner[m.id] = m.groupId; });
+  read_('prayers').forEach(p => { const gid = owner[p.familyId]; if (gid && last[gid] != null) seen(gid, p.at); });
+  gs.filter(g => !(last[g.id] > cut)).forEach(g => { g.status = '닫음'; update_('groups', g); });
 }
 // 변경 기록 보기: 부서 관리자는 우리 부서, 전체 관리자는 교회 전체(all). 최근 것부터 300줄
 function changesView_(body) {

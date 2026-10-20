@@ -277,6 +277,7 @@ button.knot { cursor: pointer; }
 </style>
 </head>
 <body>
+<script src="splash.js" data-space="note"></script>
 <div id="root"></div>
 <script src="config.js"></script>
 <script src="pray-data.js"></script>
@@ -787,6 +788,7 @@ button.knot { cursor: pointer; }
     return `<header class="top"><div><p class="eyebrow">${D.name ? esc(D.name) : '코이데 기도 노트'}</p><h1>더보기</h1></div></header>
       ${D.vault && D.vault.on ? '<div class="notice"><b>다른 기기와 연결되어 있어요.</b> 서버에는 비밀 문구로 잠근 글만 있어서 아무도 읽을 수 없어요. 비밀 문구를 잊지 않게 적어 두세요.</div>'
         : '<div class="notice"><b>이 기록은 이 휴대폰에만 있어요.</b> 서버로 보내지 않아서 아무도 볼 수 없지만, 휴대폰을 바꾸거나 브라우저 기록을 지우면 사라져요. 아이폰은 홈 화면에 두지 않고 7일 넘게 열지 않으면 지워질 수 있어요. 가끔 백업을 내려받거나, 아래에서 다른 기기와 연결해 두세요.</div>'}
+      ${groupsCard()}
       ${vaultCard()}
       <section class="card"><div class="row"><div><p class="label">부를 이름</p><p class="plain">${D.name ? esc(D.name) : '<span class="hint">아직 없어요</span>'}</p></div><button class="btn ghost small" data-a="rename">${D.name ? '바꾸기' : '정하기'}</button></div>
         <p class="hint">더보기 위와 기도 노트 곳곳에 보이는 이름이에요. 나만 봐요.</p></section>
@@ -803,9 +805,9 @@ button.knot { cursor: pointer; }
         <div class="row"><div><p class="plain">큰 글씨</p><p class="hint">글씨를 크게 봐요. 화면 설정은 공동체 화면도 함께 바뀌어요.</p></div><button class="switch${PREF.big ? ' on' : ''}" role="switch" aria-checked="${!!PREF.big}" aria-label="큰 글씨" data-a="big"><span></span></button></div></section>
       <section class="card"><button class="mrow" data-a="tourgo" data-v="restart"><span><b>사용법 다시 보기</b><small>기도 노트의 처음 안내를 다시 봐요</small></span></button>
         <button class="mrow" data-a="ivid"><span><b>코이데 소개 영상</b><small>코이데와 기도 노트를 영상으로 봐요</small></span></button></section>
-      <section class="card"><p class="label">함께하는 곳</p>${inCommunity() ? `<p class="plain">기도 노트는 혼자 쓰는 곳이에요. 사랑방이나 모임과 함께 기도하는 곳은 같은 앱의 공동체예요. 노트의 기도제목을 사랑방이나 모임에 나누고 싶으면 노트에서 "나누기"를 눌러요.</p>
+      <section class="card"><p class="label">함께하는 곳</p>${inCommunity() ? `<p class="plain">기도 노트는 혼자 쓰는 곳이에요. 교회 사랑방과 함께 기도하는 곳은 같은 앱의 공동체예요. 노트의 기도제목을 사랑방이나 모임에 나누고 싶으면 노트에서 "나누기"를 눌러요.</p>
         <a class="btn ghost small" style="align-self:flex-start;text-decoration:none;display:inline-flex;align-items:center" href="index.html${QS}">코이데 공동체로</a>`
-        : `<p class="plain">교회 사랑방이나 모임과 함께 기도하려면 공동체에 연결해요. 리더에게 초대 링크를 받았으면 그 링크를 열면 돼요. 링크가 없으면 부서와 사랑방을 골라 연결을 신청할 수 있어요.</p>
+        : `<p class="plain">교회 사랑방과 함께 기도하려면 공동체에 연결해요. 리더에게 초대 링크를 받았으면 그 링크를 열면 돼요. 링크가 없으면 부서와 사랑방을 골라 연결을 신청할 수 있어요.</p>
         <a class="btn ghost small" style="align-self:flex-start;text-decoration:none;display:inline-flex;align-items:center" href="index.html${DEMO_LINK ? '?demo&connect' : '?connect'}">우리 교회 공동체에 연결하기</a>`}</section>
       <section class="card"><p class="label">의견 보내기</p><p class="hint">써 보고 좋았던 점, 불편한 점을 알려 주세요. 기도 내용은 담기지 않아요.</p>
         <button class="btn ghost small" data-a="fbcopy" style="align-self:flex-start">의견 보낼 글 복사하기</button></section>
@@ -825,15 +827,41 @@ button.knot { cursor: pointer; }
       ${S.syncMsg ? `<p class="hint" style="color:var(--warm)">${esc(S.syncMsg)}</p>` : ''}
       <button class="btn small" data-a="vstart" style="align-self:flex-start"${S.vbusy ? ' disabled' : ''}>${getToken() ? '연결하기 시작' : '카카오로 로그인하고 연결하기'}</button></section>`;
   }
-  // 나눌 곳: 공동체 앱이 이 기기에 기억해 둔 내 소그룹과 모임(로그인한 적이 없으면 공동체로 가서 로그인부터)
+  // 내 모임(자율 모임): 서버의 내 정보에서 모임 목록과 교회 연결 여부를 받아 이 기기에 기억해 둔다(열 때마다 새로 받는다). 기도제목은 담지 않는다
+  const ME_KEY = DEMO_LINK ? 'koide-demo-note-me' : 'koide-note-me', G_MAX = 12, PLACES = 3;
+  const noteMe = () => { try { return JSON.parse(localStorage.getItem(ME_KEY) || 'null'); } catch (e) { return null; } };
+  async function loadMe() {
+    try { const r = await api('me'); const m = { groups: r.groups || [], linked: !!(r.link && r.link.status === '연결'), nick: r.nick || '' };
+      try { localStorage.setItem(ME_KEY, JSON.stringify(m)); } catch (e) { /* 이번만 */ } render(); return r; }
+    catch (e) { return null; }
+  }
+  const groupUrl = id => `index.html${DEMO_LINK ? '?demo&' : '?'}grp=${encodeURIComponent(id)}`;
+  // 나눌 곳: 공동체 앱이 이 기기에 기억해 둔 내 소그룹 + 내 모임(로그인한 적이 없으면 공동체로 가서 로그인부터)
   function places() {
     let c = null; try { c = JSON.parse(localStorage.getItem(DEMO_LINK ? 'koide-demo-cache' : 'koide-cache') || 'null'); } catch (e) { /* 없음 */ }
-    if (!c || !c.me) return null;
-    const room = c.me.link && c.me.link.status === '연결' && c.month && c.month.room ? c.month.room.name : '';
-    return { room, groups: (c.me.groups || []).filter(g => !g.wait) };
+    const M = noteMe();
+    if (!(c && c.me) && !M) return null;
+    const room = c && c.me && c.me.link && c.me.link.status === '연결' && c.month && c.month.room ? c.month.room.name : '';
+    return { room, groups: ((M && M.groups) || (c && c.me && c.me.groups) || []).filter(g => !g.wait) };
   }
-  // 공동체(소그룹이나 모임)에 연결된 사람인지: 아니면 혼자 시작한 사람이라 노트만 있다
-  const inCommunity = () => { const P = places(); return !!(P && (P.room || P.groups.length)); };
+  // 교회 소그룹에 연결된 사람인지: 아니면 혼자 시작한 사람이라 교회 공동체 화면이 없다
+  const inCommunity = () => { const P = places(), M = noteMe(); return !!((P && P.room) || (M && M.linked)); };
+  // 더보기 › 내 모임: 모임 사람들과 함께 기도하는 자율 모임. 모임 화면은 공동체의 모임 화면을 쓴다(열면 그리로 갔다가 돌아온다)
+  function groupsCard() {
+    const M = noteMe(), G = (M && M.groups) || [], lead = G.some(g => g.role === '모임장'), used = (M && M.linked ? 1 : 0) + G.length, full = used >= PLACES, E = S.gNew;
+    return `<section class="card"><div class="row"><p class="label" style="margin:0">내 모임</p>${M ? `<small class="hint">${used}/${PLACES}곳</small>` : ''}</div>
+      <p class="hint">친구, 가족, 사역팀처럼 함께 기도할 모임이에요. 모임에 쓴 기도제목은 <b>모임 사람들과 함께 봐요</b>(서버에 저장). 나만 보는 이 노트와는 따로예요.</p>
+      ${!M ? '<p class="hint">모임 목록을 불러오는 중이에요…</p>' : G.length ? G.map(g => g.wait
+        ? `<div class="mrow" aria-disabled="true"><span><b>${esc(g.name)}</b><small>모임장의 승인을 기다려요</small></span></div>`
+        : `<a class="mrow" style="text-decoration:none;color:inherit" href="${groupUrl(g.id)}"><span><b>${esc(g.name)}${g.role === '모임장' ? ' · 모임장' : ''}</b><small>${g.n}명${g.asks ? ` · 신청 ${g.asks}` : ''}</small></span><span aria-hidden="true">›</span></a>`).join('') : ''}
+      ${!M ? '' : E ? `<form data-f="gcreate" style="display:flex;flex-direction:column;gap:8px;margin-top:4px">
+          <label class="label" for="gc-n" style="margin:0">모임 이름</label><input id="gc-n" class="field" maxlength="16" placeholder="예: 직장인 기도 모임" autocomplete="off">
+          ${M.linked ? '' : `<label class="label" for="gc-p" style="margin:0">모임에서 쓸 내 이름</label><input id="gc-p" class="field" maxlength="10" value="${esc(D.name || M.nick || '')}" autocomplete="name">`}
+          <ul class="hint" style="margin:0;padding-left:1.1em"><li>모임에 쓴 기도제목은 모임 사람들이 함께 보도록 서버(교회가 맡은 저장소)에 저장돼요. 교회 관리 화면에는 나오지 않아요.</li><li>노트의 기도제목은 "나누기"를 눌러야 모임에 옮겨 적어져요.</li></ul>
+          <div class="row" style="justify-content:flex-end;gap:8px"><button type="button" class="btn ghost small" data-a="gcancel">취소</button><button class="btn small" type="submit"${S.gBusy ? ' disabled' : ''}>동의하고 만들기</button></div></form>`
+        : lead || full ? '' : '<button class="btn ghost small" data-a="gnew" style="align-self:flex-start">+ 모임 만들기</button>'}
+      <p class="hint">한 모임 ${G_MAX}명 · 교회 소그룹 포함 ${PLACES}곳까지 · 모임장은 1곳만. 초대 링크는 모임을 연 뒤 더보기에서 보내요.${full ? '<br>세 곳이 다 찼어요.' : ''}</p></section>`;
+  }
   function shareSheet() {
     const i = D.items.find(x => x.id === S.share); if (!i) return '';
     const P = places();
@@ -995,7 +1023,7 @@ button.knot { cursor: pointer; }
         // 나누기: 글만 공동체 앱의 '내 기도' 쓰기 칸으로 넘긴다(복사). 사랑방이나 고른 모임에서 공개 범위를 고르고 추가해야 나눠진다. 노트의 원본은 그대로
         const i = D.items.find(x => x.id === S.share); if (!i) return;
         try { localStorage.setItem('koide-share', JSON.stringify({ text: (i.target === 'me' ? '' : targetName(i.target) + 'ㅡ') + i.text, at: Date.now(), grp: v || null })); } catch (e) { return toast('옮겨 적지 못했어요'); }
-        S.share = null; location.href = 'index.html' + QS;
+        S.share = null; location.href = v ? groupUrl(v) : 'index.html' + QS;
         return;
       }
       case 'undone': { const i = D.items.find(x => x.id === v); i.done = null; i.up = now(); save(); return toast('다시 내 기도에 넣었어요'); }
@@ -1030,6 +1058,8 @@ button.knot { cursor: pointer; }
         window.KoideIntroVideo.open({ grp: (dp && dp.group) || '사랑방', one: '가정', mine: '우리 가정', start: 'me' });
         return;
       }
+      case 'gnew': S.gNew = true; render(); { const f = $('#gc-n'); if (f) f.focus(); } return;
+      case 'gcancel': S.gNew = false; return render();
       case 'tourgo': S.tour = v === 'restart' ? 0 : Math.max(0, Math.min(TOUR.length - 1, S.tour + Number(v))); return render();
       case 'tourend': S.tour = null; try { localStorage.setItem(TOUR_KEY, '1'); } catch (err) { /* 무시 */ } return render();
       case 'psset': PS.set = v; savePs(); return render();
@@ -1059,7 +1089,7 @@ button.knot { cursor: pointer; }
       case 'restore': return $('#restore-file').click();
       case 'logout': {
         if (!confirm('로그아웃할까요? 기도 노트는 이 기기에 그대로 남고, 같은 카카오로 다시 로그인해야 보여요. 다른 사람이 이 기기에서 로그인해도 내 노트는 보이지 않아요.')) return;
-        api('logout').catch(() => {}).then(() => { try { localStorage.removeItem(TOKEN); localStorage.removeItem(UID); localStorage.removeItem(DEMO_LINK ? 'koide-demo-cache' : 'koide-cache'); } catch (err) { /* 무시 */ } location.replace('index.html' + QS); });
+        api('logout').catch(() => {}).then(() => { try { localStorage.removeItem(TOKEN); localStorage.removeItem(UID); localStorage.removeItem(ME_KEY); localStorage.removeItem(DEMO_LINK ? 'koide-demo-cache' : 'koide-cache'); } catch (err) { /* 무시 */ } location.replace('index.html' + QS); });
         return;
       }
       case 'wipe': if (!confirm(`이 휴대폰의 기도 노트를 모두 지울까요?${D.vault && D.vault.on ? ' 다른 기기에 연결해 둔 것은 그대로 남고, 이 휴대폰만 연결이 끊겨요.' : ' 되돌릴 수 없어요. 먼저 백업을 내려받아 두세요.'}`)) return;
@@ -1081,6 +1111,15 @@ button.knot { cursor: pointer; }
       let seen = null; try { seen = localStorage.getItem(TOUR_KEY); } catch (err) { /* 없음 */ }
       if (!seen) S.tour = 0;
       return go('note');
+    }
+    if (f.dataset.f === 'gcreate') {
+      const n = $('#gc-n').value.trim(), pf = $('#gc-p'), p = pf ? pf.value.trim() : '';
+      if (!n) return $('#gc-n').focus();
+      if (pf && !p) return pf.focus();
+      S.gBusy = true; render();
+      api('groupCreate', { name: n, person: p }).then(r => { S.gNew = false; location.href = groupUrl(r.id); },
+        err => { S.gBusy = false; render(); toast(err.code === 'bad' && /모르는 요청/.test(err.message || '') ? '서버를 새 버전으로 배포하면 모임을 만들 수 있어요.' : (err.message || '모임을 만들지 못했어요')); });
+      return;
     }
     if (f.dataset.f === 'item') {
       const t = $('#it-text').value.trim(); if (!t) return $('#it-text').focus();
@@ -1133,17 +1172,21 @@ button.knot { cursor: pointer; }
     if (S.ps) { S.ps = null; musicOff(); render(); } else if (S.done) { S.done = null; render(); } else if (S.vsheet) { S.vsheet = null; render(); } else if (S.share) { S.share = null; render(); }
   });
   // 카카오 로그인이 기본: 로그인하지 않았으면 로그인 화면으로(노트는 이 휴대폰에 그대로 남아 있다)
-  if (!getToken()) { location.replace('index.html' + QS); return; }
+  if (!getToken()) { if (window.koideSpace) window.koideSpace.going('community'); location.replace('index.html' + QS); return; }
   render();
+  // 시작 화면(splash.js)을 닫고, 다시 켤 때 기도 노트로 시작하게 적어 둔다
+  if (window.koideSplash) window.koideSplash.hide();
+  if (window.koideSpace) window.koideSpace.used('note');
   // 노트 주인을 아직 모르면(예전 로그인) 서버에 한 번 묻고, 내 노트 자리가 달라지면 다시 연다. 서버가 답하지 않으면 이번에는 예전 자리 그대로
   (async () => {
     if (!getUid()) {
       try { const r = await api('me'); if (r && r.uid) { try { localStorage.setItem(UID, r.uid); } catch (e) { /* 무시 */ } if (ownNoteKey(BASE, r.uid) !== KEY) return location.reload(); } }
-      catch (e) { if (e && e.code === 'login') return location.replace('index.html' + QS); }
+      catch (e) { if (e && e.code === 'login') { if (window.koideSpace) window.koideSpace.going('community'); return location.replace('index.html' + QS); } }
     }
     let resume = null; try { resume = localStorage.getItem('koide-note-resume'); localStorage.removeItem('koide-note-resume'); } catch (e) { /* 무시 */ }
     if (resume === 'vault' && getToken()) { if (D.started) S.tab = 'more'; vaultStart(); }
     else if (D.vault && D.vault.on) sync();
+    loadMe();
   })();
   document.addEventListener('visibilitychange', () => { if (!document.hidden && D.vault && D.vault.on) sync(); });
   if ('serviceWorker' in navigator && (location.protocol === 'https:' || location.hostname === 'localhost')) navigator.serviceWorker.register('sw.js').catch(() => {});
