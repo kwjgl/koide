@@ -1352,7 +1352,7 @@ try { const p = JSON.parse(localStorage.getItem('koide-pref') || '{}'), d = docu
   const scopeName = k => ({ room: grp() + ' 공개', dept: (dept().name || '부서') + ' 공개', leader: '리더·목사님', family: words().only })[k];
   // 사용법 안내(설계서 부록 "튜토리얼"): ① 처음 들어올 때 한 번 나오는 카드 몇 장(역할마다 다름, 건너뛸 수 있음)
   //  ② 화면을 처음 열 때 그 화면 위에 한 번 나오는 도움말(알겠어요를 누르면 다시 안 나옴). 둘 다 이 기기·이 사람에게만 기억한다.
-  //  카드는 화면을 다시 그려도 끊기지 않게 body에 따로 붙인 판에 그린다(소개 영상과 같은 방식). 더보기 › 사용법 다시 보기에서 둘 다 처음처럼 다시 본다
+  //  카드는 화면을 다시 그려도 끊기지 않게 body에 따로 붙인 판에 그린다(소개 영상과 같은 방식). 저절로 뜨지 않고 더보기 › 사용법 보기에서만 연다(그때 화면마다 도움말도 처음처럼 되살린다)
   const TOUR_KEY = () => 'koide-tour:' + ((S.month && S.month.me && S.month.me.familyId) || '') + ':' + ((S.month && S.month.me && S.month.me.person) || '');
   const TIPS_KEY = () => TOUR_KEY().replace('koide-tour', 'koide-tips');
   const tourSeen = () => { try { return !!localStorage.getItem(TOUR_KEY()); } catch (e) { return true; } };
@@ -1390,7 +1390,7 @@ try { const p = JSON.parse(localStorage.getItem('koide-pref') || '{}'), d = docu
         <div class="tg-pic" aria-hidden="true">${tourPic(c)}</div>
         <h2 id="tg-t">${c.t}</h2><p class="tg-b">${c.b}</p>
         <div class="tg-dots" aria-hidden="true">${L.map((_, k) => `<i class="${k === i ? 'on' : ''}"></i>`).join('')}</div>
-        <div class="tg-act">${i ? '<button class="btn ghost" data-tg="prev">이전</button>' : '<span></span>'}${last ? `<button class="btn" data-tg="done">시작하기</button>` : '<button class="btn" data-tg="next">다음</button>'}</div>
+        <div class="tg-act">${i ? '<button class="btn ghost" data-tg="prev">이전</button>' : '<span></span>'}${last ? `<button class="btn" data-tg="done">다 봤어요</button>` : '<button class="btn" data-tg="next">다음</button>'}</div>
         ${last ? '<button class="link tg-video" data-tg="video">소개 영상 보기</button>' : ''}`;
       const f = el.querySelector('[data-tg=next],[data-tg=done]'); if (f) f.focus();
     };
@@ -1451,6 +1451,13 @@ try { const p = JSON.parse(localStorage.getItem('koide-pref') || '{}'), d = docu
         more: lead ? ['grp-more', '초대 링크는 교회에 연결된 회원만 신청할 수 있어요. 링크가 엉뚱한 곳에 퍼졌으면 새 링크를 만들어요. 신청을 승인하거나, 함께하는 사람을 내보낼 수 있어요. 한 모임은 12명까지예요.'] : null
       };
       const gt = GT[S.tab]; return gt && !tipsSeen()[gt[0]] ? gt : null;
+    }
+    // 이번 달(홈): 처음 들어온 사람에게 사용법 카드 대신 한 장. 예전에 사용법 카드를 본 사람에게는 띄우지 않는다
+    if (S.tab === 'home') {
+      if (tourSeen()) return null;
+      const h = me.staff ? ['home-staff', `${g}마다 카드가 하나씩 있어요. 누르면 그 ${g}의 기도제목을 보고, 가운데 기도하기 버튼으로 오늘의 ${g}부터 기도해요. 자세한 사용법은 더보기 › 사용법 보기에 있어요.`]
+        : ['home', `맨 위 "지금 함께 기도할 ${w.one}"을 위해 기도하고 "기도했어요"를 눌러요. ${w.mine} 기도제목은 "내 기도"에서 써요. 자세한 사용법은 더보기 › 사용법 보기에 있어요.`];
+      return tipsSeen()[h[0]] ? null : h;
     }
     const t = T[S.tab]; if (!t || tipsSeen()[t[0]]) return null;
     return t;
@@ -1680,11 +1687,16 @@ try { const p = JSON.parse(localStorage.getItem('koide-pref') || '{}'), d = docu
         : more > 0 ? `<button class="link" data-act="famtoggle" data-id="${esc(f.id)}" aria-expanded="false">더 보기 · ${more}개</button>` : ''}</article>`;
   }
   // ── 홈 화면에 두기(13장 홈 화면 앱) ──
-  // 홈 화면 앱으로 열었으면 나오지 않는다. "알겠어요"를 누르면 이 기기에서는 다시 나오지 않고, 더보기에서 다시 볼 수 있다
+  // 홈 화면 앱으로 열었으면 나오지 않는다. 처음 무언가를 남긴 뒤(기도했어요, 기도제목 저장)에 한 번 권하고,
+  //  어떻게 닫든 이 기기에서는 다시 띄우지 않는다. 더보기 › 홈 화면에 앱처럼 두기에서는 언제든 다시 본다
   const STANDALONE = (window.matchMedia && matchMedia('(display-mode: standalone)').matches) || navigator.standalone === true;
   const A2HS_OFF = 'koide-a2hs-off';
-  //  PC에서는 처음부터 띄우지 않는다(더보기에서는 볼 수 있다)
-  S.a2hs = !STANDALONE && !!(window.matchMedia && matchMedia('(pointer: coarse)').matches) && (() => { try { return !localStorage.getItem(A2HS_OFF); } catch (e) { return true; } })();
+  //  PC에서는 권하지 않는다(더보기에서는 볼 수 있다). 기도 노트와 같은 표시를 써서, 한쪽에서 닫으면 다른 쪽도 다시 권하지 않는다
+  const A2HS_ASK = !STANDALONE && !!(window.matchMedia && matchMedia('(pointer: coarse)').matches);
+  S.a2hs = false;
+  // 처음 남긴 것: 기도했어요는 매듭이 지어지는 모습을 본 뒤, 기도제목은 내 기도 화면을 떠날 때 권한다(쓰는 중에 창이 뜨지 않게)
+  function a2hsDue() { try { if (!A2HS_ASK || localStorage.getItem(A2HS_OFF)) return; } catch (e) { return; } S.a2hsDue = true; }
+  function a2hsOff() { S.a2hs = false; S.a2hsDue = false; try { localStorage.setItem(A2HS_OFF, '1'); } catch (e) { /* 이번 화면에서만 */ } }
   S.a2hsOs = /android/i.test(navigator.userAgent) ? 'android' : 'ios';
   // 안드로이드 크롬은 설치 창을 직접 띄울 수 있다. 그 기회를 받아 두었다가 "바로 설치"로 쓴다
   let installAsk = null;
@@ -1695,7 +1707,7 @@ try { const p = JSON.parse(localStorage.getItem('koide-pref') || '{}'), d = docu
     const os = S.a2hsOs;
     const how = os === 'ios' ? ['사파리에서 이 화면을 열어요', '아래쪽 공유 버튼(네모에 위 화살표)을 눌러요', '"홈 화면에 추가"를 눌러요']
       : ['크롬에서 이 화면을 열어요', '오른쪽 위 점 세 개를 눌러요', '"홈 화면에 추가" 또는 "앱 설치"를 눌러요'];
-    // 화면 위에 뜨는 창(휴대폰은 아래에서 올라옴). 바깥이나 ×를 누르면 이번만 닫고, '알겠어요'는 다시 띄우지 않는다
+    // 화면 위에 뜨는 창(휴대폰은 아래에서 올라옴). 바깥, ×, '알겠어요' 어느 것으로 닫아도 다시 권하지 않는다
     return `<div class="pop-scrim" data-act="a2hshide"></div>
       <section class="card a2hs pop-sheet" role="dialog" aria-modal="true" aria-labelledby="a2hs-t">
       <div class="row"><p class="label" id="a2hs-t">휴대폰 홈 화면에 코이데를 두세요</p><button class="icon-btn sm" data-act="a2hshide" aria-label="닫기">${ICON.x}</button></div>
@@ -2816,6 +2828,7 @@ try { const p = JSON.parse(localStorage.getItem('koide-pref') || '{}'), d = docu
     render(); S.flash = null; S.cordNew = null; S.roomNew = null;
     if (hero) popBurst($('.pray.hero'));
     if (!before && !staffMe() && roomFams().every(x => x.prayed > 0)) setTimeout(kusudama, hero ? 450 : 100);
+    if (!S.a2hsDue && !S.a2hs) setTimeout(() => { a2hsDue(); if (S.a2hsDue) paint(); }, 1600);
     api('pray', { familyId: f.id }).then(r => {
       const g = famById(f.id) || f;
       if (r.today != null) { g.today = r.today; g.prayed = r.prayed; }
@@ -3050,7 +3063,7 @@ try { const p = JSON.parse(localStorage.getItem('koide-pref') || '{}'), d = docu
             ${STANDALONE ? '' : row('a2hsopen', '', '홈 화면에 앱처럼 두기', '아이콘을 눌러 바로 열 수 있게 해요')}
           </section>
           ${S.grp ? '' : `<p class="more-h">코이데</p>
-          <section class="card mrows">${row('tab', 'about', '코이데 소개', '이름의 뜻과 코이데가 지키는 것')}${row('tourre', '', '사용법 다시 보기', '처음 안내와 화면마다 도움말을 다시 봐요')}${row('tab', 'feedback', '의견 보내기', '불편한 점, 바라는 점, 고마운 점')}</section>`}
+          <section class="card mrows">${row('tab', 'about', '코이데 소개', '이름의 뜻과 코이데가 지키는 것')}${row('tourre', '', '사용법 보기', '사용법 카드를 보고, 화면마다 도움말을 다시 띄워요')}${row('tab', 'feedback', '의견 보내기', '불편한 점, 바라는 점, 고마운 점')}</section>`}
           <button class="link quiet more-out" data-act="logout">이 기기에서 로그아웃</button>
         </div></div>`;
   }
@@ -3945,13 +3958,6 @@ try { const p = JSON.parse(localStorage.getItem('koide-pref') || '{}'), d = docu
     lastSig = sig;
     const t0 = performance.now(), y0 = scrollY;
     draw();
-    // 처음 들어온 사람에게 사용법 안내를 한 번(이번 달 화면이 그려진 뒤, 기도하는 중·모임·운영 화면이 아닐 때).
-    //  시작 화면(매듭이 지어지는 로고)을 가리지 않게, 시작 화면이 다 사라진 뒤 조금 있다가 띄운다
-    if (S.view === 'app' && S.tab === 'home' && !S.op && !S.grp && !S.ps && S.meet == null && !S.tourAsked && !tourSeen()) {
-      S.tourAsked = true;
-      const later = () => { if ($('#splash')) return setTimeout(later, 150); setTimeout(() => { if (!Tour.isOpen() && S.view === 'app' && S.tab === 'home' && !S.ps && S.meet == null) Tour.open(); else S.tourAsked = false; }, 400); };
-      later();
-    }
     // 같은 화면 안에서 다시 그릴 때(고르기, 펼치기 등)는 보던 자리를 지킨다. 화면을 통째로 바꾸면 위로 튀는 브라우저가 있다(아이폰 사파리).
     //  다른 화면으로 갈 때 맨 위로 올리는 것은 부르는 쪽이 그린 뒤에 한다
     if (!kind && S.view === 'app' && Math.abs(scrollY - y0) > 1) window.scrollTo(0, y0);
@@ -4041,8 +4047,9 @@ try { const p = JSON.parse(localStorage.getItem('koide-pref') || '{}'), d = docu
     P.hidden = !praying; P.innerHTML = S.ps ? psHtml() : meeting ? meetHtml() : ''; P.setAttribute('aria-label', S.ps ? '기도하기' : meeting ? '모임 모드' : '');
     P.classList.toggle('meet', meeting);
     document.body.classList.toggle('praying', praying);
-    // 홈 화면에 두기 창: 앱 화면에서만, 기도하기·모임 모드 중에는 띄우지 않는다
-    const pop = $('#pop'), popOn = app && !praying && S.a2hs && !STANDALONE && !Tour.isOpen() && !(S.tourAsked && !tourSeen());
+    // 홈 화면에 두기 창: 앱 화면에서만, 기도하기·모임 모드·내 기도 쓰는 중에는 띄우지 않는다
+    if (S.a2hsDue && app && !praying && S.tab !== 'mine' && !S.op && !Tour.isOpen()) { S.a2hsDue = false; S.a2hs = true; }
+    const pop = $('#pop'), popOn = app && !praying && S.a2hs && !STANDALONE && !Tour.isOpen();
     pop.hidden = !popOn; pop.innerHTML = popOn ? a2hsCard() : ''; document.body.classList.toggle('pop-open', popOn);
     // 쓰던 칸이 다시 그려져 사라지면 칸을 벗어났다는 신호(focusout)가 오지 않는다. 그래도 아래 메뉴가 다시 보이게
     if (!document.activeElement || !document.activeElement.matches('textarea, input, select')) hideTypingSoon();
@@ -4107,6 +4114,7 @@ try { const p = JSON.parse(localStorage.getItem('koide-pref') || '{}'), d = docu
   function paint() { const a = document.activeElement; if (a && $('#main').contains(a) && a.matches('textarea, input')) return; render(); }
   function save(call, done) {
     waiting++; setSaved('저장 중…');
+    if (S.tab === 'mine') a2hsDue();
     queue = queue.then(call).then(
       m => { if (done) done(true); if (--waiting === 0) { S.month = m; setSaved('저장됨'); } paint(); },
       async e => {
@@ -4135,10 +4143,10 @@ try { const p = JSON.parse(localStorage.getItem('koide-pref') || '{}'), d = docu
         Object.assign(S, { famEdit: null, famMsg: '', a2hs: false, homeView: null, ex: null, draft: '', draftTgt: '', todayId: null, shareId: null, menu: null, imp: null, preview: null, tgtOpen: null, delAsk: null }); S.openItems.clear(); S.openFams.clear();
         return render();
       case 'pickdept': pickDept(v); return render();
-      case 'a2hsclose': S.a2hs = false; try { localStorage.setItem(A2HS_OFF, '1'); } catch (err) { /* 이번 화면에서만 */ } return render();
+      case 'a2hsclose': a2hsOff(); return render();
       case 'a2hsos': S.a2hsOs = v; return render();
       case 'a2hsopen': S.a2hs = true; return render();
-      case 'a2hshide': S.a2hs = false; return render();
+      case 'a2hshide': a2hsOff(); return render();
       case 'a2hsinstall': if (installAsk) { installAsk.prompt(); const r = await installAsk.userChoice; installAsk = null; if (r.outcome === 'accepted') S.a2hs = false; render(); } return;
       case 'pickroom': S.pick = { deptId: S.pick.deptId, roomId: v }; S.view = roomListed() ? 'family' : 'typename'; return render();
       case 'pickfam': { S.pick.familyId = v; const ps = famPicked().name.split(' · '); if (ps.length > 1) S.view = 'who'; else { S.pick.person = ps[0]; S.view = 'consent'; } return render(); }
@@ -4575,7 +4583,7 @@ try { const p = JSON.parse(localStorage.getItem('koide-pref') || '{}'), d = docu
   });
   // 모임 모드: PC나 TV에 띄웠을 때 키보드 왼쪽·오른쪽 화살표로 넘기고, Esc로 닫는다
   document.addEventListener('keydown', e => {
-    if (e.key === 'Escape' && !$('#pop').hidden) { S.a2hs = false; return render(); }
+    if (e.key === 'Escape' && !$('#pop').hidden) { a2hsOff(); return render(); }
     if (S.meet == null || S.ps || S.view !== 'app') return;
     if (e.key === 'Escape') { track('모임 모드 마침', { cards: meetFams().length + 1, seen: S.meetSeen }); S.meet = null; wakeOff(); render(); }
     else if (e.key === 'ArrowRight') meetGo(S.meet + 1);

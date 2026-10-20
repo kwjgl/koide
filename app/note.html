@@ -541,19 +541,37 @@ button.knot { cursor: pointer; }
   player.addEventListener('ended', () => { if (S.ps && PS.music) playTrack(PS.auto ? (PS.track + 1) % HYMNS.length : PS.track); });
   const musicOff = () => { player.pause(); };
 
-  // ── 사용법 안내: 처음 시작할 때 한 번, 더보기에서 다시 보기 ──────────
+  // ── 사용법 안내: 저절로 뜨지 않고 더보기 › 사용법 보기에서만 연다 ──────────
   const TOUR_KEY = DEMO_LINK ? 'koide-demo-note-tour' : 'koide-note-tour';
   const TOUR = [
     ['오늘', '하루 세 가지', '날마다 기도제목 세 개가 나와요. 오래 기도하지 않은 것부터예요. 기도하고 "기도했어요"를 눌러요.'],
     ['내 기도', '쓰고, 마치고, 감사해요', '기도제목을 쓰고 누구를 위한 것인지 골라요. 응답받으면 마치기 › "응답받았어요"로 감사 기록을 남겨요.'],
     ['기도하기', '한 장씩 넘기며', '내 기도제목에 하나님 나라 주제와 잔잔한 음악을 더할 수 있어요. 마지막에는 주기도문으로 마쳐요.'],
     ['나만 봐요', '이 휴대폰에 저장돼요', '서버로 보내지 않아서 아무도 볼 수 없어요. 휴대폰을 바꿀 때는 더보기 › 다른 기기와 연결하기나 백업을 써요.']];
+  // ── 홈 화면에 두기: 처음 기도제목을 더한 뒤 한 번 권한다(아이폰은 홈 화면에 두지 않으면 노트가 지워질 수 있다) ──
+  //  공동체 화면과 같은 표시(koide-a2hs-off)를 써서, 어느 쪽에서 닫든 다시 권하지 않는다. 더보기에서는 언제든 연다
+  const A2HS_OFF = 'koide-a2hs-off';
+  const HOME_APP = !!(navigator.standalone || (window.matchMedia && matchMedia('(display-mode: standalone)').matches));
+  const A2HS_ASK = !HOME_APP && !!(window.matchMedia && matchMedia('(pointer: coarse)').matches);
+  S.a2hsOs = /android/i.test(navigator.userAgent) ? 'android' : 'ios';
+  function a2hsDue() { try { if (A2HS_ASK && !localStorage.getItem(A2HS_OFF)) S.a2hs = true; } catch (e) { /* 저장할 수 없으면 권하지 않는다 */ } }
+  function a2hsSheet() {
+    const os = S.a2hsOs;
+    const how = os === 'ios' ? ['사파리에서 이 화면을 열어요', '아래쪽 공유 버튼(네모에 위 화살표)을 눌러요', '"홈 화면에 추가"를 눌러요']
+      : ['크롬에서 이 화면을 열어요', '오른쪽 위 점 세 개를 눌러요', '"홈 화면에 추가" 또는 "앱 설치"를 눌러요'];
+    return `<div class="sheet-back" data-a="a2hsoff"><section class="sheet" role="dialog" aria-modal="true" aria-labelledby="a2-t" data-stop>
+      <h2 id="a2-t">휴대폰 홈 화면에 두세요</h2>
+      <p class="plain">아이콘을 눌러 바로 열 수 있어요. 아이폰은 홈 화면에 두지 않고 오래 열지 않으면 노트가 지워질 수 있어요.</p>
+      <div class="seg" role="tablist" aria-label="휴대폰 종류">${[['ios', '아이폰'], ['android', '안드로이드']].map(([k, l]) => `<button class="${os === k ? 'on' : ''}" role="tab" aria-selected="${os === k}" data-a="a2hsos" data-v="${k}">${l}</button>`).join('')}</div>
+      <ol class="plain" style="margin:0;padding-left:1.3em">${how.map(x => `<li>${x}</li>`).join('')}</ol>
+      <button class="btn wide" data-a="a2hsoff">알겠어요</button></section></div>`;
+  }
   function tourSheet() {
     const i = S.tour, [ey, h, t] = TOUR[i], last = i === TOUR.length - 1;
     return `<div class="sheet-back" data-a="tourend"><section class="sheet" role="dialog" aria-modal="true" aria-labelledby="tr-t" data-stop>
       <p class="eyebrow">${ey}</p><h2 id="tr-t">${h}</h2><p class="plain">${t}</p>
       <div class="tour-dots" aria-hidden="true">${TOUR.map((_, k) => `<i class="${k === i ? 'on' : ''}"></i>`).join('')}</div>
-      <div class="row"><button class="link quiet" data-a="tourend">건너뛰기</button><span style="display:flex;gap:8px">${i ? '<button class="btn ghost small" data-a="tourgo" data-v="-1">이전</button>' : ''}<button class="btn small" data-a="${last ? 'tourend' : 'tourgo'}" data-v="1">${last ? '시작하기' : '다음'}</button></span></div></section></div>`;
+      <div class="row"><button class="link quiet" data-a="tourend">건너뛰기</button><span style="display:flex;gap:8px">${i ? '<button class="btn ghost small" data-a="tourgo" data-v="-1">이전</button>' : ''}<button class="btn small" data-a="${last ? 'tourend' : 'tourgo'}" data-v="1">${last ? '다 봤어요' : '다음'}</button></span></div></section></div>`;
   }
 
   // ── 화면 ─────────────────────────────────────────────────────────────
@@ -889,7 +907,8 @@ button.knot { cursor: pointer; }
         <button class="mrow" data-a="restore"><span><b>백업 불러오기</b><small>새 휴대폰에서 백업 파일을 열어 이어 써요</small></span></button>
         <input type="file" id="restore-file" accept="application/json,.json" hidden></section>
       <section class="card"><p class="label">화면</p>${screenControls()}</section>
-      <section class="card"><button class="mrow" data-a="tourgo" data-v="restart"><span><b>사용법 다시 보기</b><small>기도 노트의 처음 안내를 다시 봐요</small></span></button>
+      <section class="card"><button class="mrow" data-a="tourgo" data-v="restart"><span><b>사용법 보기</b><small>기도 노트 사용법을 카드로 봐요</small></span></button>
+        ${HOME_APP ? '' : '<button class="mrow" data-a="a2hsopen"><span><b>홈 화면에 앱처럼 두기</b><small>아이콘을 눌러 바로 열 수 있게 해요</small></span></button>'}
         <button class="mrow" data-a="ivid"><span><b>코이데 소개 영상</b><small>코이데와 기도 노트를 영상으로 봐요</small></span></button></section>
       <section class="card"><p class="label">함께하는 곳</p>${inCommunity() ? `<p class="plain">기도 노트는 혼자 쓰는 곳이에요. 교회 사랑방과 함께 기도하는 곳은 같은 앱의 공동체예요. 노트의 기도제목을 사랑방이나 모임에 나누고 싶으면 노트에서 "나누기"를 눌러요.</p>
         <a class="btn ghost small" style="align-self:flex-start;text-decoration:none;display:inline-flex;align-items:center" href="index.html${QS}">코이데 공동체로</a>`
@@ -988,6 +1007,7 @@ button.knot { cursor: pointer; }
         <div class="notice"><b>기록은 이 휴대폰에만 저장돼요.</b> 서버로 보내지 않아서 운영하는 사람도 볼 수 없어요. 그래서 휴대폰을 바꾸면 백업 파일로 옮겨야 해요. 아이폰은 꼭 <b>홈 화면에 추가</b>해서 써 주세요(공유 버튼 › 홈 화면에 추가).</div>
         <form data-f="start"><label class="label" for="st-people" style="display:block">늘 기도하는 사람 (선택, 쉼표로 나눠요)</label><input class="field" id="st-people" maxlength="200" placeholder="예) 엄마, 아빠, 지우" style="margin-top:6px">
           <button class="btn wide" type="submit" style="margin-top:16px">시작하기</button></form>
+        <p class="hint" style="text-align:center">사용법은 시작한 뒤 더보기 › 사용법 보기에서 언제든 볼 수 있어요.</p>
         ${canLock() ? '<button class="link" data-a="vstart" style="align-self:center">다른 기기에서 쓰던 노트 불러오기</button>' : ''}</section>`;
   }
   function doneSheet() {
@@ -1044,9 +1064,9 @@ button.knot { cursor: pointer; }
     const V = { start: startView, today: todayView, note: noteView, pray: prayTab, look: lookView, keep: keepView, more: moreView }[S.tab];
     $('#root').innerHTML = `${S.tab !== 'start' ? topBar() : ''}<div class="wrap${S.tab !== 'start' ? ' has-top' : ''}">${V()}</div>
       ${S.tab === 'start' ? '' : `<nav class="tabs" aria-label="메뉴">${TABS.map(([k, l, ic]) => { const on = (S.tab === 'keep' ? 'look' : S.tab) === k; return `<button class="${k === 'pray' ? 'pray-tab ' : ''}${on ? 'on' : ''}" data-a="tab" data-v="${k}" aria-label="${l}" title="${l}" ${on ? 'aria-current="page"' : ''}>${ic}</button>`; }).join('')}</nav>`}
-      ${S.done ? doneSheet() : ''}${S.tour != null ? tourSheet() : ''}${S.vsheet ? vaultSheet() : ''}${S.share ? shareSheet() : ''}${S.ps ? psHtml() : ''}${S.toast ? `<div class="toast" role="status">${esc(S.toast)}</div>` : ''}
+      ${S.done ? doneSheet() : ''}${S.tour != null ? tourSheet() : ''}${S.a2hs && !S.ps ? a2hsSheet() : ''}${S.vsheet ? vaultSheet() : ''}${S.share ? shareSheet() : ''}${S.ps ? psHtml() : ''}${S.toast ? `<div class="toast" role="status">${esc(S.toast)}</div>` : ''}
       ${canSave ? '' : '<div class="toast" role="alert">이 브라우저에서는 저장할 수 없어요. 개인 정보 보호 모드를 끄고 열어 주세요.</div>'}`;
-    document.documentElement.style.overflow = S.ps || S.done || S.vsheet || S.share || S.tour != null ? 'hidden' : '';
+    document.documentElement.style.overflow = S.ps || S.done || S.vsheet || S.share || S.tour != null || S.a2hs ? 'hidden' : '';
     document.querySelectorAll('textarea.field').forEach(autosize);
     if (S.cordNew) { document.querySelectorAll('.cord-seg.pull animate').forEach(a => { try { a.beginElement(); } catch (e) { /* 무시 */ } }); S.cordNew = null; }
     mount3d();
@@ -1089,7 +1109,7 @@ button.knot { cursor: pointer; }
           if (t.startsWith('new:')) { const n = t.slice(4).slice(0, 12), had = people().find(p => p.name === n); t = 'p:' + (had ? had.id : (made[n] || (made[n] = (() => { const p = { id: uid(), name: n, up: now() }; D.people.push(p); return p.id; })()))); }
           D.items.push({ id: uid(), text: x.text, target: t, created: TODAY(), done: null, up: now() });
         });
-        S.preview = null; S.draft = null; save();
+        S.preview = null; S.draft = null; save(); a2hsDue();
         return toast(parts.length + '개를 내 기도에 더했어요' + (Object.keys(made).length ? ` · 새 사람 ${Object.keys(made).join(', ')}` : ''));
       }
       case 'pray': togglePray(v); return render();
@@ -1152,6 +1172,9 @@ button.knot { cursor: pointer; }
       case 'gnew': S.gNew = true; render(); { const f = $('#gc-n'); if (f) f.focus(); } return;
       case 'gcancel': S.gNew = false; return render();
       case 'tourgo': S.tour = v === 'restart' ? 0 : Math.max(0, Math.min(TOUR.length - 1, S.tour + Number(v))); return render();
+      case 'a2hsos': S.a2hsOs = v; return render();
+      case 'a2hsoff': S.a2hs = false; try { localStorage.setItem(A2HS_OFF, '1'); } catch (err) { /* 이번만 */ } return render();
+      case 'a2hsopen': S.a2hs = true; return render();
       case 'tourend': S.tour = null; try { localStorage.setItem(TOUR_KEY, '1'); } catch (err) { /* 무시 */ } return render();
       case 'psset': PS.set = v; savePs(); return render();
       case 'psworld': PS.world = !PS.world; savePs(); return render();
@@ -1198,8 +1221,6 @@ button.knot { cursor: pointer; }
     if (f.dataset.f === 'start') {
       ($('#st-people').value || '').split(/[,，·]/).map(s => s.trim().slice(0, 12)).filter(Boolean).slice(0, 12).forEach(n => D.people.push({ id: uid(), name: n, up: now() }));
       D.started = true; save();
-      let seen = null; try { seen = localStorage.getItem(TOUR_KEY); } catch (err) { /* 없음 */ }
-      if (!seen) S.tour = 0;
       return go('note');
     }
     if (f.dataset.f === 'gcreate') {
@@ -1215,7 +1236,7 @@ button.knot { cursor: pointer; }
       const t = $('#it-text').value.trim(); if (!t) return $('#it-text').focus();
       S.draft = null;
       if (S.edit) { const i = D.items.find(x => x.id === S.edit); i.text = t; i.target = S.draftT; i.up = now(); S.edit = null; save(); return toast('고쳤어요'); }
-      D.items.push({ id: uid(), text: t, target: S.draftT, created: TODAY(), done: null, up: now() }); save(); return toast('내 기도에 더했어요');
+      D.items.push({ id: uid(), text: t, target: S.draftT, created: TODAY(), done: null, up: now() }); save(); a2hsDue(); return toast('내 기도에 더했어요');
     }
     if (f.dataset.f === 'vcreate' || f.dataset.f === 'vunlock') {
       const V = S.vsheet, a = $('#vs-a').value, b = $('#vs-b') ? $('#vs-b').value : a;
