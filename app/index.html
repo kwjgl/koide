@@ -26,6 +26,7 @@
   --warn: #9A5A14; --warn-soft: #F5E8D6; --shadow: rgba(20, 35, 32, .14);
   --neu-hi: rgba(255, 255, 255, .9); --neu-lo: rgba(20, 35, 32, .17);
   --base: 16px;
+  --wood: #B98756;   /* 함께 짜는 그물(3D)의 수틀 나무색. 기도 노트와 같은 색 */
   --f-display: 'Gowun Batang', 'AppleMyungjo', 'Batang', serif;
   --f-body: 'IBM Plex Sans KR', 'Apple SD Gothic Neo', 'Malgun Gothic', sans-serif;
 }
@@ -34,14 +35,14 @@
   --ink: #E5ECE9; --ink-2: #9CAAA5; --line: #2D3935; --line-strong: #4A5853;
   --accent: #7CC2B7; --accent-mid: #3F7C73; --accent-soft: #1E3934; --on-accent: #0F1A18;
   --leader: #B6A8EA; --leader-soft: #2A2442; --private: #252E2B;
-  --warn: #E2A563; --warn-soft: #3A2C1B; --shadow: rgba(0, 0, 0, .5); --neu-hi: rgba(255, 255, 255, .06); --neu-lo: rgba(0, 0, 0, .6); color-scheme: dark; } }
+  --warn: #E2A563; --warn-soft: #3A2C1B; --shadow: rgba(0, 0, 0, .5); --neu-hi: rgba(255, 255, 255, .06); --neu-lo: rgba(0, 0, 0, .6); --wood: #7A5636; color-scheme: dark; } }
 /* 화면 모드: 기기 설정이면 기기를 따르고, '밝게'·'어둡게'를 고르면 그대로(data-mode) */
 :root[data-mode="dark"] {
   --page: #141B19; --surface: #1C2522; --surface-2: #232D2A;
   --ink: #E5ECE9; --ink-2: #9CAAA5; --line: #2D3935; --line-strong: #4A5853;
   --accent: #7CC2B7; --accent-mid: #3F7C73; --accent-soft: #1E3934; --on-accent: #0F1A18;
   --leader: #B6A8EA; --leader-soft: #2A2442; --private: #252E2B;
-  --warn: #E2A563; --warn-soft: #3A2C1B; --shadow: rgba(0, 0, 0, .5); --neu-hi: rgba(255, 255, 255, .06); --neu-lo: rgba(0, 0, 0, .6); color-scheme: dark; }
+  --warn: #E2A563; --warn-soft: #3A2C1B; --shadow: rgba(0, 0, 0, .5); --neu-hi: rgba(255, 255, 255, .06); --neu-lo: rgba(0, 0, 0, .6); --wood: #7A5636; color-scheme: dark; }
 /* 글씨: 휴대폰·태블릿 16px, PC 15px. 큰 글씨 모드는 약 1.2배 */
 @media (min-width: 1000px) { :root { --base: 15px; } }
 :root[data-big] { --base: 19px; }
@@ -187,6 +188,22 @@ h2 { font-size: 1.05em; margin: 0; }
 .pasture { display: block; width: 100%; height: auto; aspect-ratio: 32 / 15; border-radius: 14px; overflow: hidden; background: #F6C9A0; }
 .pop-in { transform-box: fill-box; transform-origin: 50% 100%; animation: ps-pop .7s cubic-bezier(.3,1.6,.5,1) both; }
 @keyframes ps-pop { 0% { transform: scale(0); } 100% { transform: scale(1); } }
+/* 함께 짜는 그물(모임 화면): 3D 그림 카드, 크게 보기 */
+.wv-stage { position: relative; width: 100%; aspect-ratio: 4 / 3; border-radius: 14px; background: radial-gradient(120% 100% at 50% 40%, var(--surface), var(--surface-2)); overflow: hidden; cursor: grab; touch-action: pan-y; }
+.wv-stage .wait { position: absolute; inset: 0; display: grid; place-items: center; font-size: .82em; color: var(--ink-2); }
+.wv-frame { position: relative; }
+.weave-card .hint { margin: .7em 0 .6em; word-break: keep-all; }
+.wbig { position: fixed; inset: 0; z-index: 75; background: radial-gradient(120% 100% at 50% 40%, var(--surface), var(--surface-2)); touch-action: none; overscroll-behavior: contain; }
+.wbig-host { position: absolute; inset: 0; }
+.wbig-host canvas { cursor: grab; }
+.wbig-bar { position: absolute; top: calc(10px + env(safe-area-inset-top, 0px)); right: 10px; display: flex; gap: 8px; }
+.wbig-x { width: 44px; height: 44px; border-radius: 50%; border: 1.5px solid var(--line-strong); background: var(--surface); color: var(--ink); display: grid; place-items: center; padding: 0; cursor: pointer; }
+.wbig-x .ic { width: 1.25em; height: 1.25em; stroke-width: 1.9; }
+.wbig-x:disabled { opacity: .45; cursor: default; }
+.wbig-cap { position: absolute; left: 0; right: 0; bottom: 0; display: flex; justify-content: center; padding: 0 12px calc(14px + env(safe-area-inset-bottom, 0px)); pointer-events: none; }
+.wbig-cap div { display: flex; flex-direction: column; align-items: center; background: var(--surface); border-radius: 14px; padding: .5em 1em; box-shadow: 0 2px 10px var(--shadow); text-align: center; }
+.wbig-cap small { color: var(--ink-2); font-size: .8em; }
+body.wbig-open { overflow: hidden; }
 /* 그림 크게 보기 */
 .ps-frame { position: relative; cursor: zoom-in; }
 /* 크게 보기: 그림을 덜 가리게 글자 없이 아이콘만 */
@@ -1151,6 +1168,7 @@ try { const p = JSON.parse(localStorage.getItem('koide-pref') || '{}'), d = docu
 <main id="main" class="wrap"><p class="loading">불러오는 중…</p></main>
 <div id="pss" class="pss" role="dialog" aria-modal="true" hidden></div>
 <div id="bigv"></div>
+<div id="wbig"></div>
 <div id="pop" class="pop" hidden></div>
 <nav id="tabs" class="tabs" hidden></nav>
 <div id="toast" class="toast" role="status" hidden></div>
@@ -1367,6 +1385,8 @@ try { const p = JSON.parse(localStorage.getItem('koide-pref') || '{}'), d = docu
     if (SC.at === 'church') return S.tab === 'church' ? 0 : enterChurch();
     if (SC.at === 'meet') { S.meet = 0; S.meetSeen = 1; return render(); }
     if (SC.at === 'tour') return Tour.open();
+    // 그물 장면(at=weave: 모임 G1, at=weave7: 끝나기 5일 전인 모임 G2 — 곧 끝나요 카드에 그물 담기 단추). as=김도윤으로 연다
+    if (SC.at === 'weave' || SC.at === 'weave7') return enterGroup(SC.at === 'weave' ? 'G1' : 'G2');
     if (window.KoideBeatitudes.scene(SC.at)) return;
     if (SC.at === 'ops' && S.op) return;
     const b = document.createElement('button'); b.dataset.act = 'tab'; b.dataset.v = SC.at; document.body.appendChild(b); b.click(); b.remove();
@@ -1789,7 +1809,7 @@ try { const p = JSON.parse(localStorage.getItem('koide-pref') || '{}'), d = docu
           <div class="pray-hero"><div class="pray-row">${prayBtn(t, false, true)}<button class="btn next${t.today ? '' : ' ghost'}" data-act="nexttoday">다음 ${words().one}</button></div>
             ${t.prayed ? `<p class="pray-done">이번 달 ${esc(t.name)}${solo() ? ' 님' : ' 가정'}을 위해 ${t.prayed}번 기도했어요</p>` : ''}</div>
           <p class="hint">앱을 열 때마다 이번 달 아직 기도하지 않은 ${words().one}부터 돌아가며 나와요.</p>
-          ${cordHtml(t.id)}</section>` : ''}${artCard()}</div>
+          ${cordHtml(t.id)}</section>` : ''}${S.grp ? weaveCard() : artCard()}</div>
       <div class="col main">
         ${togetherCard()}
         ${mineCard()}
@@ -3591,7 +3611,63 @@ try { const p = JSON.parse(localStorage.getItem('koide-pref') || '{}'), d = docu
     const soon = G.left <= 7;
     return `<section class="card notice" role="note"><p><b>곧 끝나요 · ${koidePlaces.dday(G)}</b></p>
       <p class="hint" style="margin:.2em 0 .6em">${gDay(G.endsAt)}에 이 모임과 기록이 함께 사라져요.${soon ? ' 남기고 싶은 기도제목을 지금 옮겨 두세요.' : ' 남기고 싶은 기도제목은 내 기도 노트로 옮겨 두세요.'}</p>
-      <button class="btn small" data-act="gmove">내 기도 노트로 옮기기</button></section>`;
+      <div class="actions"><button class="btn small" data-act="gmove">내 기도 노트로 옮기기</button><button class="btn small ghost" data-act="gweave">그물 담기</button></div></section>`;
+  }
+  // ── 함께 짜는 그물 (모임 화면의 '이달의 그림' 자리) ──────────
+  //  모임 사람들이 서로를 위해 기도한 기록으로 짜는 3D 그림. 둥근 수틀 가장자리에 말뚝이 서고, 두 사람 사이에 기도가 오가면 금실이 한 가닥씩 걸린다.
+  //  말뚝은 모두 이름이 없고(내 말뚝도 표시하지 않는다) 순서는 모임마다 섞는다. 실에는 방향이 없고, 실 수 · 퍼센트 같은 숫자는 어디에도 보이지 않는다.
+  //  자료: { id, name, from, to, n, pairs: [[말뚝a, 말뚝b, 밝기1~3]…], fresh: [[a, b]…](오늘 새로 이어진 실) }. 서버가 모임의 기도 기록에서 세어 이번 달 응답(S.month.weave)에 붙여 준다
+  //  3D 도구(vendor/three.min.js)와 그림(note-3d.js)은 모임을 열 때만 불러온다
+  const W3 = { ready: null };
+  function load3d() {
+    if (W3.ready) return W3.ready;
+    const js = src => new Promise((ok, no) => { const a = document.createElement('script'); a.src = src; a.onload = ok; a.onerror = no; document.head.appendChild(a); });
+    return (W3.ready = (window.THREE ? Promise.resolve() : js('vendor/three.min.js')).then(() => js('note-3d.js')));
+  }
+  const can3d = () => { try { const c = document.createElement('canvas'); return !!(window.WebGLRenderingContext && (c.getContext('webgl') || c.getContext('experimental-webgl'))); } catch (e) { return false; } };
+  const weaveOf = () => (S.grp && S.month && S.month.weave) || null;
+  // 노트에 담는 것: 모임 이름·기간·말뚝 수·실(번호 쌍과 밝기)(이름·기도제목·누가 기도했는지는 없다)
+  const weavePack = d => ({ id: d.id, name: d.name, from: d.from, to: d.to, n: d.n, pairs: d.pairs.map(p => [p[0], p[1], p[2]]) });
+  function weaveCard() {
+    const d = weaveOf();
+    if (!d) return `<section class="card weave-card" aria-label="함께 짜는 그물"><p class="label">함께 짜는 그물</p><p class="hint">서버를 새 버전으로 배포하면 그물이 보여요.</p></section>`;
+    return `<section class="card weave-card" aria-label="함께 짜는 그물"><div class="row"><p class="label" style="margin:0">함께 짜는 그물</p></div>
+      <div class="wv-frame"><div class="wv-stage" id="wv-host" role="img" aria-label="둥근 수틀에 실이 걸린 그물. 밀어서 돌려 볼 수 있어요"><span class="wait">불러오는 중…</span></div>
+        <button class="ps-big" data-act="wbig" aria-label="그물 크게 보기" title="크게 보기">${ICON.expand}</button></div>
+      <p class="hint">모임에서 서로를 위해 기도할 때마다 실이 한 가닥씩 걸려요.</p>
+      <div class="actions"><button class="btn small ghost" data-act="wsave"${S.wSaving ? ' disabled' : ''}>${S.wSaving ? '저장하는 중…' : '그림 저장'}</button><button class="btn small" data-act="gweave">내 기도 노트에 담기</button></div></section>`;
+  }
+  // 크게 보기: 그물만 화면 가득. 오른쪽 위에 동그란 단추(그림 저장 ↓, 닫기 ×)
+  function weaveBigHtml() {
+    const b = (a, ic, label, off) => `<button class="wbig-x" data-act="${a}" aria-label="${label}" title="${label}"${off ? ' disabled' : ''}>${ICON[ic]}</button>`, d = weaveOf();
+    return `<div class="wbig" role="dialog" aria-modal="true" aria-label="함께 짜는 그물 크게 보기"><div class="wbig-host" id="wbig-host"><span class="wait">불러오는 중…</span></div>
+      <div class="wbig-bar">${b('wsave', 'download', '그림 저장', S.wSaving)}${b('wbigclose', 'x', '닫기')}</div>
+      ${d ? `<div class="wbig-cap"><div><b>${esc(d.name)}</b><small>${esc(window.KOIDE_NOTE3D ? window.KOIDE_NOTE3D.period(d.from, d.to) : '')}</small></div></div>` : ''}</div>`;
+  }
+  // 그림은 만들어 두고, 화면을 다시 그릴 때는 그림판(canvas)만 새 자리로 옮긴다. 자료나 화면 설정이 바뀌었을 때만 새로 만든다
+  function mountWeave() {
+    const host = $('#wv-host'), big = $('#wbig-host');
+    if (!S.grp || (!host && !big)) { ['card', 'big'].forEach(k => { if (W3[k]) { W3[k].dispose(); W3[k] = null; } }); return; }
+    const off = () => document.querySelectorAll('.wv-stage .wait, .wbig-host .wait').forEach(w => { w.textContent = '이 기기에서는 입체 그림을 볼 수 없어요.'; });
+    if (!can3d()) return off();
+    const d = weaveOf(); if (!d) return;
+    load3d().then(() => {
+      if (!S.grp || weaveOf() !== d) return;
+      const X = window.KOIDE_NOTE3D, de = document.documentElement.dataset, sig = JSON.stringify(d) + (de.mode || '') + (de.accent || '') + matchMedia('(prefers-color-scheme: dark)').matches;
+      const put = (key, make, h) => {
+        if (!h) { if (W3[key]) { W3[key].dispose(); W3[key] = null; } return; }
+        if (!W3[key] || W3[key].sig !== sig) { if (W3[key]) W3[key].dispose(); W3[key] = make(); W3[key].sig = sig; }
+        h.querySelectorAll('.wait').forEach(w => w.remove()); W3[key].attach(h);
+      };
+      put('card', () => X.weave(d, null, { fresh: d.fresh, big: () => false }), $('#wv-host'));
+      put('big', () => X.weave(d, null, { fresh: d.fresh, big: () => true }), $('#wbig-host'));
+    }).catch(off);
+  }
+  // 그림 저장: 그림 아래에 이름과 기간(실 수 같은 숫자는 넣지 않는다). 휴대폰이면 공유하기, 아니면 내려받기
+  async function saveWeave() {
+    const G = W3.big || W3.card, d = weaveOf(); if (!G || !d) return;
+    const X = window.KOIDE_NOTE3D, blob = await G.card(d.name, X.period(d.from, d.to));
+    if (await X.saveBlob(blob, `koide-weave-${d.id}.png`, d.name)) toast('그림을 저장했어요');
   }
   const myGroups = () => (S.me && S.me.groups) || [];
   const groupUrl = t => (CFG.REDIRECT_URI || location.origin + location.pathname) + (DEMO_LINK ? '?demo&' : '?') + 'gjoin=' + t;
@@ -4189,6 +4265,9 @@ try { const p = JSON.parse(localStorage.getItem('koide-pref') || '{}'), d = docu
     // 기도하는 화면은 아래 탭까지 덮는 전체 화면
     //  모임 모드도 같은 자리에 띄운다
     if (app && S.bigView) paintBig(); else { lastBigSvg = ''; $('#bigv').innerHTML = app && S.album ? albumHtml() : ''; }
+    if (!(app && S.grp && S.tab === 'home')) S.wbig = false;
+    $('#wbig').innerHTML = app && S.wbig ? weaveBigHtml() : ''; document.body.classList.toggle('wbig-open', !!(app && S.wbig));
+    mountWeave();
     S.artFx = null;
     const P = $('#pss'), meeting = app && !S.ps && S.meet != null, praying = app && !!S.ps || meeting;
     P.hidden = !praying; P.innerHTML = S.ps ? psHtml() : meeting ? meetHtml() : ''; P.setAttribute('aria-label', S.ps ? '기도하기' : meeting ? '모임 모드' : '');
@@ -4449,6 +4528,10 @@ try { const p = JSON.parse(localStorage.getItem('koide-pref') || '{}'), d = docu
         S.busy = false; return render();
       }
       case 'gmove': { const id = S.grp; if (!id) return; if (window.koideSpace) window.koideSpace.going('note'); location.href = 'note.html?' + (DEMO_LINK ? 'demo&' : '') + 'move=' + encodeURIComponent(id); return; }
+      case 'gweave': { const id = S.grp, d = weaveOf(); if (!id || !d) return toast('서버를 새 버전으로 배포하면 그물을 담을 수 있어요.'); try { sessionStorage.setItem('koide-weave-pack', JSON.stringify(weavePack(d))); } catch (err) { return toast('이 기기에서는 그물을 담지 못했어요.'); } if (window.koideSpace) window.koideSpace.going('note'); location.href = 'note.html?' + (DEMO_LINK ? 'demo&' : '') + 'weave=' + encodeURIComponent(id); return; }
+      case 'wbig': S.wbig = true; return render();
+      case 'wbigclose': S.wbig = false; return render();
+      case 'wsave': S.wSaving = true; render(); try { await saveWeave(); } catch (err) { toast('그림을 저장하지 못했어요. 다시 해 주세요.'); } S.wSaving = false; return render();
       case 'gopen': S.menu = null; return enterGroup(v);
       case 'gback': S.menu = null; return leaveGroupView();
       case 'gnew': S.menu = null; if (window.koideSpace) window.koideSpace.going('note'); location.href = 'note.html' + (DEMO_LINK ? '?demo&new' : '?new'); return;
@@ -4735,6 +4818,7 @@ try { const p = JSON.parse(localStorage.getItem('koide-pref') || '{}'), d = docu
   });
   // 모임 모드: PC나 TV에 띄웠을 때 키보드 왼쪽·오른쪽 화살표로 넘기고, Esc로 닫는다
   document.addEventListener('keydown', e => {
+    if (e.key === 'Escape' && S.wbig) { S.wbig = false; return render(); }
     if (e.key === 'Escape' && !$('#pop').hidden) { a2hsOff(); return render(); }
     if (S.meet == null || S.ps || S.view !== 'app') return;
     if (e.key === 'Escape') { track('모임 모드 마침', { cards: meetFams().length + 1, seen: S.meetSeen }); S.meet = null; wakeOff(); render(); }

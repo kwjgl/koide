@@ -1796,7 +1796,41 @@ function groupMonthView_(c) {
   const by = {}; read_('prayers').forEach(p => { if (p.familyId === c.familyId && p.kakaoId !== c.kakaoId && fmtMonth_(p.at) === m) by[p.kakaoId || p.by] = true; });
   return { month: m, term: m.slice(0, 4), dept: c.dept, room: { id: c.grp, name: c.group.name }, group: groupInfo_(c),
     me: { person: c.person, familyId: c.familyId, role: c.role, admin: false, grp: c.grp }, families, received: { n: Object.keys(by).length, of: Math.max(0, families.length - 1) }, serve: [],
-    art: artNums_(c, [m])[0] };
+    art: artNums_(c, [m])[0], weave: weave_(c) };
+}
+// 함께 짜는 그물(모임 화면): 모임 사람끼리 서로를 위해 기도한 기록을 모임 만든 날부터 세어, 사람 쌍마다 실 한 가닥(방향 없이)으로 돌려준다.
+//  말뚝(사람)은 이름도 사람ID도 없이 번호(0~n-1)만 준다. 내 말뚝이 몇 번인지도 주지 않는다. 번호는 들어온 순서로 줄 세운 뒤 모임 id로 섞어서, 모임마다 늘 같다.
+//  밝기 1~3: 둘 사이 기도가 1~2번이면 1, 3~5번이면 2, 6번 이상이면 3. fresh: 오늘 처음 생긴 실. 나간 사람의 말뚝은 남고(기도로 이어졌던 사람만) 실은 더 걸리지 않는다.
+const WEAVE_MAX = 20;
+function weaveShuffle_(list, seed) {
+  let h = 2166136261; for (let i = 0; i < seed.length; i++) { h ^= seed.charCodeAt(i); h = Math.imul(h, 16777619); }
+  const a = list.slice(); let x = h >>> 0;
+  for (let i = a.length - 1; i > 0; i--) { x = (Math.imul(x, 1664525) + 1013904223) >>> 0; const j = x % (i + 1); const t = a[i]; a[i] = a[j]; a[j] = t; }
+  return a;
+}
+function weave_(c) {
+  const g = c.group, since = g.at ? fmtDate_(g.at) : '', today = today_();
+  const mem = read_('gmembers').filter(m => m.groupId === g.id && (m.status === '함께' || m.status === '나감')), ids = {};
+  mem.forEach(m => { ids[m.id] = true; });
+  const pair = {};   // 'a|b' → { id들, 횟수, 처음 날 }
+  read_('prayers').forEach(p => {
+    if (!ids[p.by] || !ids[p.familyId] || p.by === p.familyId) return;
+    const d = fmtDate_(p.at); if (since && d < since) return;
+    const k = p.by < p.familyId ? p.by + '|' + p.familyId : p.familyId + '|' + p.by, o = pair[k] || (pair[k] = { a: p.by < p.familyId ? p.by : p.familyId, b: p.by < p.familyId ? p.familyId : p.by, n: 0, first: d });
+    o.n++; if (d < o.first) o.first = d;
+  });
+  const linked = {}; Object.keys(pair).forEach(k => { linked[pair[k].a] = true; linked[pair[k].b] = true; });
+  // 함께하는 사람은 모두, 나간 사람은 기도로 이어졌던 경우에만 말뚝으로 둔다(많으면 이어진 실이 적은 나간 사람부터 뺀다)
+  let keep = mem.filter(m => m.status === '함께' || linked[m.id]).sort((x, y) => (+new Date(x.at) - +new Date(y.at)) || (x.id < y.id ? -1 : 1));
+  if (keep.length > WEAVE_MAX) { const gone = keep.filter(m => m.status !== '함께'); keep = keep.filter(m => m.status === '함께').concat(gone).slice(0, WEAVE_MAX).sort((x, y) => (+new Date(x.at) - +new Date(y.at)) || (x.id < y.id ? -1 : 1)); }
+  const order = weaveShuffle_(keep.map(m => m.id), g.id), at = {}; order.forEach((id, i) => { at[id] = i; });
+  const pairs = [], fresh = [];
+  Object.keys(pair).forEach(k => {
+    const o = pair[k]; if (at[o.a] == null || at[o.b] == null) return;
+    pairs.push([at[o.a], at[o.b], o.n >= 6 ? 3 : o.n >= 3 ? 2 : 1]); if (o.first === today) fresh.push([at[o.a], at[o.b]]);
+  });
+  pairs.sort((x, y) => (x[0] - y[0]) || (x[1] - y[1]));
+  return { id: g.id, name: g.name, from: since, to: g.endsAt || '', n: order.length, pairs, fresh };
 }
 // 모임의 지난 기록: 그 모임에 쓰인 달들, 모임 공개 항목과 내 것
 function groupHistory_(c, want) {
@@ -2133,6 +2167,16 @@ function sampleData() {
   it('M5', 'G2', '나', '현지 아이들에게 전할 말씀을 잘 준비하도록', 'room', 2, '정우진');
   it('M6', 'G2', '팀', '팀원 모두 건강하게 다녀오도록', 'room', 1, '김도윤');
   it('M7', 'G2', '나', '맡은 찬양 시간을 겸손히 섬기도록', 'room', 1, '박민재');
+  // 함께 짜는 그물 예시: 직장인 기도 모임은 일곱 명(실이 여러 가닥, 오늘 새로 이어진 실 둘), 단기선교 준비팀은 세 명
+  [['M8', 'd-이서연', '이서연'], ['M9', 'd-최하윤', '최하윤'], ['M10', 'd-오지훈', '오지훈'], ['M11', 'd-강민아', '강민아']]
+    .forEach(([id, k, n], i) => append_('gmembers', { groupId: 'G1', id, kakaoId: k, person: n, role: '회원', status: '함께', at: new Date(Date.now() - (16 - i) * 864e5) }));
+  const gk = { M1: 'd-박민재', M2: 'd-김도윤', M3: 'd-정우진', M8: 'd-이서연', M9: 'd-최하윤', M10: 'd-오지훈', M11: 'd-강민아', M5: 'd-정우진', M6: 'd-김도윤', M7: 'd-박민재' };
+  const gp = [], gpray = (by, to, ago, times) => { for (let t = 0; t < times; t++) gp.push({ at: new Date(Date.now() - (ago + t * 2) * 864e5), by, familyId: to, kakaoId: gk[by] }); };
+  [['M1', 'M2', 3, 7], ['M2', 'M1', 4, 2], ['M1', 'M3', 5, 3], ['M3', 'M8', 6, 1], ['M8', 'M9', 6, 4], ['M9', 'M10', 7, 2], ['M10', 'M11', 8, 1], ['M11', 'M1', 9, 2], ['M2', 'M10', 9, 1], ['M3', 'M9', 10, 5], ['M8', 'M1', 11, 1], ['M9', 'M2', 12, 3], ['M10', 'M3', 13, 2], ['M2', 'M11', 14, 6]]
+    .forEach(([a, b, ago, n]) => gpray(a, b, ago, n));
+  [['M5', 'M6', 5, 4], ['M6', 'M7', 8, 2], ['M7', 'M5', 10, 1], ['M5', 'M7', 12, 3]].forEach(([a, b, ago, n]) => gpray(a, b, ago, n));
+  gp.push({ at: new Date(), by: 'M3', familyId: 'M10', kakaoId: 'd-정우진' }, { at: new Date(), by: 'M9', familyId: 'M11', kakaoId: 'd-최하윤' });
+  appendMany_('prayers', gp);
   // 의견함 예시: 이름 없는 것과 이름을 밝힌 것
   append_('feedback', { at: new Date(Date.now() - 2 * 864e5), deptId: d1, kind: '이랬으면', text: '기도하기에서 음악 소리를 조금 더 작게 시작하면 좋겠어요.', familyId: '', person: '', ver: '2026-10-22', width: 'phone', read: '' });
   append_('feedback', { at: new Date(Date.now() - 5 * 864e5), deptId: d1, kind: '고마워요', text: '매달 기도제목을 따로 모으지 않아도 돼서 편해요.', familyId: 'F3', person: '한지민', ver: '2026-10-22', width: 'phone', read: '예' });
@@ -2174,6 +2218,7 @@ function clearSampleData() {
     del('prayers', p => mine(p) || ids.indexOf(p.by) >= 0);
     del('staff', mine); del('requests', mine);
     del('opsAdmins', o => o.by === '예시');
+    const gmIds = read_('gmembers').filter(m => m.groupId === 'G1' || m.groupId === 'G2').map(m => m.id); del('prayers', p => gmIds.indexOf(p.by) >= 0);
     del('gmembers', m => m.groupId === 'G1' || m.groupId === 'G2'); del('groups', g => g.id === 'G1' || g.id === 'G2'); del('items', i => i.roomId === 'G1' || i.roomId === 'G2');
     del('usage', u => /^sample\d{4}$/.test(String(u.device)));
     del('survey', x => x.ver === 'sample'); del('feedback', x => x.ver === 'sample');

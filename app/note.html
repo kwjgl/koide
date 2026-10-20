@@ -182,6 +182,7 @@ button.knot { cursor: pointer; }
 .stage3d.cord { aspect-ratio: 16 / 9; }
 .stage3d.garden { aspect-ratio: 4 / 3; cursor: default; }
 .stage3d.garden.tap, .stage3d.garden.tap canvas { cursor: pointer; }
+.stage3d.weaves { aspect-ratio: 21 / 10; cursor: pointer; }
 /* 크게 보기 아이콘: 공동체 이달의 그림(.ps-big)과 같은 모양·자리. 그림 저장 사진은 3D 화면만 찍어 아이콘이 안 들어간다 */
 .g-frame { position: relative; }
 .g-big { position: absolute; right: 8px; bottom: 8px; display: grid; place-items: center; font-size: .72em; color: #4A3A2E; background: rgba(255, 250, 242, .82); border: 0; border-radius: 50%; padding: 0; width: 32px; height: 32px; cursor: pointer;
@@ -275,6 +276,9 @@ button.knot { cursor: pointer; }
 .gbig-foot { position: absolute; left: 0; right: 0; bottom: 0; display: flex; flex-direction: column; align-items: center; gap: 8px; padding: 0 12px calc(12px + env(safe-area-inset-bottom, 0px)); pointer-events: none; }
 .gbig-say { max-width: 100%; background: var(--surface); border-radius: 14px; padding: .5em .9em; box-shadow: 0 2px 10px var(--shadow); }
 .gbig-say:empty { display: none; }
+.gbig-foot .wcap { display: flex; flex-direction: column; align-items: center; gap: 2px; background: var(--surface); border-radius: 14px; padding: .5em 1em; box-shadow: 0 2px 10px var(--shadow); text-align: center; }
+.gbig-foot .wcap small { color: var(--ink-2); font-size: .8em; }
+.gbig-foot .wdel { pointer-events: auto; background: var(--surface); border: 1.5px solid var(--line-strong); color: var(--ink-2); border-radius: 12px; min-height: 40px; padding: 0 1em; font: inherit; font-size: .86em; cursor: pointer; }
 .gbig-foot .gtray { pointer-events: auto; width: 100%; max-width: 640px; margin-top: 0; }
 .notice { background: var(--warm-soft); color: var(--ink); border-radius: 14px; padding: .8em .9em; font-size: .86em; word-break: keep-all; margin-bottom: 12px; }
 .notice b { color: var(--warm); }
@@ -378,7 +382,7 @@ button.knot { cursor: pointer; }
   const getUid = () => { try { return localStorage.getItem(UID) || ''; } catch (e) { return ''; } };
   const KEY = ownNoteKey(BASE, getUid()), LOCK_KEY = KEY + '-key';
   // 기도제목·사람·감사·기도한 날마다 고친 시각(up)을 둔다. 다른 기기와 이어 둘 때 더 나중 것을 남기려고(지운 것도 지웠다는 표시로 남긴다)
-  const blank = () => ({ v: 2, started: false, name: '', nameUp: 0, people: [], items: [], prays: [], thanks: [], today: null, mode: '', vault: null });
+  const blank = () => ({ v: 2, started: false, name: '', nameUp: 0, people: [], items: [], prays: [], thanks: [], today: null, mode: '', vault: null, weaves: [] });
   // 장면 모드의 예시 노트: 사람 둘, 기도제목 여럿, 최근 기도한 날과 감사(날짜는 오늘 기준). at=start이면 노트 없이 시작 화면
   function sceneNote() {
     const day = n => { const d = new Date(Date.now() - n * 864e5); return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0'); };
@@ -389,7 +393,10 @@ button.knot { cursor: pointer; }
       it('si6', 'p:sp2', '이사할 집을 잘 구하도록', 40, { date: day(5), how: 'answer' })];
     const prays = []; [['si1', [1, 2, 3, 5, 6, 22, 26, 30]], ['si2', [1, 2, 4]], ['si3', [2, 3]], ['si4', [1, 4, 7]], ['si6', [8, 9, 10]]].forEach(([id, ds]) => ds.forEach(n => prays.push({ d: day(n), item: id, up: 1 })));
     const thanks = [{ id: 'st1', date: day(5), text: '좋은 집을 만나게 해 주셨어요', item: 'si6', kind: 'answer', up: 1 }, { id: 'st2', date: day(1), text: '이번 주도 건강하게 지냈어요', kind: 'thanks', up: 1 }, { id: 'st3', date: day(3), text: '가족과 함께 저녁을 먹었어요', kind: 'thanks', up: 1 }];
-    return { v: 2, started: true, name: '', nameUp: 0, people, items, prays, thanks, today: null, mode: '', vault: null };
+    // at=weaves: 담아 둔 그물 네 개(말뚝 8·5·3·12명). 실은 말뚝 쌍마다 겉보기에 흩어진 값으로 만든다
+    const wv = (id, name, from, to, n, keep) => { const pairs = []; for (let a = 0; a < n; a++) for (let b = a + 1; b < n; b++) { const h = Math.sin((a * 13 + b * 7 + n) * 4.37) * 9301.7, r = h - Math.floor(h); if (r < keep) pairs.push([a, b, 1 + Math.floor(r / keep * 2.99)]); } return { id, name, from, to, n, pairs, at: day(0), up: 1 }; };
+    const weaves = SC.at === 'weaves' ? [wv('G-demo1', '청년 선교팀', '2026-09-01', '2026-12-31', 8, 0.8), wv('G-demo2', '직장인 기도 모임', '2026-03-02', '2026-06-30', 5, 0.9), wv('G-demo3', '단기선교 준비팀', '2026-07-01', '2026-08-31', 3, 1), wv('G-demo4', '새벽 기도 모임', '2025-10-05', '2026-02-28', 12, 0.45)] : [];
+    return { v: 2, started: true, name: '', nameUp: 0, people, items, prays, thanks, today: null, mode: '', vault: null, weaves };
   }
   if (SC && SC.at !== 'start') { try { localStorage.setItem(KEY, JSON.stringify(sceneNote())); } catch (e) { /* 무시 */ } }
   let D;
@@ -402,7 +409,7 @@ button.knot { cursor: pointer; }
   if (navigator.storage && navigator.storage.persist) navigator.storage.persist().catch(() => {});
   // 예전(고친 시각이 없던) 노트도 그대로 쓰게: 고친 시각이 없으면 0(가장 오래된 것)으로 본다
   function migrate(x) {
-    ['items', 'people', 'thanks', 'prays'].forEach(k => { x[k] = Array.isArray(x[k]) ? x[k] : []; x[k].forEach(o => { if (o.up == null) o.up = 0; }); });
+    ['items', 'people', 'thanks', 'prays', 'weaves'].forEach(k => { x[k] = Array.isArray(x[k]) ? x[k] : []; x[k].forEach(o => { if (o.up == null) o.up = 0; }); });
     x.v = 2; return x;
   }
 
@@ -444,7 +451,7 @@ button.knot { cursor: pointer; }
   async function lockUp(key, obj) { const iv = crypto.getRandomValues(new Uint8Array(12)); return b64(iv) + '.' + b64(await crypto.subtle.encrypt({ name: 'AES-GCM', iv }, key, te.encode(JSON.stringify(obj)))); }
   async function unlockUp(key, s) { const [iv, ct] = s.split('.'); return JSON.parse(td.decode(await crypto.subtle.decrypt({ name: 'AES-GCM', iv: unb64(iv) }, key, unb64(ct)))); }
   // 맡기는 것: 이 기기만의 것(오늘 고른 3개, 화면 모드, 이어 두기 상태)은 빼고
-  const payload = () => ({ v: 2, name: D.name, nameUp: D.nameUp, people: D.people, items: D.items, prays: D.prays, thanks: D.thanks });
+  const payload = () => ({ v: 2, name: D.name, nameUp: D.nameUp, people: D.people, items: D.items, prays: D.prays, thanks: D.thanks, weaves: D.weaves });
   function mergeBy(a, b, key) {
     const m = new Map();
     [...(a || []), ...(b || [])].forEach(x => { const k = key(x), o = m.get(k); if (!o || (x.up || 0) > (o.up || 0)) m.set(k, x); });
@@ -456,6 +463,7 @@ button.knot { cursor: pointer; }
     D.people = mergeBy(D.people, r.people, x => x.id);
     D.thanks = mergeBy(D.thanks, r.thanks, x => x.id);
     D.prays = mergeBy(D.prays, r.prays, x => x.d + '|' + x.item);
+    D.weaves = mergeBy(D.weaves, r.weaves, x => x.id);
     if ((r.nameUp || 0) > (D.nameUp || 0)) { D.name = r.name; D.nameUp = r.nameUp; }
     D.started = true;
   }
@@ -558,6 +566,8 @@ button.knot { cursor: pointer; }
 
   const S = { tab: D.started ? 'today' : 'start', edit: null, draftT: 'me', done: null, ps: null, toast: '', pick: null, tour: null };
   if (SC && ['today', 'note', 'pray', 'look', 'keep', 'more', 'start'].includes(SC.at)) S.tab = SC.at;
+  // 그물 장면(at=weaves: 함께 짠 그물 탭에 그물 네 개가 걸려 있다)
+  if (SC && SC.at === 'weaves') { S.tab = 'keep'; S.keep = 'weaves'; }
   // 정원 장면(at=garden: 이번 달 소품 여덟 개로 5×5 판, at=garden-tray: 직접 놓기를 켜고 네 개가 서랍에서 기다림). 지난달(9월)로 넘기면 3×3 판
   if (SC && (SC.at === 'garden' || SC.at === 'garden-tray')) {
     S.tab = 'keep'; S.keep = 'garden';
@@ -795,23 +805,53 @@ button.knot { cursor: pointer; }
   }
   // 나의 보관함: 지난 기록 맨 아래 입구로 들어가는 화면. 입체 그림 셋 중 하나를 크게(올해 끈 · 이달의 정원 · 끈 보관함)
   const KEEPS = [['cord', '올해 끈'], ['garden', '이달의 정원'], ['chest', '끈 보관함']];
-  const keepKind = () => KEEPS.some(k => k[0] === S.keep) ? S.keep : 'cord';
+  // 담아 둔 모임 그물이 있을 때만 넷째 탭 '함께 짠 그물'이 생긴다
+  const keeps = () => KEEPS.concat(weaves().length ? [['weaves', '함께 짠 그물']] : []);
+  const keepKind = () => keeps().some(k => k[0] === S.keep) ? S.keep : 'cord';
   function keepView() {
     const k = keepKind(), C = k === 'cord' ? cordData() : null;
     if (k !== 'garden') S.gbig = false;
     const head = k === 'cord' ? `<div class="card-head"><h2>나의 ${C.year}년 끈</h2><span>기도한 날 ${C.days.reduce((a, b) => a + b, 0)}일 · 응답 ${C.answers.length} · 감사 ${C.thanks.length}</span></div>`
       : '';
-    const hint = { cord: '매듭이나 금실을 누르면 그날의 기록이 보여요. 밀어서 돌려 볼 수 있어요.', garden: '기도한 날마다 그 달 그림의 소품이 하나씩 정원에 놓여요.', chest: '한 해가 끝나면 그해의 끈을 상자에 넣어요.' }[k];
+    const hint = { cord: '매듭이나 금실을 누르면 그날의 기록이 보여요. 밀어서 돌려 볼 수 있어요.', garden: '기도한 날마다 그 달 그림의 소품이 하나씩 정원에 놓여요.', chest: '한 해가 끝나면 그해의 끈을 상자에 넣어요.', weaves: '수틀을 누르면 그 그물이 크게 보여요. 말뚝에는 이름이 없어서, 누가 어느 말뚝인지는 아무도 몰라요.' }[k];
     const hasG = k === 'garden' && monthRow(keepMonth()).count > 0, tapG = hasG ? ' role="button" tabindex="0" aria-label="정원 크게 보기"' : '';
     const box = `<div class="stage3d ${k}${hasG ? ' tap' : ''}" id="keep3d"${tapG}><span class="wait">불러오는 중…</span></div>`,
       stage = hasG ? `<div class="g-frame">${box}<button class="g-big" data-a="gbig" aria-label="정원 크게 보기" title="크게 보기">${GI.full}</button></div>` : box, pick = `<div id="keep3d-pick"><p class="hint">${hint}</p></div>`;
     return `<button class="link" data-a="tab" data-v="look">‹ 지난 기록</button>
       <header class="top"><div><p class="eyebrow">나만 보는 기록</p><h1>나의 보관함</h1></div></header>
-      <div class="seg" role="tablist" style="margin-bottom:12px">${KEEPS.map(([v, l]) => `<button class="${k === v ? 'on' : ''}" role="tab" aria-selected="${k === v}" data-a="keep" data-v="${v}">${l}</button>`).join('')}</div>
-      <section class="card">${head}${k === 'garden' ? gardenNav() : k === 'chest' ? chestNav() : ''}
+      <div class="seg" role="tablist" style="margin-bottom:12px">${keeps().map(([v, l]) => `<button class="${k === v ? 'on' : ''}" role="tab" aria-selected="${k === v}" data-a="keep" data-v="${v}">${l}</button>`).join('')}</div>
+      <section class="card">${head}${k === 'garden' ? gardenNav() : k === 'chest' ? chestNav() : k === 'weaves' ? weaveNav() : ''}
         ${k === 'garden' ? `${stage}${pick}<div class="gtray" id="gtray" hidden></div>${gardenActs()}${monthStrip()}` : `${stage}
         ${k === 'cord' ? '<div class="legend3d"><span><i class="k"></i>응답 매듭</span><span><i class="g"></i>감사의 금실</span><span>가닥 굵기 = 그 달에 기도한 날</span></div>' : ''}${pick}`}</section>
-      ${k === 'garden' && S.gbig ? gardenBig() : ''}`;
+      ${k === 'garden' && S.gbig ? gardenBig() : ''}${k === 'weaves' && S.wopen != null && weaveAt(S.wopen) ? weaveBig() : ''}`;
+  }
+  // ── 함께 짠 그물: 모임 화면의 '함께 짜는 그물'을 담아 둔 것 ──
+  //  담은 것은 { id, name, from, to, n, pairs, at, up } 뿐(이름·기도제목·누가 기도했는지는 없다). 같은 모임 그물은 하나만(다시 담으면 바뀐다). 한 쪽에 셋씩.
+  //  지울 때는 gone 표시만 남겨(내용은 비움) 다른 기기에 연결해 둔 노트에서도 되살아나지 않게 한다
+  const weaves = () => D.weaves.filter(w => !w.gone);
+  const weavesSorted = () => weaves().sort((a, b) => (b.to || '').localeCompare(a.to || '') || (b.at || '').localeCompare(a.at || ''));
+  const WPAGE = 3, weavePages = () => Math.max(1, Math.ceil(weaves().length / WPAGE)), weavePage = () => Math.max(0, Math.min(weavePages() - 1, S.wpage || 0));
+  const weaveAt = i => weavesSorted()[weavePage() * WPAGE + i];
+  function weaveNav() {
+    const pg = weavePage(), np = weavePages();
+    return `<div class="month-nav"><button class="btn ghost small" data-a="wpage" data-v="${pg - 1}"${pg > 0 ? '' : ' disabled'} aria-label="이전 그물">‹</button>
+      <span class="mn-t"><b>함께 짠 그물</b><small>벽에 걸어 둔 그물이에요</small></span>
+      <button class="btn ghost small" data-a="wpage" data-v="${pg + 1}"${pg < np - 1 ? '' : ' disabled'} aria-label="다음 그물">›</button></div>`;
+  }
+  // 그물 크게 보기: 정원 크게 보기와 같은 모양. 오른쪽 위에 그림 저장(↓)과 닫기(×), 아래에 이름과 기간, 지우기
+  function weaveBig() {
+    const w = weaveAt(S.wopen), b = (a, ic, label, o = {}) => `<button class="gbig-x" data-a="${a}" aria-label="${label}" title="${label}"${o.off ? ' disabled' : ''}>${GI[ic]}</button>`;
+    return `<div class="gbig" id="gbig" role="dialog" aria-modal="true" aria-label="${esc(w.name)} 그물 크게 보기"><div class="gbig-host" id="gbig-host"><span class="wait">불러오는 중…</span></div>
+      <div class="gbig-bar">${b('wsave', 'save', '그림 저장', { off: S.gSaving })}${b('wclose', 'close', '닫기')}</div>
+      <div class="gbig-foot"><div class="wcap"><b>${esc(w.name)}</b><small>${esc(window.KOIDE_NOTE3D ? window.KOIDE_NOTE3D.period(w.from, w.to) : '')}</small></div><button class="wdel" data-a="wdel">이 그물 지우기</button></div></div>`;
+  }
+  // 모임 화면에서 '그물 담기'로 오면(?weave=모임ID) 모임 화면이 건네준 그물을 담고 '함께 짠 그물' 탭을 연다. 같은 모임이면 바뀐다
+  function weaveAdd(w) {
+    const ok = w && typeof w.id === 'string' && Array.isArray(w.pairs); if (!ok) return false;
+    D.weaves = D.weaves.filter(x => x.id !== w.id);
+    D.weaves.push({ id: w.id, name: String(w.name || '').slice(0, 16), from: w.from || '', to: w.to || '', n: Math.max(2, Math.min(20, Math.round(w.n) || 2)),
+      pairs: w.pairs.filter(p => Array.isArray(p) && p.length === 3).map(p => [p[0] | 0, p[1] | 0, Math.max(1, Math.min(3, p[2] | 0 || 1))]), at: TODAY(), up: Date.now() });
+    save(); if (D.started) { S.tab = 'keep'; S.keep = 'weaves'; S.wpage = 0; S.wopen = null; } return true;
   }
   function gardenNav() {
     const M = keepMonth(), R = monthRow(M), [y, m] = M.split('-').map(Number);
@@ -944,7 +984,8 @@ button.knot { cursor: pointer; }
     const off = () => document.querySelectorAll('.stage3d .wait').forEach(w => { w.textContent = '이 기기에서는 입체 그림을 볼 수 없어요.'; });
     if (!can3d()) return off();
     load3d().then(() => {
-      const host = S.gbig ? $('#gbig-host') : $('#keep3d'); if (S.tab !== 'keep' || !host) return;
+      const host = S.gbig || S.wopen != null ? $('#gbig-host') : $('#keep3d'); if (S.tab !== 'keep' || !host) return;
+      if (keepKind() === 'weaves') return mountWeaves(window.KOIDE_NOTE3D);
       const X = window.KOIDE_NOTE3D, k = keepKind(), pick = () => (S.gbig && $('#gbig-say')) || $('#keep3d-pick');
       const M = keepMonth(), d = k === 'cord' ? cordData() : k === 'garden' ? monthRow(M) : chestData(), sig = JSON.stringify(d) + (PREF.accent || '') + (PREF.mode || '') + (k === 'garden' ? M + gardenHand() : '');
       const arrange = { st: gardenSt(M), hand: gardenHand(), month: Number(M.slice(5)), today: TODAY(), on: () => !!S.gEdit, big: () => !!S.gbig, open: () => { if (monthRow(M).count > 0) { S.gbig = true; render(); } }, save: st => setGardenSt(M, st), tray: () => [$('#gtray'), $('#gtray-big')],
@@ -956,6 +997,25 @@ button.knot { cursor: pointer; }
     }).catch(off);
   }
 
+  // 그물: 벽 그림(weaves)과, 수틀을 눌러 크게 볼 때의 그물 한 장(weave). 자료나 화면 설정이 바뀌었을 때만 새로 만든다
+  function mountWeaves(X) {
+    const sigOf = o => JSON.stringify(o) + (PREF.accent || '') + (PREF.mode || '') + matchMedia('(prefers-color-scheme: dark)').matches;
+    const put = (key, make, sig, host) => {
+      if (!G3[key] || G3[key].sig !== sig) { if (G3[key]) G3[key].dispose(); G3[key] = make(); G3[key].sig = sig; }
+      document.querySelectorAll('.stage3d .wait, .gbig-host .wait').forEach(w => { if (w.parentNode !== host) w.remove(); });
+      const w = host.querySelector('.wait'); if (w) w.remove(); G3[key].attach(host);
+    };
+    const card = $('#keep3d');
+    if (card) { const L = Array.from({ length: WPAGE }, (_, i) => weaveAt(i)).filter(Boolean); put('weaves', () => X.weaves(L, i => { S.wopen = i; render(); }), sigOf(L), card); }
+    if (S.wopen != null && weaveAt(S.wopen)) { const w = weaveAt(S.wopen), big = $('#gbig-host'); if (big) put('wbig', () => X.weave(w, null, { big: () => true }), sigOf(w), big); }
+    else if (G3.wbig) { G3.wbig.dispose(); G3.wbig = null; }
+  }
+  // 그물 그림 저장: 그림 아래에 이름과 기간(실 수 같은 숫자는 넣지 않는다)
+  async function saveWeave() {
+    const w = weaveAt(S.wopen), G = G3.wbig; if (!w || !G) return;
+    const X = window.KOIDE_NOTE3D, blob = await G.card(w.name, X.period(w.from, w.to));
+    if (await X.saveBlob(blob, `koide-weave-${w.id}.png`, w.name)) toast('그림을 저장했어요');
+  }
 
   // 화면 설정(더보기 › 화면, 위쪽 톱니바퀴): 화면 모드 · 색 테마 · 디자인 · 큰 글씨. 공동체 화면과 함께 바뀐다
   function screenControls() {
@@ -1216,13 +1276,13 @@ button.knot { cursor: pointer; }
   }
   const TABS = [['today', '오늘', TICON.sun], ['note', '내 기도', TICON.pen], ['pray', '기도하기', TICON.hands], ['look', '지난 기록', TICON.book], ['more', '더보기', TICON.more]];
   function render() {
-    if (S.tab !== 'keep') S.gbig = false;
+    if (S.tab !== 'keep') { S.gbig = false; S.wopen = null; }
     const V = { start: startView, today: todayView, note: noteView, pray: prayTab, look: lookView, keep: keepView, more: moreView, fb: fbView }[S.tab];
     $('#root').innerHTML = `${S.tab !== 'start' ? topBar() : ''}<div class="wrap${S.tab !== 'start' ? ' has-top' : ''}">${V()}</div>
       ${S.tab === 'start' ? '' : `<nav class="tabs" aria-label="메뉴">${TABS.map(([k, l, ic]) => { const on = (S.tab === 'keep' ? 'look' : S.tab === 'fb' ? 'more' : S.tab) === k; return `<button class="${k === 'pray' ? 'pray-tab ' : ''}${on ? 'on' : ''}" data-a="tab" data-v="${k}" aria-label="${l}" title="${l}" ${on ? 'aria-current="page"' : ''}>${ic}</button>`; }).join('')}</nav>`}
       ${S.done ? doneSheet() : ''}${S.tour != null ? tourSheet() : ''}${S.a2hs && !S.ps ? a2hsSheet() : ''}${S.vsheet ? vaultSheet() : ''}${S.share ? shareSheet() : ''}${S.mv ? mvSheet() : ''}${S.ps ? psHtml() : ''}${S.toast ? `<div class="toast" role="status">${esc(S.toast)}</div>` : ''}
       ${canSave ? '' : '<div class="toast" role="alert">이 브라우저에서는 저장할 수 없어요. 개인 정보 보호 모드를 끄고 열어 주세요.</div>'}`;
-    document.documentElement.style.overflow = S.ps || S.done || S.vsheet || S.share || S.tour != null || S.a2hs || S.gbig ? 'hidden' : '';
+    document.documentElement.style.overflow = S.ps || S.done || S.vsheet || S.share || S.tour != null || S.a2hs || S.gbig || S.wopen != null ? 'hidden' : '';
     document.querySelectorAll('textarea.field').forEach(autosize);
     if (S.cordNew) { document.querySelectorAll('.cord-seg.pull animate').forEach(a => { try { a.beginElement(); } catch (e) { /* 무시 */ } }); S.cordNew = null; }
     mount3d();
@@ -1316,7 +1376,7 @@ button.knot { cursor: pointer; }
       case 'accent': setPref('accent', v); return render();
       case 'style': setPref('style', v); return render();
       case 'lookm': S.lookM = v; return render();
-      case 'keep': S.keep = v || S.keep; if (v === 'garden') S.keepM = null; S.gEdit = false; S.gbig = false; S.tab = 'keep'; render(); return window.scrollTo(0, 0);
+      case 'keep': S.keep = v || S.keep; if (v === 'garden') S.keepM = null; S.gEdit = false; S.gbig = false; S.wopen = null; S.tab = 'keep'; render(); return window.scrollTo(0, 0);
       case 'keepm': S.keepM = v; S.gEdit = false; return render();
       case 'gedit': if (G3.garden) G3.garden.leave(); S.gEdit = !S.gEdit; return render();
       case 'ghand': try { localStorage.setItem(HAND_KEY, gardenHand() ? '0' : '1'); } catch (err) { /* 이번만 */ } return render();
@@ -1325,6 +1385,14 @@ button.knot { cursor: pointer; }
       case 'gsave': S.gSaving = true; render(); saveGarden().catch(() => toast('그림을 저장하지 못했어요. 다시 해 주세요')).then(() => { S.gSaving = false; render(); }); return;
       case 'gbig': S.gbig = true; return render();
       case 'gbigclose': if (G3.garden) G3.garden.leave(); S.gbig = false; S.gEdit = false; return render();
+      case 'wpage': S.wpage = Math.max(0, Math.min(weavePages() - 1, Number(v))); S.wopen = null; return render();
+      case 'wclose': S.wopen = null; return render();
+      case 'wsave': S.gSaving = true; render(); saveWeave().catch(() => toast('그림을 저장하지 못했어요. 다시 해 주세요')).then(() => { S.gSaving = false; render(); }); return;
+      case 'wdel': {
+        const w = weaveAt(S.wopen); if (!w || !confirm(`"${w.name}" 그물을 지울까요? 이 노트에서 지워지고, 되돌릴 수 없어요.`)) return;
+        Object.assign(w, { gone: true, pairs: [], name: '', up: Date.now() }); save(); S.wopen = null; S.wpage = weavePage();
+        if (!weaves().length) S.keep = 'chest'; if (G3.weaves) { G3.weaves.dispose(); G3.weaves = null; } return toast('그물을 지웠어요');
+      }
       case 'keepy': S.keepY = Number(v); return render();
       case 'looktab': S.lookTab = v; return render();
       case 'big': setPref('big', !PREF.big); return render();
@@ -1456,8 +1524,14 @@ button.knot { cursor: pointer; }
   document.addEventListener('keydown', e => {
     if ((e.key === 'Enter' || e.key === ' ') && e.target.id === 'keep3d' && e.target.getAttribute('role') === 'button') { e.preventDefault(); S.gbig = true; render(); return; }
     if (e.key !== 'Escape') return;
-    if (S.gbig) { if (G3.garden) G3.garden.leave(); S.gbig = false; S.gEdit = false; render(); } else if (S.ps) { S.ps = null; musicOff(); render(); } else if (S.done) { S.done = null; render(); } else if (S.vsheet) { S.vsheet = null; render(); } else if (S.share) { S.share = null; render(); } else if (S.mv) { S.mv = null; render(); }
+    if (S.wopen != null) { S.wopen = null; render(); } else if (S.gbig) { if (G3.garden) G3.garden.leave(); S.gbig = false; S.gEdit = false; render(); } else if (S.ps) { S.ps = null; musicOff(); render(); } else if (S.done) { S.done = null; render(); } else if (S.vsheet) { S.vsheet = null; render(); } else if (S.share) { S.share = null; render(); } else if (S.mv) { S.mv = null; render(); }
   });
+  // 모임 화면의 '그물 담기'로 오면(?weave=모임ID) 모임 화면이 건네준 그물(sessionStorage)을 노트에 담고 '함께 짠 그물' 탭을 연다
+  { const q = new URLSearchParams(location.search), wid = q.get('weave'); if (wid) {
+    q.delete('weave'); history.replaceState(null, '', location.pathname + (q.toString() ? '?' + q.toString().replace(/=(&|$)/g, '$1') : ''));
+    let pack = null; try { pack = JSON.parse(sessionStorage.getItem('koide-weave-pack') || 'null'); sessionStorage.removeItem('koide-weave-pack'); } catch (e) { /* 건네받지 못함 */ }
+    if (pack && pack.id === wid && weaveAdd(pack)) setTimeout(() => toast(D.started ? '그물을 담았어요' : '그물을 담았어요. 노트를 시작하면 볼 수 있어요'), 300); else setTimeout(() => toast('그물을 담지 못했어요. 모임 화면에서 다시 해 주세요'), 300);
+  } }
   // 카카오 로그인이 기본: 로그인하지 않았으면 로그인 화면으로(노트는 이 휴대폰에 그대로 남아 있다)
   if (!SC && !getToken()) { if (window.koideSpace) window.koideSpace.going('community'); location.replace('index.html' + QS); return; }
   // 공동체의 '함께하는 곳' 메뉴에서 '+ 모임 만들기'로 오면(?new) 더보기 › 내 모임의 만들기 창을 바로 연다
