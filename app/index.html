@@ -197,18 +197,17 @@ h2 { font-size: 1.05em; margin: 0; }
 @media (orientation: portrait) { .big-stage { width: min(100dvh, 100vw * 32 / 15); transform: translate(-50%, -50%) rotate(90deg); } }
 @keyframes big-in { from { opacity: 0; } to { opacity: 1; } }
 .big-stage .pasture { border-radius: 0; height: 100%; }
-.big-cap { position: absolute; left: 0; right: 0; top: 0; padding: 1em 4.5em 2.2em 1.3em; display: flex; flex-direction: column; gap: .2em; color: #fff; pointer-events: none;
-  background: linear-gradient(rgba(70, 40, 20, .45), transparent); text-shadow: 0 1px 6px rgba(60, 30, 10, .45); }
-.big-cap b { font-family: var(--f-display); font-size: clamp(1.15em, 3.4vmax, 1.9em); }
-.big-cap span { font-size: clamp(.82em, 1.9vmax, 1.05em); }
 .big-x { position: absolute; top: .7em; right: .7em; width: 44px; height: 44px; border-radius: 50%; border: 0; display: grid; place-items: center;
   background: rgba(255, 250, 242, .85); color: #4A3A2E; cursor: pointer; }
 .big-x .ic { width: 1.2em; height: 1.2em; stroke-width: 2; }
 /* 꾸미기 · 그림 저장 */
-.big-bar { position: absolute; right: .8em; bottom: .8em; display: flex; gap: .5em; }
-.big-btn { min-height: 40px; padding: .45em 1em; border-radius: 999px; border: 0; background: rgba(255, 250, 242, .88); color: #4A3A2E; font: inherit; font-size: .88em; font-weight: 600; cursor: pointer; }
-.big-btn.main { background: var(--accent); color: var(--on-accent); }
-.big-btn:disabled { opacity: .6; cursor: default; }
+/* 버튼은 하늘 쪽(오른쪽 위, 닫기 옆)에 둔다. 소품과 주인공은 땅에 놓여서 가리지 않게. 무언가를 옮기는 동안에는 글과 버튼을 잠깐 숨긴다 */
+.big-bar { position: absolute; right: .7em; top: .7em; display: flex; gap: .5em; }
+.big-bar .big-x { position: static; }
+.big-x.main { background: var(--accent); color: var(--on-accent); }
+.big-x:disabled { opacity: .55; cursor: default; }
+.big-chrome > * { transition: opacity .15s; }
+.bigview.dragging .big-chrome > * { opacity: 0; pointer-events: none; }
 .bigview.editing .big-stage { animation: none; }
 .bigview.editing .pasture { touch-action: none; }
 .bigview.editing .arr-it { cursor: grab; }
@@ -1493,6 +1492,11 @@ try { const p = JSON.parse(localStorage.getItem('koide-pref') || '{}'), d = docu
     up: svg('<path d="M4 9.5L8 5.5l4 4"/>'),
     x: svg('<path d="M4 4l8 8M12 4l-8 8"/>'),
     expand: svg('<path d="M9.5 2.5h4v4M6.5 13.5h-4v-4M13.5 2.5L9.2 6.8M2.5 13.5l4.3-4.3"/>'),
+    // 그림 크게 보기의 동그란 버튼: 꾸미기(네 방향으로 옮기기), 그림 저장(내려받기), 처음 자리로(되돌리기), 다 했어요(체크)
+    arrange: svg('<path d="M8 1.8v12.4M1.8 8h12.4M6.2 3.6L8 1.8l1.8 1.8M6.2 12.4L8 14.2l1.8-1.8M3.6 6.2L1.8 8l1.8 1.8M12.4 6.2L14.2 8l-1.8 1.8"/>'),
+    download: svg('<path d="M8 2.2v7.6M4.8 6.6L8 9.8l3.2-3.2M2.6 11.6v1.8h10.8v-1.8"/>'),
+    undo: svg('<path d="M3.4 6h6.3a3.3 3.3 0 0 1 0 6.6H6.2"/><path d="M5.6 3.6L3.2 6l2.4 2.4"/>'),
+    done: svg('<path d="M3.2 8.4l3 3 6.6-6.8"/>'),
     lock: svg('<rect x="3" y="7" width="10" height="7" rx="1.5"/><path d="M5.5 7V5a2.5 2.5 0 0 1 5 0v2"/>'),
     people: svg('<circle cx="6" cy="5.5" r="2"/><path d="M2.5 13c0-2 1.6-3.5 3.5-3.5s3.5 1.5 3.5 3.5"/><circle cx="11.2" cy="6" r="1.6"/><path d="M10.5 9.6c1.8 0 3 1.3 3 3.1"/>'),
     gear: svg('<circle cx="8" cy="8" r="2"/><path d="M8 1.8v1.6M8 12.6v1.6M3.6 3.6l1.1 1.1M11.3 11.3l1.1 1.1M1.8 8h1.6M12.6 8h1.6M3.6 12.4l1.1-1.1M11.3 4.7l1.1-1.1"/>'),
@@ -2106,12 +2110,12 @@ try { const p = JSON.parse(localStorage.getItem('koide-pref') || '{}'), d = docu
   }
   // 크게 보기: 화면을 꽉 채우고, 세로로 든 휴대폰에서는 그림을 가로로 돌린다
   const bigSvg = () => { const { month, n } = S.bigView; return sceneSvg(sceneKey(month), n, { month, edit: true }); };
+  // 크게 보기는 감상하고 꾸미기 좋게 그림만: 제목·설명 글 없이 오른쪽 위에 작은 동그란 버튼들
+  const bigBtn = (act, ico, label, main, off) => `<button class="big-x${main ? ' main' : ''}" data-act="${act}" aria-label="${label}" title="${label}"${off ? ' disabled' : ''}>${ICON[ico]}</button>`;
   function bigChrome() {
-    const { month, n, edit } = S.bigView, sc = SCENES[sceneKey(month)], moved = Object.keys(artPos(month)).length;
-    return `<div class="big-cap">${edit ? `<b>꾸미기</b><span>끌어서 옮기고, 한 번 누르면 좌우가 바뀌어요. 이 기기에만 남아요</span>` : `<b>${sc.title}</b><span>${sc.hero} ${n.hero}${sc.unit || '개'}, 소품 ${n.props}개, 하트 ${n.hearts}개를 모았어요</span>`}</div>
-      <div class="big-bar">${edit ? `${moved ? '<button class="big-btn" data-act="artreset">처음 자리로</button>' : ''}<button class="big-btn main" data-act="artedit">다 했어요</button>`
-        : `<button class="big-btn" data-act="artedit">꾸미기</button><button class="big-btn" data-act="artsave"${S.artSaving ? ' disabled' : ''}>${S.artSaving ? '저장하는 중…' : '그림 저장'}</button>`}</div>
-      ${edit ? '' : `<button class="big-x" data-act="bigclose" aria-label="닫기">${ICON.x}</button>`}`;
+    const { month, edit } = S.bigView, moved = Object.keys(artPos(month)).length;
+    return `<div class="big-bar">${edit ? (moved ? bigBtn('artreset', 'undo', '처음 자리로') : '') + bigBtn('artedit', 'done', '다 했어요', true)
+      : bigBtn('artedit', 'arrange', '꾸미기 · 끌어서 옮기고 누르면 좌우가 바뀌어요') + bigBtn('artsave', 'download', S.artSaving ? '저장하는 중' : '그림 저장', false, S.artSaving) + bigBtn('bigclose', 'x', '닫기')}</div>`;
   }
   function bigHtml() {
     const { month, edit } = S.bigView;
@@ -2149,7 +2153,7 @@ try { const p = JSON.parse(localStorage.getItem('koide-pref') || '{}'), d = docu
     e.preventDefault(); const svg = it.ownerSVGElement, p = svgPt(svg, e);
     artDrag = { it, svg, k: it.dataset.k, x: +it.dataset.x, y: +it.dataset.y, f: it.dataset.f === '1', px: p.x, py: p.y, dx: 0, dy: 0, moved: false, base: it.getAttribute('transform') || '' };
     try { it.setPointerCapture(e.pointerId); } catch (err) { /* 무시 */ }
-    it.classList.add('drag');
+    it.classList.add('drag'); it.closest('.bigview').classList.add('dragging');
   });
   document.addEventListener('pointermove', e => {
     const D = artDrag; if (!D) return;
@@ -2159,12 +2163,13 @@ try { const p = JSON.parse(localStorage.getItem('koide-pref') || '{}'), d = docu
   });
   const endArt = () => {
     const D = artDrag; if (!D) return; artDrag = null;
+    const box = D.it.closest('.bigview'); if (box) box.classList.remove('dragging');
     const V = S.bigView, P = artPos(V.month), sky = SCENES[sceneKey(V.month)].sky;
     const x = Math.max(8, Math.min(312, D.x + (D.moved ? D.dx : 0))), y = Math.max(sky ? 14 : 50, Math.min(150, D.y + (D.moved ? D.dy : 0)));
     const f = D.moved ? D.f : !D.f;
     P[D.k] = [+x.toFixed(1), +y.toFixed(1), f];
     setArtPos(V.month, P); D.it.classList.remove('drag'); placeArt(D.it, x, y, f); lastBigSvg = bigSvg();
-    const bar = $('#bigv .big-bar'); if (bar && !bar.querySelector('[data-act=artreset]')) bar.insertAdjacentHTML('afterbegin', '<button class="big-btn" data-act="artreset">처음 자리로</button>');
+    const bar = $('#bigv .big-bar'); if (bar && !bar.querySelector('[data-act=artreset]')) bar.insertAdjacentHTML('afterbegin', bigBtn('artreset', 'undo', '처음 자리로'));
   };
   document.addEventListener('pointerup', endArt); document.addEventListener('pointercancel', endArt);
   // 그림 저장: 지금 보이는 그림(꾸민 자리 그대로)을 사진 한 장으로. 그림 파일을 글 안에 담아 그림판에 옮긴 뒤 아래에 달과 제목을 적는다.
