@@ -86,7 +86,7 @@ const FIRST_DEPT = { id: 'D1', name: '청장년부', group: '사랑방', unit: '
 // ── 요청 받기 ─────────────────────────────────────────────
 
 // 서버 코드를 고칠 때마다 바꾼다. 웹 앱 주소를 열면 보여서, 새 버전으로 배포됐는지 확인할 수 있다
-const VERSION = '2026-11-01 입장 코드';
+const VERSION = '2026-11-02 노트 주인';
 function doGet() {
   return ContentService.createTextOutput('코이데 서버가 켜져 있어요. (버전: ' + VERSION + ')');
 }
@@ -233,7 +233,7 @@ function login_(body) {
   // 앱의 로그인 표시: 무작위 값은 화면에만 주고, 시트에는 바꾼 값(해시)만 둔다
   const token = Utilities.getUuid() + Utilities.getUuid();
   append_('sessions', { hash: hash_(token), kakaoId, nick, expires: new Date(Date.now() + SESSION_DAYS * 864e5) });
-  return { token, nick };
+  return { token, nick, uid: noteUid_(kakaoId) };
 }
 
 function logout_(body) {
@@ -291,7 +291,7 @@ function leaderOrAdmin_(body) {
 }
 
 function meInfo_(w) {
-  const out = { nick: w.nick, link: w.link ? { status: w.link.status, familyId: w.link.familyId, person: w.link.person } : null, ops: opsScope_(w.kakaoId), groups: myGroups_(w.kakaoId) };
+  const out = { nick: w.nick, uid: noteUid_(w.kakaoId), link: w.link ? { status: w.link.status, familyId: w.link.familyId, person: w.link.person } : null, ops: opsScope_(w.kakaoId), groups: myGroups_(w.kakaoId) };
   if (w.link && w.link.status === '연결') return Object.assign(out, memberFrom_(w));
   if (w.link) {
     const fam = read_('families').find(f => f.id === w.link.familyId);
@@ -1106,12 +1106,14 @@ function logError_(action, err) {
     append_('errors', { at: new Date(), action: String(action || '').slice(0, 20), kind: (String(err && err.name || 'Error') + ': ' + String(err && err.message || err)).slice(0, 100) });
   } catch (e) { /* 오류 기록도 못 하면 그냥 둔다 */ }
 }
-// 오래된 기록 지우기: 오류 30일, 변경기록 13개월. 관리자가 운영을 열 때 함께 한다
+// 오래된 기록 지우기: 오류 30일, 변경기록 13개월, 만료된 로그인. 관리자가 운영을 열 때 함께 한다
 function trimLogs_() {
   const cut = (key, ms) => read_(key).filter(x => !(Date.parse(x.at) > Date.now() - ms)).sort((a, b) => b._row - a._row).forEach(x => remove_(key, x));
   cut('errors', 30 * 864e5);
   cut('changes', 396 * 864e5);
   cut('feedback', 396 * 864e5);
+  // 로그인 탭: 만료된 줄(카카오ID·닉네임)을 남겨 두지 않는다
+  read_('sessions').filter(x => !(Date.parse(x.expires) > Date.now())).sort((a, b) => b._row - a._row).forEach(x => remove_('sessions', x));
 }
 const monAdd_ = (m, k) => { const [y, mo] = m.split('-').map(Number), t = y * 12 + mo - 1 + k; return Math.floor(t / 12) + '-' + String(t % 12 + 1).padStart(2, '0'); };
 
@@ -2177,7 +2179,7 @@ function codeLogin_(body) {
   append_('links', { kakaoId, nick: '코드로 들어옴', familyId: row.familyId, person: row.person, status: '연결', requestedAt: new Date(), approvedBy: row.by });
   const token = Utilities.getUuid() + Utilities.getUuid();
   append_('sessions', { hash: hash_(token), kakaoId, nick: row.person, expires: new Date(Date.now() + SESSION_DAYS * 864e5) });
-  return { token, nick: row.person };
+  return { token, nick: row.person, uid: noteUid_(kakaoId) };
 }
 
 // 한 주제의 문장을 통째로 바꾼다. 빈 목록이면 그 주제는 기본 문장으로 돌아간다
@@ -2194,6 +2196,9 @@ function prayTextSave_(c, body) {
 // ── 나 · 기도 노트 이어 두기 ────────────────────────────────────────────
 const NOTE_PART_ = 40000, NOTE_MAX_ = 2000000;
 function noteRows_(kakaoId) { return read_('vault').filter(r => String(r.kakaoId) === kakaoId).sort((a, b) => Number(a.part) - Number(b.part)); }
+// 기기에 둔 기도 노트의 주인 표시: 한 기기를 여럿이 써도 다른 카카오 계정의 노트가 보이지 않게, 화면이 계정마다 노트를 따로 둔다.
+//  카카오ID를 그대로 기기에 두지 않으려고 바꾼 값(해시)의 앞부분만 준다
+function noteUid_(kakaoId) { return hash_('note-owner:' + kakaoId).slice(0, 20); }
 function noteGet_(a) {
   const rows = noteRows_(a.kakaoId);
   if (!rows.length) return { none: true };

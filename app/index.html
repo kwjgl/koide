@@ -1215,7 +1215,11 @@ try { const p = JSON.parse(localStorage.getItem('koide-pref') || '{}'), d = docu
   const TOKEN = DEMO_LINK ? 'koide-demo-token' : 'koide-token';
   const getToken = () => { try { return localStorage.getItem(TOKEN); } catch (e) { return null; } };
   // 로그인 표시가 바뀌면(로그인·로그아웃) 기억해 둔 화면도 지운다. 다른 사람의 기도제목이 남지 않게
-  const setToken = t => { try { t ? localStorage.setItem(TOKEN, t) : localStorage.removeItem(TOKEN); localStorage.removeItem(CACHE); } catch (e) { /* 무시 */ } };
+  // 로그인 표시와 함께 노트 주인 표시(uid)도 바꾼다. 새로 로그인하면 앞사람의 주인 표시를 먼저 지우고, 서버가 준 것으로 둔다
+  const UID = DEMO_LINK ? 'koide-demo-uid' : 'koide-uid';
+  const setUid = u => { try { u ? localStorage.setItem(UID, u) : localStorage.removeItem(UID); } catch (e) { /* 무시 */ } };
+  const getUid = () => { try { return localStorage.getItem(UID) || ''; } catch (e) { return ''; } };
+  const setToken = (t, uid) => { try { t ? localStorage.setItem(TOKEN, t) : localStorage.removeItem(TOKEN); localStorage.removeItem(CACHE); } catch (e) { /* 무시 */ } setUid(t ? uid : null); };
   // 지난번 이번 달 화면: 앱을 열 때 서버를 기다리지 않고 먼저 보여 준다
   const CACHE = DEMO_LINK ? 'koide-demo-cache' : 'koide-cache';
   const readCache = () => { try { return JSON.parse(localStorage.getItem(CACHE)); } catch (e) { return null; } };
@@ -1245,6 +1249,9 @@ try { const p = JSON.parse(localStorage.getItem('koide-pref') || '{}'), d = docu
       if (res.code === 'login') { setToken(null); S.view = 'login'; render(); }
       throw res;
     }
+    // 예전에 로그인해서 노트 주인 표시가 없으면, 서버가 알려 준 내 정보에서 채운다
+    const me = res.data && res.data.me;
+    if (me && me.uid && !getUid() && getToken()) setUid(me.uid);
     return res.data;
   }
   // ── 사용기록(설계서 10장): 행동과 숫자·선택지만 기기에 모아 두었다가, 앱을 열 때(start) 함께 보낸다 ──
@@ -1288,7 +1295,7 @@ try { const p = JSON.parse(localStorage.getItem('koide-pref') || '{}'), d = docu
     if (q.has('connect')) { try { localStorage.setItem(CONNECT, '1'); } catch (e) { /* 이번만 */ } q.delete('connect'); history.replaceState(null, '', location.pathname + (q.toString() ? '?' + q.toString().replace(/=(&|$)/g, '$1') : '')); }
     if (q.get('join')) { try { localStorage.setItem(JOIN, q.get('join')); } catch (e) { /* 이번만 */ } q.delete('join'); history.replaceState(null, '', location.pathname + (q.toString() ? '?' + q.toString().replace(/=(&|$)/g, '$1') : '')); }
     if (q.get('code')) {
-      try { const r = await api('login', { code: q.get('code'), redirectUri: CFG.REDIRECT_URI || '' }); setToken(r.token); }
+      try { const r = await api('login', { code: q.get('code'), redirectUri: CFG.REDIRECT_URI || '' }); setToken(r.token, r.uid); }
       catch (e) { oops(e); }
       history.replaceState(null, '', location.pathname);
       if (backToNote()) return;
@@ -1371,7 +1378,7 @@ try { const p = JSON.parse(localStorage.getItem('koide-pref') || '{}'), d = docu
   async function kakaoLogin(who) {
     // 데모: 카카오 화면 대신 고른 사람으로 바로 로그인(실제로는 카카오에서 돌아올 때 주소에 code가 붙는다)
     if (DEMO) {
-      try { const r = await api('login', { code: 'demo:' + who, redirectUri: '' }); setToken(r.token); } catch (e) { return oops(e); }
+      try { const r = await api('login', { code: 'demo:' + who, redirectUri: '' }); setToken(r.token, r.uid); } catch (e) { return oops(e); }
       if (backToNote()) return;
       S.view = 'loading'; render(); return refreshMe();
     }
@@ -2367,8 +2374,21 @@ try { const p = JSON.parse(localStorage.getItem('koide-pref') || '{}'), d = docu
   // 목사님·장로님은 섬기는 분들 자리에 함께 섬기는 분들(사랑방 리더·코리더와 본인을 뺀 동역자)을 둔다. 고른 것은 같은 자리(serve)에 기억한다
   // 나의 기도 노트(note.html): 이 기기에 저장된 것을 여기서만 읽는다(서버로 보내지 않는다). 노트에 기도제목이 있을 때만 종류에 나오고,
   //  고르지 않으면 넣지 않는다(기본값 아님, 모임에서 화면을 크게 띄울 때 나오지 않게). 기도했어요는 노트의 오늘 기록에도 남긴다
-  const NOTE_KEY = DEMO_LINK ? 'koide-demo-note-v1' : 'koide-note-v1';
-  const noteData = () => { try { return JSON.parse(localStorage.getItem(NOTE_KEY) || 'null'); } catch (e) { return null; } };
+  // 기도 노트는 카카오 계정마다 따로 둔다(한 기기를 여럿이 써도 다른 사람의 노트가 보이지 않게). 주인 표시는 서버가 주는 값(uid)이다.
+  //  주인 표시가 생기기 전의 노트는 처음 확인된 계정의 것으로 옮긴다. 주인을 아직 모르면(예전 로그인, 예전 서버) 예전 자리를 그대로 쓴다
+  function ownNoteKey(base, uid) {
+    if (!uid) return base;
+    const k = base + ':' + uid;
+    try {
+      if (localStorage.getItem(k) == null && localStorage.getItem(base) != null) {
+        localStorage.setItem(k, localStorage.getItem(base)); const lk = localStorage.getItem(base + '-key'); if (lk != null) localStorage.setItem(k + '-key', lk);
+        localStorage.removeItem(base); localStorage.removeItem(base + '-key');
+      }
+    } catch (e) { return base; }
+    return k;
+  }
+  const NOTE_BASE = DEMO_LINK ? 'koide-demo-note-v1' : 'koide-note-v1', noteKey = () => ownNoteKey(NOTE_BASE, getUid());
+  const noteData = () => { try { return JSON.parse(localStorage.getItem(noteKey()) || 'null'); } catch (e) { return null; } };
   const noteDay = () => { const d = new Date(); return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0'); };
   function noteToday() {
     const d = noteData(); if (!d || !Array.isArray(d.items)) return [];
@@ -2382,7 +2402,7 @@ try { const p = JSON.parse(localStorage.getItem('koide-pref') || '{}'), d = docu
     const d = noteData(); if (!d) return;
     const t = noteDay(); d.prays = d.prays || [];
     ids.forEach(id => { const p = d.prays.find(x => x.item === id && x.d === t); if (!p) d.prays.push({ d: t, item: id, up: Date.now() }); else if (p.off) { p.off = false; p.up = Date.now(); } });
-    try { localStorage.setItem(NOTE_KEY, JSON.stringify(d)); } catch (e) { /* 노트에는 못 남김 */ }
+    try { localStorage.setItem(noteKey(), JSON.stringify(d)); } catch (e) { /* 노트에는 못 남김 */ }
   }
   const noteKind = () => noteToday().length ? [['note', '내 기도 노트']] : [];
   const PS_KINDS = () => staffMe() ? [['room', '오늘의 ' + grp()], ['serve', '함께 섬기는 분들'], ['me', words().mine], ...noteKind(), ['world', '하나님 나라']]
@@ -4720,7 +4740,7 @@ try { const p = JSON.parse(localStorage.getItem('koide-pref') || '{}'), d = docu
     }
     if (f.dataset.form === 'codelogin') {
       const v = ($('#cd-a').value || '').trim(); if (!v) return;
-      try { const r = await api('codeLogin', { code: v }); setToken(r.token); }
+      try { const r = await api('codeLogin', { code: v }); setToken(r.token, r.uid); }
       catch (err) { return toast(err.code === 'bad' && /모르는 요청/.test(err.message || '') ? '아직 코드로 들어올 수 없어요. 관리자에게 알려 주세요.' : err.message || '들어오지 못했어요.'); }
       if (backToNote()) return;
       S.view = 'loading'; render(); return refreshMe();

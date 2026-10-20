@@ -248,7 +248,22 @@ textarea.field { min-height: 5.5em; resize: vertical; }
   // 서버 주소가 없거나 ?demo로 열면 데모: 공동체 앱의 데모처럼 서버 코드를 브라우저 안에서 돌린다. 데모의 노트는 실제 노트와 따로 둔다
   const CFG = window.KOIDE_CONFIG || {};
   const DEMO_LINK = !!CFG.API_URL && new URLSearchParams(location.search).has('demo'), DEMO = !CFG.API_URL || DEMO_LINK, QS = DEMO_LINK ? '?demo' : '';
-  const KEY = DEMO_LINK ? 'koide-demo-note-v1' : 'koide-note-v1', LOCK_KEY = KEY + '-key', TOKEN = DEMO_LINK ? 'koide-demo-token' : 'koide-token';
+  // 기도 노트는 카카오 계정마다 따로 둔다(한 기기를 여럿이 써도 다른 사람의 노트가 보이지 않게). 주인 표시는 서버가 주는 값(uid)이다.
+  //  주인 표시가 생기기 전의 노트는 처음 확인된 계정의 것으로 옮긴다. 주인을 아직 모르면(예전 로그인, 예전 서버) 예전 자리를 그대로 쓴다
+  function ownNoteKey(base, uid) {
+    if (!uid) return base;
+    const k = base + ':' + uid;
+    try {
+      if (localStorage.getItem(k) == null && localStorage.getItem(base) != null) {
+        localStorage.setItem(k, localStorage.getItem(base)); const lk = localStorage.getItem(base + '-key'); if (lk != null) localStorage.setItem(k + '-key', lk);
+        localStorage.removeItem(base); localStorage.removeItem(base + '-key');
+      }
+    } catch (e) { return base; }
+    return k;
+  }
+  const BASE = DEMO_LINK ? 'koide-demo-note-v1' : 'koide-note-v1', TOKEN = DEMO_LINK ? 'koide-demo-token' : 'koide-token', UID = DEMO_LINK ? 'koide-demo-uid' : 'koide-uid';
+  const getUid = () => { try { return localStorage.getItem(UID) || ''; } catch (e) { return ''; } };
+  const KEY = ownNoteKey(BASE, getUid()), LOCK_KEY = KEY + '-key';
   // 기도제목·사람·감사·기도한 날마다 고친 시각(up)을 둔다. 다른 기기와 이어 둘 때 더 나중 것을 남기려고(지운 것도 지웠다는 표시로 남긴다)
   const blank = () => ({ v: 2, started: false, name: '', nameUp: 0, people: [], items: [], prays: [], thanks: [], today: null, mode: '', vault: null });
   let D;
@@ -865,8 +880,8 @@ textarea.field { min-height: 5.5em; resize: vertical; }
       }
       case 'restore': return $('#restore-file').click();
       case 'logout': {
-        if (!confirm('로그아웃할까요? 기도 노트는 이 휴대폰에 그대로 남고, 다시 카카오로 로그인하면 보여요.')) return;
-        api('logout').catch(() => {}).then(() => { try { localStorage.removeItem(TOKEN); localStorage.removeItem(DEMO_LINK ? 'koide-demo-cache' : 'koide-cache'); } catch (err) { /* 무시 */ } location.replace('index.html' + QS); });
+        if (!confirm('로그아웃할까요? 기도 노트는 이 기기에 그대로 남고, 같은 카카오로 다시 로그인해야 보여요. 다른 사람이 이 기기에서 로그인해도 내 노트는 보이지 않아요.')) return;
+        api('logout').catch(() => {}).then(() => { try { localStorage.removeItem(TOKEN); localStorage.removeItem(UID); localStorage.removeItem(DEMO_LINK ? 'koide-demo-cache' : 'koide-cache'); } catch (err) { /* 무시 */ } location.replace('index.html' + QS); });
         return;
       }
       case 'wipe': if (!confirm(`이 휴대폰의 기도 노트를 모두 지울까요?${D.vault && D.vault.on ? ' 다른 기기에 연결해 둔 것은 그대로 남고, 이 휴대폰만 연결이 끊겨요.' : ' 되돌릴 수 없어요. 먼저 백업을 내려받아 두세요.'}`)) return;
@@ -941,9 +956,16 @@ textarea.field { min-height: 5.5em; resize: vertical; }
   // 카카오 로그인이 기본: 로그인하지 않았으면 로그인 화면으로(노트는 이 휴대폰에 그대로 남아 있다)
   if (!getToken()) { location.replace('index.html' + QS); return; }
   render();
-  let resume = null; try { resume = localStorage.getItem('koide-note-resume'); localStorage.removeItem('koide-note-resume'); } catch (e) { /* 무시 */ }
-  if (resume === 'vault' && getToken()) { if (D.started) S.tab = 'more'; vaultStart(); }
-  else if (D.vault && D.vault.on) sync();
+  // 노트 주인을 아직 모르면(예전 로그인) 서버에 한 번 묻고, 내 노트 자리가 달라지면 다시 연다. 서버가 답하지 않으면 이번에는 예전 자리 그대로
+  (async () => {
+    if (!getUid()) {
+      try { const r = await api('me'); if (r && r.uid) { try { localStorage.setItem(UID, r.uid); } catch (e) { /* 무시 */ } if (ownNoteKey(BASE, r.uid) !== KEY) return location.reload(); } }
+      catch (e) { if (e && e.code === 'login') return location.replace('index.html' + QS); }
+    }
+    let resume = null; try { resume = localStorage.getItem('koide-note-resume'); localStorage.removeItem('koide-note-resume'); } catch (e) { /* 무시 */ }
+    if (resume === 'vault' && getToken()) { if (D.started) S.tab = 'more'; vaultStart(); }
+    else if (D.vault && D.vault.on) sync();
+  })();
   document.addEventListener('visibilitychange', () => { if (!document.hidden && D.vault && D.vault.on) sync(); });
   if ('serviceWorker' in navigator && (location.protocol === 'https:' || location.hostname === 'localhost')) navigator.serviceWorker.register('sw.js').catch(() => {});
 })();
