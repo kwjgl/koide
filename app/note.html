@@ -298,6 +298,9 @@ button.knot { cursor: pointer; }
 :root[data-style="glass"] .sheet { background: var(--glass-strong); -webkit-backdrop-filter: var(--glass-blur); backdrop-filter: var(--glass-blur); border: var(--glass-edge); }
 :root[data-style="glass"] .ps { background: color-mix(in srgb, var(--page) 82%, transparent); -webkit-backdrop-filter: blur(24px) saturate(160%); backdrop-filter: blur(24px) saturate(160%); }
 </style>
+<!-- 시작 화면이 뜨기 전에는 바탕을 시작 화면과 같은 단색으로(glass의 그라데이션, classic의 무늬가 잠깐 비치지 않게). splash.js가 시작 화면을 닫을 때 푼다 -->
+<script>document.documentElement.classList.add('booting'); setTimeout(() => document.documentElement.classList.remove('booting'), 5000);</script>
+<style>html.booting body { background-image: none !important; } html.booting body::before { display: none !important; }</style>
 </head>
 <body>
 <script src="splash.js" data-space="note"></script>
@@ -401,7 +404,7 @@ button.knot { cursor: pointer; }
   async function sync() {
     if (!D.vault || !D.vault.on || !canLock()) return;
     if (syncing) { syncAgain = true; return; }
-    syncing = true; S.syncMsg = ''; paintSync('맞추는 중…');
+    syncing = true; S.syncMsg = ''; paintSync('동기화 중…');
     try {
       const key = await loadKey();
       if (!key) { D.vault.on = false; saveLocal(); throw { message: '이 기기에서 비밀 문구를 다시 넣어야 해요.' }; }
@@ -418,7 +421,7 @@ button.knot { cursor: pointer; }
         break;
       }
     } catch (e) {
-      S.syncMsg = e.code === 'login' ? '카카오 로그인이 끝났어요. 다시 로그인하면 이어서 맞춰요.' : e.code === 'bad' && /모르는 요청/.test(e.message || '') ? '서버를 새 버전으로 배포해야 연결할 수 있어요.' : (e.message || '맞추지 못했어요.');
+      S.syncMsg = e.code === 'login' ? '카카오 로그인이 끝났어요. 다시 로그인하면 이어서 동기화해요.' : e.code === 'bad' && /모르는 요청/.test(e.message || '') ? '서버를 새 버전으로 배포해야 연결할 수 있어요.' : (e.message || '맞추지 못했어요.');
     } finally {
       syncing = false;
       if (syncAgain) { syncAgain = false; sync(); } else safeRender();
@@ -428,7 +431,7 @@ button.knot { cursor: pointer; }
   function paintSync(t) { const el = document.getElementById('sync-state'); if (el) el.textContent = t; }
   function safeRender() { const a = document.activeElement; if (a && a.matches && a.matches('input, textarea')) return paintSync(syncLabel()); render(); }
   const hhmm = t => { const d = new Date(t); return `${d.getMonth() + 1}월 ${d.getDate()}일 ${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`; };
-  const syncLabel = () => syncing ? '맞추는 중…' : S.syncMsg ? S.syncMsg : D.vault && D.vault.last ? '마지막으로 맞춘 때 · ' + hhmm(D.vault.last) : '아직 맞추지 않았어요';
+  const syncLabel = () => syncing ? '동기화 중…' : S.syncMsg ? S.syncMsg : D.vault && D.vault.last ? '마지막 동기화 · ' + hhmm(D.vault.last) : '아직 동기화하지 않았어요';
 
 
   const $ = s => document.querySelector(s);
@@ -836,13 +839,12 @@ button.knot { cursor: pointer; }
       <button class="icon-btn" data-a="menu" data-v="settings" aria-haspopup="menu" aria-expanded="${S.menu === 'settings'}" aria-label="설정">${TOP_ICON.gear}</button>${menu}</div></header>`;
   }
   function moreView() {
-    return `<header class="top"><div><p class="eyebrow">${D.name ? esc(D.name) : '코이데 기도 노트'}</p><h1>더보기</h1></div></header>
+    const nick = (noteMe() || {}).nick;
+    return `<header class="top"><div><p class="eyebrow">${nick ? esc(nick) : '코이데 기도 노트'}</p><h1>더보기</h1></div></header>
       ${D.vault && D.vault.on ? '<div class="notice"><b>다른 기기와 연결되어 있어요.</b> 서버에는 비밀 문구로 잠근 글만 있어서 아무도 읽을 수 없어요. 비밀 문구를 잊지 않게 적어 두세요.</div>'
         : '<div class="notice"><b>이 기록은 이 휴대폰에만 있어요.</b> 서버로 보내지 않아서 아무도 볼 수 없지만, 휴대폰을 바꾸거나 브라우저 기록을 지우면 사라져요. 아이폰은 홈 화면에 두지 않고 7일 넘게 열지 않으면 지워질 수 있어요. 가끔 백업을 내려받거나, 아래에서 다른 기기와 연결해 두세요.</div>'}
       ${groupsCard()}
       ${vaultCard()}
-      <section class="card"><div class="row"><div><p class="label">부를 이름</p><p class="plain">${D.name ? esc(D.name) : '<span class="hint">아직 없어요</span>'}</p></div><button class="btn ghost small" data-a="rename">${D.name ? '바꾸기' : '정하기'}</button></div>
-        <p class="hint">더보기 위와 기도 노트 곳곳에 보이는 이름이에요. 나만 봐요.</p></section>
       <section class="card"><p class="label">내가 기도하는 사람들</p>
         ${people().length ? `<ul class="people">${people().map(p => `<li><span>${esc(p.name)}</span><span><button class="link quiet" data-a="renperson" data-v="${p.id}">이름 바꾸기</button> <button class="link quiet" data-a="delperson" data-v="${p.id}">빼기</button></span></li>`).join('')}</ul>` : '<p class="hint">가족, 친구처럼 늘 기도하는 사람을 더해 두면 기도제목의 대상으로 고를 수 있고, 오늘 화면에 끈이 생겨요.</p>'}
         <button class="btn ghost small" data-a="addperson" style="align-self:flex-start">+ 사람 더하기</button></section>
@@ -904,7 +906,7 @@ button.knot { cursor: pointer; }
         : `<a class="mrow" style="text-decoration:none;color:inherit" href="${groupUrl(g.id)}"><span><b>${esc(g.name)}${g.role === '모임장' ? ' · 모임장' : ''}</b><small>${g.n}명${g.asks ? ` · 신청 ${g.asks}` : ''}</small></span><span aria-hidden="true">›</span></a>`).join('') : ''}
       ${!M ? '' : E ? `<form data-f="gcreate" style="display:flex;flex-direction:column;gap:8px;margin-top:4px">
           <label class="label" for="gc-n" style="margin:0">모임 이름</label><input id="gc-n" class="field" maxlength="16" placeholder="예: 직장인 기도 모임" autocomplete="off">
-          ${M.linked ? '' : `<label class="label" for="gc-p" style="margin:0">모임에서 쓸 내 이름</label><input id="gc-p" class="field" maxlength="10" value="${esc(D.name || M.nick || '')}" autocomplete="name">`}
+          ${M.linked ? '' : `<label class="label" for="gc-p" style="margin:0">모임에서 쓸 내 이름</label><input id="gc-p" class="field" maxlength="10" value="${esc(M.nick || '')}" autocomplete="name">`}
           <p class="hint" style="margin:0">모임에 쓴 기도제목은 모임 사람들이 함께 봐요(서버에 저장, 교회 관리 화면에는 안 나와요). 노트의 기도제목은 "나누기"로만 옮겨져요.</p>
           <div class="row" style="justify-content:flex-end;gap:8px"><button type="button" class="btn ghost small" data-a="gcancel">취소</button><button class="btn small" type="submit"${S.gBusy ? ' disabled' : ''}>동의하고 만들기</button></div></form>`
         : lead || full ? '' : '<button class="btn ghost small" data-a="gnew" style="align-self:flex-start">+ 모임 만들기</button>'}
@@ -948,8 +950,7 @@ button.knot { cursor: pointer; }
     return `<header class="top"><div><p class="eyebrow">코이데 · 나만 보는 기도 노트</p><h1>나와 내가 사랑하는 사람들을 위해</h1></div></header>
       <section class="card"><p class="plain">기도제목을 쓰고, 날마다 몇 개씩 기도하고, 감사와 응답을 남겨요.</p>
         <div class="notice"><b>기록은 이 휴대폰에만 저장돼요.</b> 서버로 보내지 않아서 운영하는 사람도 볼 수 없어요. 그래서 휴대폰을 바꾸면 백업 파일로 옮겨야 해요. 아이폰은 꼭 <b>홈 화면에 추가</b>해서 써 주세요(공유 버튼 › 홈 화면에 추가).</div>
-        <form data-f="start"><label class="label" for="st-name">부를 이름 (선택)</label><input class="field" id="st-name" maxlength="20" autocomplete="nickname" style="margin-top:6px">
-          <label class="label" for="st-people" style="display:block;margin-top:12px">늘 기도하는 사람 (선택, 쉼표로 나눠요)</label><input class="field" id="st-people" maxlength="200" placeholder="예) 엄마, 아빠, 지우" style="margin-top:6px">
+        <form data-f="start"><label class="label" for="st-people" style="display:block">늘 기도하는 사람 (선택, 쉼표로 나눠요)</label><input class="field" id="st-people" maxlength="200" placeholder="예) 엄마, 아빠, 지우" style="margin-top:6px">
           <button class="btn wide" type="submit" style="margin-top:16px">시작하기</button></form>
         ${canLock() ? '<button class="link" data-a="vstart" style="align-self:center">다른 기기에서 쓰던 노트 불러오기</button>' : ''}</section>`;
   }
@@ -1087,7 +1088,6 @@ button.knot { cursor: pointer; }
       case 'psgo': S.ps.i = Math.max(0, S.ps.i + Number(v)); render(); { const b = document.querySelector('.ps-body'); if (b) b.scrollTop = 0; } return;
       case 'pspray': togglePray(S.ps.list[S.ps.i].id); return render();
       case 'psclose': S.ps = null; musicOff(); return render();
-      case 'rename': { const n = prompt('부를 이름 (비워 두면 지워져요)', D.name || ''); if (n == null) return; D.name = n.trim().slice(0, 20); D.nameUp = now(); save(); return toast(D.name ? '부를 이름을 바꿨어요' : '부를 이름을 지웠어요'); }
       case 'renperson': { const p = D.people.find(x => x.id === v), n = (prompt('새 이름', p.name) || '').trim().slice(0, 12); if (n) { p.name = n; p.up = now(); save(); } return render(); }
       case 'delperson': {
         const p = D.people.find(x => x.id === v), n = D.items.filter(i => i.target === 'p:' + v && !i.done).length;
@@ -1157,7 +1157,6 @@ button.knot { cursor: pointer; }
   document.addEventListener('submit', e => {
     const f = e.target.closest('[data-f]'); if (!f) return; e.preventDefault();
     if (f.dataset.f === 'start') {
-      D.name = $('#st-name').value.trim().slice(0, 20); D.nameUp = now();
       ($('#st-people').value || '').split(/[,，·]/).map(s => s.trim().slice(0, 12)).filter(Boolean).slice(0, 12).forEach(n => D.people.push({ id: uid(), name: n, up: now() }));
       D.started = true; save();
       let seen = null; try { seen = localStorage.getItem(TOUR_KEY); } catch (err) { /* 없음 */ }

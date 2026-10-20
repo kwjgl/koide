@@ -1115,6 +1115,9 @@ try { const p = JSON.parse(localStorage.getItem('koide-pref') || '{}'), d = docu
   if (p.style && p.style !== 'flat') d.dataset.style = p.style;
   if (p.big) d.dataset.big = ''; } catch (e) { /* 무시 */ }
 </script>
+<!-- 시작 화면이 뜨기 전에는 바탕을 시작 화면과 같은 단색으로(glass의 그라데이션, classic의 무늬가 잠깐 비치지 않게). splash.js가 시작 화면을 닫을 때 푼다 -->
+<script>document.documentElement.classList.add('booting'); setTimeout(() => document.documentElement.classList.remove('booting'), 5000);</script>
+<style>html.booting body { background-image: none !important; } html.booting body::before { display: none !important; }</style>
 </head>
 <body>
 <script src="splash.js" data-space="community"></script>
@@ -1538,7 +1541,7 @@ try { const p = JSON.parse(localStorage.getItem('koide-pref') || '{}'), d = docu
       if (J.done || P.had) return `<p class="eyebrow">${esc(P.name)}</p><h1>${wait ? '함께하기를 신청했어요' : '이미 함께하고 있어요'}</h1>
         <p>${wait ? '모임장이 승인하면 기도 노트 › 더보기 › <b>내 모임</b>에 나와요.' : '기도 노트 › 더보기 › <b>내 모임</b>에서 열어요.'}</p>${home}`;
       if (P.places >= P.placesMax) return `<p class="eyebrow">${esc(P.name)}</p><h1>세 곳이 다 찼어요</h1><p class="hint">모임은 교회 소그룹을 포함해 ${P.placesMax}곳까지 함께할 수 있어요. 다른 모임에서 나온 뒤 다시 이 링크를 열어 주세요.</p>${home}`;
-      const nd = noteData(), nm = (nd && nd.name) || (S.me && S.me.nick) || '';
+      const nm = (S.me && S.me.nick) || '';
       return `<p class="eyebrow">모임 초대</p><h1>${esc(P.name)}</h1><p class="hint">모임장 ${esc(P.lead || '')} · ${P.n}/${P.max}명 · 모임장이 승인하면 함께해요</p>
         <form data-form="gjoin">
           ${P.linked ? '' : `<label class="f" for="gj-n">모임에서 쓸 이름</label><input id="gj-n" class="field" name="n" required maxlength="10" value="${esc(nm)}" autocomplete="name"><p class="hint">모임 사람들에게 이 이름으로 보여요.</p>`}

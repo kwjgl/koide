@@ -66,16 +66,19 @@
   <p class="splash-name sw-in d1">${esc(room || '코이데 공동체')}</p><p class="splash-sub sw-in d2">함께 기도하는 공동체</p><p class="loading"></p>`;
   }
   const st = document.createElement('style'); st.textContent = css; document.head.appendChild(st);
+  // 바탕 그림(glass·classic)은 시작 화면이 걷힐 때 함께 보인다. 시작 화면이 없으면 바로
+  const unboot = () => document.documentElement.classList.remove('booting');
+  if (!inner) unboot();
   if (inner) me.insertAdjacentHTML('afterend', `<div id="splash" class="splash" aria-hidden="true">${inner}</div>`);
   window.SPLASH_AT = performance.now();
-  // 시작 화면 닫기: 처음 켤 때는 매듭이 다 지어질 만큼(1.3초), 전환 화면은 어디로 왔는지 알아볼 만큼(1.4초) 머문다
+  // 시작 화면 닫기: 처음 켤 때도 전환 화면도 1.5초 머문다(움직임 줄이기는 0.6초)
   window.koideSplash = {
     mode,
     hide() {
-      const s = document.getElementById('splash'); if (!s || s.classList.contains('out')) return;
+      const s = document.getElementById('splash'); if (!s || s.classList.contains('out')) return unboot();
       const calm = matchMedia('(prefers-reduced-motion: reduce)').matches, shown = performance.now() - window.SPLASH_AT;
-      const stay = mode === 'main' ? (calm ? 600 : 1300) : (calm ? 600 : 1400);
-      setTimeout(() => { s.classList.add('out'); setTimeout(() => s.remove(), calm ? 0 : 300); }, Math.max(0, stay - shown));
+      const stay = calm ? 600 : 1500;
+      setTimeout(() => { s.classList.add('out'); unboot(); setTimeout(() => s.remove(), calm ? 0 : 300); }, Math.max(0, stay - shown));
     }
   };
 })();
