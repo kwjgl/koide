@@ -1,4 +1,4 @@
-/* 나의 기도 노트 › 나의 보관함의 입체 그림 세 가지: 나의 올해 끈, 이달의 정원, 끈 보관함. 그리고 모임 화면과 끈 보관함에서 쓰는 '함께 짜는 그물'(weave, weaves).
+/* 나의 기도 노트 › 기도 서랍의 입체 그림 세 가지: 나의 올해의 실타래, 이달의 조각보, 실타래 상자. 그리고 모임 화면과 실타래 상자에서 쓰는 '함께 짜는 그물'(weave, weaves).
  * 지난 기록을 열 때만 vendor/three.min.js와 함께 불러온다(note.html의 load3d).
  * 각 그림은 한 번 만들어 두고, 화면을 다시 그릴 때는 그림판(canvas)만 새 자리로 옮긴다(attach). 기록이 바뀌면 note.html이 새로 만든다 */
 window.KOIDE_NOTE3D = (() => {
@@ -9,7 +9,7 @@ window.KOIDE_NOTE3D = (() => {
   const md = s => { const [, m, d] = s.split('-').map(Number); return `${m}월 ${d}일`; };
 
   // 공통 그림판: 붙일 자리(attach)가 바뀌어도 같은 그림을 이어 쓴다. 밀면 onDrag, 살짝 누르면 onTap(화면 좌표 -1~1)
-  //  ortho면 정사영 카메라(정원), free()가 참이면 손가락 하나로도 위아래까지 끈다(크게 보기), pinch가 있으면 두 손가락으로 키우고 옮긴다(크게 보기)
+  //  ortho면 정사영 카메라(조각보), free()가 참이면 손가락 하나로도 위아래까지 끈다(크게 보기), pinch가 있으면 두 손가락으로 키우고 옮긴다(크게 보기)
   //  grab이 있으면(꾸미기) 누른 자리에 잡을 것이 있을 때 grab.start가 true를 돌려주고, 그 뒤로는 돌리기 대신 grab.move · grab.end
   function stage({ srgb, ortho, onDrag, onTap, frame, grab, free, pinch }) {
     const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
@@ -79,7 +79,7 @@ window.KOIDE_NOTE3D = (() => {
     const r = new THREE.DirectionalLight(0xffffff, 0.3); r.position.set(4, -2, -4); scene.add(r);
   };
 
-  // ── 나의 올해 끈: 달마다 한 가닥(기도한 날만큼 굵게, 아직 오지 않은 달은 옅게), 응답 매듭, 감사 금실 ──────────
+  // ── 나의 올해의 실타래: 달마다 한 가닥(기도한 날만큼 굵게, 아직 오지 않은 달은 옅게), 응답 매듭, 감사 금실 ──────────
   //  data: { year, days[12], now(0~11), answers: [{ d, text, item }], thanks: [{ d, text }] }, info(): 고른 것을 쓸 자리
   function cord(data, info) {
     const LEN = 6.6, CORE = 0.28, TURNS = 3, N = 12, MAXD = Math.max(8, ...data.days);
@@ -135,9 +135,9 @@ window.KOIDE_NOTE3D = (() => {
     return S;
   }
 
-  // ── 이달의 정원: 한 달 한 판(note.html이 고른 달 하나를 넘긴다). 그 달 첫 기도에 주인공, 그다음 기도한 날마다 소품 하나가 정원에 놓인다 ──────────
+  // ── 이달의 조각보: 한 달 한 판(note.html이 고른 달 하나를 넘긴다). 그 달 첫 기도에 주인공, 그다음 기도한 날마다 소품 하나가 조각보에 놓인다 ──────────
   //  row: { key, title, hero: [파일, 이름, 너비], props: [[파일, 이름, 너비]], days: ['YYYY-MM-DD'…], count }, base: 그림 폴더, info(): 고른 것을 쓸 자리
-  //  A: { st: { n, pos: { 이름: [i, j, 뒤집음] } }, hand, month, on(), big(), save(st), tray(): 서랍을 그릴 자리들, ui() }
+  //  A: { st: { n, pos: { 이름: [i, j, 뒤집음] } }, hand, month, on(), big(), save(st), tray(): 바구니를 그릴 자리들, ui() }
   //  자리는 판 한가운데 칸을 (0, 0)으로 둔 칸 번호(i, j)로 적는다. 판이 커져도(3→4→5) 번호가 그대로라서 놓아 둔 소품이 움직이지 않는다.
   //  판 크기 n의 칸 번호는 -floor(n/2) ~ n-1-floor(n/2): 한 칸 커질 때마다 한쪽 가장자리에 새 칸이 돋는다. 2×2 소품은 왼쪽 위 칸 번호를 적는다
   function garden(row, base, info, A) {
@@ -224,11 +224,33 @@ window.KOIDE_NOTE3D = (() => {
     const shade = (c, k) => { const o = lin(c); o.multiplyScalar(k); return o; };
     const ray = new THREE.Raycaster(), loader = new THREE.TextureLoader();
 
-    // ── 판: 달마다 땅 색이 조금씩 다르다(봄 연두, 가을 누런 풀, 겨울 옅은 빛). 새로 생긴 가장자리 칸은 솟아오른다 ──────────
+    // ── 판: 조각보. 달마다 천 색이 조금씩 다르고(봄 연두, 가을 누런 풀, 겨울 옅은 빛) 칸마다 결이 아주 조금 다르다. 칸 가장자리는 바느질 땀 점선.
+    //  새로 생긴 가장자리 칸은 솟아오른다(천이 펼쳐지듯) ──────────
     const TINT = [['#D8E3CF', '#CBDAC2'], ['#CFE0D6', '#C2D6CB'], ['#D3E6B8', '#C6DDA8'], ['#CFE5B0', '#C0DB9E'], ['#C7E0A4', '#B8D692'], ['#BDDB96', '#AECF86'],
       ['#C0DCA0', '#B2D18F'], ['#C8D9A0', '#BACD8E'], ['#DCDDA6', '#CFD097'], ['#C9DDA4', '#BBD393'], ['#E0D3A0', '#D4C690'], ['#C5D3E6', '#B6C6DB']][clamp((A.month || 10) - 1, 0, 11)];
-    const k = dark ? 0.5 : 1, tileMat = TINT.map(c => new THREE.MeshBasicMaterial({ color: shade(c, k) }));
-    const soil = css('--wood') || '#B98756', sideMat = [1, 0.8, 1, 0.6, 0.9, 0.7].map(f => new THREE.MeshBasicMaterial({ color: shade(soil, f * (dark ? 0.9 : 1)) }));
+    const k = dark ? 0.5 : 1, tileMat = TINT.map(c => [0.965, 1, 1.035].map(v => new THREE.MeshBasicMaterial({ color: shade(c, k * v) })));
+    const tileVar = (i, j) => (((i * 3 + j * 5) % 3) + 3) % 3;   // 칸마다 천 결이 조금씩 다르게(같은 칸은 늘 같은 결)
+    // 땀 점선 그림(칸 위): 칸 안쪽으로 조금 들어와 한 바퀴. 이웃한 두 칸이 만나는 곳에서는 두 줄이 나란히 보여 이어 붙인 솔기처럼 보인다
+    const threadCol = dark ? 'rgba(255,244,220,0.42)' : 'rgba(255,252,240,1)';
+    const stitchTex = (() => {
+      const c = document.createElement('canvas'); c.width = c.height = 128; const x = c.getContext('2d');
+      x.strokeStyle = threadCol; x.lineWidth = 5; x.lineCap = 'round'; x.setLineDash([10, 9]); x.lineDashOffset = 5; x.strokeRect(11, 11, 106, 106);
+      const t = new THREE.CanvasTexture(c); t.encoding = THREE.sRGBEncoding; t.anisotropy = 4; return t;
+    })();
+    const stitchMat = new THREE.MeshBasicMaterial({ map: stitchTex, transparent: true, depthWrite: false }), stitchGeo = new THREE.PlaneGeometry(SZ - 0.06, SZ - 0.06);
+    // 판 옆면: 천 가장자리(접힌 단). 달마다 테두리 천 색이 다르고, 위 가장자리에 땀 점선. 카메라에 보이는 두 면(+x, +z)에만 그린다
+    const CLOTH = ['#8FA3B8', '#8FB0A8', '#C7A0A6', '#D0A56F', '#B6A0C6', '#8FB0A0', '#C98F7B', '#B89A6A', '#B5744F', '#9A6F9C', '#A9674F', '#6F86AA'][clamp((A.month || 10) - 1, 0, 11)];
+    const facing = f => new THREE.MeshBasicMaterial({ color: shade('#ffffff', f * (dark ? 0.55 : 1)) });
+    const sideMat = [facing(1), facing(0.8), facing(1), facing(0.6), facing(0.9), facing(0.7)];
+    function hemTex(len) {
+      const ppu = 80, c = document.createElement('canvas'); c.width = Math.round(len * ppu); c.height = Math.round(SLAB * ppu); const x = c.getContext('2d'), h = c.height;
+      x.fillStyle = CLOTH; x.fillRect(0, 0, c.width, h);
+      x.fillStyle = 'rgba(0,0,0,0.13)'; x.fillRect(0, h * 0.62, c.width, h * 0.38);          // 접힌 단 아래쪽
+      x.fillStyle = 'rgba(0,0,0,0.18)'; x.fillRect(0, h * 0.62 - 1, c.width, 2);            // 접힌 줄
+      x.strokeStyle = threadCol; x.lineWidth = 3.6; x.lineCap = 'round'; x.setLineDash([11, 8]);
+      x.beginPath(); x.moveTo(4, h * 0.22); x.lineTo(c.width - 4, h * 0.22); x.stroke();     // 위 가장자리 땀
+      const t = new THREE.CanvasTexture(c); t.encoding = THREE.sRGBEncoding; t.anisotropy = 4; return t;
+    }
     const root = new THREE.Group(); S.scene.add(root);
     const tiles = [], tileAt = new Map();
     let slab = null;
@@ -237,12 +259,15 @@ window.KOIDE_NOTE3D = (() => {
       for (let i = r0; i < r0 + N; i++) for (let j = r0; j < r0 + N; j++) {
         if (tileAt.has(keyOf(i, j))) continue;
         const geo = new THREE.BoxGeometry(SZ - 0.06, TH, SZ - 0.06); geo.translate(0, TH / 2, 0);
-        const m = new THREE.Mesh(geo, tileMat[(i + j) & 1 ? 1 : 0]); m.position.set(i * SZ, -TH, j * SZ); root.add(m);
+        const m = new THREE.Mesh(geo, tileMat[(i + j) & 1 ? 1 : 0][tileVar(i, j)]); m.position.set(i * SZ, -TH, j * SZ); root.add(m);
+        const st = new THREE.Mesh(stitchGeo, stitchMat); st.rotation.x = -Math.PI / 2; st.position.y = TH + 0.006; m.add(st);
         const t = { m, i, j, rise: null }; tiles.push(t); tileAt.set(keyOf(i, j), t);
         if (from && !inside(i, j, from) && !reduce()) { m.scale.y = 0.001; t.rise = { t: 0, delay: 0.05 * (Math.abs(i) + Math.abs(j)) }; }
       }
       if (slab) { root.remove(slab); slab.geometry.dispose(); }
-      slab = new THREE.Mesh(new THREE.BoxGeometry(N * SZ + 0.1, SLAB, N * SZ + 0.1), sideMat);
+      const len = N * SZ + 0.1;
+      [0, 4].forEach(f => { if (sideMat[f].map) sideMat[f].map.dispose(); sideMat[f].map = hemTex(len); sideMat[f].needsUpdate = true; });
+      slab = new THREE.Mesh(new THREE.BoxGeometry(len, SLAB, len), sideMat);
       const mid = (r0 + (N - 1) / 2) * SZ; slab.position.set(mid, -TH - SLAB / 2 + 0.01, mid); root.add(slab);
     }
     board(prevN > 0 && N > prevN ? prevN : 0);
@@ -331,7 +356,7 @@ window.KOIDE_NOTE3D = (() => {
       return pick;
     }
     function showMarks() {
-      // 칸은 꾸미는 중이거나 서랍에서 고른 때만 빛낸다. 그냥 소품을 누르면 이름·온 날 글만
+      // 칸은 꾸미는 중이거나 바구니에서 고른 때만 빛낸다. 그냥 소품을 누르면 이름·온 날 글만
       const live = A.on() || !!tray, mover = tray ? byName[tray] : live ? sel : null, ok = new Set();
       if (mover) anchors(mover, mover.cell ? mover.name : null).forEach(a => cellsOf(mover, a).forEach(([i, j]) => ok.add(keyOf(i, j))));
       marks.forEach((m, kk) => { m.visible = ok.has(kk); });
@@ -343,7 +368,7 @@ window.KOIDE_NOTE3D = (() => {
       if (live && sel && sel.cell) { selMark.visible = true; selMark.scale.set(sel.fp * SZ - 0.06, sel.fp * SZ - 0.06, 1); const c = center(sel); selMark.position.x = c[0] * SZ; selMark.position.z = c[1] * SZ; } else selMark.visible = false;
       S.draw();
     }
-    const hintHtml = () => (info() && info().id === 'gbig-say') ? (A.on() ? '<div class="pick3d"><small>소품을 한 번 누르고 빛나는 빈 자리를 눌러 옮겨요. 소품을 두 번 누르면 좌우가 바뀌어요. 이 기기에만 남아요.</small></div>' : '') : '<p class="hint">기도한 날마다 그 달 그림의 소품이 하나씩 정원에 놓여요.</p>';
+    const hintHtml = () => (info() && info().id === 'gbig-say') ? (A.on() ? '<div class="pick3d"><small>소품을 한 번 누르고 빛나는 빈 자리를 눌러 옮겨요. 소품을 두 번 누르면 좌우가 바뀌어요. 이 기기에만 남아요.</small></div>' : '') : '<p class="hint">기도한 날마다 그 달 그림의 소품이 하나씩 조각보에 놓여요.</p>';
     const say = html => { const el = info(); if (el) el.innerHTML = html == null ? hintHtml() : html; };
     const md2 = it => it.date ? `${esc(it.name)} · ${md(it.date)}에 왔어요` : esc(it.name);
     function choose(it) {
@@ -365,10 +390,10 @@ window.KOIDE_NOTE3D = (() => {
       lastTap = { t: dbl ? 0 : now, it };
       if (tray) {
         const mover = byName[tray], c = cellAt(x, y), a = c && anchorFor(mover, c, null);
-        if (a) { tray = null; move(mover, a, true); showMarks(); syncUI(); say(`<div class="pick3d"><p>${esc(mover.name)}을(를) 정원에 놓았어요</p></div>`); } else if (!it) say('<div class="pick3d"><p>빛나는 칸을 눌러 주세요</p></div>');
+        if (a) { tray = null; move(mover, a, true); showMarks(); syncUI(); say(`<div class="pick3d"><p>${esc(mover.name)}을(를) 조각보에 놓았어요</p></div>`); } else if (!it) say('<div class="pick3d"><p>빛나는 칸을 눌러 주세요</p></div>');
         return;
       }
-      // 카드에서 정원을 누르면 크게 보기(서랍에서 고른 상태는 위에서 칸 놓기로 갔다)
+      // 카드에서 조각보를 누르면 크게 보기(바구니에서 고른 상태는 위에서 칸 놓기로 갔다)
       if (!A.big()) { A.open && A.open(); return; }
       if (!A.on()) { choose(it && it !== sel ? it : null); return; }
       if (it) { if (dbl) { if (sel !== it) choose(it); flip(); return; } choose(it === sel ? null : it); return; }
@@ -381,7 +406,7 @@ window.KOIDE_NOTE3D = (() => {
       if (!sel || !sel.card) return; sel.flip = !sel.flip; sel.card.scale.x = sel.flip ? -1 : 1; persist(); S.draw();
     }
 
-    // ── 서랍(직접 놓기): 아직 자리가 없는 것들. 눌러서 고르면 놓을 수 있는 칸이 빛난다 ──────────
+    // ── 바구니(직접 놓기): 아직 자리가 없는 것들. 눌러서 고르면 놓을 수 있는 칸이 빛난다 ──────────
     function syncUI() {
       S.el.style.touchAction = A.big() ? 'none' : 'pan-y';
       if (!A.big() && (Z !== 1 || PX || PY)) { Z = 1; PX = PY = 0; S.fit(); }
@@ -390,7 +415,7 @@ window.KOIDE_NOTE3D = (() => {
       A.tray().forEach(el => {
         if (!el) return;
         el.hidden = !(A.hand && left.length);
-        el.innerHTML = !el.hidden ? `<p class="hint">서랍에서 소품을 고른 뒤, 빛나는 칸을 눌러 놓아요.</p><div class="gt-list">${left.map(it => `<button class="gt-it${tray === it.name ? ' on' : ''}" data-n="${esc(it.name)}" aria-pressed="${tray === it.name}"><img src="${base}${row.key}/${it.file}.webp" alt=""><span>${esc(it.name)}</span></button>`).join('')}</div>` : '';
+        el.innerHTML = !el.hidden ? `<p class="hint">바구니에서 소품을 고른 뒤, 빛나는 칸을 눌러 놓아요.</p><div class="gt-list">${left.map(it => `<button class="gt-it${tray === it.name ? ' on' : ''}" data-n="${esc(it.name)}" aria-pressed="${tray === it.name}"><img src="${base}${row.key}/${it.file}.webp" alt=""><span>${esc(it.name)}</span></button>`).join('')}</div>` : '';
         el.onclick = e => { const b = e.target.closest && e.target.closest('.gt-it'); if (b) pickTray(b.dataset.n); };
       });
     }
@@ -423,7 +448,7 @@ window.KOIDE_NOTE3D = (() => {
     return S;
   }
 
-  // ── 끈 보관함: 한 해가 끝나면 그해 끈을 감아 상자에 넣는다(해마다 한 칸, 올해 칸은 비어 있다) ──────────
+  // ── 실타래 상자: 한 해가 끝나면 그해 실타래를 감아 상자에 넣는다(해마다 한 칸, 올해 칸은 비어 있다) ──────────
   //  years: 세 해 [{ y, days, answers: [글], long } | { y, now } | { y, later }]
   function chest(years, info) {
     const CW = 2.6, CD = 2.6, WALL = 0.12, HGT = 0.7, N = Math.max(3, years.length), BW = N * CW + (N + 1) * WALL;
@@ -472,10 +497,10 @@ window.KOIDE_NOTE3D = (() => {
     function select(g) {
       if (sel) sel.position.y = 0;
       sel = g; const el = info(); S.draw(); if (!el) return;
-      if (!g) { el.innerHTML = '<p class="hint">한 해가 끝나면 그해의 끈을 상자에 넣어요.</p>'; return; }
+      if (!g) { el.innerHTML = '<p class="hint">한 해가 끝나면 그해의 실타래를 상자에 넣어요.</p>'; return; }
       g.position.y = 0.25; S.draw();
       const Y = g.userData.Y;
-      el.innerHTML = `<div class="pick3d"><small>${Y.y}년의 끈 · 기도한 날 ${Y.days}일 · 응답 매듭 ${Y.answers.length}개</small>${Y.long ? `<p>오래 이어 온 기도: ${esc(Y.long)}</p>` : ''}${Y.answers.length ? `<ul>${Y.answers.map(a => `<li>${esc(a)}</li>`).join('')}</ul>` : ''}</div>`;
+      el.innerHTML = `<div class="pick3d"><small>${Y.y}년의 실타래 · 기도한 날 ${Y.days}일 · 응답 매듭 ${Y.answers.length}개</small>${Y.long ? `<p>오래 이어 온 기도: ${esc(Y.long)}</p>` : ''}${Y.answers.length ? `<ul>${Y.answers.map(a => `<li>${esc(a)}</li>`).join('')}</ul>` : ''}</div>`;
     }
     return S;
   }
@@ -592,7 +617,7 @@ window.KOIDE_NOTE3D = (() => {
     return true;
   }
 
-  // 그물 한 장 보여 주기(모임 화면의 카드와 크게 보기, 끈 보관함에서 연 그물). 비스듬히 위에서 내려다보고, 밀어서 돌려 본다
+  // 그물 한 장 보여 주기(모임 화면의 카드와 크게 보기, 실타래 상자에서 연 그물). 비스듬히 위에서 내려다보고, 밀어서 돌려 본다
   //  opts: { fresh: [[a, b]…](오늘 새로 이어진 실 — 처음 그릴 때 반짝이며 나타난다), big: () => 크게 보기인가 }
   function weave(data, info, opts) {
     opts = opts || {};

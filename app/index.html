@@ -2092,7 +2092,7 @@ try { const p = JSON.parse(localStorage.getItem('koide-pref') || '{}'), d = docu
   //  그림 파일은 CFG.ART(이 저장소는 ../prototype/img/, 실제 앱 저장소는 app/img/)
   //  그림 세트 이름은 년차-월(1-10: 1년차 10월). 1년차는 2026년 9월 ~ 2027년 8월, 2년차는 2027년 9월부터.
   //  그 해 그림이 아직 없으면 같은 달의 1년차 그림을 쓴다
-  // 장면 목록(SCENES)과 그림 세트 이름(sceneKey)은 기도 노트의 이달의 정원과 함께 쓰려고 art-data.js에 둔다
+  // 장면 목록(SCENES)과 그림 세트 이름(sceneKey)은 기도 노트의 이달의 조각보와 함께 쓰려고 art-data.js에 둔다
   const { SCENES, sceneKey } = window.KOIDE_ART;
   // 그림 높이/너비 비율 (tools/optimize_art.py가 찍어 주는 값)
   const ART_RATIO = {

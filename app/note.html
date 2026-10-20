@@ -175,7 +175,7 @@ button.knot { cursor: pointer; }
 .weeks i.today { outline: 2px solid var(--accent-mid); }
 .weeks i.wd { background: none; aspect-ratio: auto; font-size: .7em; }
 .weeks i.blank { background: none; }
-/* 지난 기록의 입체 그림: 나의 올해 끈, 이달의 정원, 끈 보관함 */
+/* 지난 기록의 입체 그림: 나의 올해의 실타래, 이달의 조각보, 실타래 상자 */
 .card-head { display: flex; justify-content: space-between; align-items: baseline; gap: 10px; flex-wrap: wrap; }
 .card-head span { font-size: .8em; color: var(--ink-2); font-variant-numeric: tabular-nums; }
 .stage3d { position: relative; width: 100%; border-radius: 12px; background: radial-gradient(120% 100% at 50% 40%, var(--surface), var(--surface-2)); cursor: grab; overflow: hidden; touch-action: pan-y; }
@@ -256,7 +256,7 @@ button.knot { cursor: pointer; }
 .g-hand small { font-size: .74em; color: var(--ink-2); }
 .g-btns { display: flex; flex-wrap: wrap; gap: 8px; margin-left: auto; justify-content: flex-end; }
 #keep3d-pick { min-height: 3.2em; margin-top: 10px; }
-/* 직접 놓기 서랍: 아직 자리가 없는 소품이 줄지어 기다린다. 하나를 누르면 정원에 놓을 수 있는 칸이 빛난다 */
+/* 직접 놓기 바구니: 아직 자리가 없는 소품이 줄지어 기다린다. 하나를 누르면 조각보에 놓을 수 있는 칸이 빛난다 */
 .gtray { margin-top: 10px; background: var(--surface-2); border-radius: 12px; padding: 8px 10px 10px; }
 .gtray[hidden] { display: none; }
 .gtray .hint { margin: 0 0 6px; }
@@ -264,7 +264,7 @@ button.knot { cursor: pointer; }
 .gt-it { flex: none; width: 78px; display: flex; flex-direction: column; align-items: center; gap: 2px; border: 2px solid transparent; background: var(--surface); border-radius: 12px; padding: 6px 4px; font-size: .72em; line-height: 1.3; color: var(--ink); cursor: pointer; word-break: keep-all; text-align: center; }
 .gt-it img { width: 48px; height: 48px; object-fit: contain; }
 .gt-it.on { border-color: var(--accent); background: var(--accent-soft); }
-/* 크게 보기: 정원만 화면 가득. 오른쪽 위에 작은 동그란 버튼들 */
+/* 크게 보기: 조각보만 화면 가득. 오른쪽 위에 작은 동그란 버튼들 */
 .gbig { position: fixed; inset: 0; z-index: 70; background: radial-gradient(120% 100% at 50% 40%, var(--surface), var(--surface-2)); touch-action: none; overscroll-behavior: contain; }
 .gbig-host { position: absolute; inset: 0; }
 .gbig-host canvas { cursor: grab; }
@@ -568,7 +568,7 @@ button.knot { cursor: pointer; }
   if (SC && ['today', 'note', 'pray', 'look', 'keep', 'more', 'start'].includes(SC.at)) S.tab = SC.at;
   // 그물 장면(at=weaves: 함께 짠 그물 탭에 그물 네 개가 걸려 있다)
   if (SC && SC.at === 'weaves') { S.tab = 'keep'; S.keep = 'weaves'; }
-  // 정원 장면(at=garden: 이번 달 소품 여덟 개로 5×5 판, at=garden-tray: 직접 놓기를 켜고 네 개가 서랍에서 기다림). 지난달(9월)로 넘기면 3×3 판
+  // 조각보 장면(at=garden: 이번 달 소품 여덟 개로 5×5 판, at=garden-tray: 직접 놓기를 켜고 네 개가 바구니에서 기다림). 지난달(9월)로 넘기면 3×3 판
   if (SC && (SC.at === 'garden' || SC.at === 'garden-tray')) {
     S.tab = 'keep'; S.keep = 'garden';
     if (SC.at === 'garden-tray') { try { localStorage.setItem(KEY + ':garden-hand', '1'); localStorage.setItem(KEY + ':garden', JSON.stringify({ [TODAY().slice(0, 7)]: { n: 5, pos: { '양': [0, 0, 0], '나무': [-2, -2, 0], '샘물': [1, -2, 1], '꽃밭': [-2, 1, 0] } } })); } catch (e) { /* 무시 */ } }
@@ -688,7 +688,7 @@ button.knot { cursor: pointer; }
       ${set.map(i => { const on = prayedToday(i.id); return `<div class="today-item${on ? ' on' : ''}"><p><span class="tag">${esc(targetName(i.target))}</span>${esc(i.text)}</p>
         <div class="row"><span class="days">${daysSince(i.created)}일째 기도하고 있어요</span><button class="pray-btn${on ? ' on' : ''}" data-a="pray" data-v="${i.id}" aria-pressed="${on}">${on ? ICON.check + '기도했어요' : '기도했어요'}</button></div></div>`; }).join('')}
       ${done === set.length ? `<p class="hint">오늘 기도할 제목을 다 기도했어요.${all.length > set.length ? ' 다른 기도제목도 함께 기도해 볼까요?' : ''}</p>` : ''}
-      ${done === set.length && todayProp() ? `<button class="keep-note" data-a="keep" data-v="garden"><span>${todayProp().all ? '이달의 소품을 다 모았어요' : `오늘 <b>${esc(todayProp().name)}</b>${josaN(todayProp().name)} 정원에 놓였어요`}</span><span class="go">정원 보기 ›</span></button>` : ''}
+      ${done === set.length && todayProp() ? `<button class="keep-note" data-a="keep" data-v="garden"><span>${todayProp().all ? '이달의 소품을 다 모았어요' : `오늘 <b>${esc(todayProp().name)}</b>${josaN(todayProp().name)} 조각보에 놓였어요`}</span><span class="go">조각보 보기 ›</span></button>` : ''}
       <button class="btn ghost" data-a="psopen" data-v="${done === set.length ? 'all' : 'today'}">${done === set.length && all.length > set.length ? '모든 기도제목으로 기도하기' : '한 장씩 기도하기'}</button></section>
       ${cordHtml()}${thanksQuick()}`;
   }
@@ -801,28 +801,28 @@ button.knot { cursor: pointer; }
         <p class="hint">남과 견주지 않는 나만의 기록이에요. 빈 날이 있어도 괜찮아요.</p></section>
       <section class="card"><div class="seg" role="tablist">${[['thanks', '감사와 응답 · ' + thanks.length], ['done', '마친 기도 · ' + doneL.length]].map(([k, l]) => `<button class="${tab === k ? 'on' : ''}" role="tab" aria-selected="${tab === k}" data-a="looktab" data-v="${k}">${l}</button>`).join('')}</div>${list}</section>
       ${longest.length ? `<section class="card"><p class="label">오래 이어 온 기도</p>${longest.map(i => `<p class="plain"><span class="tag">${esc(targetName(i.target))}</span>${esc(i.text)} <span class="days">· ${daysSince(i.created)}일째</span></p>`).join('')}</section>` : ''}
-      <section class="card"><button class="mrow" data-a="keep" data-v=""><span><b>나의 보관함</b><small>올해 끈 · 이달의 정원 · 끈 보관함</small></span><span aria-hidden="true">›</span></button></section>`;
+      <section class="card"><button class="mrow" data-a="keep" data-v=""><span><b>기도 서랍</b><small>이달의 조각보 · 올해의 실타래 · 실타래 상자</small></span><span aria-hidden="true">›</span></button></section>`;
   }
-  // 나의 보관함: 지난 기록 맨 아래 입구로 들어가는 화면. 입체 그림 셋 중 하나를 크게(올해 끈 · 이달의 정원 · 끈 보관함)
-  const KEEPS = [['cord', '올해 끈'], ['garden', '이달의 정원'], ['chest', '끈 보관함']];
+  // 기도 서랍: 지난 기록 맨 아래 입구로 들어가는 화면. 입체 그림 셋 중 하나를 크게(이달의 조각보 · 올해의 실타래 · 실타래 상자) + 담아 둔 그물이 있으면 넷째 탭 '함께 짠 그물'
+  const KEEPS = [['garden', '이달의 조각보'], ['cord', '올해의 실타래'], ['chest', '실타래 상자']];
   // 담아 둔 모임 그물이 있을 때만 넷째 탭 '함께 짠 그물'이 생긴다
   const keeps = () => KEEPS.concat(weaves().length ? [['weaves', '함께 짠 그물']] : []);
-  const keepKind = () => keeps().some(k => k[0] === S.keep) ? S.keep : 'cord';
+  const keepKind = () => keeps().some(k => k[0] === S.keep) ? S.keep : 'garden';
   function keepView() {
     const k = keepKind(), C = k === 'cord' ? cordData() : null;
     if (k !== 'garden') S.gbig = false;
-    const head = k === 'cord' ? `<div class="card-head"><h2>나의 ${C.year}년 끈</h2><span>기도한 날 ${C.days.reduce((a, b) => a + b, 0)}일 · 응답 ${C.answers.length} · 감사 ${C.thanks.length}</span></div>`
+    const head = k === 'cord' ? `<div class="card-head"><h2>나의 ${C.year}년 실타래</h2><span>기도한 날 ${C.days.reduce((a, b) => a + b, 0)}일 · 응답 ${C.answers.length} · 감사 ${C.thanks.length}</span></div>`
       : '';
-    const hint = { cord: '매듭이나 금실을 누르면 그날의 기록이 보여요. 밀어서 돌려 볼 수 있어요.', garden: '기도한 날마다 그 달 그림의 소품이 하나씩 정원에 놓여요.', chest: '한 해가 끝나면 그해의 끈을 상자에 넣어요.', weaves: '수틀을 누르면 그 그물이 크게 보여요. 말뚝에는 이름이 없어서, 누가 어느 말뚝인지는 아무도 몰라요.' }[k];
-    const hasG = k === 'garden' && monthRow(keepMonth()).count > 0, tapG = hasG ? ' role="button" tabindex="0" aria-label="정원 크게 보기"' : '';
+    const hint = { cord: '매듭이나 금실을 누르면 그날의 기록이 보여요. 밀어서 돌려 볼 수 있어요.', garden: '기도한 날마다 그 달 그림의 소품이 하나씩 조각보에 놓여요.', chest: '한 해가 끝나면 그해의 실타래를 상자에 넣어요.', weaves: '수틀을 누르면 그 그물이 크게 보여요. 말뚝에는 이름이 없어서, 누가 어느 말뚝인지는 아무도 몰라요.' }[k];
+    const hasG = k === 'garden' && monthRow(keepMonth()).count > 0, tapG = hasG ? ' role="button" tabindex="0" aria-label="조각보 크게 보기"' : '';
     const box = `<div class="stage3d ${k}${hasG ? ' tap' : ''}" id="keep3d"${tapG}><span class="wait">불러오는 중…</span></div>`,
-      stage = hasG ? `<div class="g-frame">${box}<button class="g-big" data-a="gbig" aria-label="정원 크게 보기" title="크게 보기">${GI.full}</button></div>` : box, pick = `<div id="keep3d-pick"><p class="hint">${hint}</p></div>`;
+      stage = hasG ? `<div class="g-frame">${box}<button class="g-big" data-a="gbig" aria-label="조각보 크게 보기" title="크게 보기">${GI.full}</button></div>` : box, pick = `<div id="keep3d-pick"><p class="hint">${hint}</p></div>`;
     return `<button class="link" data-a="tab" data-v="look">‹ 지난 기록</button>
-      <header class="top"><div><p class="eyebrow">나만 보는 기록</p><h1>나의 보관함</h1></div></header>
+      <header class="top"><div><p class="eyebrow">나만 보는 기록</p><h1>기도 서랍</h1></div></header>
       <div class="seg" role="tablist" style="margin-bottom:12px">${keeps().map(([v, l]) => `<button class="${k === v ? 'on' : ''}" role="tab" aria-selected="${k === v}" data-a="keep" data-v="${v}">${l}</button>`).join('')}</div>
       <section class="card">${head}${k === 'garden' ? gardenNav() : k === 'chest' ? chestNav() : k === 'weaves' ? weaveNav() : ''}
         ${k === 'garden' ? `${stage}${pick}<div class="gtray" id="gtray" hidden></div>${gardenActs()}${monthStrip()}` : `${stage}
-        ${k === 'cord' ? '<div class="legend3d"><span><i class="k"></i>응답 매듭</span><span><i class="g"></i>감사의 금실</span><span>가닥 굵기 = 그 달에 기도한 날</span></div>' : ''}${pick}`}</section>
+        ${k === 'cord' ? '<div class="legend3d"><span><i class="k"></i>매듭은 응답</span><span><i class="g"></i>금실은 감사</span><span>굵을수록 많이 기도한 달</span></div>' : ''}${pick}`}</section>
       ${k === 'garden' && S.gbig ? gardenBig() : ''}${k === 'weaves' && S.wopen != null && weaveAt(S.wopen) ? weaveBig() : ''}`;
   }
   // ── 함께 짠 그물: 모임 화면의 '함께 짜는 그물'을 담아 둔 것 ──
@@ -838,7 +838,7 @@ button.knot { cursor: pointer; }
       <span class="mn-t"><b>함께 짠 그물</b><small>벽에 걸어 둔 그물이에요</small></span>
       <button class="btn ghost small" data-a="wpage" data-v="${pg + 1}"${pg < np - 1 ? '' : ' disabled'} aria-label="다음 그물">›</button></div>`;
   }
-  // 그물 크게 보기: 정원 크게 보기와 같은 모양. 오른쪽 위에 그림 저장(↓)과 닫기(×), 아래에 이름과 기간, 지우기
+  // 그물 크게 보기: 조각보 크게 보기와 같은 모양. 오른쪽 위에 그림 저장(↓)과 닫기(×), 아래에 이름과 기간, 지우기
   function weaveBig() {
     const w = weaveAt(S.wopen), b = (a, ic, label, o = {}) => `<button class="gbig-x" data-a="${a}" aria-label="${label}" title="${label}"${o.off ? ' disabled' : ''}>${GI[ic]}</button>`;
     return `<div class="gbig" id="gbig" role="dialog" aria-modal="true" aria-label="${esc(w.name)} 그물 크게 보기"><div class="gbig-host" id="gbig-host"><span class="wait">불러오는 중…</span></div>
@@ -875,7 +875,7 @@ button.knot { cursor: pointer; }
       <span class="mn-t"><b>${st} ~ ${st + 2}</b><small>상자 하나에 세 해</small></span>
       <button class="btn ghost small" data-a="keepy" data-v="${st + 3}"${st < cur ? '' : ' disabled'} aria-label="다음 상자">›</button></div>`;
   }
-  // 오늘 놓인 소품(오늘 처음 기도한 날이면 이달 정원에 하나 놓인다). 다 모았으면 all
+  // 오늘 놓인 소품(오늘 처음 기도한 날이면 이달 조각보에 하나 놓인다). 다 모았으면 all
   // 받침에 맞춰 이/가
   const josaN = w => { const c = w.charCodeAt(w.length - 1) - 0xAC00; return c >= 0 && c < 11172 && c % 28 ? '이' : '가'; };
   function todayProp() {
@@ -888,7 +888,7 @@ button.knot { cursor: pointer; }
 
   // ── 지난 기록의 입체 그림 데이터 ──────────
   const yearOf = () => TODAY().slice(0, 4);
-  // 올해 끈: 달마다 기도한 날, 응답(감사 기록 중 응답), 감사(그 밖의 감사)
+  // 올해의 실타래: 달마다 기도한 날, 응답(감사 기록 중 응답), 감사(그 밖의 감사)
   function cordData() {
     const y = yearOf(), days = Array(12).fill(0);
     new Set(prays().map(p => p.d).filter(d => d.startsWith(y))).forEach(d => { days[Number(d.slice(5, 7)) - 1]++; });
@@ -902,12 +902,12 @@ button.knot { cursor: pointer; }
   const firstMonth = () => ([...prays().map(p => p.d)].sort()[0] || TODAY()).slice(0, 7);
   const keepMonth = () => { const cur = TODAY().slice(0, 7), f = firstMonth(); return S.keepM && S.keepM >= f && S.keepM <= cur ? S.keepM : cur; };
   const shiftM = (M, k) => { const [y, m] = M.split('-').map(Number); return monthKey(new Date(y, m - 1 + k, 1)); };
-  // 이달의 정원: 고른 달 한 판. 첫 기도에 주인공, 그다음 기도한 날마다 소품 하나
+  // 이달의 조각보: 고른 달 한 판. 첫 기도에 주인공, 그다음 기도한 날마다 소품 하나
   function monthRow(M) {
     const A = window.KOIDE_ART, key = A.sceneKey(M), sc = A.SCENES[key], dd = [...new Set(prays().map(p => p.d).filter(x => x.startsWith(M)))].sort();
     return { key, title: sc.title, hero: [(sc.heroes || ['hero'])[0], sc.hero, sc.heroW], props: sc.props.map(p => [p[0], p[1], p[4]]), days: dd, count: dd.length, total: sc.props.length + 1 };
   }
-  // 정원 꾸미기: 소품의 자리(칸 번호, 판 한가운데가 0)와 판 크기를 달마다 이 기기에만(내 노트 자리 옆에) 둔다. 직접 놓기 켜짐도 이 기기에만
+  // 조각보 꾸미기: 소품의 자리(칸 번호, 판 한가운데가 0)와 판 크기를 달마다 이 기기에만(내 노트 자리 옆에) 둔다. 직접 놓기 켜짐도 이 기기에만
   const GARDEN_KEY = KEY + ':garden', HAND_KEY = KEY + ':garden-hand';
   const gardenAll = () => { try { return JSON.parse(localStorage.getItem(GARDEN_KEY) || '{}') || {}; } catch (e) { return {}; } };
   const gardenSt = M => { const s = gardenAll()[M] || {}; return { n: Number(s.n) || 0, pos: s.pos && typeof s.pos === 'object' ? s.pos : {} }; };
@@ -925,18 +925,18 @@ button.knot { cursor: pointer; }
   function gardenActs() {
     const M = keepMonth(), has = monthRow(M).count > 0, hand = gardenHand();
     if (!has) return '';
-    return `<div class="garden-acts"><div class="g-hand"><button class="switch${hand ? ' on' : ''}" role="switch" aria-checked="${hand}" aria-label="직접 놓기" data-a="ghand"><span></span></button><div><b>직접 놓기</b><small>${hand ? '새 소품이 서랍에서 기다려요' : '새 소품이 알아서 놓여요'}</small></div></div></div>`;
+    return `<div class="garden-acts"><div class="g-hand"><button class="switch${hand ? ' on' : ''}" role="switch" aria-checked="${hand}" aria-label="직접 놓기" data-a="ghand"><span></span></button><div><b>직접 놓기</b><small>${hand ? '새 소품이 바구니에서 기다려요' : '새 소품이 알아서 놓여요'}</small></div></div></div>`;
   }
-  // 카드에는 글자 단추가 없다(공동체 이달의 그림처럼): 정원을 누르면 이 크게 보기가 열린다. 스위치는 앞쪽 고정 자리라 글이 바뀌어도 안 움직인다
-  // 크게 보기: 정원만 화면 가득. 꾸미기 · 그림 저장 · 닫기(꾸미는 동안에는 좌우 바꾸기 · 처음 자리로 · 다 했어요 · 닫기). 서랍에 기다리는 소품이 있으면 아래에 서랍
+  // 카드에는 글자 단추가 없다(공동체 이달의 그림처럼): 조각보를 누르면 이 크게 보기가 열린다. 스위치는 앞쪽 고정 자리라 글이 바뀌어도 안 움직인다
+  // 크게 보기: 조각보만 화면 가득. 꾸미기 · 그림 저장 · 닫기(꾸미는 동안에는 좌우 바꾸기 · 처음 자리로 · 다 했어요 · 닫기). 바구니에 기다리는 소품이 있으면 아래에 바구니
   function gardenBig() {
     const b = (a, ic, label, o = {}) => `<button class="gbig-x${o.main ? ' main' : ''}" data-a="${a}" aria-label="${label}" title="${label}"${o.off ? ' disabled' : ''}>${GI[ic]}</button>`;
-    return `<div class="gbig" id="gbig" role="dialog" aria-modal="true" aria-label="이달의 정원 크게 보기"><div class="gbig-host" id="gbig-host"><span class="wait">불러오는 중…</span></div>
+    return `<div class="gbig" id="gbig" role="dialog" aria-modal="true" aria-label="이달의 조각보 크게 보기"><div class="gbig-host" id="gbig-host"><span class="wait">불러오는 중…</span></div>
       <div class="gbig-bar">${S.gEdit ? b('gflip', 'flip', '좌우 바꾸기', { off: true }) + b('greset', 'undo', '처음 자리로') + b('gedit', 'done', '다 했어요', { main: true })
         : b('gedit', 'edit', '꾸미기') + b('gsave', 'save', '그림 저장', { off: S.gSaving })}${b('gbigclose', 'close', '닫기')}</div>
       <div class="gbig-foot"><div class="gbig-say" id="gbig-say" aria-live="polite"></div><div class="gtray" id="gtray-big" hidden></div></div></div>`;
   }
-  // 그림 저장: 정원 전체를 사진 한 장으로, 아래에 제목과 달(기도한 날 같은 숫자는 넣지 않는다). 휴대폰이면 공유하기, 아니면 내려받기
+  // 그림 저장: 조각보 전체를 사진 한 장으로, 아래에 제목과 달(기도한 날 같은 숫자는 넣지 않는다). 휴대폰이면 공유하기, 아니면 내려받기
   async function saveGarden() {
     const G = G3.garden; if (!G) return;
     const M = keepMonth(), R = monthRow(M), src = G.snap();
@@ -956,7 +956,7 @@ button.knot { cursor: pointer; }
     const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = file.name; document.body.appendChild(a); a.click(); a.remove(); setTimeout(() => URL.revokeObjectURL(a.href), 4000);
     toast('그림을 저장했어요');
   }
-  // 끈 보관함: 세 해가 한 상자. 노트를 시작한 해부터 세 해씩 묶고, 고른 상자(S.keepY)가 없으면 올해가 든 상자
+  // 실타래 상자: 세 해가 한 상자. 노트를 시작한 해부터 세 해씩 묶고, 고른 상자(S.keepY)가 없으면 올해가 든 상자
   const chestFirst = () => Number(firstMonth().slice(0, 4));
   const chestStart = () => { const f = chestFirst(), y = Number(yearOf()), cur = f + Math.floor((y - f) / 3) * 3; return S.keepY != null && S.keepY >= f && S.keepY <= cur && (S.keepY - f) % 3 === 0 ? S.keepY : cur; };
   function chestData() {
@@ -1381,7 +1381,7 @@ button.knot { cursor: pointer; }
       case 'gedit': if (G3.garden) G3.garden.leave(); S.gEdit = !S.gEdit; return render();
       case 'ghand': try { localStorage.setItem(HAND_KEY, gardenHand() ? '0' : '1'); } catch (err) { /* 이번만 */ } return render();
       case 'gflip': if (G3.garden) G3.garden.flip(); return;
-      case 'greset': if (!confirm('이 달 정원을 처음 자리로 되돌릴까요?')) return; setGardenSt(keepMonth(), null); if (G3.garden) { G3.garden.dispose(); G3.garden = null; } return render();
+      case 'greset': if (!confirm('이 달 조각보를 처음 자리로 되돌릴까요?')) return; setGardenSt(keepMonth(), null); if (G3.garden) { G3.garden.dispose(); G3.garden = null; } return render();
       case 'gsave': S.gSaving = true; render(); saveGarden().catch(() => toast('그림을 저장하지 못했어요. 다시 해 주세요')).then(() => { S.gSaving = false; render(); }); return;
       case 'gbig': S.gbig = true; return render();
       case 'gbigclose': if (G3.garden) G3.garden.leave(); S.gbig = false; S.gEdit = false; return render();

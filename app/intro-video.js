@@ -36,7 +36,7 @@ window.KoideIntroVideo = (() => {
     }
     return `<svg class="iv-cord" viewBox="0 0 ${W} ${Y + (names ? 56 : 44)}" aria-hidden="true">${s}</svg>`;
   }
-  // 나의 보관함의 올해 끈(평면으로): 달마다 한 가닥, 기도한 날만큼 굵게. 응답받은 기도는 매듭, 감사는 금실
+  // 기도 서랍의 올해의 실타래(평면으로): 달마다 한 가닥, 기도한 날만큼 굵게. 응답받은 기도는 매듭, 감사는 금실
   function yearCord() {
     const W = 340, H = 150, wid = [3, 5, 4, 7, 6, 8, 5, 9, 7, 10, 8, 11], knots = { 3: 1, 7: 2, 10: 1 }, gold = [1, 5, 9, 11];
     let s = '';
@@ -86,7 +86,7 @@ window.KoideIntroVideo = (() => {
       { ch: 'me', dur: 7000, cap: '내가 기도하는 사람들도 끈으로 이어져요.',
         html: cord({ tie: [.6, 1.4, 2.2, 3, 3.8, 4.6], names: ['나', '엄마', '아빠', '지우', '친구', '교회'] }) },
       { ch: 'me', dur: 7000, cap: '한 해가 한 가닥씩 쌓여요. 응답은 매듭으로, 감사는 금실로.',
-        html: `<p class="iv-sub iv-in" ${d(.1)}>나의 보관함 · 올해 끈</p>${yearCord()}` },
+        html: `<p class="iv-sub iv-in" ${d(.1)}>기도 서랍 · 올해의 실타래</p>${yearCord()}` },
       { ch: 'me', dur: 6000, cap: `나누고 싶은 기도는 ${g}에 나누고, 다른 기기에서도 동기화할 수 있어요.`,
         html: `<div class="iv-flow"><span class="iv-box iv-in" ${d(.3)}>내 기도 노트</span><span class="iv-arrow iv-in" ${d(.9)}>→</span><span class="iv-box hl iv-in" ${d(1.3)}>우리 ${homeName}</span></div>
           <div class="iv-flow"><span class="iv-dev iv-in" ${d(2.4)}>휴대폰</span><span class="iv-sync iv-pop" ${d(3)}>${LOCK}</span><span class="iv-dev iv-in" ${d(2.7)}>PC</span></div>` },
