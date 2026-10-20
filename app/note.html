@@ -142,6 +142,9 @@ textarea.field { min-height: 5.5em; resize: vertical; }
 .legend3d i { display: inline-block; width: 12px; height: 12px; border-radius: 50%; margin-right: 5px; vertical-align: -2px; }
 .legend3d .k { background: var(--accent); }
 .legend3d .g { background: none; border: 2.5px solid #D4A64A; width: 8px; height: 8px; }
+/* 오늘 화면: 소품이 놓였다는 한 줄 */
+.keep-note { display: flex; justify-content: space-between; align-items: center; gap: 10px; flex-wrap: wrap; width: 100%; text-align: left; background: var(--accent-soft); color: var(--ink); border: 0; border-radius: 12px; padding: .65em .9em; font-size: .88em; cursor: pointer; }
+.keep-note .go { color: var(--accent); font-weight: 600; white-space: nowrap; }
 .month-nav { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-bottom: 12px; }
 .month-nav b { font-family: var(--f-display); font-size: 1.1em; }
 .month-nav .btn { min-width: 44px; font-size: 1.1em; }
@@ -488,6 +491,7 @@ textarea.field { min-height: 5.5em; resize: vertical; }
       ${set.map(i => { const on = prayedToday(i.id); return `<div class="today-item${on ? ' on' : ''}"><p><span class="tag">${esc(targetName(i.target))}</span>${esc(i.text)}</p>
         <div class="row"><span class="days">${daysSince(i.created)}일째 기도하고 있어요</span><button class="pray-btn${on ? ' on' : ''}" data-a="pray" data-v="${i.id}" aria-pressed="${on}">${on ? ICON.check + '기도했어요' : '기도했어요'}</button></div></div>`; }).join('')}
       ${done === set.length ? `<p class="hint">오늘 기도할 제목을 다 기도했어요.${all.length > set.length ? ' 다른 기도제목도 함께 기도해 볼까요?' : ''}</p>` : ''}
+      ${done === set.length && todayProp() ? `<button class="keep-note" data-a="keep" data-v="shelf"><span>${todayProp().all ? '이달의 소품을 다 모았어요' : `오늘 <b>${esc(todayProp().name)}</b>${josaN(todayProp().name)} 보관함에 놓였어요`}</span><span class="go">보관함 보기 ›</span></button>` : ''}
       <button class="btn ghost" data-a="psopen" data-v="${done === set.length ? 'all' : 'today'}">${done === set.length && all.length > set.length ? '모든 기도제목으로 기도하기' : '한 장씩 기도하기'}</button></section>
       ${cordHtml()}${thanksQuick()}`;
   }
@@ -527,23 +531,42 @@ textarea.field { min-height: 5.5em; resize: vertical; }
       : (doneL.length ? doneL.map(i => `<div class="note"><p><span class="tag">${esc(targetName(i.target))}</span>${esc(i.text)}</p><span class="days">${short(i.created)} ~ ${short(i.done.date)} · ${i.done.how === 'answer' ? '응답받았어요' : '맡겨 두었어요'}</span>
         <button class="link quiet" data-a="undone" data-v="${i.id}" style="align-self:flex-start">다시 기도하기</button></div>`).join('') : '<p class="hint">이 달에 마친 기도는 없어요.</p>');
     const longest = M === cur ? open().slice().sort((p, q) => p.created.localeCompare(q.created)).slice(0, 3) : [];
-    const C = cordData(), store = S.store === 'chest' ? 'chest' : 'shelf';
     return `<header class="top"><div><p class="eyebrow">나만 보는 기록</p><h1>지난 기록</h1></div></header>
-      <section class="card"><div class="card-head"><h2>나의 ${C.year}년 끈</h2><span>기도한 날 ${C.days.reduce((a, b) => a + b, 0)}일 · 응답 ${C.answers.length} · 감사 ${C.thanks.length}</span></div>
-        <div class="stage3d cord" id="cord3d"><span class="wait">끈을 엮는 중…</span></div>
-        <div class="legend3d"><span><i class="k"></i>응답 매듭</span><span><i class="g"></i>감사의 금실</span><span>가닥 굵기 = 그 달에 기도한 날</span></div>
-        <div id="cord3d-pick"><p class="hint">매듭이나 금실을 누르면 그날의 기록이 보여요. 밀어서 돌려 볼 수 있어요.</p></div></section>
-      <section class="card"><div class="seg" role="tablist">${[['shelf', '이달의 소품'], ['chest', '끈 보관함']].map(([k, l]) => `<button class="${store === k ? 'on' : ''}" role="tab" aria-selected="${store === k}" data-a="store" data-v="${k}">${l}</button>`).join('')}</div>
-        <p class="hint">${store === 'shelf' ? '기도한 날마다 그 달 그림의 소품이 하나씩 선반에 놓여요. 공동체의 이달의 그림과 같은 주제예요.' : '한 해가 끝나면 그해의 끈을 감아 상자에 넣어요. 해가 갈수록 한 칸씩 채워져요.'}</p>
-        <div class="stage3d ${store}" id="store3d"><span class="wait">불러오는 중…</span></div>
-        <div id="store3d-pick"><p class="hint">${store === 'shelf' ? '소품을 누르면 이름과 놓인 날이 보여요. 밀어서 선반을 돌려 볼 수 있어요.' : '끈을 누르면 그해의 기록이 보여요. 밀어서 상자를 돌려 볼 수 있어요.'}</p></div></section>
       <div class="month-nav"><button class="btn ghost small" data-a="lookm" data-v="${shift(-1)}"${M > first ? '' : ' disabled'} aria-label="이전 달">‹</button><b>${y}년 ${m}월</b><button class="btn ghost small" data-a="lookm" data-v="${shift(1)}"${M < cur ? '' : ' disabled'} aria-label="다음 달">›</button></div>
       <section class="card"><div class="stats"><div><b>${prayedDays.size}</b><span>기도한 날</span></div><div><b>${thanks.length}</b><span>감사·응답</span></div><div><b>${doneL.length}</b><span>마친 기도</span></div></div>
         <div class="weeks" aria-label="${m}월 중 기도한 날">${'일월화수목금토'.split('').map(w => `<i class="wd">${w}</i>`).join('')}${cells}</div>
         <p class="hint">남과 견주지 않는 나만의 기록이에요. 빈 날이 있어도 괜찮아요.</p></section>
       <section class="card"><div class="seg" role="tablist">${[['thanks', '감사와 응답 · ' + thanks.length], ['done', '마친 기도 · ' + doneL.length]].map(([k, l]) => `<button class="${tab === k ? 'on' : ''}" role="tab" aria-selected="${tab === k}" data-a="looktab" data-v="${k}">${l}</button>`).join('')}</div>${list}</section>
-      ${longest.length ? `<section class="card"><p class="label">오래 이어 온 기도</p>${longest.map(i => `<p class="plain"><span class="tag">${esc(targetName(i.target))}</span>${esc(i.text)} <span class="days">· ${daysSince(i.created)}일째</span></p>`).join('')}</section>` : ''}`;
+      ${longest.length ? `<section class="card"><p class="label">오래 이어 온 기도</p>${longest.map(i => `<p class="plain"><span class="tag">${esc(targetName(i.target))}</span>${esc(i.text)} <span class="days">· ${daysSince(i.created)}일째</span></p>`).join('')}</section>` : ''}
+      <section class="card"><button class="mrow" data-a="keep" data-v=""><span><b>나의 보관함</b><small>올해 끈 · 이달의 소품 · 끈 보관함</small></span><span aria-hidden="true">›</span></button></section>`;
   }
+  // 나의 보관함: 지난 기록 맨 아래 입구로 들어가는 화면. 입체 그림 셋 중 하나를 크게(올해 끈 · 이달의 소품 · 끈 보관함)
+  const KEEPS = [['cord', '올해 끈'], ['shelf', '이달의 소품'], ['chest', '끈 보관함']];
+  const keepKind = () => KEEPS.some(k => k[0] === S.keep) ? S.keep : 'cord';
+  function keepView() {
+    const k = keepKind(), C = k === 'cord' ? cordData() : null;
+    const head = k === 'cord' ? `<div class="card-head"><h2>나의 ${C.year}년 끈</h2><span>기도한 날 ${C.days.reduce((a, b) => a + b, 0)}일 · 응답 ${C.answers.length} · 감사 ${C.thanks.length}</span></div>`
+      : `<p class="hint">${k === 'shelf' ? '기도한 날마다 그 달 그림의 소품이 하나씩 선반에 놓여요. 공동체의 이달의 그림과 같은 주제예요.' : '한 해가 끝나면 그해의 끈을 감아 상자에 넣어요. 해가 갈수록 한 칸씩 채워져요.'}</p>`;
+    const hint = { cord: '매듭이나 금실을 누르면 그날의 기록이 보여요. 밀어서 돌려 볼 수 있어요.', shelf: '소품을 누르면 이름과 놓인 날이 보여요. 밀어서 선반을 돌려 볼 수 있어요.', chest: '끈을 누르면 그해의 기록이 보여요. 밀어서 상자를 돌려 볼 수 있어요.' }[k];
+    return `<button class="link" data-a="tab" data-v="look">‹ 지난 기록</button>
+      <header class="top"><div><p class="eyebrow">나만 보는 기록</p><h1>나의 보관함</h1></div></header>
+      <div class="seg" role="tablist" style="margin-bottom:12px">${KEEPS.map(([v, l]) => `<button class="${k === v ? 'on' : ''}" role="tab" aria-selected="${k === v}" data-a="keep" data-v="${v}">${l}</button>`).join('')}</div>
+      <section class="card">${head}
+        <div class="stage3d ${k}" id="keep3d"><span class="wait">불러오는 중…</span></div>
+        ${k === 'cord' ? '<div class="legend3d"><span><i class="k"></i>응답 매듭</span><span><i class="g"></i>감사의 금실</span><span>가닥 굵기 = 그 달에 기도한 날</span></div>' : ''}
+        <div id="keep3d-pick"><p class="hint">${hint}</p></div></section>`;
+  }
+  // 오늘 놓인 소품(오늘 처음 기도한 날이면 이달 선반에 하나 놓인다). 다 모았으면 all
+  // 받침에 맞춰 이/가
+  const josaN = w => { const c = w.charCodeAt(w.length - 1) - 0xAC00; return c >= 0 && c < 11172 && c % 28 ? '이' : '가'; };
+  function todayProp() {
+    const A = window.KOIDE_ART, M = TODAY().slice(0, 7), sc = A.SCENES[A.sceneKey(M)];
+    const days = [...new Set(prays().map(p => p.d).filter(x => x.startsWith(M)))].sort(), i = days.indexOf(TODAY());
+    if (i < 0) return null;
+    const order = [sc.hero, ...sc.props.map(p => p[1])];
+    return i < order.length ? { name: order[i] } : { all: true };
+  }
+
   // ── 지난 기록의 입체 그림 데이터 ──────────
   const yearOf = () => TODAY().slice(0, 4);
   // 올해 끈: 달마다 기도한 날, 응답(감사 기록 중 응답), 감사(그 밖의 감사)
@@ -577,7 +600,7 @@ textarea.field { min-height: 5.5em; resize: vertical; }
     }), { y, now: true }];
   }
   // 3D 도구(vendor/three.min.js)와 그림(note-3d.js)은 지난 기록을 처음 열 때 불러온다. 그림은 만들어 두고 다시 그릴 때 자리만 옮긴다
-  const G3 = { ready: null, cord: null, store: null };
+  const G3 = { ready: null };
   function load3d() {
     if (G3.ready) return G3.ready;
     const js = src => new Promise((ok, no) => { const a = document.createElement('script'); a.src = src; a.onload = ok; a.onerror = no; document.head.appendChild(a); });
@@ -585,24 +608,19 @@ textarea.field { min-height: 5.5em; resize: vertical; }
   }
   const can3d = () => { try { const c = document.createElement('canvas'); return !!(window.WebGLRenderingContext && (c.getContext('webgl') || c.getContext('experimental-webgl'))); } catch (e) { return false; } };
   function mount3d() {
-    if (S.tab !== 'look') return;
+    if (S.tab !== 'keep') return;
     const off = () => document.querySelectorAll('.stage3d .wait').forEach(w => { w.textContent = '이 기기에서는 입체 그림을 볼 수 없어요.'; });
     if (!can3d()) return off();
     load3d().then(() => {
-      if (S.tab !== 'look') return;
-      const X = window.KOIDE_NOTE3D, base = CFG.ART || 'img/';
-      const make = (slot, sig, build, host) => {
-        if (!G3[slot] || G3[slot].sig !== sig) { if (G3[slot]) G3[slot].dispose(); G3[slot] = build(); G3[slot].sig = sig; }
-        const w = host.querySelector('.wait'); if (w) w.remove(); G3[slot].attach(host);
-      };
-      const c = $('#cord3d'), st = $('#store3d');
-      if (c) { const d = cordData(); make('cord', JSON.stringify(d) + (PREF.accent || '') + (PREF.mode || ''), () => X.cord(d, () => $('#cord3d-pick')), c); }
-      if (st) {
-        const kind = S.store === 'chest' ? 'chest' : 'shelf', d = kind === 'chest' ? chestData() : shelfData();
-        make('store', kind + JSON.stringify(d) + (PREF.mode || ''), () => kind === 'chest' ? X.chest(d, () => $('#store3d-pick')) : X.shelf(d, base, () => $('#store3d-pick')), st);
-      }
+      const host = $('#keep3d'); if (S.tab !== 'keep' || !host) return;
+      const X = window.KOIDE_NOTE3D, k = keepKind(), pick = () => $('#keep3d-pick');
+      const d = k === 'cord' ? cordData() : k === 'shelf' ? shelfData() : chestData(), sig = JSON.stringify(d) + (PREF.accent || '') + (PREF.mode || '');
+      // 그림은 종류마다 만들어 두고, 기록이나 화면 설정이 바뀌었을 때만 새로 만든다
+      if (!G3[k] || G3[k].sig !== sig) { if (G3[k]) G3[k].dispose(); G3[k] = k === 'cord' ? X.cord(d, pick) : k === 'shelf' ? X.shelf(d, CFG.ART || 'img/', pick) : X.chest(d, pick); G3[k].sig = sig; }
+      const w = host.querySelector('.wait'); if (w) w.remove(); G3[k].attach(host);
     }).catch(off);
   }
+
 
   function moreView() {
     const mode = PREF.mode || 'system', accent = PREF.accent || 'green', style = PREF.style || 'flat';
@@ -747,9 +765,9 @@ textarea.field { min-height: 5.5em; resize: vertical; }
   }
   const TABS = [['today', '오늘', TICON.sun], ['note', '내 기도', TICON.pen], ['pray', '기도하기', TICON.hands], ['look', '지난 기록', TICON.book], ['more', '더보기', TICON.more]];
   function render() {
-    const V = { start: startView, today: todayView, note: noteView, pray: prayTab, look: lookView, more: moreView }[S.tab];
+    const V = { start: startView, today: todayView, note: noteView, pray: prayTab, look: lookView, keep: keepView, more: moreView }[S.tab];
     $('#root').innerHTML = `<div class="wrap">${S.tab !== 'start' ? `<div class="space"><span class="pilot" style="margin:0">나의 기도 노트 · ${D.vault && D.vault.on ? '연결됨' : '이 휴대폰에 저장'}</span>${inCommunity() ? `<a href="index.html${QS}">공동체로 ›</a>` : ''}</div>` : ''}${V()}</div>
-      ${S.tab === 'start' ? '' : `<nav class="tabs" aria-label="메뉴">${TABS.map(([k, l, ic]) => `<button class="${k === 'pray' ? 'pray-tab ' : ''}${S.tab === k ? 'on' : ''}" data-a="tab" data-v="${k}" aria-label="${l}" title="${l}" ${S.tab === k ? 'aria-current="page"' : ''}>${ic}</button>`).join('')}</nav>`}
+      ${S.tab === 'start' ? '' : `<nav class="tabs" aria-label="메뉴">${TABS.map(([k, l, ic]) => { const on = (S.tab === 'keep' ? 'look' : S.tab) === k; return `<button class="${k === 'pray' ? 'pray-tab ' : ''}${on ? 'on' : ''}" data-a="tab" data-v="${k}" aria-label="${l}" title="${l}" ${on ? 'aria-current="page"' : ''}>${ic}</button>`; }).join('')}</nav>`}
       ${S.done ? doneSheet() : ''}${S.tour != null ? tourSheet() : ''}${S.vsheet ? vaultSheet() : ''}${S.share ? shareSheet() : ''}${S.ps ? psHtml() : ''}${S.toast ? `<div class="toast" role="status">${esc(S.toast)}</div>` : ''}
       ${canSave ? '' : '<div class="toast" role="alert">이 브라우저에서는 저장할 수 없어요. 개인 정보 보호 모드를 끄고 열어 주세요.</div>'}`;
     document.documentElement.style.overflow = S.ps || S.done || S.vsheet || S.share || S.tour != null ? 'hidden' : '';
@@ -816,7 +834,7 @@ textarea.field { min-height: 5.5em; resize: vertical; }
       case 'accent': setPref('accent', v); return render();
       case 'style': setPref('style', v); return render();
       case 'lookm': S.lookM = v; return render();
-      case 'store': S.store = v; return render();
+      case 'keep': S.keep = v || S.keep; S.tab = 'keep'; render(); return window.scrollTo(0, 0);
       case 'looktab': S.lookTab = v; return render();
       case 'big': setPref('big', !PREF.big); return render();
       case 'tourgo': S.tour = v === 'restart' ? 0 : Math.max(0, Math.min(TOUR.length - 1, S.tour + Number(v))); return render();

@@ -289,6 +289,44 @@ html.tg-open { overflow: hidden; }
 .tg-tip b { color: var(--accent); margin-right: .4em; }
 .tg-tip .btn { flex: none; }
 @media (max-width: 420px) { .tg-tip { flex-direction: column; align-items: stretch; } .tg-tip .btn { align-self: flex-end; } }
+/* 첫 화면(로그인 전) */
+.topbar[hidden] { display: none !important; }
+.welcome { display: grid; gap: 18px; max-width: 30rem; margin: 0 auto; padding: 1.2em 0 2em; }
+.wl-hero { display: flex; flex-direction: column; align-items: center; text-align: center; gap: .35em; padding: 1.2em 0 .2em; }
+.wl-mark { width: 76px; height: 76px; margin-bottom: .3em; }
+.wl-mark svg { width: 46px; height: 46px; }
+.wl-name { font-family: var(--f-display); font-size: 2.1em; margin: 0; letter-spacing: .02em; }
+.wl-tag { margin: 0; font-family: var(--f-display); font-size: 1.15em; line-height: 1.55; color: var(--ink-2); }
+.wl-act { display: flex; flex-direction: column; gap: 10px; }
+.wl-act .hint { margin: 0; }
+.wl-once { text-align: center; word-break: keep-all; }
+.wl-play { display: inline-flex; align-items: center; justify-content: center; gap: .45em; }
+.wl-play svg { width: 1.1em; height: 1.1em; }
+.wl-or { display: flex; align-items: center; gap: .8em; margin: 6px 0 0; color: var(--ink-2); font-size: .8em; }
+.wl-or::before, .wl-or::after { content: ''; flex: 1; border-top: 1px solid var(--line); }
+.wl-alt { display: flex; flex-direction: column; gap: 8px; }
+.wl-alt-btn { display: grid; grid-template-columns: 1fr auto; align-items: center; column-gap: .6em; padding: .75em .9em; border: 1px solid var(--line); border-radius: 12px; background: var(--page); color: var(--ink); text-align: left; text-decoration: none; font: inherit; cursor: pointer; }
+.wl-alt-btn b { font-weight: 600; font-size: .95em; }
+.wl-alt-btn small { grid-column: 1; color: var(--ink-2); font-size: .8em; }
+.wl-alt-btn svg { grid-column: 2; grid-row: 1 / span 2; color: var(--ink-2); }
+.wl-alt-btn:hover { border-color: var(--line-strong); }
+.wl-feat { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 14px; }
+.wl-feat li { display: flex; gap: 12px; align-items: flex-start; }
+.wl-ico { flex: none; width: 38px; height: 38px; border-radius: 50%; background: var(--accent-soft); color: var(--accent); display: grid; place-items: center; }
+.wl-ico svg { width: 20px; height: 20px; }
+.wl-feat div { display: flex; flex-direction: column; gap: .15em; }
+.wl-feat b { font-weight: 600; }
+.wl-feat div span { color: var(--ink-2); font-size: .9em; line-height: 1.55; word-break: keep-all; }
+.wl-name-note { text-align: center; border-top: 1px solid var(--line); padding-top: 1em; }
+.wl-name-note .hint { margin: .4em 0 0; }
+@media (min-width: 860px) {
+  .welcome { max-width: 58rem; grid-template-columns: 1fr 24rem; grid-template-areas: "hero act" "feat act" "name name"; column-gap: 56px; align-items: start; padding-top: 3em; }
+  .wl-hero { grid-area: hero; align-items: flex-start; text-align: left; padding-top: .4em; }
+  .wl-name { font-size: 2.6em; }
+  .wl-act { grid-area: act; }
+  .wl-feat { grid-area: feat; }
+  .wl-name-note { grid-area: name; }
+}
 /* 코이데 소개 */
 /* 코이데 소개 영상: 화면 전체, 테마색을 따른다. 자막은 늘 나온다 */
 .note-link { display: inline-flex; margin-top: 10px; }
@@ -1522,9 +1560,15 @@ try { const p = JSON.parse(localStorage.getItem('koide-pref') || '{}'), d = docu
   const VIEWS = {
     loading: () => '<p class="loading">불러오는 중…</p>',
     error: () => `<h1>잠시 문제가 생겼어요</h1><p class="hint">${esc(S.err && S.err.message)}</p><button class="btn" data-act="retry">다시 해 보기</button>`,
-    login: () => `<p class="eyebrow">코이데 · 함께 기도하는 공동체</p><h1>서로의 기도를 나누고<br>함께 기도해요</h1>
-      <p>처음 한 번만 로그인하면 돼요.</p>
-      ${DEMO ? `<div class="choices">
+    // 첫 화면(로그인 전): 시작 화면의 매듭이 이어지는 머리, 카카오로 시작하기, 짧은 소개 세 줄, 다른 방법, 이름의 뜻
+    login: () => `<div class="welcome">
+      <section class="wl-hero">
+        <span class="ab-mark wl-mark" aria-hidden="true">${ICON.knot}</span>
+        <h1 class="wl-name">코이데</h1>
+        <p class="wl-tag">서로의 기도를 나누고<br>함께 기도해요</p>
+      </section>
+      <section class="wl-act card">
+        ${DEMO ? `<div class="choices">
           <button class="kakao" data-act="login" data-v="새 사람${Date.now() % 1000}">${ICON.bubble}카카오로 시작하기 (처음 오는 사람)</button>
           <button class="choice" data-act="login" data-v="김도윤">데모: 김도윤으로 들어가기 (2-20 리더)</button>
           <button class="choice" data-act="login" data-v="박민재">데모: 박민재로 들어가기 (회원)</button>
@@ -1532,10 +1576,24 @@ try { const p = JSON.parse(localStorage.getItem('koide-pref') || '{}'), d = docu
           <button class="choice" data-act="login" data-v="한기쁨">데모: 한기쁨으로 들어가기 (청장년부 목사님)</button>
           <button class="choice" data-act="login" data-v="최운영">데모: 최운영으로 들어가기 (운영 지원 · 가정 없음)</button></div>
           <p class="hint">데모 모드에서는 카카오 대신 이 버튼으로 사람을 골라 들어가요.</p>`
-        : `<button class="kakao" data-act="login">${ICON.bubble}카카오로 시작하기</button>${iosSafari() ? '<p class="hint">아이폰에서 \'접속 정보를 확인해 주세요\'가 나오면, 카톡 채팅방에서 이 링크를 눌러 열거나 설정 → iCloud → 비공개 릴레이를 끄고 다시 해 주세요.</p>' : ''}`}
-      <button class="link note-link" data-act="codestart">카카오톡이 없어요 · 코드로 들어오기 ›</button>
-      <p class="hint">교회에서 받은 초대 링크가 있으면 그 링크로 열어 주세요. 링크 없이 시작하면 나만 보는 기도 노트부터 열려요.</p>
-      <p class="hint name-note">코이데는 '교제'를 뜻하는 코이노니아와 '간구'를 뜻하는 데에시스에서 영감을 얻은 이름이에요. 서로의 기도를 나누고, 함께 기도하는 공동체를 뜻해요. 우리를 잇는 끈은 성령의 교통하심(코이노니아)이에요.</p>`,
+        : `<button class="kakao" data-act="login">${ICON.bubble}카카오로 시작하기</button>
+          <p class="hint wl-once">처음 한 번만 로그인하면 돼요.<br>초대 링크를 받았다면 그 링크로 열어 주세요.</p>${iosSafari() ? '<p class="hint">아이폰에서 \'접속 정보를 확인해 주세요\'가 나오면, 카톡 채팅방에서 이 링크를 눌러 열거나 설정 → iCloud → 비공개 릴레이를 끄고 다시 해 주세요.</p>' : ''}`}
+        <button class="btn ghost wl-play" data-act="ividw"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M8 5.5v13l10.5-6.5z" fill="currentColor"/></svg>코이데 소개 영상 · 1분</button>
+        <p class="wl-or"><span>다른 방법</span></p>
+        <div class="wl-alt">
+          <button class="wl-alt-btn" data-act="codestart"><b>코드로 들어오기</b><small>카카오톡이 없으면 리더에게 받은 코드로</small>${ICON.chevR}</button>
+        </div>
+      </section>
+      <ul class="wl-feat">
+        <li><span class="wl-ico">${ICON.people}</span><div><b>기도제목을 나눠요</b><span>달마다 기도제목을 올리고, 우리 공동체의 기도제목을 한곳에서 봐요.</span></div></li>
+        <li><span class="wl-ico">${ICON.knot}</span><div><b>함께 기도해요</b><span>기도할 때마다 기도의 끈에 매듭이 지어지고, 모두를 위해 기도하면 끈이 완성돼요.</span></div></li>
+        <li><span class="wl-ico">${ICON.lock}</span><div><b>기도제목은 지켜져요</b><span>내가 고른 사람에게만 보이고, 누가 몇 번 기도했는지는 보이지 않아요.</span></div></li>
+      </ul>
+      <footer class="wl-name-note">
+        <div class="ab-words" aria-hidden="true"><span><b>코이노니아</b><i>κοινωνία</i><small>교제</small></span><em>+</em><span><b>데에시스</b><i>δέησις</i><small>간구</small></span></div>
+        <p class="hint">우리를 잇는 끈은 성령의 교통하심(코이노니아)이에요.</p>
+      </footer>
+    </div>`,
     // 카카오톡이 없는 분: 리더에게 받은 일회용 코드로 들어온다(리더가 그 사람 이름으로 만들어서 따로 승인하지 않는다)
     code: () => `<p class="eyebrow">카카오톡 없이</p><h1>코드로 들어오기</h1><p>리더에게 받은 8자리 코드를 넣어 주세요.</p>
       <form data-form="codelogin"><input id="cd-a" class="field" required maxlength="12" autocomplete="one-time-code" autocapitalize="characters" spellcheck="false" placeholder="예) K7PQ-2M9X" aria-label="입장 코드">
@@ -2859,7 +2917,7 @@ try { const p = JSON.parse(localStorage.getItem('koide-pref') || '{}'), d = docu
     const names = fam.name.split(' · ');
     return `<div class="code-mk"><p class="label">카카오톡이 없는 분</p><p class="hint">그분 이름으로 일회용 코드를 만들어 직접(문자·전화·만나서) 알려 주세요. 코드로 들어오면 따로 승인하지 않아도 연결돼요.</p>
       ${C.made ? `<div class="code-out"><b>${esc(C.made.code)}</b><small>${esc(C.made.family)} · ${esc(C.made.person)} 님 · ${esc(C.made.until)}까지 한 번</small></div>
-        <p class="hint">로그인 화면의 "카카오톡이 없어요 · 코드로 들어오기"에 넣으면 돼요. 이 화면을 닫으면 코드를 다시 볼 수 없어요.</p><button class="link" data-act="codeagain">다른 분 코드 만들기</button>`
+        <p class="hint">첫 화면의 "코드로 들어오기"에 넣으면 돼요. 이 화면을 닫으면 코드를 다시 볼 수 없어요.</p><button class="link" data-act="codeagain">다른 분 코드 만들기</button>`
       : `<div class="code-row"><select class="field" data-codefam="1" aria-label="${esc(words().one)}">${P.families.map(f => `<option value="${esc(f.id)}"${f.id === fam.id ? ' selected' : ''}>${esc(f.name)}</option>`).join('')}</select>
         ${names.length > 1 ? `<select class="field" data-codeperson="1" aria-label="이름">${names.map(n => `<option${n === C.person ? ' selected' : ''}>${esc(n)}</option>`).join('')}</select>` : ''}
         <button class="btn small" data-act="codemake"${S.busy ? ' disabled' : ''}>코드 만들기</button></div>`}</div>`;
@@ -4014,7 +4072,7 @@ try { const p = JSON.parse(localStorage.getItem('koide-pref') || '{}'), d = docu
     if (app && !S.op && !S.grp) writeCache();
     // 관리(교회 전체·운영) 화면은 더보기 안의 하위 화면이다. 내 가정이 있으면 탭을 그대로 두고, 관리만 맡은 사람(가정 없음)은 감춘다
     $('#tabs').hidden = !app || (!!S.op && !S.home);
-    $('#topbar').innerHTML = topHtml();
+    $('#topbar').innerHTML = topHtml(); $('#topbar').hidden = S.view === 'login';
     document.querySelectorAll('#main textarea.field').forEach(autosize);
     const tb2 = $('.today-body');
     if (tb2) {
@@ -4206,6 +4264,13 @@ try { const p = JSON.parse(localStorage.getItem('koide-pref') || '{}'), d = docu
         IntroVideo.open({ grp: grp(), one: w.one, mine: w.mine, solo: solo(), art, cta: '기도하기 시작',
           onCta: () => { S.tab = 'pray'; render(); window.scrollTo(0, 0); },
           onEvent: (e, at, n) => track(e === 'open' ? '화면 보기' : '소개 영상 닫음', e === 'open' ? { screen: '소개 영상' } : { scene: at, of: n }) });
+        return;
+      }
+      case 'ividw': {
+        const now = new Date(), k = sceneKey(now.getFullYear() + '-' + String(now.getMonth() + 1).padStart(2, '0')), all = SCENES[k].props.length;
+        const art = [[2, 1, 0], [8, 3, 1], [15, 5, 3], [24, all, 5]].map(([hero, props, hearts]) => sceneSvg(k, { hero, props: Math.min(props, all), hearts }));
+        IntroVideo.open({ grp: '사랑방', one: '가정', mine: '우리 가정', solo: false, art, cta: '카카오로 시작하기',
+          onCta: () => { const k2 = $('.welcome .kakao'); if (k2) k2.click(); } });
         return;
       }
       case 'aboutgo':
