@@ -787,6 +787,8 @@ button.knot { cursor: pointer; }
       ${D.vault && D.vault.on ? '<div class="notice"><b>다른 기기와 연결되어 있어요.</b> 서버에는 비밀 문구로 잠근 글만 있어서 아무도 읽을 수 없어요. 비밀 문구를 잊지 않게 적어 두세요.</div>'
         : '<div class="notice"><b>이 기록은 이 휴대폰에만 있어요.</b> 서버로 보내지 않아서 아무도 볼 수 없지만, 휴대폰을 바꾸거나 브라우저 기록을 지우면 사라져요. 아이폰은 홈 화면에 두지 않고 7일 넘게 열지 않으면 지워질 수 있어요. 가끔 백업을 내려받거나, 아래에서 다른 기기와 연결해 두세요.</div>'}
       ${vaultCard()}
+      <section class="card"><div class="row"><div><p class="label">부를 이름</p><p class="plain">${D.name ? esc(D.name) : '<span class="hint">아직 없어요</span>'}</p></div><button class="btn ghost small" data-a="rename">${D.name ? '바꾸기' : '정하기'}</button></div>
+        <p class="hint">더보기 위와 기도 노트 곳곳에 보이는 이름이에요. 나만 봐요.</p></section>
       <section class="card"><p class="label">내가 기도하는 사람들</p>
         ${people().length ? `<ul class="people">${people().map(p => `<li><span>${esc(p.name)}</span><span><button class="link quiet" data-a="renperson" data-v="${p.id}">이름 바꾸기</button> <button class="link quiet" data-a="delperson" data-v="${p.id}">빼기</button></span></li>`).join('')}</ul>` : '<p class="hint">가족, 친구처럼 늘 기도하는 사람을 더해 두면 기도제목의 대상으로 고를 수 있고, 오늘 화면에 끈이 생겨요.</p>'}
         <button class="btn ghost small" data-a="addperson" style="align-self:flex-start">+ 사람 더하기</button></section>
@@ -1003,6 +1005,7 @@ button.knot { cursor: pointer; }
       case 'psgo': S.ps.i = Math.max(0, S.ps.i + Number(v)); render(); { const b = document.querySelector('.ps-body'); if (b) b.scrollTop = 0; } return;
       case 'pspray': togglePray(S.ps.list[S.ps.i].id); return render();
       case 'psclose': S.ps = null; musicOff(); return render();
+      case 'rename': { const n = prompt('부를 이름 (비워 두면 지워져요)', D.name || ''); if (n == null) return; D.name = n.trim().slice(0, 20); D.nameUp = now(); save(); return toast(D.name ? '부를 이름을 바꿨어요' : '부를 이름을 지웠어요'); }
       case 'renperson': { const p = D.people.find(x => x.id === v), n = (prompt('새 이름', p.name) || '').trim().slice(0, 12); if (n) { p.name = n; p.up = now(); save(); } return render(); }
       case 'delperson': {
         const p = D.people.find(x => x.id === v), n = D.items.filter(i => i.target === 'p:' + v && !i.done).length;
