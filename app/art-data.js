@@ -1,5 +1,5 @@
 /* 이달의 그림(나만 보는 그림) 장면 목록: 달마다 제목, 주인공, 소품(이름·자리·너비).
- * 공동체 앱(index.html)의 이달의 그림과 기도 노트(note.html)의 이달의 소품 선반이 함께 쓴다.
+ * 공동체 앱(index.html)의 이달의 그림과 기도 노트(note.html)의 이달의 정원이 함께 쓴다.
  * 그림 세트 이름은 년차-월(1-10: 1년차 10월). 1년차는 2026년 9월 ~ 2027년 8월. 그 해 그림이 아직 없으면 같은 달의 1년차 그림 */
 window.KOIDE_ART = (() => {
   const sceneKey = mm => { const [y, mo] = mm.split('-').map(Number), key = (Math.floor(((y - 2026) * 12 + mo - 9) / 12) + 1) + '-' + mo; return SCENES[key] ? key : '1-' + mo; };

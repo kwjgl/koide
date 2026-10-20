@@ -175,12 +175,12 @@ button.knot { cursor: pointer; }
 .weeks i.today { outline: 2px solid var(--accent-mid); }
 .weeks i.wd { background: none; aspect-ratio: auto; font-size: .7em; }
 .weeks i.blank { background: none; }
-/* 지난 기록의 입체 그림: 나의 올해 끈, 이달의 소품 선반, 끈 보관함 */
+/* 지난 기록의 입체 그림: 나의 올해 끈, 이달의 정원, 끈 보관함 */
 .card-head { display: flex; justify-content: space-between; align-items: baseline; gap: 10px; flex-wrap: wrap; }
 .card-head span { font-size: .8em; color: var(--ink-2); font-variant-numeric: tabular-nums; }
 .stage3d { position: relative; width: 100%; border-radius: 12px; background: radial-gradient(120% 100% at 50% 40%, var(--surface), var(--surface-2)); cursor: grab; overflow: hidden; touch-action: pan-y; }
 .stage3d.cord { aspect-ratio: 16 / 9; }
-.stage3d.shelf { aspect-ratio: 16 / 11; }
+.stage3d.garden { aspect-ratio: 4 / 3; cursor: default; }
 .mn-t { display: flex; flex-direction: column; align-items: center; text-align: center; min-width: 0; }
 .mn-t small { font-size: .74em; color: var(--ink-2); }
 .mstrip { display: grid; grid-template-columns: repeat(6, 1fr); gap: 8px 4px; }
@@ -242,9 +242,34 @@ button.knot { cursor: pointer; }
 .bar b { display: block; height: 100%; background: var(--accent); }
 .toast { position: fixed; left: 50%; bottom: calc(84px + env(safe-area-inset-bottom, 0px)); transform: translateX(-50%); background: var(--ink); color: var(--page); padding: .55em 1.1em; border-radius: 999px; font-size: .88em; z-index: 50; }
 .empty { text-align: center; padding: 1.4em 1em; }
-.shelf-acts { display: flex; flex-wrap: wrap; align-items: center; justify-content: flex-end; gap: 8px; margin-top: 10px; }
-.shelf-acts .hint { margin: 0 auto 0 0; }
-.stage3d.editing canvas { touch-action: none !important; cursor: grab; }
+.garden-acts { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 10px 12px; margin-top: 10px; }
+.garden-acts .hint { flex-basis: 100%; margin: 0; }
+.g-hand { display: flex; align-items: center; gap: 10px; }
+.g-hand div { display: flex; flex-direction: column; line-height: 1.3; }
+.g-hand small { font-size: .74em; color: var(--ink-2); }
+.g-btns { display: flex; flex-wrap: wrap; gap: 8px; margin-left: auto; justify-content: flex-end; }
+#keep3d-pick { min-height: 3.2em; margin-top: 10px; }
+/* 직접 놓기 서랍: 아직 자리가 없는 소품이 줄지어 기다린다. 하나를 누르면 정원에 놓을 수 있는 칸이 빛난다 */
+.gtray { margin-top: 10px; background: var(--surface-2); border-radius: 12px; padding: 8px 10px 10px; }
+.gtray[hidden] { display: none; }
+.gtray .hint { margin: 0 0 6px; }
+.gt-list { display: flex; gap: 8px; overflow-x: auto; padding: 2px 2px 4px; }
+.gt-it { flex: none; width: 78px; display: flex; flex-direction: column; align-items: center; gap: 2px; border: 2px solid transparent; background: var(--surface); border-radius: 12px; padding: 6px 4px; font-size: .72em; line-height: 1.3; color: var(--ink); cursor: pointer; word-break: keep-all; text-align: center; }
+.gt-it img { width: 48px; height: 48px; object-fit: contain; }
+.gt-it.on { border-color: var(--accent); background: var(--accent-soft); }
+/* 크게 보기: 정원만 화면 가득. 오른쪽 위에 작은 동그란 버튼들 */
+.gbig { position: fixed; inset: 0; z-index: 70; background: radial-gradient(120% 100% at 50% 40%, var(--surface), var(--surface-2)); touch-action: none; overscroll-behavior: contain; }
+.gbig-host { position: absolute; inset: 0; }
+.gbig-host canvas { cursor: grab; }
+.gbig-bar { position: absolute; top: calc(10px + env(safe-area-inset-top, 0px)); right: 10px; display: flex; gap: 8px; }
+.gbig-x { width: 44px; height: 44px; border-radius: 50%; border: 1.5px solid var(--line-strong); background: var(--surface); color: var(--ink); display: grid; place-items: center; padding: 0; cursor: pointer; }
+.gbig-x .ic { width: 1.25em; height: 1.25em; stroke-width: 1.9; }
+.gbig-x.main { background: var(--accent); border-color: var(--accent); color: var(--on-accent); }
+.gbig-x:disabled { opacity: .45; cursor: default; }
+.gbig-foot { position: absolute; left: 0; right: 0; bottom: 0; display: flex; flex-direction: column; align-items: center; gap: 8px; padding: 0 12px calc(12px + env(safe-area-inset-bottom, 0px)); pointer-events: none; }
+.gbig-say { max-width: 100%; background: var(--surface); border-radius: 14px; padding: .5em .9em; box-shadow: 0 2px 10px var(--shadow); }
+.gbig-say:empty { display: none; }
+.gbig-foot .gtray { pointer-events: auto; width: 100%; max-width: 640px; margin-top: 0; }
 .notice { background: var(--warm-soft); color: var(--ink); border-radius: 14px; padding: .8em .9em; font-size: .86em; word-break: keep-all; margin-bottom: 12px; }
 .notice b { color: var(--warm); }
 .mrow { display: flex; justify-content: space-between; align-items: center; gap: 10px; background: none; border: 0; border-top: 1px solid var(--line); padding: .8em 0; width: 100%; text-align: left; cursor: pointer; }
@@ -356,7 +381,7 @@ button.knot { cursor: pointer; }
     const items = [it('si1', 'me', '회사 일이 바빠도 지치지 않도록', 20), it('si2', 'p:sp1', '다음 주 수술이 잘 끝나고 회복이 빠르도록', 12), it('si3', 'p:sp2', '새 직장에서 좋은 동료를 만나도록', 9),
       it('si4', 'church', '새로 온 가정들이 잘 정착하도록', 30), it('si5', 'world', '전쟁으로 힘든 지역에 평화가 오도록', 30),
       it('si6', 'p:sp2', '이사할 집을 잘 구하도록', 40, { date: day(5), how: 'answer' })];
-    const prays = []; [['si1', [1, 2, 3, 5, 6]], ['si2', [1, 2, 4]], ['si3', [2, 3]], ['si4', [1, 4, 7]], ['si6', [8, 9, 10]]].forEach(([id, ds]) => ds.forEach(n => prays.push({ d: day(n), item: id, up: 1 })));
+    const prays = []; [['si1', [1, 2, 3, 5, 6, 22, 26, 30]], ['si2', [1, 2, 4]], ['si3', [2, 3]], ['si4', [1, 4, 7]], ['si6', [8, 9, 10]]].forEach(([id, ds]) => ds.forEach(n => prays.push({ d: day(n), item: id, up: 1 })));
     const thanks = [{ id: 'st1', date: day(5), text: '좋은 집을 만나게 해 주셨어요', item: 'si6', kind: 'answer', up: 1 }, { id: 'st2', date: day(1), text: '이번 주도 건강하게 지냈어요', kind: 'thanks', up: 1 }, { id: 'st3', date: day(3), text: '가족과 함께 저녁을 먹었어요', kind: 'thanks', up: 1 }];
     return { v: 2, started: true, name: '', nameUp: 0, people, items, prays, thanks, today: null, mode: '', vault: null };
   }
@@ -527,6 +552,11 @@ button.knot { cursor: pointer; }
 
   const S = { tab: D.started ? 'today' : 'start', edit: null, draftT: 'me', done: null, ps: null, toast: '', pick: null, tour: null };
   if (SC && ['today', 'note', 'pray', 'look', 'keep', 'more', 'start'].includes(SC.at)) S.tab = SC.at;
+  // 정원 장면(at=garden: 이번 달 소품 여덟 개로 5×5 판, at=garden-tray: 직접 놓기를 켜고 네 개가 서랍에서 기다림). 지난달(9월)로 넘기면 3×3 판
+  if (SC && (SC.at === 'garden' || SC.at === 'garden-tray')) {
+    S.tab = 'keep'; S.keep = 'garden';
+    if (SC.at === 'garden-tray') { try { localStorage.setItem(KEY + ':garden-hand', '1'); localStorage.setItem(KEY + ':garden', JSON.stringify({ [TODAY().slice(0, 7)]: { n: 5, pos: { '양': [0, 0, 0], '나무': [-2, -2, 0], '샘물': [1, -2, 1], '꽃밭': [-2, 1, 0] } } })); } catch (e) { /* 무시 */ } }
+  }
 
   // ── 화면 설정: 공동체 앱과 같은 곳(koide-pref)에 둔다. 예전 노트의 화면 모드는 한 번 옮긴다 ──────────
   const PREF = (() => { try { return JSON.parse(localStorage.getItem('koide-pref')) || {}; } catch (e) { return {}; } })();
@@ -642,7 +672,7 @@ button.knot { cursor: pointer; }
       ${set.map(i => { const on = prayedToday(i.id); return `<div class="today-item${on ? ' on' : ''}"><p><span class="tag">${esc(targetName(i.target))}</span>${esc(i.text)}</p>
         <div class="row"><span class="days">${daysSince(i.created)}일째 기도하고 있어요</span><button class="pray-btn${on ? ' on' : ''}" data-a="pray" data-v="${i.id}" aria-pressed="${on}">${on ? ICON.check + '기도했어요' : '기도했어요'}</button></div></div>`; }).join('')}
       ${done === set.length ? `<p class="hint">오늘 기도할 제목을 다 기도했어요.${all.length > set.length ? ' 다른 기도제목도 함께 기도해 볼까요?' : ''}</p>` : ''}
-      ${done === set.length && todayProp() ? `<button class="keep-note" data-a="keep" data-v="shelf"><span>${todayProp().all ? '이달의 소품을 다 모았어요' : `오늘 <b>${esc(todayProp().name)}</b>${josaN(todayProp().name)} 보관함에 놓였어요`}</span><span class="go">보관함 보기 ›</span></button>` : ''}
+      ${done === set.length && todayProp() ? `<button class="keep-note" data-a="keep" data-v="garden"><span>${todayProp().all ? '이달의 소품을 다 모았어요' : `오늘 <b>${esc(todayProp().name)}</b>${josaN(todayProp().name)} 정원에 놓였어요`}</span><span class="go">정원 보기 ›</span></button>` : ''}
       <button class="btn ghost" data-a="psopen" data-v="${done === set.length ? 'all' : 'today'}">${done === set.length && all.length > set.length ? '모든 기도제목으로 기도하기' : '한 장씩 기도하기'}</button></section>
       ${cordHtml()}${thanksQuick()}`;
   }
@@ -755,25 +785,27 @@ button.knot { cursor: pointer; }
         <p class="hint">남과 견주지 않는 나만의 기록이에요. 빈 날이 있어도 괜찮아요.</p></section>
       <section class="card"><div class="seg" role="tablist">${[['thanks', '감사와 응답 · ' + thanks.length], ['done', '마친 기도 · ' + doneL.length]].map(([k, l]) => `<button class="${tab === k ? 'on' : ''}" role="tab" aria-selected="${tab === k}" data-a="looktab" data-v="${k}">${l}</button>`).join('')}</div>${list}</section>
       ${longest.length ? `<section class="card"><p class="label">오래 이어 온 기도</p>${longest.map(i => `<p class="plain"><span class="tag">${esc(targetName(i.target))}</span>${esc(i.text)} <span class="days">· ${daysSince(i.created)}일째</span></p>`).join('')}</section>` : ''}
-      <section class="card"><button class="mrow" data-a="keep" data-v=""><span><b>나의 보관함</b><small>올해 끈 · 이달의 소품 · 끈 보관함</small></span><span aria-hidden="true">›</span></button></section>`;
+      <section class="card"><button class="mrow" data-a="keep" data-v=""><span><b>나의 보관함</b><small>올해 끈 · 이달의 정원 · 끈 보관함</small></span><span aria-hidden="true">›</span></button></section>`;
   }
-  // 나의 보관함: 지난 기록 맨 아래 입구로 들어가는 화면. 입체 그림 셋 중 하나를 크게(올해 끈 · 이달의 소품 · 끈 보관함)
-  const KEEPS = [['cord', '올해 끈'], ['shelf', '이달의 소품'], ['chest', '끈 보관함']];
+  // 나의 보관함: 지난 기록 맨 아래 입구로 들어가는 화면. 입체 그림 셋 중 하나를 크게(올해 끈 · 이달의 정원 · 끈 보관함)
+  const KEEPS = [['cord', '올해 끈'], ['garden', '이달의 정원'], ['chest', '끈 보관함']];
   const keepKind = () => KEEPS.some(k => k[0] === S.keep) ? S.keep : 'cord';
   function keepView() {
     const k = keepKind(), C = k === 'cord' ? cordData() : null;
+    if (k !== 'garden') S.gbig = false;
     const head = k === 'cord' ? `<div class="card-head"><h2>나의 ${C.year}년 끈</h2><span>기도한 날 ${C.days.reduce((a, b) => a + b, 0)}일 · 응답 ${C.answers.length} · 감사 ${C.thanks.length}</span></div>`
-      : `<p class="hint">${k === 'shelf' ? '기도한 날마다 그 달 그림의 소품이 하나씩 선반에 놓여요. 공동체의 이달의 그림과 같은 주제예요.' : '한 해가 끝나면 그해의 끈을 감아 상자에 넣어요. 해가 갈수록 한 칸씩 채워져요.'}</p>`;
-    const hint = { cord: '매듭이나 금실을 누르면 그날의 기록이 보여요. 밀어서 돌려 볼 수 있어요.', shelf: '소품을 누르면 이름과 놓인 날이 보여요. 밀어서 선반을 돌려 볼 수 있어요.', chest: '끈을 누르면 그해의 기록이 보여요. 밀어서 상자를 돌려 볼 수 있어요.' }[k];
+      : `<p class="hint">${k === 'garden' ? '기도한 날마다 그 달 그림의 소품이 하나씩 정원에 놓여요. 모을수록 땅이 넓어져요. 공동체의 이달의 그림과 같은 주제예요.' : '한 해가 끝나면 그해의 끈을 감아 상자에 넣어요. 해가 갈수록 한 칸씩 채워져요.'}</p>`;
+    const hint = { cord: '매듭이나 금실을 누르면 그날의 기록이 보여요. 밀어서 돌려 볼 수 있어요.', garden: '정원의 소품을 누르면 이름과 온 날이 보여요.', chest: '끈을 누르면 그해의 기록이 보여요. 밀어서 상자를 돌려 볼 수 있어요.' }[k];
+    const stage = `<div class="stage3d ${k}" id="keep3d"><span class="wait">불러오는 중…</span></div>`, pick = `<div id="keep3d-pick"><p class="hint">${hint}</p></div>`;
     return `<button class="link" data-a="tab" data-v="look">‹ 지난 기록</button>
       <header class="top"><div><p class="eyebrow">나만 보는 기록</p><h1>나의 보관함</h1></div></header>
       <div class="seg" role="tablist" style="margin-bottom:12px">${KEEPS.map(([v, l]) => `<button class="${k === v ? 'on' : ''}" role="tab" aria-selected="${k === v}" data-a="keep" data-v="${v}">${l}</button>`).join('')}</div>
-      <section class="card">${head}${k === 'shelf' ? shelfNav() : k === 'chest' ? chestNav() : ''}
-        <div class="stage3d ${k}${k === 'shelf' && S.shelfEdit ? ' editing' : ''}" id="keep3d"><span class="wait">불러오는 중…</span></div>${k === 'shelf' ? shelfActs() + monthStrip() : ''}
-        ${k === 'cord' ? '<div class="legend3d"><span><i class="k"></i>응답 매듭</span><span><i class="g"></i>감사의 금실</span><span>가닥 굵기 = 그 달에 기도한 날</span></div>' : ''}
-        <div id="keep3d-pick"><p class="hint">${hint}</p></div></section>`;
+      <section class="card">${head}${k === 'garden' ? gardenNav() : k === 'chest' ? chestNav() : ''}
+        ${k === 'garden' ? `${stage}${pick}<div class="gtray" id="gtray" hidden></div>${gardenActs()}${monthStrip()}` : `${stage}
+        ${k === 'cord' ? '<div class="legend3d"><span><i class="k"></i>응답 매듭</span><span><i class="g"></i>감사의 금실</span><span>가닥 굵기 = 그 달에 기도한 날</span></div>' : ''}${pick}`}</section>
+      ${k === 'garden' && S.gbig ? gardenBig() : ''}`;
   }
-  function shelfNav() {
+  function gardenNav() {
     const M = keepMonth(), R = monthRow(M), [y, m] = M.split('-').map(Number);
     return `<div class="month-nav"><button class="btn ghost small" data-a="keepm" data-v="${shiftM(M, -1)}"${M > firstMonth() ? '' : ' disabled'} aria-label="이전 달">‹</button>
       <span class="mn-t"><b>${esc(R.title)}</b><small>${y}년 · 기도한 날 ${R.count}일 · 소품 ${Math.min(R.count, R.total)} / ${R.total}</small></span>
@@ -795,7 +827,7 @@ button.knot { cursor: pointer; }
       <span class="mn-t"><b>${st} ~ ${st + 2}</b><small>상자 하나에 세 해</small></span>
       <button class="btn ghost small" data-a="keepy" data-v="${st + 3}"${st < cur ? '' : ' disabled'} aria-label="다음 상자">›</button></div>`;
   }
-  // 오늘 놓인 소품(오늘 처음 기도한 날이면 이달 선반에 하나 놓인다). 다 모았으면 all
+  // 오늘 놓인 소품(오늘 처음 기도한 날이면 이달 정원에 하나 놓인다). 다 모았으면 all
   // 받침에 맞춰 이/가
   const josaN = w => { const c = w.charCodeAt(w.length - 1) - 0xAC00; return c >= 0 && c < 11172 && c % 28 ? '이' : '가'; };
   function todayProp() {
@@ -817,32 +849,50 @@ button.knot { cursor: pointer; }
       answers: T.filter(x => x.kind === 'answer').map(x => { const it = x.item && D.items.find(i => i.id === x.item); return { d: x.date, text: x.text, item: it ? it.text : '' }; }),
       thanks: T.filter(x => x.kind !== 'answer').map(x => ({ d: x.date, text: x.text })) };
   }
-  // 소품 선반: 이번 달과 그 앞 두 달(노트를 시작한 달부터). 그 달 그림의 주인공과 소품
   // 달 고르기: 노트를 시작한 달부터 이번 달까지. 고른 달(S.keepM)이 없거나 범위 밖이면 이번 달
   const monthKey = d => d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0');
   const firstMonth = () => ([...prays().map(p => p.d)].sort()[0] || TODAY()).slice(0, 7);
   const keepMonth = () => { const cur = TODAY().slice(0, 7), f = firstMonth(); return S.keepM && S.keepM >= f && S.keepM <= cur ? S.keepM : cur; };
   const shiftM = (M, k) => { const [y, m] = M.split('-').map(Number); return monthKey(new Date(y, m - 1 + k, 1)); };
-  // 이달의 소품: 고른 달 한 칸. 첫 기도에 주인공, 그다음 기도한 날마다 소품 하나
+  // 이달의 정원: 고른 달 한 판. 첫 기도에 주인공, 그다음 기도한 날마다 소품 하나
   function monthRow(M) {
     const A = window.KOIDE_ART, key = A.sceneKey(M), sc = A.SCENES[key], dd = [...new Set(prays().map(p => p.d).filter(x => x.startsWith(M)))].sort();
     return { key, title: sc.title, hero: [(sc.heroes || ['hero'])[0], sc.hero, sc.heroW], props: sc.props.map(p => [p[0], p[1], p[4]]), days: dd, count: dd.length, total: sc.props.length + 1 };
   }
-  const shelfData = () => [monthRow(keepMonth())];
-  // 선반 꾸미기: 소품을 선반 위로 끌어 옮긴다. 꾸민 자리는 이 기기에만(내 노트 자리 옆에 달마다) 둔다
-  const SHELF_KEY = KEY + ':shelf';
-  const shelfAll = () => { try { return JSON.parse(localStorage.getItem(SHELF_KEY) || '{}') || {}; } catch (e) { return {}; } };
-  const shelfPos = M => shelfAll()[M] || {};
-  function setShelfPos(M, P) { const all = shelfAll(); if (P && Object.keys(P).length) all[M] = P; else delete all[M]; try { localStorage.setItem(SHELF_KEY, JSON.stringify(all)); } catch (e) { /* 이번만 */ } }
-  function shelfActs() {
-    const M = keepMonth(), moved = Object.keys(shelfPos(M)).length, has = monthRow(M).count > 0;
+  // 정원 꾸미기: 소품의 자리(칸 번호, 판 한가운데가 0)와 판 크기를 달마다 이 기기에만(내 노트 자리 옆에) 둔다. 직접 놓기 켜짐도 이 기기에만
+  const GARDEN_KEY = KEY + ':garden', HAND_KEY = KEY + ':garden-hand';
+  const gardenAll = () => { try { return JSON.parse(localStorage.getItem(GARDEN_KEY) || '{}') || {}; } catch (e) { return {}; } };
+  const gardenSt = M => { const s = gardenAll()[M] || {}; return { n: Number(s.n) || 0, pos: s.pos && typeof s.pos === 'object' ? s.pos : {} }; };
+  function setGardenSt(M, st) { const all = gardenAll(); if (st && (st.n || Object.keys(st.pos || {}).length)) all[M] = st; else delete all[M]; try { localStorage.setItem(GARDEN_KEY, JSON.stringify(all)); } catch (e) { /* 이번만 */ } }
+  const gardenHand = () => { try { return localStorage.getItem(HAND_KEY) === '1'; } catch (e) { return false; } };
+  const GI = {
+    edit: tic('<path d="M8 2v12M2 8h12M8 2L6.3 3.7M8 2l1.7 1.7M8 14l-1.7-1.7M8 14l1.7-1.7M2 8l1.7-1.7M2 8l1.7 1.7M14 8l-1.7-1.7M14 8l-1.7 1.7"/>'),
+    save: tic('<path d="M8 2.2v7.6M4.8 6.6L8 9.8l3.2-3.2M2.6 11.6v1.8h10.8v-1.8"/>'),
+    close: tic('<path d="M4 4l8 8M12 4l-8 8"/>'),
+    undo: tic('<path d="M3.4 6h6.3a3.3 3.3 0 0 1 0 6.6H6.2"/><path d="M5.6 3.6L3.2 6l2.4 2.4"/>'),
+    done: tic('<path d="M3.2 8.4l3 3 6.6-6.8"/>'),
+    flip: tic('<path d="M8 2v12" stroke-dasharray="1.5 1.5"/><path d="M6.3 4.6L2.5 12h3.8zM9.7 4.6l3.8 7.4H9.7z"/>'),
+    full: tic('<path d="M9.5 2.5h4v4M6.5 13.5h-4v-4M13.5 2.5l-4 4M2.5 13.5l4-4"/>')
+  };
+  function gardenActs() {
+    const M = keepMonth(), has = monthRow(M).count > 0, hand = gardenHand();
     if (!has) return '';
-    return `<div class="shelf-acts">${S.shelfEdit ? `<span class="hint">소품을 끌어 옮겨요. 이 기기에만 남아요.</span>${moved ? '<button class="btn ghost small" data-a="shelfreset">처음 자리로</button>' : ''}<button class="btn small" data-a="shelfedit">다 했어요</button>`
-      : `<button class="btn ghost small" data-a="shelfedit">꾸미기</button><button class="btn ghost small" data-a="shelfsave"${S.shelfSaving ? ' disabled' : ''}>${S.shelfSaving ? '저장하는 중…' : '그림 저장'}</button>`}</div>`;
+    return `<div class="garden-acts"><div class="g-hand"><div><b>직접 놓기</b><small>${hand ? '새 소품이 서랍에서 기다려요' : '새 소품이 알아서 놓여요'}</small></div><button class="switch${hand ? ' on' : ''}" role="switch" aria-checked="${hand}" aria-label="직접 놓기" data-a="ghand"><span></span></button></div>
+      <div class="g-btns">${S.gEdit ? '<button class="btn ghost small" data-a="gflip" disabled>좌우 바꾸기</button><button class="btn ghost small" data-a="greset">처음 자리로</button><button class="btn small" data-a="gedit">다 했어요</button>'
+        : `<button class="btn ghost small" data-a="gedit">꾸미기</button><button class="btn ghost small" data-a="gsave"${S.gSaving ? ' disabled' : ''}>${S.gSaving ? '저장하는 중…' : '그림 저장'}</button><button class="btn ghost small" data-a="gbig">크게 보기</button>`}</div>
+      ${S.gEdit ? '<p class="hint">소품을 한 번 누르고 빛나는 빈 자리를 눌러 옮겨요. 소품을 두 번 누르면 좌우가 바뀌어요. 이 기기에만 남아요.</p>' : ''}</div>`;
   }
-  // 그림 저장: 지금 보이는 선반을 사진 한 장으로, 아래에 달과 제목(기도한 날 같은 숫자는 넣지 않는다). 휴대폰이면 공유하기, 아니면 내려받기
-  async function saveShelf() {
-    const G = G3.shelf; if (!G) return;
+  // 크게 보기: 정원만 화면 가득. 꾸미기 · 그림 저장 · 닫기(꾸미는 동안에는 좌우 바꾸기 · 처음 자리로 · 다 했어요 · 닫기). 서랍에 기다리는 소품이 있으면 아래에 서랍
+  function gardenBig() {
+    const b = (a, ic, label, o = {}) => `<button class="gbig-x${o.main ? ' main' : ''}" data-a="${a}" aria-label="${label}" title="${label}"${o.off ? ' disabled' : ''}>${GI[ic]}</button>`;
+    return `<div class="gbig" id="gbig" role="dialog" aria-modal="true" aria-label="이달의 정원 크게 보기"><div class="gbig-host" id="gbig-host"><span class="wait">불러오는 중…</span></div>
+      <div class="gbig-bar">${S.gEdit ? b('gflip', 'flip', '좌우 바꾸기', { off: true }) + b('greset', 'undo', '처음 자리로') + b('gedit', 'done', '다 했어요', { main: true })
+        : b('gedit', 'edit', '꾸미기') + b('gsave', 'save', '그림 저장', { off: S.gSaving })}${b('gbigclose', 'close', '닫기')}</div>
+      <div class="gbig-foot"><div class="gbig-say" id="gbig-say" aria-live="polite"></div><div class="gtray" id="gtray-big" hidden></div></div></div>`;
+  }
+  // 그림 저장: 정원 전체를 사진 한 장으로, 아래에 제목과 달(기도한 날 같은 숫자는 넣지 않는다). 휴대폰이면 공유하기, 아니면 내려받기
+  async function saveGarden() {
+    const G = G3.garden; if (!G) return;
     const M = keepMonth(), R = monthRow(M), src = G.snap();
     const pic = await new Promise((ok, bad) => { const i = new Image(); i.onload = () => ok(i); i.onerror = bad; i.src = src; });
     const W = pic.width, H = pic.height, cap = Math.round(W * .085), c = document.createElement('canvas'); c.width = W; c.height = H + cap;
@@ -852,8 +902,8 @@ button.knot { cursor: pointer; }
     g.textBaseline = 'middle'; g.fillStyle = cs.getPropertyValue('--ink').trim() || '#1B2523'; g.font = `700 ${Math.round(cap * .36)}px "Gowun Batang", serif`;
     g.fillText(R.title.replace(/^\d+월\s*/, ''), cap * .45, H + cap / 2);
     g.fillStyle = cs.getPropertyValue('--ink-2').trim() || '#5B6965'; g.font = `500 ${Math.round(cap * .24)}px "IBM Plex Sans KR", sans-serif`; g.textAlign = 'right';
-    g.fillText(`${y}년 ${Number(mo)}월 · 나의 기도 노트`, W - cap * .45, H + cap / 2);
-    const blob = await new Promise(ok => c.toBlob(ok, 'image/png')), file = new File([blob], `koide-note-${M}.png`, { type: 'image/png' });
+    g.fillText(`${y}년 ${Number(mo)}월 · 코이데`, W - cap * .45, H + cap / 2);
+    const blob = await new Promise(ok => c.toBlob(ok, 'image/png')), file = new File([blob], `koide-garden-${M}.png`, { type: 'image/png' });
     if (navigator.canShare && navigator.canShare({ files: [file] }) && /Mobi|Android|iPhone|iPad/.test(navigator.userAgent)) {
       try { await navigator.share({ files: [file], title: R.title }); return; } catch (e) { if (e && e.name === 'AbortError') return; }
     }
@@ -888,14 +938,15 @@ button.knot { cursor: pointer; }
     const off = () => document.querySelectorAll('.stage3d .wait').forEach(w => { w.textContent = '이 기기에서는 입체 그림을 볼 수 없어요.'; });
     if (!can3d()) return off();
     load3d().then(() => {
-      const host = $('#keep3d'); if (S.tab !== 'keep' || !host) return;
-      const X = window.KOIDE_NOTE3D, k = keepKind(), pick = () => $('#keep3d-pick');
-      const d = k === 'cord' ? cordData() : k === 'shelf' ? shelfData() : chestData(), M = keepMonth(), sig = JSON.stringify(d) + (PREF.accent || '') + (PREF.mode || '') + (k === 'shelf' ? JSON.stringify(shelfPos(M)) : '');
-      const arrange = { pos: shelfPos(M), on: () => !!S.shelfEdit, save: (n, x, z) => { const P = shelfPos(M); P[n] = [x, z]; setShelfPos(M, P); if (G3.shelf) G3.shelf.sig = JSON.stringify(shelfData()) + (PREF.accent || '') + (PREF.mode || '') + JSON.stringify(P);
-        const bar = document.querySelector('.shelf-acts'); if (bar && !bar.querySelector('[data-a=shelfreset]')) bar.querySelector('[data-a=shelfedit]').insertAdjacentHTML('beforebegin', '<button class="btn ghost small" data-a="shelfreset">처음 자리로</button>'); } };
+      const host = S.gbig ? $('#gbig-host') : $('#keep3d'); if (S.tab !== 'keep' || !host) return;
+      const X = window.KOIDE_NOTE3D, k = keepKind(), pick = () => (S.gbig && $('#gbig-say')) || $('#keep3d-pick');
+      const M = keepMonth(), d = k === 'cord' ? cordData() : k === 'garden' ? monthRow(M) : chestData(), sig = JSON.stringify(d) + (PREF.accent || '') + (PREF.mode || '') + (k === 'garden' ? M + gardenHand() : '');
+      const arrange = { st: gardenSt(M), hand: gardenHand(), month: Number(M.slice(5)), today: TODAY(), on: () => !!S.gEdit, big: () => !!S.gbig, save: st => setGardenSt(M, st), tray: () => [$('#gtray'), $('#gtray-big')],
+        ui: has => document.querySelectorAll('[data-a=gflip]').forEach(b => { b.disabled = !(has && S.gEdit); }) };
       // 그림은 종류마다 만들어 두고, 기록이나 화면 설정이 바뀌었을 때만 새로 만든다
-      if (!G3[k] || G3[k].sig !== sig) { if (G3[k]) G3[k].dispose(); G3[k] = k === 'cord' ? X.cord(d, pick) : k === 'shelf' ? X.shelf(d, CFG.ART || 'img/', pick, arrange) : X.chest(d, pick); G3[k].sig = sig; }
-      const w = host.querySelector('.wait'); if (w) w.remove(); G3[k].attach(host);
+      if (!G3[k] || G3[k].sig !== sig) { if (G3[k]) G3[k].dispose(); G3[k] = k === 'cord' ? X.cord(d, pick) : k === 'garden' ? X.garden(d, CFG.ART || 'img/', pick, arrange) : X.chest(d, pick); G3[k].sig = sig; }
+      document.querySelectorAll('.stage3d .wait, .gbig-host .wait').forEach(w => { if (w.parentNode !== host) w.remove(); });
+      const w = host.querySelector('.wait'); if (w) w.remove(); G3[k].attach(host); if (G3[k].syncUI) G3[k].syncUI();
     }).catch(off);
   }
 
@@ -1159,12 +1210,13 @@ button.knot { cursor: pointer; }
   }
   const TABS = [['today', '오늘', TICON.sun], ['note', '내 기도', TICON.pen], ['pray', '기도하기', TICON.hands], ['look', '지난 기록', TICON.book], ['more', '더보기', TICON.more]];
   function render() {
+    if (S.tab !== 'keep') S.gbig = false;
     const V = { start: startView, today: todayView, note: noteView, pray: prayTab, look: lookView, keep: keepView, more: moreView, fb: fbView }[S.tab];
     $('#root').innerHTML = `${S.tab !== 'start' ? topBar() : ''}<div class="wrap${S.tab !== 'start' ? ' has-top' : ''}">${V()}</div>
       ${S.tab === 'start' ? '' : `<nav class="tabs" aria-label="메뉴">${TABS.map(([k, l, ic]) => { const on = (S.tab === 'keep' ? 'look' : S.tab === 'fb' ? 'more' : S.tab) === k; return `<button class="${k === 'pray' ? 'pray-tab ' : ''}${on ? 'on' : ''}" data-a="tab" data-v="${k}" aria-label="${l}" title="${l}" ${on ? 'aria-current="page"' : ''}>${ic}</button>`; }).join('')}</nav>`}
       ${S.done ? doneSheet() : ''}${S.tour != null ? tourSheet() : ''}${S.a2hs && !S.ps ? a2hsSheet() : ''}${S.vsheet ? vaultSheet() : ''}${S.share ? shareSheet() : ''}${S.mv ? mvSheet() : ''}${S.ps ? psHtml() : ''}${S.toast ? `<div class="toast" role="status">${esc(S.toast)}</div>` : ''}
       ${canSave ? '' : '<div class="toast" role="alert">이 브라우저에서는 저장할 수 없어요. 개인 정보 보호 모드를 끄고 열어 주세요.</div>'}`;
-    document.documentElement.style.overflow = S.ps || S.done || S.vsheet || S.share || S.tour != null || S.a2hs ? 'hidden' : '';
+    document.documentElement.style.overflow = S.ps || S.done || S.vsheet || S.share || S.tour != null || S.a2hs || S.gbig ? 'hidden' : '';
     document.querySelectorAll('textarea.field').forEach(autosize);
     if (S.cordNew) { document.querySelectorAll('.cord-seg.pull animate').forEach(a => { try { a.beginElement(); } catch (e) { /* 무시 */ } }); S.cordNew = null; }
     mount3d();
@@ -1258,11 +1310,15 @@ button.knot { cursor: pointer; }
       case 'accent': setPref('accent', v); return render();
       case 'style': setPref('style', v); return render();
       case 'lookm': S.lookM = v; return render();
-      case 'keep': S.keep = v || S.keep; if (v === 'shelf') S.keepM = null; S.tab = 'keep'; render(); return window.scrollTo(0, 0);
-      case 'keepm': S.keepM = v; S.shelfEdit = false; return render();
-      case 'shelfedit': S.shelfEdit = !S.shelfEdit; return render();
-      case 'shelfreset': if (!confirm('이 달 선반을 처음 자리로 되돌릴까요?')) return; setShelfPos(keepMonth(), {}); return render();
-      case 'shelfsave': S.shelfSaving = true; render(); saveShelf().catch(() => toast('그림을 저장하지 못했어요. 다시 해 주세요')).then(() => { S.shelfSaving = false; render(); }); return;
+      case 'keep': S.keep = v || S.keep; if (v === 'garden') S.keepM = null; S.gEdit = false; S.gbig = false; S.tab = 'keep'; render(); return window.scrollTo(0, 0);
+      case 'keepm': S.keepM = v; S.gEdit = false; return render();
+      case 'gedit': if (G3.garden) G3.garden.leave(); S.gEdit = !S.gEdit; return render();
+      case 'ghand': try { localStorage.setItem(HAND_KEY, gardenHand() ? '0' : '1'); } catch (err) { /* 이번만 */ } return render();
+      case 'gflip': if (G3.garden) G3.garden.flip(); return;
+      case 'greset': if (!confirm('이 달 정원을 처음 자리로 되돌릴까요?')) return; setGardenSt(keepMonth(), null); if (G3.garden) { G3.garden.dispose(); G3.garden = null; } return render();
+      case 'gsave': S.gSaving = true; render(); saveGarden().catch(() => toast('그림을 저장하지 못했어요. 다시 해 주세요')).then(() => { S.gSaving = false; render(); }); return;
+      case 'gbig': S.gbig = true; return render();
+      case 'gbigclose': S.gbig = false; return render();
       case 'keepy': S.keepY = Number(v); return render();
       case 'looktab': S.lookTab = v; return render();
       case 'big': setPref('big', !PREF.big); return render();
@@ -1393,7 +1449,7 @@ button.knot { cursor: pointer; }
   });
   document.addEventListener('keydown', e => {
     if (e.key !== 'Escape') return;
-    if (S.ps) { S.ps = null; musicOff(); render(); } else if (S.done) { S.done = null; render(); } else if (S.vsheet) { S.vsheet = null; render(); } else if (S.share) { S.share = null; render(); } else if (S.mv) { S.mv = null; render(); }
+    if (S.gbig) { S.gbig = false; render(); } else if (S.ps) { S.ps = null; musicOff(); render(); } else if (S.done) { S.done = null; render(); } else if (S.vsheet) { S.vsheet = null; render(); } else if (S.share) { S.share = null; render(); } else if (S.mv) { S.mv = null; render(); }
   });
   // 카카오 로그인이 기본: 로그인하지 않았으면 로그인 화면으로(노트는 이 휴대폰에 그대로 남아 있다)
   if (!SC && !getToken()) { if (window.koideSpace) window.koideSpace.going('community'); location.replace('index.html' + QS); return; }
