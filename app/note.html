@@ -63,6 +63,8 @@ try { const p = JSON.parse(localStorage.getItem('koide-pref') || '{}'), d = docu
 html { -webkit-text-size-adjust: 100%; text-size-adjust: 100%; }
 body { margin: 0; background: var(--page); color: var(--ink); font-family: var(--f-body); font-size: var(--base); line-height: 1.55; }
 button, input, textarea { font: inherit; color: inherit; }
+/* 아이폰에서 빠르게 두세 번 눌러도 화면이 확대되지 않게(두 손가락으로 벌려 확대하는 것은 그대로). 캔버스·3D 무대는 건드리지 않는다 */
+button, a, label, summary, select, input, [role="button"], [data-a], .brand { touch-action: manipulation; }
 .wrap { max-width: 640px; margin: 0 auto; padding: calc(12px + env(safe-area-inset-top, 0px)) 16px calc(96px + env(safe-area-inset-bottom, 0px)); }
 /* 위쪽 막대(공동체 화면과 같은 짜임): 코이데 · 배지(함께하는 곳) · 톱니바퀴(화면 설정) */
 .ic { width: 1em; height: 1em; fill: none; stroke: currentColor; stroke-width: 1.5; stroke-linecap: round; stroke-linejoin: round; flex: none; }

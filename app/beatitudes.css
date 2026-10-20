@@ -1,5 +1,7 @@
 /* 팔복 이스터에그 "여덟 매듭의 복"(beatitudes.js): 화면 전체, 테마색을 따른다. 공동체 화면과 기도 노트가 함께 쓴다 */
 html.bt-open { overflow: hidden; }
+/* 끈 화면은 누를 때마다 넘어가니, 빠르게 눌러도 확대되지 않게(아이폰) */
+.bt, .bt-gift { touch-action: manipulation; }
 .bt { position: fixed; inset: 0; z-index: 130; background: var(--page); color: var(--ink); display: flex; flex-direction: column; }
 .bt-top { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: calc(12px + env(safe-area-inset-top, 0px)) 16px 4px; }
 .bt-title { font-family: var(--f-display); font-weight: 700; color: var(--accent); }
