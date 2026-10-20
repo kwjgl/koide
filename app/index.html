@@ -1232,7 +1232,7 @@ try { const p = JSON.parse(localStorage.getItem('koide-pref') || '{}'), d = docu
     if (!getToken()) { S.view = 'login'; return render(); }
     // 지난번 화면이 기억돼 있으면 먼저 보여 주고, 서버에서 새로 받아 조용히 바꾼다
     const c = readCache();
-    if (c && c.me && c.month) { S.me = c.me; S.month = c.month; S.view = 'app'; render(); return refreshMe(true); }
+    if (c && c.me && c.month && !GOPEN && !shareGroup()) { S.me = c.me; S.month = c.month; S.view = 'app'; render(); return refreshMe(true); }
     await refreshMe();
   }
   function loadDemo() {
@@ -2931,7 +2931,7 @@ try { const p = JSON.parse(localStorage.getItem('koide-pref') || '{}'), d = docu
       <div class="fam-grid" style="margin-top:12px">
         <div class="col"><p class="more-h">나</p>
           <section class="card mrows">${row('note', '', '나의 기도 노트', '나만 보는 기도제목과 감사 기록. 이 휴대폰에만 저장돼요')}</section>
-          ${S.grp ? groupMoreCard() + `<section class="card mrows">${row('note', '', '기도 노트로 돌아가기', '내 모임은 기도 노트에 있어요')}${S.home ? row('gback', '', esc(S.home.room.name) + '으로', '교회 ' + esc(S.home.dept && S.home.dept.group || '소그룹')) : ''}</section>` : famInfoCard()}
+          ${S.grp ? groupMoreCard() : famInfoCard()}
           ${me.staff && !S.grp ? `<section class="card"><p class="label">섬기는 곳</p><h3>${esc(S.month.dept && S.month.dept.name || '')} · ${esc(me.label || me.role)}</h3>
             <p class="hint">${(S.month.serve || []).some(s => s.familyId === me.familyId) ? '회원의 이번 달 화면 맨 아래 "섬기는 분들"과 기도하기 마지막 장에 나와요. ' + esc(S.month.dept && S.month.dept.name || '부서') + ' 공개로 쓴 기도제목만 보여요.' : '섬기는 분들 카드에는 나오지 않아요(관리자가 정해요).'}${me.admin ? ' 관리자도 함께 맡고 있어요.' : ''}</p></section>` : ''}
         </div>
@@ -2944,8 +2944,8 @@ try { const p = JSON.parse(localStorage.getItem('koide-pref') || '{}'), d = docu
               <p class="hint">이 기기에만 적용돼요. 위쪽 톱니바퀴에서도 바꿀 수 있어요.</p></div>` : ''}
             ${STANDALONE ? '' : row('a2hsopen', '', '홈 화면에 앱처럼 두기', '아이콘을 눌러 바로 열 수 있게 해요')}
           </section>
-          <p class="more-h">코이데</p>
-          <section class="card mrows">${row('tab', 'about', '코이데 소개', '이름의 뜻과 코이데가 지키는 것')}${row('tourre', '', '사용법 다시 보기', '처음 안내와 화면마다 도움말을 다시 봐요')}${row('tab', 'feedback', '의견 보내기', '불편한 점, 바라는 점, 고마운 점')}</section>
+          ${S.grp ? '' : `<p class="more-h">코이데</p>
+          <section class="card mrows">${row('tab', 'about', '코이데 소개', '이름의 뜻과 코이데가 지키는 것')}${row('tourre', '', '사용법 다시 보기', '처음 안내와 화면마다 도움말을 다시 봐요')}${row('tab', 'feedback', '의견 보내기', '불편한 점, 바라는 점, 고마운 점')}</section>`}
           <button class="link quiet more-out" data-act="logout">이 기기에서 로그아웃</button>
         </div></div>`;
   }
@@ -3320,10 +3320,8 @@ try { const p = JSON.parse(localStorage.getItem('koide-pref') || '{}'), d = docu
   const GJOIN = 'koide-gjoin', G_MAX = 12, PLACES = 3;
   let GOPEN = null;
   // 열 모임: 노트에서 연 모임(?grp=) 또는 노트에서 모임에 나누러 온 글의 모임
-  function groupToOpen() {
-    const g = GOPEN; GOPEN = null; if (g) return g;
-    try { const x = JSON.parse(localStorage.getItem('koide-share') || 'null'); return x && x.grp && Date.now() - (x.at || 0) < 864e5 ? x.grp : null; } catch (e) { return null; }
-  }
+  const shareGroup = () => { try { const x = JSON.parse(localStorage.getItem('koide-share') || 'null'); return x && x.grp && Date.now() - (x.at || 0) < 864e5 ? x.grp : null; } catch (e) { return null; } };
+  function groupToOpen() { const g = GOPEN; GOPEN = null; return g || shareGroup(); }
   // 모임 초대 링크로 왔을 때: 모임 이름을 보여 주고, 동의(와 교회에 연결되지 않았으면 모임에서 쓸 이름)를 받아 신청한다
   async function openGJoin(t) {
     S.gj = { t }; S.view = 'gjoin'; render();

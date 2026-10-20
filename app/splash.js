@@ -68,13 +68,13 @@
   const st = document.createElement('style'); st.textContent = css; document.head.appendChild(st);
   if (inner) me.insertAdjacentHTML('afterend', `<div id="splash" class="splash" aria-hidden="true">${inner}</div>`);
   window.SPLASH_AT = performance.now();
-  // 시작 화면 닫기: 처음 켤 때는 매듭이 다 지어질 만큼(1.3초), 전환 화면은 짧게(0.8초) 머문다
+  // 시작 화면 닫기: 처음 켤 때는 매듭이 다 지어질 만큼(1.3초), 전환 화면은 어디로 왔는지 알아볼 만큼(1.4초) 머문다
   window.koideSplash = {
     mode,
     hide() {
       const s = document.getElementById('splash'); if (!s || s.classList.contains('out')) return;
       const calm = matchMedia('(prefers-reduced-motion: reduce)').matches, shown = performance.now() - window.SPLASH_AT;
-      const stay = mode === 'main' ? (calm ? 600 : 1300) : (calm ? 300 : 800);
+      const stay = mode === 'main' ? (calm ? 600 : 1300) : (calm ? 600 : 1400);
       setTimeout(() => { s.classList.add('out'); setTimeout(() => s.remove(), calm ? 0 : 300); }, Math.max(0, stay - shown));
     }
   };

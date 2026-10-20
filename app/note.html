@@ -64,8 +64,31 @@ html { -webkit-text-size-adjust: 100%; text-size-adjust: 100%; }
 body { margin: 0; background: var(--page); color: var(--ink); font-family: var(--f-body); font-size: var(--base); line-height: 1.55; }
 button, input, textarea { font: inherit; color: inherit; }
 .wrap { max-width: 640px; margin: 0 auto; padding: calc(12px + env(safe-area-inset-top, 0px)) 16px calc(96px + env(safe-area-inset-bottom, 0px)); }
-.space { display: flex; justify-content: space-between; align-items: center; gap: 8px; margin-bottom: 10px; }
-.space a { color: var(--accent); font-weight: 600; font-size: .86em; text-decoration: none; min-height: 36px; display: inline-flex; align-items: center; }
+/* 위쪽 막대(공동체 화면과 같은 짜임): 코이데 · 배지(함께하는 곳) · 톱니바퀴(화면 설정) */
+.ic { width: 1em; height: 1em; fill: none; stroke: currentColor; stroke-width: 1.5; stroke-linecap: round; stroke-linejoin: round; flex: none; }
+.topbar { position: sticky; top: 0; z-index: 20; background: var(--surface); border-bottom: 1px solid var(--line); padding-top: env(safe-area-inset-top, 0px); }
+.topbar .wrap { display: flex; align-items: center; gap: .6em; min-height: 3.4em; position: relative; padding-top: 0; padding-bottom: 0; }
+.wrap.has-top { padding-top: 16px; }
+.brand { display: inline-flex; align-items: center; gap: .45em; background: none; border: 0; padding: .3em 0; color: var(--ink); cursor: pointer; min-height: 44px; font: inherit; }
+.brand-mark { width: 1.6em; height: 1.6em; border-radius: 50%; background: var(--accent); color: var(--on-accent); display: grid; place-items: center; }
+.brand-mark .ic { width: .95em; height: .95em; }
+.brand-name { font-family: var(--f-display); font-size: 1.05em; font-weight: 700; white-space: nowrap; }
+.spacer { flex: 1; }
+.badge-btn { position: relative; display: inline-flex; align-items: center; gap: .4em; font: inherit; font-size: .8em; font-weight: 600; color: var(--ink); background: var(--surface-2); border: 1px solid var(--line); border-radius: 999px; padding: .35em .5em .35em .85em; min-height: 38px; cursor: pointer; white-space: nowrap; }
+.role-tag { font-size: .93em; padding: .15em .6em; border-radius: 999px; background: var(--surface); color: var(--ink-2); border: 1px solid var(--line); }
+.badge-dot { position: absolute; top: 2px; right: 2px; width: 8px; height: 8px; border-radius: 50%; background: var(--warm); }
+.icon-btn { width: 44px; height: 44px; display: grid; place-items: center; background: none; border: 0; border-radius: 12px; color: var(--ink); cursor: pointer; flex: none; }
+.icon-btn .ic { width: 1.35em; height: 1.35em; }
+.icon-btn[aria-expanded="true"] { background: var(--surface-2); }
+.menu { position: absolute; top: calc(100% + 6px); right: max(16px, env(safe-area-inset-right, 0px)); width: min(300px, calc(100vw - 32px)); background: var(--surface); border: 1px solid var(--line); border-radius: 16px; box-shadow: 0 16px 40px -12px var(--shadow); padding: .5em; display: flex; flex-direction: column; gap: .1em; z-index: 25; }
+.mlabel { font-size: .72em; font-weight: 600; color: var(--ink-2); margin: .6em .7em .3em; }
+.mitem { display: flex; justify-content: space-between; align-items: center; gap: .6em; width: 100%; text-align: left; font: inherit; font-size: .9em; color: var(--ink); background: none; border: 0; border-radius: 10px; padding: .55em .7em; min-height: 44px; cursor: pointer; text-decoration: none; }
+.mitem:hover { background: var(--surface-2); }
+.mitem.on { cursor: default; } .mitem.on span { font-weight: 700; } .mitem.on:hover { background: none; }
+.mitem[aria-disabled="true"] { cursor: default; opacity: .7; } .mitem[aria-disabled="true"]:hover { background: none; }
+.mitem small { font-size: .82em; color: var(--ink-2); text-align: right; }
+.mdiv { height: 1px; background: var(--line); margin: .35em .3em; }
+.menu-set { display: flex; flex-direction: column; gap: .6em; padding: 0 .4em .4em; }
 .pilot { font-size: .74em; color: var(--accent); background: var(--accent-soft); border-radius: 999px; padding: .3em .9em; display: inline-block; margin-bottom: 10px; }
 .top { display: flex; justify-content: space-between; align-items: flex-end; gap: 12px; margin-bottom: 12px; }
 .eyebrow { margin: 0; font-size: .8em; color: var(--ink-2); }
@@ -217,7 +240,7 @@ button.knot { cursor: pointer; }
 .bar b { display: block; height: 100%; background: var(--accent); }
 .toast { position: fixed; left: 50%; bottom: calc(84px + env(safe-area-inset-bottom, 0px)); transform: translateX(-50%); background: var(--ink); color: var(--page); padding: .55em 1.1em; border-radius: 999px; font-size: .88em; z-index: 50; }
 .empty { text-align: center; padding: 1.4em 1em; }
-.notice { background: var(--warm-soft); color: var(--ink); border-radius: 14px; padding: .8em .9em; font-size: .86em; word-break: keep-all; }
+.notice { background: var(--warm-soft); color: var(--ink); border-radius: 14px; padding: .8em .9em; font-size: .86em; word-break: keep-all; margin-bottom: 12px; }
 .notice b { color: var(--warm); }
 .mrow { display: flex; justify-content: space-between; align-items: center; gap: 10px; background: none; border: 0; border-top: 1px solid var(--line); padding: .8em 0; width: 100%; text-align: left; cursor: pointer; }
 .mrow:first-of-type { border-top: 0; padding-top: 0; }
@@ -783,8 +806,36 @@ button.knot { cursor: pointer; }
   }
 
 
-  function moreView() {
+  // 화면 설정(더보기 › 화면, 위쪽 톱니바퀴): 화면 모드 · 색 테마 · 디자인 · 큰 글씨. 공동체 화면과 함께 바뀐다
+  function screenControls() {
     const mode = PREF.mode || 'system', accent = PREF.accent || 'green', style = PREF.style || 'flat';
+    return `<div class="seg" role="radiogroup" aria-label="화면 모드">${MODES.map(([k, l]) => `<button class="${mode === k ? 'on' : ''}" role="radio" aria-checked="${mode === k}" data-a="mode" data-v="${k}">${l}</button>`).join('')}</div>
+        <div class="swatches" role="radiogroup" aria-label="색 테마">${ACCENTS.map(([k, l, c]) => `<button class="swatch${accent === k ? ' on' : ''}" role="radio" aria-checked="${accent === k}" data-a="accent" data-v="${k}" aria-label="${l}" title="${l}"><i style="background:${c}"></i></button>`).join('')}</div>
+        <div class="seg" role="radiogroup" aria-label="디자인">${STYLES.map(([k, l]) => `<button class="${style === k ? 'on' : ''}" role="radio" aria-checked="${style === k}" data-a="style" data-v="${k}">${l}</button>`).join('')}</div>
+        <div class="row"><div><p class="plain">큰 글씨</p><p class="hint">글씨를 크게 봐요. 화면 설정은 공동체 화면도 함께 바뀌어요.</p></div><button class="switch${PREF.big ? ' on' : ''}" role="switch" aria-checked="${!!PREF.big}" aria-label="큰 글씨" data-a="big"><span></span></button></div>`;
+  }
+  // 위쪽 막대: 공동체 화면과 같은 짜임(코이데 · 배지 · 톱니바퀴). 배지를 누르면 함께하는 곳(기도 노트 · 교회 사랑방 · 내 모임)으로 오간다
+  const TOP_ICON = { knot: '<svg class="ic" viewBox="0 0 16 16" aria-hidden="true"><path d="M.5 8.5h3.8c1.2 0 1.7-1.5 1.7-2.8C6 3.7 7.3 2.5 9 2.5s3 1.2 3 3.1-1.8 3.1-4 3.3"/><path d="M5.6 10.1C7.6 9 9.6 8.5 15.5 8.5"/></svg>',
+    gear: '<svg class="ic" viewBox="0 0 16 16" aria-hidden="true"><circle cx="8" cy="8" r="2"/><path d="M8 1.8v1.6M8 12.6v1.6M3.6 3.6l1.1 1.1M11.3 11.3l1.1 1.1M1.8 8h1.6M12.6 8h1.6M3.6 12.4l1.1-1.1M11.3 4.7l1.1-1.1"/></svg>' };
+  function topBar() {
+    const P = places(), M = noteMe(), G = (M && M.groups) || [], linked = inCommunity();
+    let room = null; try { const c = JSON.parse(localStorage.getItem(DEMO_LINK ? 'koide-demo-cache' : 'koide-cache') || 'null'); if (c && c.month && c.month.room && c.me && c.me.link && c.me.link.status === '연결') room = { name: c.month.room.name, group: (c.month.dept && c.month.dept.group) || '소그룹' }; } catch (e) { /* 없음 */ }
+    const used = (M && M.linked ? 1 : 0) + G.length, canMake = M && used < PLACES && !G.some(g => g.role === '모임장');
+    const menu = S.menu === 'badge' ? `<div class="menu" role="menu" aria-label="함께하는 곳"><p class="mlabel">함께하는 곳</p>
+        <div class="mitem on" role="menuitem" aria-current="page"><span>나의 기도 노트</span><small>지금 보는 곳 · ${D.vault && D.vault.on ? '연결됨' : '이 휴대폰에 저장'}</small></div>
+        ${room ? `<a class="mitem" role="menuitem" href="index.html${QS}"><span>${esc(room.name)}</span><small>교회 ${esc(room.group)}</small></a>` : ''}
+        ${G.map(g => g.wait ? `<div class="mitem" role="menuitem" aria-disabled="true"><span>${esc(g.name)}</span><small>승인을 기다려요</small></div>`
+          : `<a class="mitem" role="menuitem" href="${groupUrl(g.id)}"><span>${esc(g.name)}</span><small>모임${g.role === '모임장' ? ' · 모임장' : ''}${g.asks ? ` · 신청 ${g.asks}` : ''}</small></a>`).join('')}
+        ${canMake || !linked ? '<div class="mdiv"></div>' : ''}
+        ${canMake ? '<button class="mitem" role="menuitem" data-a="menunew"><span>+ 모임 만들기</span></button>' : ''}
+        ${linked ? '' : `<a class="mitem" role="menuitem" href="index.html${DEMO_LINK ? '?demo&connect' : '?connect'}"><span>우리 교회 공동체에 연결하기</span><small>사랑방과 함께 기도해요</small></a>`}</div>`
+      : S.menu === 'settings' ? `<div class="menu" role="menu" aria-label="설정"><p class="mlabel">화면 모드 · 색 테마 · 디자인</p><div class="menu-set">${screenControls()}</div></div>` : '';
+    return `<header class="topbar"><div class="wrap">
+      <button class="brand" data-a="tab" data-v="today" aria-label="기도 노트 오늘"><span class="brand-mark">${TOP_ICON.knot}</span><span class="brand-name">코이데</span></button><span class="spacer"></span>
+      <button class="badge-btn" data-a="menu" data-v="badge" aria-haspopup="menu" aria-expanded="${S.menu === 'badge'}">나의 기도 노트<span class="role-tag">나</span>${G.some(g => g.asks) ? '<i class="badge-dot" aria-label="모임 신청이 있어요"></i>' : ''}</button>
+      <button class="icon-btn" data-a="menu" data-v="settings" aria-haspopup="menu" aria-expanded="${S.menu === 'settings'}" aria-label="설정">${TOP_ICON.gear}</button>${menu}</div></header>`;
+  }
+  function moreView() {
     return `<header class="top"><div><p class="eyebrow">${D.name ? esc(D.name) : '코이데 기도 노트'}</p><h1>더보기</h1></div></header>
       ${D.vault && D.vault.on ? '<div class="notice"><b>다른 기기와 연결되어 있어요.</b> 서버에는 비밀 문구로 잠근 글만 있어서 아무도 읽을 수 없어요. 비밀 문구를 잊지 않게 적어 두세요.</div>'
         : '<div class="notice"><b>이 기록은 이 휴대폰에만 있어요.</b> 서버로 보내지 않아서 아무도 볼 수 없지만, 휴대폰을 바꾸거나 브라우저 기록을 지우면 사라져요. 아이폰은 홈 화면에 두지 않고 7일 넘게 열지 않으면 지워질 수 있어요. 가끔 백업을 내려받거나, 아래에서 다른 기기와 연결해 두세요.</div>'}
@@ -799,10 +850,7 @@ button.knot { cursor: pointer; }
         <button class="mrow" data-a="backup"><span><b>백업 파일 내려받기</b><small>기도 노트를 파일 하나로 저장해요. 다른 사람에게 보내지 마세요</small></span></button>
         <button class="mrow" data-a="restore"><span><b>백업 불러오기</b><small>새 휴대폰에서 백업 파일을 열어 이어 써요</small></span></button>
         <input type="file" id="restore-file" accept="application/json,.json" hidden></section>
-      <section class="card"><p class="label">화면</p><div class="seg" role="radiogroup" aria-label="화면 모드">${MODES.map(([k, l]) => `<button class="${mode === k ? 'on' : ''}" role="radio" aria-checked="${mode === k}" data-a="mode" data-v="${k}">${l}</button>`).join('')}</div>
-        <div class="swatches" role="radiogroup" aria-label="색 테마">${ACCENTS.map(([k, l, c]) => `<button class="swatch${accent === k ? ' on' : ''}" role="radio" aria-checked="${accent === k}" data-a="accent" data-v="${k}" aria-label="${l}" title="${l}"><i style="background:${c}"></i></button>`).join('')}</div>
-        <div class="seg" role="radiogroup" aria-label="디자인">${STYLES.map(([k, l]) => `<button class="${style === k ? 'on' : ''}" role="radio" aria-checked="${style === k}" data-a="style" data-v="${k}">${l}</button>`).join('')}</div>
-        <div class="row"><div><p class="plain">큰 글씨</p><p class="hint">글씨를 크게 봐요. 화면 설정은 공동체 화면도 함께 바뀌어요.</p></div><button class="switch${PREF.big ? ' on' : ''}" role="switch" aria-checked="${!!PREF.big}" aria-label="큰 글씨" data-a="big"><span></span></button></div></section>
+      <section class="card"><p class="label">화면</p>${screenControls()}</section>
       <section class="card"><button class="mrow" data-a="tourgo" data-v="restart"><span><b>사용법 다시 보기</b><small>기도 노트의 처음 안내를 다시 봐요</small></span></button>
         <button class="mrow" data-a="ivid"><span><b>코이데 소개 영상</b><small>코이데와 기도 노트를 영상으로 봐요</small></span></button></section>
       <section class="card"><p class="label">함께하는 곳</p>${inCommunity() ? `<p class="plain">기도 노트는 혼자 쓰는 곳이에요. 교회 사랑방과 함께 기도하는 곳은 같은 앱의 공동체예요. 노트의 기도제목을 사랑방이나 모임에 나누고 싶으면 노트에서 "나누기"를 눌러요.</p>
@@ -820,7 +868,7 @@ button.knot { cursor: pointer; }
     if (on) return `<section class="card" style="margin-top:12px"><div class="row"><p class="label">다른 기기와 연결하기</p><span class="tag">연결됨</span></div>
       <p class="hint" id="sync-state" aria-live="polite">${esc(syncLabel())}</p>
       <p class="hint">고치면 몇 초 뒤 잠근 채로 맡기고, 열 때마다 다른 기기에서 고친 것을 받아 와요. 같은 카카오와 비밀 문구로 다른 기기에서 열 수 있어요.</p>
-      <div class="row" style="justify-content:flex-start"><button class="btn small" data-a="vsync"${syncing ? ' disabled' : ''}>지금 맞추기</button><button class="link quiet" data-a="voff">연결 끊기</button></div></section>`;
+      <div class="row" style="justify-content:flex-start"><button class="btn small" data-a="vsync"${syncing ? ' disabled' : ''}>동기화</button><button class="link quiet" data-a="voff">연결 끊기</button></div></section>`;
     return `<section class="card" style="margin-top:12px"><p class="label">다른 기기와 연결하기</p>
       <p class="plain">휴대폰과 PC에서 같은 노트를 보려면 카카오로 로그인하고 <b>비밀 문구</b>를 정해요.</p>
       <p class="hint">노트는 이 기기에서 비밀 문구로 잠근 뒤 맡겨서, 서버와 관리자도 읽을 수 없어요. 그래서 <b>비밀 문구를 잊으면 아무도 되살릴 수 없어요.</b> 꼭 적어 두세요.</p>
@@ -828,7 +876,7 @@ button.knot { cursor: pointer; }
       <button class="btn small" data-a="vstart" style="align-self:flex-start"${S.vbusy ? ' disabled' : ''}>${getToken() ? '연결하기 시작' : '카카오로 로그인하고 연결하기'}</button></section>`;
   }
   // 내 모임(자율 모임): 서버의 내 정보에서 모임 목록과 교회 연결 여부를 받아 이 기기에 기억해 둔다(열 때마다 새로 받는다). 기도제목은 담지 않는다
-  const ME_KEY = DEMO_LINK ? 'koide-demo-note-me' : 'koide-note-me', G_MAX = 12, PLACES = 3;
+  const ME_KEY = DEMO_LINK ? 'koide-demo-note-me' : 'koide-note-me', PLACES = 3;
   const noteMe = () => { try { return JSON.parse(localStorage.getItem(ME_KEY) || 'null'); } catch (e) { return null; } };
   async function loadMe() {
     try { const r = await api('me'); const m = { groups: r.groups || [], linked: !!(r.link && r.link.status === '연결'), nick: r.nick || '' };
@@ -850,17 +898,17 @@ button.knot { cursor: pointer; }
   function groupsCard() {
     const M = noteMe(), G = (M && M.groups) || [], lead = G.some(g => g.role === '모임장'), used = (M && M.linked ? 1 : 0) + G.length, full = used >= PLACES, E = S.gNew;
     return `<section class="card"><div class="row"><p class="label" style="margin:0">내 모임</p>${M ? `<small class="hint">${used}/${PLACES}곳</small>` : ''}</div>
-      <p class="hint">친구, 가족, 사역팀처럼 함께 기도할 모임이에요. 모임에 쓴 기도제목은 <b>모임 사람들과 함께 봐요</b>(서버에 저장). 나만 보는 이 노트와는 따로예요.</p>
+      <p class="hint">모임 사람들과 함께 보는 곳이에요. 이 노트와는 따로예요.</p>
       ${!M ? '<p class="hint">모임 목록을 불러오는 중이에요…</p>' : G.length ? G.map(g => g.wait
         ? `<div class="mrow" aria-disabled="true"><span><b>${esc(g.name)}</b><small>모임장의 승인을 기다려요</small></span></div>`
         : `<a class="mrow" style="text-decoration:none;color:inherit" href="${groupUrl(g.id)}"><span><b>${esc(g.name)}${g.role === '모임장' ? ' · 모임장' : ''}</b><small>${g.n}명${g.asks ? ` · 신청 ${g.asks}` : ''}</small></span><span aria-hidden="true">›</span></a>`).join('') : ''}
       ${!M ? '' : E ? `<form data-f="gcreate" style="display:flex;flex-direction:column;gap:8px;margin-top:4px">
           <label class="label" for="gc-n" style="margin:0">모임 이름</label><input id="gc-n" class="field" maxlength="16" placeholder="예: 직장인 기도 모임" autocomplete="off">
           ${M.linked ? '' : `<label class="label" for="gc-p" style="margin:0">모임에서 쓸 내 이름</label><input id="gc-p" class="field" maxlength="10" value="${esc(D.name || M.nick || '')}" autocomplete="name">`}
-          <ul class="hint" style="margin:0;padding-left:1.1em"><li>모임에 쓴 기도제목은 모임 사람들이 함께 보도록 서버(교회가 맡은 저장소)에 저장돼요. 교회 관리 화면에는 나오지 않아요.</li><li>노트의 기도제목은 "나누기"를 눌러야 모임에 옮겨 적어져요.</li></ul>
+          <p class="hint" style="margin:0">모임에 쓴 기도제목은 모임 사람들이 함께 봐요(서버에 저장, 교회 관리 화면에는 안 나와요). 노트의 기도제목은 "나누기"로만 옮겨져요.</p>
           <div class="row" style="justify-content:flex-end;gap:8px"><button type="button" class="btn ghost small" data-a="gcancel">취소</button><button class="btn small" type="submit"${S.gBusy ? ' disabled' : ''}>동의하고 만들기</button></div></form>`
         : lead || full ? '' : '<button class="btn ghost small" data-a="gnew" style="align-self:flex-start">+ 모임 만들기</button>'}
-      <p class="hint">한 모임 ${G_MAX}명 · 교회 소그룹 포함 ${PLACES}곳까지 · 모임장은 1곳만. 초대 링크는 모임을 연 뒤 더보기에서 보내요.${full ? '<br>세 곳이 다 찼어요.' : ''}</p></section>`;
+      ${full ? `<p class="hint">${PLACES}곳이 다 찼어요(교회 소그룹 포함).</p>` : lead ? '<p class="hint">모임장은 한 모임만 맡아요.</p>' : ''}</section>`;
   }
   function shareSheet() {
     const i = D.items.find(x => x.id === S.share); if (!i) return '';
@@ -957,7 +1005,7 @@ button.knot { cursor: pointer; }
   const TABS = [['today', '오늘', TICON.sun], ['note', '내 기도', TICON.pen], ['pray', '기도하기', TICON.hands], ['look', '지난 기록', TICON.book], ['more', '더보기', TICON.more]];
   function render() {
     const V = { start: startView, today: todayView, note: noteView, pray: prayTab, look: lookView, keep: keepView, more: moreView }[S.tab];
-    $('#root').innerHTML = `<div class="wrap">${S.tab !== 'start' ? `<div class="space"><span class="pilot" style="margin:0">나의 기도 노트 · ${D.vault && D.vault.on ? '연결됨' : '이 휴대폰에 저장'}</span>${inCommunity() ? `<a href="index.html${QS}">공동체로 ›</a>` : ''}</div>` : ''}${V()}</div>
+    $('#root').innerHTML = `${S.tab !== 'start' ? topBar() : ''}<div class="wrap${S.tab !== 'start' ? ' has-top' : ''}">${V()}</div>
       ${S.tab === 'start' ? '' : `<nav class="tabs" aria-label="메뉴">${TABS.map(([k, l, ic]) => { const on = (S.tab === 'keep' ? 'look' : S.tab) === k; return `<button class="${k === 'pray' ? 'pray-tab ' : ''}${on ? 'on' : ''}" data-a="tab" data-v="${k}" aria-label="${l}" title="${l}" ${on ? 'aria-current="page"' : ''}>${ic}</button>`; }).join('')}</nav>`}
       ${S.done ? doneSheet() : ''}${S.tour != null ? tourSheet() : ''}${S.vsheet ? vaultSheet() : ''}${S.share ? shareSheet() : ''}${S.ps ? psHtml() : ''}${S.toast ? `<div class="toast" role="status">${esc(S.toast)}</div>` : ''}
       ${canSave ? '' : '<div class="toast" role="alert">이 브라우저에서는 저장할 수 없어요. 개인 정보 보호 모드를 끄고 열어 주세요.</div>'}`;
@@ -979,6 +1027,8 @@ button.knot { cursor: pointer; }
 
   // ── 누르기 ─────────────────────────────────────────────────────────────
   document.addEventListener('click', e => {
+    // 메뉴 밖을 누르면 메뉴를 닫는다(메뉴 안의 설정을 누를 때는 그대로)
+    if (S.menu && !e.target.closest('.menu') && !e.target.closest('[data-a=menu]')) { S.menu = null; render(); if (!e.target.closest('[data-a]')) return; }
     const b = e.target.closest('[data-a]'); if (!b) return;
     // 다시 그려도 쓰던 글이 남게(대상 고르기·사람 더하기를 눌러도)
     const ta = $('#it-text'); if (ta) S.draft = ta.value;
@@ -987,7 +1037,9 @@ button.knot { cursor: pointer; }
     if (b.classList.contains('sheet-back') && e.target.closest('[data-stop]')) return;
     const a = b.dataset.a, v = b.dataset.v;
     switch (a) {
-      case 'tab': S.draft = null; S.thDraft = ''; S.preview = null; return go(v);
+      case 'menu': S.menu = S.menu === v ? null : v; return render();
+      case 'menunew': S.menu = null; S.gNew = true; go('more'); { const f = $('#gc-n'); if (f) { f.scrollIntoView({ block: 'center' }); f.focus(); } } return;
+      case 'tab': S.menu = null; S.draft = null; S.thDraft = ''; S.preview = null; return go(v);
       case 'split': { S.draft = $('#it-text').value; const parts = splitNote(S.draft); if (!parts.length) { toast('내용을 적어 주세요.'); return $('#it-text').focus(); } S.preview = parts; return render(); }
       case 'unsplit': S.preview = null; return render();
       case 'prevrm': S.preview.splice(Number(v), 1); if (!S.preview.length) S.preview = null; return render();
