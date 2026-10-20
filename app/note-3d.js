@@ -341,7 +341,7 @@ window.KOIDE_NOTE3D = (() => {
       if (sel && sel.cell) { selMark.visible = true; selMark.scale.set(sel.fp * SZ - 0.06, sel.fp * SZ - 0.06, 1); const c = center(sel); selMark.position.x = c[0] * SZ; selMark.position.z = c[1] * SZ; } else selMark.visible = false;
       S.draw();
     }
-    const hintHtml = () => (info() && info().id === 'gbig-say') ? '' : '<p class="hint">정원의 소품을 누르면 이름과 온 날이 보여요.</p>';
+    const hintHtml = () => (info() && info().id === 'gbig-say') ? '' : '<p class="hint">기도한 날마다 그 달 그림의 소품이 하나씩 정원에 놓여요.</p>';
     const say = html => { const el = info(); if (el) el.innerHTML = html == null ? hintHtml() : html; };
     const md2 = it => it.date ? `${esc(it.name)} · ${md(it.date)}에 왔어요` : esc(it.name);
     function choose(it) {
@@ -468,7 +468,7 @@ window.KOIDE_NOTE3D = (() => {
     function select(g) {
       if (sel) sel.position.y = 0;
       sel = g; const el = info(); S.draw(); if (!el) return;
-      if (!g) { el.innerHTML = `<p class="hint">${coils.length ? '끈을 누르면 그해의 기록이 보여요.' : '한 해가 끝나면 그해의 끈을 감아 여기에 넣어요.'} 밀어서 상자를 돌려 볼 수 있어요.</p>`; return; }
+      if (!g) { el.innerHTML = '<p class="hint">한 해가 끝나면 그해의 끈을 상자에 넣어요.</p>'; return; }
       g.position.y = 0.25; S.draw();
       const Y = g.userData.Y;
       el.innerHTML = `<div class="pick3d"><small>${Y.y}년의 끈 · 기도한 날 ${Y.days}일 · 응답 매듭 ${Y.answers.length}개</small>${Y.long ? `<p>오래 이어 온 기도: ${esc(Y.long)}</p>` : ''}${Y.answers.length ? `<ul>${Y.answers.map(a => `<li>${esc(a)}</li>`).join('')}</ul>` : ''}</div>`;

@@ -794,8 +794,8 @@ button.knot { cursor: pointer; }
     const k = keepKind(), C = k === 'cord' ? cordData() : null;
     if (k !== 'garden') S.gbig = false;
     const head = k === 'cord' ? `<div class="card-head"><h2>나의 ${C.year}년 끈</h2><span>기도한 날 ${C.days.reduce((a, b) => a + b, 0)}일 · 응답 ${C.answers.length} · 감사 ${C.thanks.length}</span></div>`
-      : `<p class="hint">${k === 'garden' ? '기도한 날마다 그 달 그림의 소품이 하나씩 정원에 놓여요. 모을수록 땅이 넓어져요. 공동체의 이달의 그림과 같은 주제예요.' : '한 해가 끝나면 그해의 끈을 감아 상자에 넣어요. 해가 갈수록 한 칸씩 채워져요.'}</p>`;
-    const hint = { cord: '매듭이나 금실을 누르면 그날의 기록이 보여요. 밀어서 돌려 볼 수 있어요.', garden: '정원의 소품을 누르면 이름과 온 날이 보여요.', chest: '끈을 누르면 그해의 기록이 보여요. 밀어서 상자를 돌려 볼 수 있어요.' }[k];
+      : '';
+    const hint = { cord: '매듭이나 금실을 누르면 그날의 기록이 보여요. 밀어서 돌려 볼 수 있어요.', garden: '기도한 날마다 그 달 그림의 소품이 하나씩 정원에 놓여요.', chest: '한 해가 끝나면 그해의 끈을 상자에 넣어요.' }[k];
     const stage = `<div class="stage3d ${k}" id="keep3d"><span class="wait">불러오는 중…</span></div>`, pick = `<div id="keep3d-pick"><p class="hint">${hint}</p></div>`;
     return `<button class="link" data-a="tab" data-v="look">‹ 지난 기록</button>
       <header class="top"><div><p class="eyebrow">나만 보는 기록</p><h1>나의 보관함</h1></div></header>
