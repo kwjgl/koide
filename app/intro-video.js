@@ -67,8 +67,8 @@ window.KoideIntroVideo = (() => {
         html: cord({ tie: [.5, 1.3, 3.6, 2.1, 2.9, 4.6] }) },
       { ch: 'together', dur: 6000, cap: '누가 몇 번 기도했는지는 보이지 않아요. 끈이 이어진 모습만 보여요.',
         html: cord({ all: true, nums: [3, 1, 5, 2, 4, 1] }) + `<p class="iv-chip iv-in" ${d(3.2)}>끈이 이어진 모습만</p>` },
-      { ch: 'together', dur: 7000, cap: `한 장씩 넘기며 우리 ${g}, ${mine}, 섬기는 분들, 하나님 나라, 그리고 개인적인 기도제목까지.`,
-        html: `<div class="iv-kinds">${[`우리 ${homeName}`, esc(mine), '섬기는 분들', '하나님 나라', '내 기도 노트'].map((t, k) => `<span class="iv-card iv-pop${k === 4 ? ' wide' : ''}" ${d(.3 + k * .6)}><small>${k + 1}</small>${t}</span>`).join('')}</div>
+      { ch: 'together', dur: 7000, cap: `한 장씩 넘기며 우리 ${g}, ${mine}, 섬기는 분들, 하나님 나라를 위해 기도해요.`,
+        html: `<div class="iv-kinds">${[`우리 ${homeName}`, esc(mine), '섬기는 분들', '하나님 나라'].map((t, k) => `<span class="iv-card iv-pop" ${d(.3 + k * .6)}><small>${k + 1}</small>${t}</span>`).join('')}</div>
           <p class="iv-sub iv-in" ${d(4)}>주기도문의 간구를 따라, 감사와 찬양으로 끝나요</p>` }
     ];
     if (O.art && O.art.length) L.push({ ch: 'together', dur: 6000, cap: '기도한 날마다 이달의 그림이 채워져요.',
