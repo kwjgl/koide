@@ -1121,6 +1121,7 @@ body.pop-open { overflow: hidden; }
 
 </style>
 <link rel="stylesheet" href="intro-video.css">
+<link rel="stylesheet" href="beatitudes.css">
 <link rel="stylesheet" href="design-styles.css">
 <script>
 /* 화면 모드·색 테마·큰 글씨는 이 기기에만 기억한다. 화면이 그려지기 전에 먼저 입힌다 */
@@ -1150,6 +1151,7 @@ try { const p = JSON.parse(localStorage.getItem('koide-pref') || '{}'), d = docu
 <script src="pray-data.js"></script>
 <script src="art-data.js"></script>
 <script src="intro-video.js"></script>
+<script src="beatitudes.js"></script>
 <script>
 (function () {
   const CFG = window.KOIDE_CONFIG || {};
@@ -1359,6 +1361,7 @@ try { const p = JSON.parse(localStorage.getItem('koide-pref') || '{}'), d = docu
     if (SC.at === 'church') return S.tab === 'church' ? 0 : enterChurch();
     if (SC.at === 'meet') { S.meet = 0; S.meetSeen = 1; return render(); }
     if (SC.at === 'tour') return Tour.open();
+    if (window.KoideBeatitudes.scene(SC.at)) return;
     if (SC.at === 'ops' && S.op) return;
     const b = document.createElement('button'); b.dataset.act = 'tab'; b.dataset.v = SC.at; document.body.appendChild(b); b.click(); b.remove();
   }
@@ -2869,7 +2872,9 @@ try { const p = JSON.parse(localStorage.getItem('koide-pref') || '{}'), d = docu
   const wakeOff = () => { try { if (wake) wake.release(); } catch (e) { /* 무시 */ } wake = null; };
   // '기도했어요': 화면은 먼저 늘리고 서버에는 뒤에서 적는다. 서버가 돌려준 이번 달·오늘 횟수로 맞춘다
   function prayFor(f, hero) {
+    const heroBefore = S.month.art ? S.month.art.hero : 0;
     artBump(f);
+    const newDay = !!S.month.art && S.month.art.hero > heroBefore;
     const before = !staffMe() && roomFams().every(x => x.prayed > 0);
     if (!f.prayed) S.cordNew = f.id;
     f.today = (f.today || 0) + 1; f.prayed++; S.myp = null; S.flash = f.id;
@@ -2885,8 +2890,14 @@ try { const p = JSON.parse(localStorage.getItem('koide-pref') || '{}'), d = docu
       if (r.art && S.month.art) S.month.art = r.art;
       if (r.capped && S.tab === 'home') toast('이 ' + words().one + '은 오늘 충분히 기도했어요. 내일 또 기도해 주세요.');
       paint();
+      if (newDay) setTimeout(beatGift, 900);
     }).catch(err => { const g = famById(f.id) || f; g.today--; g.prayed--; paint(); oops(err); });
   }
+
+  // 팔복 이스터에그(beatitudes.js): 기도한 날 수는 달마다 모은 그림의 '기도한 날'을 모두 더한 것. 오늘이 새로 기도한 날이고 8의 배수가 되면 작은 카드가 한 번 뜬다
+  const beatCount = () => { const sum = r => r && r.art ? r.art.reduce((s, a) => s + (a.hero || 0), 0) : 0; return S.myp && S.myp.art ? sum(S.myp) : api('myPrayers').then(sum); };
+  const beatGift = () => Promise.resolve(beatCount()).then(n => window.KoideBeatitudes.gift({ n, key: DEMO_LINK ? 'koide-demo-bt' : 'koide-bt' })).catch(() => {});
+  window.KoideBeatitudes.init({ count: beatCount });
 
   // 잔잔한 음악: 찬송가 1~8장(송영) 연주 파일. 운영자가 만든 파일을 app/music/hymn-01.mp3 ~ hymn-08.mp3에 둔다(config.js의 MUSIC으로 위치를 바꿀 수 있다)
   //  곡은 소리 장치(Web Audio)로 직접 이어서 튼다. "기도 시작"을 누를 때 한 번 열어 두면, 곡이 끝나 다음 곡으로 넘어갈 때 휴대폰이 막지 않는다

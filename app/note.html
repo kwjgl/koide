@@ -283,6 +283,7 @@ button.knot { cursor: pointer; }
 @media (prefers-reduced-motion: no-preference) { .today-item, .card { transition: background .2s, border-color .2s; } }
 </style>
 <link rel="stylesheet" href="intro-video.css">
+<link rel="stylesheet" href="beatitudes.css">
 <link rel="stylesheet" href="design-styles.css">
 <style>
 /* 디자인 스타일에서 기도 노트에만 있는 것(칩, 기도했어요, 오늘의 제목, 창, 한 장씩 화면)을 공동체의 짝에 맞춘다 */
@@ -317,6 +318,7 @@ button.knot { cursor: pointer; }
 <script src="pray-data.js"></script>
 <script src="art-data.js"></script>
 <script src="intro-video.js"></script>
+<script src="beatitudes.js"></script>
 <script>
 (() => {
   // ── 저장: 이 기기에만. 서버로 보내지 않는다 ─────────────────────────────
@@ -509,12 +511,16 @@ button.knot { cursor: pointer; }
     }
     return D.today.ids.map(id => D.items.find(i => i.id === id)).filter(Boolean);
   }
+  // 팔복 이스터에그(beatitudes.js): 기도한 날 수는 기도한 날짜의 가짓수. 오늘이 새로 기도한 날이고 8의 배수가 되면 작은 카드가 한 번 뜬다
+  const prayedDays = () => new Set(prays().map(p => p.d)).size;
+  window.KoideBeatitudes.init({ count: prayedDays });
   function togglePray(id) {
-    const t = TODAY(), p = D.prays.find(x => x.item === id && x.d === t), it = D.items.find(i => i.id === id);
+    const t = TODAY(), hadToday = prays().some(x => x.d === t), p = D.prays.find(x => x.item === id && x.d === t), it = D.items.find(i => i.id === id);
     // 오늘 처음 그 사람의 매듭이 지어지면 끈에서 매듭이 묶이고 끈이 당겨진다(다 그린 뒤 한 번)
     if (it && !D.items.some(i => i.target === it.target && prayedToday(i.id))) S.cordNew = it.target;
     if (p) { p.off = !p.off; p.up = now(); } else D.prays.push({ d: t, item: id, up: now() });
     save();
+    if (!hadToday && prays().some(x => x.d === t)) setTimeout(() => window.KoideBeatitudes.gift({ n: prayedDays(), key: DEMO_LINK ? 'koide-demo-bt-note' : 'koide-bt-note' }), 900);
   }
 
   const S = { tab: D.started ? 'today' : 'start', edit: null, draftT: 'me', done: null, ps: null, toast: '', pick: null, tour: null };
@@ -1397,6 +1403,7 @@ button.knot { cursor: pointer; }
   // 시작 화면(splash.js)을 닫고, 다시 켤 때 기도 노트로 시작하게 적어 둔다
   if (window.koideSplash) window.koideSplash.hide();
   if (window.koideSpace) window.koideSpace.used('note');
+  if (SC) window.KoideBeatitudes.scene(SC.at);
   // 노트 주인을 아직 모르면(예전 로그인) 서버에 한 번 묻고, 내 노트 자리가 달라지면 다시 연다. 서버가 답하지 않으면 이번에는 예전 자리 그대로
   if (!SC) (async () => {
     if (!getUid()) {
