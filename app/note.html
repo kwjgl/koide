@@ -308,6 +308,7 @@ button.knot { cursor: pointer; }
 <body>
 <script src="config.js"></script>
 <script src="splash.js" data-space="note"></script>
+<script src="places.js"></script>
 <div id="root"></div>
 <script src="pray-data.js"></script>
 <script src="art-data.js"></script>
@@ -894,15 +895,9 @@ button.knot { cursor: pointer; }
   function topBar() {
     const P = places(), M = noteMe(), G = (M && M.groups) || [], linked = inCommunity();
     let room = null; try { const c = JSON.parse(localStorage.getItem(DEMO_LINK ? 'koide-demo-cache' : 'koide-cache') || 'null'); if (c && c.month && c.month.room && c.me && c.me.link && c.me.link.status === '연결') room = { name: c.month.room.name, group: (c.month.dept && c.month.dept.group) || '소그룹' }; } catch (e) { /* 없음 */ }
-    const used = (M && M.linked ? 1 : 0) + G.length, canMake = M && used < PLACES && !G.some(g => g.role === '모임장');
-    const menu = S.menu === 'badge' ? `<div class="menu" role="menu" aria-label="함께하는 곳"><p class="mlabel">함께하는 곳</p>
-        <div class="mitem on" role="menuitem" aria-current="page"><span>나의 기도 노트</span><small>지금 보는 곳 · ${D.vault && D.vault.on ? '연결됨' : '이 휴대폰에 저장'}</small></div>
-        ${room ? `<a class="mitem" role="menuitem" href="index.html${QS}"><span>${esc(room.name)}</span><small>교회 ${esc(room.group)}</small></a>` : ''}
-        ${G.map(g => g.wait ? `<div class="mitem" role="menuitem" aria-disabled="true"><span>${esc(g.name)}</span><small>승인을 기다려요</small></div>`
-          : `<a class="mitem" role="menuitem" href="${groupUrl(g.id)}"><span>${esc(g.name)}</span><small>모임${g.role === '모임장' ? ' · 모임장' : ''}${g.asks ? ` · 신청 ${g.asks}` : ''}</small></a>`).join('')}
-        ${canMake || !linked ? '<div class="mdiv"></div>' : ''}
-        ${canMake ? '<button class="mitem" role="menuitem" data-a="menunew"><span>+ 모임 만들기</span></button>' : ''}
-        ${linked ? '' : `<a class="mitem" role="menuitem" href="index.html${DEMO_LINK ? '?demo&connect' : '?connect'}"><span>우리 교회 공동체에 연결하기</span><small>사랑방과 함께 기도해요</small></a>`}</div>`
+    const make = !!M && koidePlaces.canMake(!!(M && M.linked), G);
+    const menu = S.menu === 'badge' ? `<div class="menu" role="menu" aria-label="함께하는 곳">${koidePlaces.html({ cur: 'note', room, groups: G, make, linked, demo: DEMO_LINK,
+        attr: (k, id) => k === 'room' ? `href="index.html${QS}"` : k === 'group' ? `href="${groupUrl(id)}"` : 'data-a="menunew"' })}</div>`
       : S.menu === 'settings' ? `<div class="menu" role="menu" aria-label="설정"><p class="mlabel">화면 모드 · 색 테마 · 디자인</p><div class="menu-set">${screenControls()}</div></div>` : '';
     return `<header class="topbar"><div class="wrap">
       <button class="brand" data-a="tab" data-v="today" aria-label="기도 노트 오늘"><span class="brand-mark">${TOP_ICON.knot}</span><span class="brand-name">코이데</span></button><span class="spacer"></span>
@@ -950,7 +945,7 @@ button.knot { cursor: pointer; }
       <button class="btn small" data-a="vstart" style="align-self:flex-start"${S.vbusy ? ' disabled' : ''}>${getToken() ? '연결하기 시작' : '카카오로 로그인하고 연결하기'}</button></section>`;
   }
   // 내 모임(자율 모임): 서버의 내 정보에서 모임 목록과 교회 연결 여부를 받아 이 기기에 기억해 둔다(열 때마다 새로 받는다). 기도제목은 담지 않는다
-  const ME_KEY = DEMO_LINK ? 'koide-demo-note-me' : 'koide-note-me', PLACES = 3;
+  const ME_KEY = DEMO_LINK ? 'koide-demo-note-me' : 'koide-note-me', PLACES = koidePlaces.MAX;
   const noteMe = () => { try { return JSON.parse(localStorage.getItem(ME_KEY) || 'null'); } catch (e) { return null; } };
   async function loadMe() {
     try { const r = await api('me'); const m = { groups: r.groups || [], linked: !!(r.link && r.link.status === '연결'), nick: r.nick || '' };
@@ -1238,6 +1233,7 @@ button.knot { cursor: pointer; }
     if (f.dataset.f === 'start') {
       ($('#st-people').value || '').split(/[,，·]/).map(s => s.trim().slice(0, 12)).filter(Boolean).slice(0, 12).forEach(n => D.people.push({ id: uid(), name: n, up: now() }));
       D.started = true; save();
+      if (S.wantNew) { S.wantNew = false; S.gNew = true; return go('more'); }
       return go('note');
     }
     if (f.dataset.f === 'gcreate') {
@@ -1301,6 +1297,8 @@ button.knot { cursor: pointer; }
   });
   // 카카오 로그인이 기본: 로그인하지 않았으면 로그인 화면으로(노트는 이 휴대폰에 그대로 남아 있다)
   if (!SC && !getToken()) { if (window.koideSpace) window.koideSpace.going('community'); location.replace('index.html' + QS); return; }
+  // 공동체의 '함께하는 곳' 메뉴에서 '+ 모임 만들기'로 오면(?new) 더보기 › 내 모임의 만들기 창을 바로 연다
+  { const q = new URLSearchParams(location.search); if (q.has('new')) { if (D.started) { S.tab = 'more'; S.gNew = true; } else S.wantNew = true; q.delete('new'); history.replaceState(null, '', location.pathname + (q.toString() ? '?' + q.toString().replace(/=(&|$)/g, '$1') : '')); } }
   render();
   // 시작 화면(splash.js)을 닫고, 다시 켤 때 기도 노트로 시작하게 적어 둔다
   if (window.koideSplash) window.koideSplash.hide();

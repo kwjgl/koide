@@ -1131,6 +1131,7 @@ try { const p = JSON.parse(localStorage.getItem('koide-pref') || '{}'), d = docu
 <body>
 <script src="config.js"></script>
 <script src="splash.js" data-space="community"></script>
+<script src="places.js"></script>
 <div id="demo" class="demo" hidden></div>
 <header class="topbar" id="topbar"></header>
 <main id="main" class="wrap"><p class="loading">불러오는 중…</p></main>
@@ -3922,12 +3923,11 @@ try { const p = JSON.parse(localStorage.getItem('koide-pref') || '{}'), d = docu
     }
     const role = S.grp ? me.role : lead || me.staff ? me.role : me.admin ? '관리자' : '회원', rc = S.grp ? (me.role === '모임장' ? 'leader' : '') : lead || me.staff ? 'leader' : me.admin ? 'admin' : '';
     const H = S.grp ? S.home : M;
-    // 함께하는 곳: 기도 노트와 교회 소그룹. 자율 모임은 기도 노트의 '내 모임'에서 연다(모임을 보는 중이면 노트로 돌아가는 길만)
-    const linked = !!(S.me && S.me.link && S.me.link.status === '연결');
-    const places = !linked && !S.grp ? '' : `<div class="mdiv"></div><p class="mlabel">함께하는 곳</p>
-        <a class="mitem" role="menuitem" href="note.html${DEMO_LINK ? '?demo' : ''}"><span>나의 기도 노트</span><small>${S.grp ? '내 모임으로 돌아가기' : '나만 봐요 · 이 휴대폰에만'}</small></a>
-        ${!linked ? '' : `<button class="mitem${S.grp ? '' : ' on'}" role="menuitem" data-act="gback"><span>${esc(H ? H.room.name : '')}</span><small>${S.grp ? '내 ' + (H && H.dept ? esc(H.dept.group || '소그룹') : '소그룹') : '지금 보는 곳'}</small></button>`}
-        `;
+    // 함께하는 곳: 노트의 위쪽 막대와 같은 목록(places.js 하나로 그린다). 자율 모임은 기도 노트 소속이라 만들기만 노트로 보내고, 열기는 여기서 바로 된다
+    const linked = !!(S.me && S.me.link && S.me.link.status === '연결'), G = myGroups();
+    const places = !linked && !S.grp && !G.length ? '' : `<div class="mdiv"></div>` + koidePlaces.html({ cur: S.grp || 'room', linked, demo: DEMO_LINK, groups: G, make: koidePlaces.canMake(linked, G),
+      room: linked && H && H.room ? { name: H.room.name, group: H.dept && H.dept.group } : null,
+      attr: (k, id) => k === 'note' ? `href="note.html${DEMO_LINK ? '?demo' : ''}"` : k === 'make' ? `data-act="gnew"` : k === 'room' ? 'data-act="gback"' : `data-act="gopen" data-v="${esc(id)}"` });
     const menu = S.menu === 'badge' ? `<div class="menu" role="menu" aria-label="사랑방">
         <p class="mlabel">${esc(grp())}</p><div class="mitem static"><b>${esc(M.room.name)}</b><small>${S.grp ? `모임 · ${M.families.length}명` : ''}${S.grp ? '' : M.dept && M.dept.name ? esc(M.dept.name) + ' · ' : ''}${S.grp ? '' : me.staff ? `${grp()} ${(M.rooms || []).length}곳 · ${(M.rooms || []).reduce((a, r) => a + r.n, 0)}${words().count}` : `${M.term || M.month.slice(0, 4)}년 편성 · ${M.families.length}${words().count}`}</small></div>${places}
         ${!opsDepts().length ? '' : S.me.ops.all ? `<div class="mdiv"></div><p class="mlabel">전체 관리</p><button class="mitem" role="menuitem" data-act="church"><span>교회 전체</span><small>모든 부서 한눈에</small></button>`
@@ -3941,7 +3941,7 @@ try { const p = JSON.parse(localStorage.getItem('koide-pref') || '{}'), d = docu
     return `<div class="wrap">${brand}
       <nav class="topnav" aria-label="주 메뉴">${TABS.map(([k, l]) => `<button class="${on === k ? 'on' : ''}" data-act="tab" data-v="${k}" ${on === k ? 'aria-current="page"' : ''}>${l}</button>`).join('')}</nav>
       <span class="spacer"></span>
-      <button class="badge-btn" data-act="menu" data-v="badge" aria-haspopup="menu" aria-expanded="${S.menu === 'badge'}">${esc(M.room.name)}<span class="role-tag ${rc}">${role}</span></button>
+      <button class="badge-btn" data-act="menu" data-v="badge" aria-haspopup="menu" aria-expanded="${S.menu === 'badge'}">${esc(M.room.name)}<span class="role-tag ${rc}">${role}</span>${G.some(g => g.asks) ? '<i class="badge-dot" aria-label="모임 신청이 있어요"></i>' : ''}</button>
       <button class="icon-btn" data-act="menu" data-v="settings" aria-haspopup="menu" aria-expanded="${S.menu === 'settings'}" aria-label="설정">${ICON.gear}</button>
       ${menu}</div>`;
   }
@@ -4341,6 +4341,7 @@ try { const p = JSON.parse(localStorage.getItem('koide-pref') || '{}'), d = docu
       }
       case 'gopen': S.menu = null; return enterGroup(v);
       case 'gback': S.menu = null; return leaveGroupView();
+      case 'gnew': S.menu = null; if (window.koideSpace) window.koideSpace.going('note'); location.href = 'note.html' + (DEMO_LINK ? '?demo&new' : '?new'); return;
       case 'gedit': S.gEdit = v; return render();
       case 'gcopy': { const t = S.month.group.token; let ok = false; try { await navigator.clipboard.writeText(groupUrl(t)); ok = true; } catch (err) { /* 막힌 기기 */ } S.copied = { key: 'g' + t, ok }; render(); if (ok) toast('초대 링크를 복사했어요. 카톡으로 보내 주세요.'); return; }
       case 'gdecide': case 'gremove': case 'grenew': {
