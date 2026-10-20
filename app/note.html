@@ -312,6 +312,7 @@ button.knot { cursor: pointer; }
 <script src="config.js"></script>
 <script src="splash.js" data-space="note"></script>
 <script src="places.js"></script>
+<script src="survey.js"></script>
 <div id="root"></div>
 <script src="pray-data.js"></script>
 <script src="art-data.js"></script>
@@ -627,7 +628,7 @@ button.knot { cursor: pointer; }
   }
   function todayView() {
     const set = todaySet(), all = open(), done = set.filter(i => prayedToday(i.id)).length;
-    const head = `<header class="top"><div><p class="eyebrow">${dateLabel(TODAY())}</p><h1>오늘의 기도</h1></div></header>`;
+    const head = `<header class="top"><div><p class="eyebrow">${dateLabel(TODAY())}</p><h1>오늘의 기도</h1></div></header>` + surveyCard();
     if (!all.length) return head + `<section class="card empty"><h2>아직 기도제목이 없어요</h2><p class="hint">나와 가족, 친구, 교회를 위한 기도제목을 써 보세요. 이 휴대폰에만 저장돼요.</p><button class="btn" data-a="tab" data-v="note">기도제목 쓰기</button></section>` + thanksQuick();
     return head + `<section class="card"><div class="row"><p class="label">오늘 기도할 제목</p><span class="hint">${done} / ${set.length}</span></div>
       ${set.map(i => { const on = prayedToday(i.id); return `<div class="today-item${on ? ' on' : ''}"><p><span class="tag">${esc(targetName(i.target))}</span>${esc(i.text)}</p>
@@ -637,6 +638,13 @@ button.knot { cursor: pointer; }
       <button class="btn ghost" data-a="psopen" data-v="${done === set.length ? 'all' : 'today'}">${done === set.length && all.length > set.length ? '모든 기도제목으로 기도하기' : '한 장씩 기도하기'}</button></section>
       ${cordHtml()}${thanksQuick()}`;
   }
+  // ── 시범 설문(survey.js): 시작한 지 3·7·14일째에 오늘 화면 위에 카드 한 장. 로그인하지 않았거나 장면 주소에서는 없다 ──
+  //  시작한 날 = 기도제목·기도한 날·감사 기록 중 가장 이른 날(아직 없으면 survey.js가 이 기기에서 처음 연 날로 센다). 보내는 숫자는 사용자가 켰을 때만, 기도 내용은 없다
+  const APP_VER = '2026-11-04';
+  const noteStart = () => [...D.items.map(i => i.created), ...prays().map(p => p.d), ...D.thanks.map(x => x.date)].filter(Boolean).sort()[0] || '';
+  const surveyNums = () => ({ days: new Set(prays().map(p => p.d)).size, items: D.items.length, thanks: D.thanks.length, app: HOME_APP, vault: !!(D.vault && D.vault.on) });
+  if (!SC) KOIDE_SURVEY.init({ where: 'note', key: DEMO_LINK ? 'koide-demo-survey' : 'koide-survey', api, start: noteStart, nums: surveyNums, ver: APP_VER, demo: DEMO });
+  const surveyCard = () => !SC && D.started && getToken() ? KOIDE_SURVEY.html() : '';
   function thanksQuick() {
     const t = D.thanks.filter(x => x.date === TODAY());
     return `<section class="card"><p class="label">오늘 감사한 것</p>
@@ -930,9 +938,23 @@ button.knot { cursor: pointer; }
         : `<p class="plain">교회 사랑방과 함께 기도하려면 공동체에 연결해요. 리더에게 초대 링크를 받았으면 그 링크를 열면 돼요. 링크가 없으면 부서와 사랑방을 골라 연결을 신청할 수 있어요.</p>
         <a class="btn ghost small" style="align-self:flex-start;text-decoration:none;display:inline-flex;align-items:center" href="index.html${DEMO_LINK ? '?demo&connect' : '?connect'}">우리 교회 공동체에 연결하기</a>`}</section>
       <section class="card"><p class="label">의견 보내기</p><p class="hint">써 보고 좋았던 점, 불편한 점을 알려 주세요. 기도 내용은 담기지 않아요.</p>
-        <button class="btn ghost small" data-a="fbcopy" style="align-self:flex-start">의견 보낼 글 복사하기</button></section>
+        <button class="btn ghost small" data-a="fbopen" style="align-self:flex-start">의견 보내기</button></section>
       <button class="link quiet" data-a="logout" style="display:block;margin:6px auto 0">로그아웃</button>
       <button class="link quiet" data-a="wipe" style="display:block;margin:6px auto 0">이 휴대폰의 기도 노트 모두 지우기</button>`;
+  }
+  // 의견 보내기: 공동체와 같은 종류. 교회에 연결되지 않아도 보낼 수 있고(로그인만), 운영하는 분(교회 전체 관리자)이 읽는다. 기도제목은 담지 않는다
+  const FB_KINDS = ['불편해요', '이랬으면', '고마워요'];
+  function fbView() {
+    const F = S.fb || (S.fb = { kind: '이랬으면', text: '', named: false }), nick = (noteMe() || {}).nick;
+    return `<button class="link" data-a="tab" data-v="more" style="align-self:flex-start;margin-bottom:6px">‹ 더보기</button>
+      <header class="top"><div><p class="eyebrow">코이데를 함께 만들어요</p><h1>의견 보내기</h1></div></header>
+      <section class="card"><div class="seg" style="--n:3" role="radiogroup" aria-label="의견 종류">${FB_KINDS.map(k => `<button class="${F.kind === k ? 'on' : ''}" role="radio" aria-checked="${F.kind === k}" data-a="fbkind" data-v="${k}">${k}</button>`).join('')}</div>
+        <p class="hint" style="color:var(--warm)">기도제목은 여기 쓰지 말아 주세요.</p>
+        <textarea id="fb-t" class="field" rows="6" maxlength="500" placeholder="불편한 점, 바라는 점, 고마운 점 무엇이든 좋아요." aria-label="의견">${esc(F.text)}</textarea>
+        <div class="row"><div><p class="label" style="margin:0">이름 밝히기</p><p class="hint" style="margin:.2em 0 0">${F.named ? `카카오 닉네임${nick ? '(' + esc(nick) + ')' : ''}이 함께 가요.` : '끄면 누가 보냈는지 남기지 않아요.'}</p></div>
+          <button type="button" class="switch${F.named ? ' on' : ''}" role="switch" aria-checked="${F.named}" aria-label="이름 밝히기" data-a="fbnamed"><span></span></button></div>
+        <button class="btn wide" data-a="fbsend"${S.fbBusy ? ' disabled' : ''}>${S.fbBusy ? '보내는 중…' : '보내기'}</button>
+        <p class="hint">코이데를 꾸리는 분들이 읽어요. 답장은 따로 오지 않아요.</p></section>`;
   }
   function vaultCard() {
     const on = D.vault && D.vault.on;
@@ -1129,9 +1151,9 @@ button.knot { cursor: pointer; }
   }
   const TABS = [['today', '오늘', TICON.sun], ['note', '내 기도', TICON.pen], ['pray', '기도하기', TICON.hands], ['look', '지난 기록', TICON.book], ['more', '더보기', TICON.more]];
   function render() {
-    const V = { start: startView, today: todayView, note: noteView, pray: prayTab, look: lookView, keep: keepView, more: moreView }[S.tab];
+    const V = { start: startView, today: todayView, note: noteView, pray: prayTab, look: lookView, keep: keepView, more: moreView, fb: fbView }[S.tab];
     $('#root').innerHTML = `${S.tab !== 'start' ? topBar() : ''}<div class="wrap${S.tab !== 'start' ? ' has-top' : ''}">${V()}</div>
-      ${S.tab === 'start' ? '' : `<nav class="tabs" aria-label="메뉴">${TABS.map(([k, l, ic]) => { const on = (S.tab === 'keep' ? 'look' : S.tab) === k; return `<button class="${k === 'pray' ? 'pray-tab ' : ''}${on ? 'on' : ''}" data-a="tab" data-v="${k}" aria-label="${l}" title="${l}" ${on ? 'aria-current="page"' : ''}>${ic}</button>`; }).join('')}</nav>`}
+      ${S.tab === 'start' ? '' : `<nav class="tabs" aria-label="메뉴">${TABS.map(([k, l, ic]) => { const on = (S.tab === 'keep' ? 'look' : S.tab === 'fb' ? 'more' : S.tab) === k; return `<button class="${k === 'pray' ? 'pray-tab ' : ''}${on ? 'on' : ''}" data-a="tab" data-v="${k}" aria-label="${l}" title="${l}" ${on ? 'aria-current="page"' : ''}>${ic}</button>`; }).join('')}</nav>`}
       ${S.done ? doneSheet() : ''}${S.tour != null ? tourSheet() : ''}${S.a2hs && !S.ps ? a2hsSheet() : ''}${S.vsheet ? vaultSheet() : ''}${S.share ? shareSheet() : ''}${S.mv ? mvSheet() : ''}${S.ps ? psHtml() : ''}${S.toast ? `<div class="toast" role="status">${esc(S.toast)}</div>` : ''}
       ${canSave ? '' : '<div class="toast" role="alert">이 브라우저에서는 저장할 수 없어요. 개인 정보 보호 모드를 끄고 열어 주세요.</div>'}`;
     document.documentElement.style.overflow = S.ps || S.done || S.vsheet || S.share || S.tour != null || S.a2hs ? 'hidden' : '';
@@ -1158,6 +1180,7 @@ button.knot { cursor: pointer; }
     // 다시 그려도 쓰던 글이 남게(대상 고르기·사람 더하기를 눌러도)
     const ta = $('#it-text'); if (ta) S.draft = ta.value;
     const th = $('#th-in'); if (th) S.thDraft = th.value;
+    const ft = $('#fb-t'); if (ft && S.fb) S.fb.text = ft.value;
     // 창 안을 눌렀는데 가장 가까운 동작이 바깥 배경(닫기)이면 무시한다(창 안의 입력 칸·제출 버튼을 눌러도 창이 닫히지 않게)
     if (b.classList.contains('sheet-back') && e.target.closest('[data-stop]')) return;
     const a = b.dataset.a, v = b.dataset.v;
@@ -1281,10 +1304,16 @@ button.knot { cursor: pointer; }
       }
       case 'wipe': if (!confirm(`이 휴대폰의 기도 노트를 모두 지울까요?${D.vault && D.vault.on ? ' 다른 기기에 연결해 둔 것은 그대로 남고, 이 휴대폰만 연결이 끊겨요.' : ' 되돌릴 수 없어요. 먼저 백업을 내려받아 두세요.'}`)) return;
         D = blank(); saveLocal(); try { localStorage.removeItem(LOCK_KEY); } catch (e) { /* 무시 */ } S.tab = 'start'; return render();
-      case 'fbcopy': {
-        const home = !!(navigator.standalone || (window.matchMedia && matchMedia('(display-mode: standalone)').matches));
-        const t = `코이데 기도 노트 의견\n- 쓴 기간: ${prays().length ? short(prays().map(p => p.d).sort()[0]) + ' ~ ' + short(TODAY()) : '오늘'}\n- 기도제목 ${D.items.length}개 · 기도한 날 ${new Set(prays().map(p => p.d)).size}일 · 감사 기록 ${D.thanks.length}개(응답 ${D.thanks.filter(x => x.kind === 'answer').length})\n- 홈 화면 앱: ${home ? '예' : '아니요'} · 다른 기기와 연결: ${D.vault && D.vault.on ? '예' : '아니요'}\n\n1. 날마다 쓰게 됐나요? 며칠쯤 지나서 덜 열게 됐나요?\n2. 응답·감사 기록은 어땠나요?\n3. 사랑방·모임에 나누기, 공동체 기도하기의 "내 기도 노트"를 써 봤나요?\n4. 휴대폰에만 저장되는 것, 다른 기기와 연결하기(비밀 문구)는 어땠나요?\n5. 막히거나 헷갈린 곳:\n6. 있었으면 하는 것:`;
-        (navigator.clipboard ? navigator.clipboard.writeText(t) : Promise.reject()).then(() => toast('복사했어요. 카톡에 붙여 넣어 보내 주세요'), () => prompt('아래 글을 복사해 보내 주세요', t));
+      case 'fbopen': S.fb = null; return go('fb');
+      case 'fbkind': S.fb.kind = v; return render();
+      case 'fbnamed': S.fb.named = !S.fb.named; return render();
+      case 'fbsend': {
+        const F = S.fb, text = (F.text || '').trim();
+        if (!text) { toast('내용을 적어 주세요.'); return $('#fb-t').focus(); }
+        S.fbBusy = true; render();
+        api('sendFeedback', { kind: F.kind, text, named: F.named, ver: APP_VER, width: innerWidth < 640 ? 'phone' : innerWidth < 1024 ? 'tablet' : 'pc' })
+          .then(() => { S.fbBusy = false; S.fb = null; S.tab = 'more'; toast('보냈어요. 고마워요.'); window.scrollTo(0, 0); },
+            err => { S.fbBusy = false; render(); toast(err && err.code === 'login' ? '다시 로그인해 주세요.' : err && err.code === 'notLinked' ? '서버를 새 버전으로 배포하면 보낼 수 있어요.' : (err && err.message) || '보내지 못했어요. 잠시 뒤 다시 해 주세요.'); });
         return;
       }
     }

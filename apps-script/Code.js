@@ -76,7 +76,10 @@ const SCHEMA = {
   //  사람마다 모임 안의 ID(모임 사람ID)가 있어서, 기도제목·기도했어요는 그 ID를 가정ID 자리에 쓴다(모임마다 따로)
   groups: ['모임', [['id', '모임ID'], ['name', '이름'], ['owner', '모임장 카카오ID'], ['token', '초대 값'], ['status', '상태'], ['at', '만든 날'], ['endsAt', '끝나는 날']]],
   gmembers: ['모임 사람', [['groupId', '모임ID'], ['id', '모임 사람ID'], ['kakaoId', '카카오ID'], ['person', '이름'], ['role', '역할'], ['status', '상태'], ['at', '들어온 날']]],
-  feedback: ['의견', [['at', '보낸 날'], ['deptId', '부서ID'], ['kind', '종류'], ['text', '내용'], ['familyId', '가정ID'], ['person', '사람'], ['ver', '화면 버전'], ['width', '기기 폭'], ['read', '읽음']]]
+  //  부서ID가 비어 있으면 교회에 연결되지 않은 기도 노트 사용자가 보낸 것(전체 관리자만 본다)
+  feedback: ['의견', [['at', '보낸 날'], ['deptId', '부서ID'], ['kind', '종류'], ['text', '내용'], ['familyId', '가정ID'], ['person', '사람'], ['ver', '화면 버전'], ['width', '기기 폭'], ['read', '읽음']]],
+  // 시범 설문(3·7·14일째 카드): 누가 보냈는지는 남기지 않는다(카카오ID·가정ID·이름 없음). 답은 정해 둔 키와 값만(JSON), 숫자는 사용자가 '숫자도 함께 보내기'를 켰을 때만
+  survey: ['설문', [['at', '보낸 날'], ['where', '어디'], ['day', '몇째 날'], ['answers', '답'], ['nums', '숫자'], ['deptId', '부서ID'], ['width', '기기 폭'], ['ver', '화면 버전']]]
 };
 const SCOPES = ['room', 'leader', 'family'];
 // 교역자의 공개 범위: dept(부서 공개, 섬기는 분들 카드에 나옴) / family(우리 가정만)
@@ -88,7 +91,7 @@ const FIRST_DEPT = { id: 'D1', name: '청장년부', group: '사랑방', unit: '
 // ── 요청 받기 ─────────────────────────────────────────────
 
 // 서버 코드를 고칠 때마다 바꾼다. 웹 앱 주소를 열면 보여서, 새 버전으로 배포됐는지 확인할 수 있다
-const VERSION = '2026-11-04 모임은 끝나는 날이 있어요';
+const VERSION = '2026-11-04 의견과 설문, 모임은 끝나는 날이 있어요';
 function doGet() {
   return ContentService.createTextOutput('코이데 서버가 켜져 있어요. (버전: ' + VERSION + ')');
 }
@@ -175,6 +178,8 @@ const ACTIONS = {
   inviteRenew: inviteRenew_,
   feedbackRead: feedbackRead_,
   sendFeedback: sendFeedback_,
+  sendSurvey: sendSurvey_,
+  surveyAdmin: surveyAdmin_,
   // 자율 모임
   groupCreate: groupCreate_,
   groupInfo: body => groupInfo_(groupMember_(body)),
@@ -216,7 +221,7 @@ const ACTIONS = {
   noteDel: body => { const a = auth_(body.token); return withLock_(() => noteDel_(a)); }
 };
 const OPS_ACTIONS_ = ['opsCtx', 'church', 'churchAnalysis', 'groupAdmin', 'changes', 'together', 'togetherSave', 'togetherState', 'opsInvite', 'opsRemove', 'deptSave', 'deptClose', 'deptReopen', 'deptErase', 'roster', 'rosterSave', 'pending', 'approve', 'reject', 'unlink', 'saveStaff', 'endStaff',
-  'reorg', 'reorgSave', 'reorgCancel', 'analysis', 'saveGroup', 'ops', 'groups', 'openMonth', 'handover', 'eraseFamily', 'keepFamily', 'inviteRenew', 'feedbackRead', 'usage'];
+  'reorg', 'reorgSave', 'reorgCancel', 'analysis', 'saveGroup', 'ops', 'groups', 'openMonth', 'handover', 'eraseFamily', 'keepFamily', 'inviteRenew', 'feedbackRead', 'usage', 'surveyAdmin'];
 
 // ── 로그인 ───────────────────────────────────────────────
 
@@ -295,7 +300,7 @@ function leaderOrAdmin_(body) {
 }
 
 function meInfo_(w) {
-  const out = { nick: w.nick, uid: noteUid_(w.kakaoId), link: w.link ? { status: w.link.status, familyId: w.link.familyId, person: w.link.person } : null, ops: opsScope_(w.kakaoId), groups: myGroups_(w.kakaoId) };
+  const out = { nick: w.nick, uid: noteUid_(w.kakaoId), link: w.link ? { status: w.link.status, familyId: w.link.familyId, person: w.link.person, since: w.link.requestedAt ? fmtDate_(w.link.requestedAt) : '' } : null, ops: opsScope_(w.kakaoId), groups: myGroups_(w.kakaoId) };
   if (w.link && w.link.status === '연결') return Object.assign(out, memberFrom_(w));
   if (w.link) {
     const fam = read_('families').find(f => f.id === w.link.familyId);
@@ -1116,6 +1121,7 @@ function trimLogs_() {
   cut('errors', 30 * 864e5);
   cut('changes', 396 * 864e5);
   cut('feedback', 396 * 864e5);
+  cut('survey', 396 * 864e5);
   tidyGroups_();
   // 로그인 탭: 만료된 줄(카카오ID·닉네임)을 남겨 두지 않는다
   read_('sessions').filter(x => !(Date.parse(x.expires) > Date.now())).sort((a, b) => b._row - a._row).forEach(x => remove_('sessions', x));
@@ -1302,19 +1308,100 @@ function inviteRenew_(body) {
 
 // ── 의견함 (설계서 S7 › ⑥) ───────────────────────────────
 const FEEDBACK_KINDS = ['불편해요', '이랬으면', '고마워요'];
-// 회원이 의견을 보낸다. 이름을 밝히면 가정ID와 사람을 함께 남긴다. 한 사람이 하루 10번까지
+// 로그인한 누구나 의견을 보낸다(교회에 연결되지 않은 기도 노트 사용자도: 부서ID가 비고 전체 관리자만 본다).
+//  이름을 밝히면 연결된 사람은 가정ID와 사람을, 연결되지 않은 사람은 카카오 닉네임을 남긴다. 한 사람이 하루 10번까지
 function sendFeedback_(body) {
-  const c = member_(body), text = String(body.text || '').trim().slice(0, 500);
+  const w = who_(body), text = String(body.text || '').trim().slice(0, 500);
   if (!text) throw fail_('bad', '내용을 적어 주세요.');
   const kind = FEEDBACK_KINDS.indexOf(body.kind) >= 0 ? body.kind : FEEDBACK_KINDS[1];
-  const cache = CacheService.getScriptCache(), key = 'fb:' + c.kakaoId + ':' + today_(), n = Number(cache.get(key) || 0);
+  let c = null;
+  try { c = memberFrom_(w); } catch (e) { if (!(e && e.code === 'notLinked')) throw e; }
+  const cache = CacheService.getScriptCache(), key = 'fb:' + w.kakaoId + ':' + today_(), n = Number(cache.get(key) || 0);
   if (n >= 10) throw fail_('busy', '오늘은 충분히 보내 주셨어요. 내일 다시 보내 주세요.');
   cache.put(key, String(n + 1), 86400);
   const named = body.named === true;
-  append_('feedback', { at: new Date(), deptId: c.deptId, kind, text, familyId: named ? c.familyId : '', person: named ? c.person : '',
+  append_('feedback', { at: new Date(), deptId: c ? c.deptId : '', kind, text, familyId: named && c ? c.familyId : '', person: named ? (c ? c.person : w.nick) : '',
     ver: String(body.ver || '').slice(0, 20), width: ['phone', 'tablet', 'pc'].indexOf(body.width) >= 0 ? body.width : '', read: '' });
   return { ok: true };
 }
+
+// ── 시범 설문 (3·7·14일째 카드, app/survey.js) ─────────────────────────
+// 정해 둔 키와 값만 받는다(글은 text). 문항을 바꾸면 app/survey.js의 ROUNDS와 키를 맞춘다. amount는 기도 노트에서만, easy는 공동체에서만
+const SURVEY_ = {
+  3: { mood: ['bad', 'soso', 'good', 'great'], stuck: 'text' },
+  7: { amount: ['few', 'fit', 'many'], easy: ['yes', 'soso', 'hard'], liked: { multi: ['cord', 'art', 'answer', 'pray', 'share'] }, wish: 'text' },
+  // ueq: UEQ-S 8문항(공식 한국어판, app/survey.js 맨 위 설명). 문항 번호 1~8마다 1~7의 값만 받는다
+  14: { ueq: { ueq: 8 }, keep: ['yes', 'maybe', 'no'], recommend: ['yes', 'maybe', 'no'], want: 'text' }
+};
+const SURVEY_ONLY_ = { amount: 'note', easy: 'community' };
+const SURVEY_NUMS_ = ['days', 'items', 'thanks', 'app', 'vault'];
+// 로그인한 누구나(부서가 없어도). 한 사람이 하루 6번까지. 누가 보냈는지는 시트에 남기지 않는다
+function sendSurvey_(body) {
+  const w = who_(body), where = body.where === 'community' ? 'community' : body.where === 'note' ? 'note' : '', day = Number(body.day), spec = SURVEY_[day];
+  if (!where || !spec) throw fail_('bad', '알 수 없는 설문이에요.');
+  const cache = CacheService.getScriptCache(), key = 'sv:' + w.kakaoId + ':' + today_(), n = Number(cache.get(key) || 0);
+  if (n >= 6) throw fail_('busy', '오늘은 충분히 보내 주셨어요. 내일 다시 보내 주세요.');
+  const src = body.answers && typeof body.answers === 'object' ? body.answers : {}, ans = {};
+  Object.keys(spec).forEach(k => {
+    if (SURVEY_ONLY_[k] && SURVEY_ONLY_[k] !== where) return;
+    const rule = spec[k], v = src[k];
+    if (rule === 'text') { const t = typeof v === 'string' ? v.trim().slice(0, 200) : ''; if (t) ans[k] = t; }
+    else if (Array.isArray(rule)) { if (rule.indexOf(v) >= 0) ans[k] = v; }
+    else if (rule.multi) { if (Array.isArray(v)) { const l = rule.multi.filter(x => v.indexOf(x) >= 0); if (l.length) ans[k] = l; } }
+    else if (rule.ueq) {
+      const u = {};
+      if (v && typeof v === 'object') for (let i = 1; i <= rule.ueq; i++) { const x = v[i]; if (typeof x === 'number' && x === Math.floor(x) && x >= 1 && x <= 7) u[i] = x; }
+      if (Object.keys(u).length) ans[k] = u;
+    }
+  });
+  if (!Object.keys(ans).length) throw fail_('bad', '답을 하나라도 골라 주세요.');
+  // 숫자: 사용자가 켰을 때만 오고, 정해 둔 다섯 가지만. 기도 내용은 받는 칸이 없다
+  let nums = '';
+  if (body.nums && typeof body.nums === 'object') {
+    const o = {};
+    SURVEY_NUMS_.forEach(k => {
+      const v = body.nums[k];
+      if (k === 'app' || k === 'vault') { if (typeof v === 'boolean') o[k] = v; }
+      else if (typeof v === 'number' && isFinite(v)) o[k] = Math.max(0, Math.min(99999, Math.round(v)));
+    });
+    if (Object.keys(o).length) nums = JSON.stringify(o);
+  }
+  let deptId = '';
+  try { deptId = memberFrom_(w).deptId || ''; } catch (e) { /* 연결되지 않은 사람은 부서 없이 */ }
+  cache.put(key, String(n + 1), 86400);
+  append_('survey', { at: new Date(), where, day, answers: JSON.stringify(ans), nums, deptId, width: ['phone', 'tablet', 'pc'].indexOf(body.width) >= 0 ? body.width : '', ver: String(body.ver || '').slice(0, 20) });
+  return { ok: true };
+}
+// 교회 전체 › 의견과 설문(전체 관리자): 몇째 날별 답 개수(합계만, 사람별 보기 없음)와 글 답, 부서 없는 것까지 모든 의견, 표로 내려받을 줄들
+function surveyAdmin_(body) {
+  allAdmin_(body);
+  const depts = read_('depts'), deptName = id => id ? ((depts.find(d => d.id === id) || {}).name || id) : '기도 노트(부서 없음)';
+  const parse = t => { try { return JSON.parse(t || '{}') || {}; } catch (e) { return {}; } };
+  const rows = read_('survey').slice().sort((a, b) => a.at < b.at ? 1 : -1).slice(0, 2000)
+    .map(r => ({ at: fmtDate_(r.at), where: r.where, day: Number(r.day), a: parse(r.answers), nums: r.nums ? parse(r.nums) : null, dept: deptName(r.deptId), width: r.width, ver: r.ver }));
+  const byDay = {};
+  [3, 7, 14].forEach(d => { byDay[d] = { n: 0, note: 0, community: 0, withNums: 0, q: {}, texts: [] }; });
+  rows.forEach(r => {
+    const b = byDay[r.day]; if (!b) return;
+    b.n++; b[r.where]++; if (r.nums) b.withNums++;
+    Object.keys(r.a).forEach(k => {
+      const v = r.a[k];
+      if (k === 'ueq') return; // UEQ-S는 아래에서 따로 계산
+      if (typeof v === 'string' && SURVEY_[r.day][k] === 'text') b.texts.push({ at: r.at, where: r.where, k, text: v });
+      else (Array.isArray(v) ? v : [v]).forEach(x => { const q = b.q[k] || (b.q[k] = {}); q[x] = (q[x] || 0) + 1; });
+    });
+  });
+  // UEQ-S(공식 계산): 8문항을 모두 답한 사람만 센다. 답(1~7)에서 4를 빼 −3~+3으로 바꾸고, 실용성(1~4번)·감성(5~8번)·전체(8문항) 평균. 합계만, 사람별 값은 내보내지 않는다
+  const full = rows.filter(r => r.day === 14 && r.a.ueq && Object.keys(r.a.ueq).length === 8), mean = (list, f) => list.length ? Math.round(list.reduce((a, r) => a + f(r), 0) / list.length * 100) / 100 : null;
+  const item = i => mean(full, r => r.a.ueq[i] - 4), part = (from, to) => mean(full, r => { let t = 0; for (let i = from; i <= to; i++) t += r.a.ueq[i] - 4; return t / (to - from + 1); });
+  byDay[14].ueq = { n: full.length, partial: rows.filter(r => r.day === 14 && r.a.ueq).length - full.length, pragmatic: part(1, 4), hedonic: part(5, 8), overall: part(1, 8), items: [1, 2, 3, 4, 5, 6, 7, 8].map(item) };
+  const fams = read_('families');
+  const feedback = read_('feedback').slice().sort((a, b) => a.at < b.at ? 1 : -1).slice(0, 2000).map(x => ({
+    at: fmtDate_(x.at), kind: x.kind, text: x.text, dept: deptName(x.deptId), width: x.width, ver: x.ver,
+    who: x.familyId ? whoOf_(fams.find(f => f.id === x.familyId), x.person) : x.person || '' }));
+  return { total: rows.length, byDay, rows, feedback };
+}
+
 // 관리자: 우리 부서 의견, 새것부터 100개. 이름을 밝힌 의견에만 보낸 사람
 function feedbackList_(c) {
   const fams = read_('families');
@@ -1423,7 +1510,7 @@ function churchView_(body) {
   trimLogs_();
   const errs = read_('errors').filter(e => Date.parse(e.at) > Date.now() - 7 * 864e5);
   return { depts: list, version: VERSION, month: { month: m, opened: p['OPENED_' + m] || '' }, errors: { n: errs.length, last: errs.length ? errs[errs.length - 1].at : '' },
-    opsList: opsList_(c), handover: p['HANDOVER_church'] || '' };
+    opsList: opsList_(c), handover: p['HANDOVER_church'] || '', inbox: { survey: read_('survey').length, feedback: fb.length, feedbackNoDept: fb.filter(x => !x.deptId).length } };
 }
 // 부서 만들기·고치기(교회 전체를 맡은 운영 관리자): 이름, 소그룹 이름, 단위(가정/개인)
 function deptSave_(body) {
@@ -2049,6 +2136,15 @@ function sampleData() {
   // 의견함 예시: 이름 없는 것과 이름을 밝힌 것
   append_('feedback', { at: new Date(Date.now() - 2 * 864e5), deptId: d1, kind: '이랬으면', text: '기도하기에서 음악 소리를 조금 더 작게 시작하면 좋겠어요.', familyId: '', person: '', ver: '2026-10-22', width: 'phone', read: '' });
   append_('feedback', { at: new Date(Date.now() - 5 * 864e5), deptId: d1, kind: '고마워요', text: '매달 기도제목을 따로 모으지 않아도 돼서 편해요.', familyId: 'F3', person: '한지민', ver: '2026-10-22', width: 'phone', read: '예' });
+  // 교회에 연결되지 않은 기도 노트 사용자의 의견(부서 없음)과 시범 설문 예시. ver를 'sample'로 두어 예시 지우기 때 함께 지운다
+  append_('feedback', { at: new Date(Date.now() - 1 * 864e5), deptId: '', kind: '이랬으면', text: '하루 3개 말고 오늘 꼭 기도할 것을 제가 고를 수 있으면 좋겠어요.', familyId: '', person: '', ver: 'sample', width: 'phone', read: '' });
+  append_('feedback', { at: new Date(Date.now() - 3 * 864e5), deptId: '', kind: '고마워요', text: '응답받은 기도를 모아 볼 수 있어서 힘이 돼요.', familyId: '', person: '민아', ver: 'sample', width: 'phone', read: '' });
+  [[10, 'note', 3, { mood: 'good', stuck: '이어 두기 화면에서 비밀 문구가 무슨 뜻인지 헷갈렸어요.' }, ''], [9, 'note', 3, { mood: 'great' }, ''], [9, 'community', 3, { mood: 'good' }, ''], [8, 'community', 3, { mood: 'soso', stuck: '이번 달 화면에서 우리 가정 기도를 어디서 쓰는지 몰랐어요.' }, ''],
+    [6, 'note', 7, { amount: 'fit', liked: ['cord', 'answer'], wish: '아침 시간에 알려 주면 좋겠어요.' }, '{"days":5,"items":6,"thanks":2,"app":true,"vault":false}'],
+    [5, 'note', 7, { amount: 'many', liked: ['pray'] }, ''], [5, 'community', 7, { easy: 'yes', liked: ['art', 'share'] }, ''], [4, 'community', 7, { easy: 'hard', liked: ['share'], wish: '기도제목 쓰는 칸이 더 크면 좋겠어요.' }, ''],
+    [2, 'note', 14, { ueq: { 1: 6, 2: 6, 3: 5, 4: 6, 5: 5, 6: 6, 7: 4, 8: 3 }, keep: 'yes', recommend: 'yes', want: '달마다 응답 기록을 한눈에 보는 화면이요.' }, '{"days":11,"items":8,"thanks":4,"app":true,"vault":true}'],
+    [1, 'community', 14, { ueq: { 1: 5, 2: 5, 3: 6, 4: 4, 5: 4, 6: 5, 7: 5, 8: 4 }, keep: 'maybe', recommend: 'yes' }, ''], [1, 'note', 14, { ueq: { 1: 4, 2: 5, 3: 4, 4: 5, 5: 3, 6: 4, 7: 4, 8: 3 }, keep: 'maybe', recommend: 'maybe' }, '']]
+    .forEach(([ago, where, day, a, nums]) => append_('survey', { at: new Date(Date.now() - ago * 864e5), where, day, answers: JSON.stringify(a), nums, deptId: where === 'community' ? d1 : '', width: 'phone', ver: 'sample' }));
   // 섬기는 분들(청장년부): 목사님 부부와 담당 장로님. 지어낸 이름
   append_('families', { id: 'S1', name: '한기쁨 · 서평안', kids: '은솔', status: '교역자', admin: '' });
   append_('staff', { familyId: 'S1', deptId: d1, label: '목사님 부부', title: '목사님', serve: '예', status: '활동', endedAt: '' });
@@ -2080,6 +2176,7 @@ function clearSampleData() {
     del('opsAdmins', o => o.by === '예시');
     del('gmembers', m => m.groupId === 'G1' || m.groupId === 'G2'); del('groups', g => g.id === 'G1' || g.id === 'G2'); del('items', i => i.roomId === 'G1' || i.roomId === 'G2');
     del('usage', u => /^sample\d{4}$/.test(String(u.device)));
+    del('survey', x => x.ver === 'sample'); del('feedback', x => x.ver === 'sample');
     del('families', f => ids.indexOf(f.id) >= 0);
     del('rooms', r => ['R1', 'R2', 'R3', 'R4'].indexOf(r.id) >= 0 && !read_('roster').some(x => x.roomId === r.id));
     if (admins.length) PropertiesService.getScriptProperties().setProperty('NEXT_ADMIN', admins.join(','));

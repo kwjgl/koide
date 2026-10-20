@@ -650,6 +650,7 @@ h3 { font-size: 1.02em; font-weight: 600; margin: 0; }
 .sr-legend { font-size: .74em; color: var(--ink-2); white-space: nowrap; }
 /* 관리 화면: [관리 | 분석] */
 .admin-seg { max-width: 320px; margin: 0 0 14px; }
+.admin-seg.three { grid-template-columns: repeat(3, 1fr); max-width: 420px; }
 /* 분석: 한눈에(비율 막대·주별 막대)와 달마다 흐름·칸 그림 */
 .ov { display: flex; flex-direction: column; gap: .9em; }
 .ov > .row, .ov-row > .row { justify-content: space-between; align-items: baseline; gap: .6em; }
@@ -1037,6 +1038,11 @@ body.pop-open { overflow: hidden; }
 .fb-list li .row { width: 100%; }
 .fb-list li p { margin: 0; white-space: pre-wrap; }
 .fb-list li small { color: var(--ink-2); }
+.svb { margin: .7em 0 0; } .svb-q { margin: 0 0 .3em; font-size: .86em; font-weight: 600; word-break: keep-all; }
+.svb-row { display: grid; grid-template-columns: 7.5em 1fr 2em; gap: 8px; align-items: center; font-size: .86em; margin: .2em 0; }
+.svb-bar { height: 10px; background: var(--surface-2, #eee); border-radius: 999px; overflow: hidden; } .svb-bar i { display: block; height: 100%; background: var(--accent); border-radius: 999px; }
+.svb-u { grid-template-columns: 11em 1fr 3em; }
+.svb-row b { text-align: right; font-variant-numeric: tabular-nums; }
 .fb-kind { font-size: .78em; font-weight: 600; color: var(--accent); background: var(--accent-soft); border-radius: 999px; padding: .1em .6em; }
 .fb-list li.new .fb-kind::before { content: ''; display: inline-block; width: .45em; height: .45em; border-radius: 50%; background: var(--warn); margin-right: .35em; vertical-align: .1em; }
 .badge-btn { position: relative; }
@@ -1132,6 +1138,7 @@ try { const p = JSON.parse(localStorage.getItem('koide-pref') || '{}'), d = docu
 <script src="config.js"></script>
 <script src="splash.js" data-space="community"></script>
 <script src="places.js"></script>
+<script src="survey.js"></script>
 <div id="demo" class="demo" hidden></div>
 <header class="topbar" id="topbar"></header>
 <main id="main" class="wrap"><p class="loading">불러오는 중…</p></main>
@@ -1766,7 +1773,7 @@ try { const p = JSON.parse(localStorage.getItem('koide-pref') || '{}'), d = docu
     if (staffMe()) return staffHomeView();
     const M = S.month, others = M.families.filter(f => !f.own), t = todayFam();
     return `<div class="page-top"><div><p class="eyebrow">${esc(M.room.name)}${S.grp ? ' · 모임' + (M.group && M.group.left != null ? ' · ' + koidePlaces.dday(M.group) : '') : ''}</p><h1>${Number(M.month.slice(5))}월 기도제목 <span aria-hidden="true">🙏</span></h1></div><p class="date">${todayLabel()}</p></div>
-      ${S.grp ? `<p class="hint grp-note">${ICON.people}모임 사람들과 함께 봐요 · 내 모임은 <a href="note.html${DEMO_LINK ? '?demo' : ''}">기도 노트</a>에 있어요</p>${groupEndCard()}` : ''}${shiftCard()}<div class="home-grid"><div class="col side">${t ? `<section class="card today" aria-label="지금 함께 기도할 ${words().one}"><p class="today-tag">${ICON.hands}지금 함께 기도할 ${words().one}</p><h2>${esc(t.name)}</h2>
+      ${surveyCard()}${S.grp ? `<p class="hint grp-note">${ICON.people}모임 사람들과 함께 봐요 · 내 모임은 <a href="note.html${DEMO_LINK ? '?demo' : ''}">기도 노트</a>에 있어요</p>${groupEndCard()}` : ''}${shiftCard()}<div class="home-grid"><div class="col side">${t ? `<section class="card today" aria-label="지금 함께 기도할 ${words().one}"><p class="today-tag">${ICON.hands}지금 함께 기도할 ${words().one}</p><h2>${esc(t.name)}</h2>
           <div class="today-body" data-id="${esc(t.id)}" tabindex="0" aria-label="${esc(t.name)} 기도제목">${t.items.length ? itemList(t.items, false) : `<p class="hint">아직 올린 기도제목이 없어요. 이 ${words().one}을 떠올리며 기도해요.</p>`}</div>
           <div class="pray-hero"><div class="pray-row">${prayBtn(t, false, true)}<button class="btn next${t.today ? '' : ' ghost'}" data-act="nexttoday">다음 ${words().one}</button></div>
             ${t.prayed ? `<p class="pray-done">이번 달 ${esc(t.name)}${solo() ? ' 님' : ' 가정'}을 위해 ${t.prayed}번 기도했어요</p>` : ''}</div>
@@ -1809,7 +1816,7 @@ try { const p = JSON.parse(localStorage.getItem('koide-pref') || '{}'), d = docu
     const M = S.month, rooms = M.rooms || [], sum = k => rooms.reduce((a, r) => a + r[k], 0);
     const stat = (n, l) => `<div class="stat"><b>${n}</b><span>${l}</span></div>`;
     return `<div class="page-top"><div><p class="eyebrow">${esc(M.dept.name)} 전체 · ${esc(M.me.label || M.me.person)}</p><h1>${Number(M.month.slice(5))}월 기도제목 <span aria-hidden="true">🙏</span></h1></div><p class="date">${todayLabel()}</p></div>
-      <div class="home-grid"><div class="col side">
+      ${surveyCard()}<div class="home-grid"><div class="col side">
         <section class="card"><div class="stats">${stat(rooms.length, grp())}${stat(sum('n'), words().count)}${stat(sum('edited') + sum('confirmed'), '이번 달 손봄·확인')}</div></section>
         ${rooms.length ? `<section class="card">${roomCordHtml()}<p class="hint">매듭을 누르면 그 ${esc(gj('을/를'))} 위해 기도하러 가요.</p></section>` : ''}
         ${mineCard()}
@@ -3419,12 +3426,72 @@ try { const p = JSON.parse(localStorage.getItem('koide-pref') || '{}'), d = docu
     S.view = 'app'; render(); window.scrollTo(0, 0); loadChurch(); if (S.churchTab === 'analysis') loadChurchAnalysis();
   }
   async function loadChurch() { try { S.church = await api('church'); } catch (e) { S.church = { err: e.code === 'bad' ? '서버를 새 버전으로 배포하면 볼 수 있어요.' : e.message }; } render(); }
+  // ── 교회 전체 › 의견과 설문: 몇째 날별 답 개수(합계만, 사람별 보기 없음), 글 답, 부서 없는 것까지 모든 의견. 표(CSV)로 내려받기 ──
+  async function loadSurveyAdmin() { try { S.sv = await api('surveyAdmin'); } catch (e) { S.sv = { err: e.code === 'bad' ? '서버를 새 버전으로 배포하면 볼 수 있어요.' : e.message }; } render(); }
+  const WHERE_NAME = { note: '기도 노트', community: '공동체' };
+  // UEQ-S 합계(−3~+3, 공식 계산은 서버). 보통 −0.8~+0.8은 중간, 0.8보다 크면 긍정, −0.8보다 작으면 부정으로 읽는다(UEQ 안내)
+  function ueqCard(U) {
+    if (!U) return '';
+    const fmt = v => v === null ? '–' : (v > 0 ? '+' : '') + v.toFixed(2), bar = v => `<div class="svb-bar" aria-hidden="true"><i style="width:${v === null ? 0 : Math.round((v + 3) / 6 * 100)}%"></i></div>`;
+    const row = (name, v) => `<div class="svb-row"><span>${name}</span>${bar(v)}<b>${fmt(v)}</b></div>`;
+    return `<div class="svb"><p class="svb-q">UEQ-S · 8문항 모두 답한 ${U.n}개${U.partial ? ` (일부만 답한 ${U.partial}개는 뺐어요)` : ''}</p>
+      ${row('실용성', U.pragmatic)}${row('감성', U.hedonic)}${row('전체', U.overall)}
+      <p class="hint">−3(가장 부정)~+3(가장 긍정). 보통 −0.8~+0.8은 중간, 0.8보다 크면 긍정이에요. 아래는 문항별 평균이에요.</p>
+      ${KOIDE_SURVEY.UEQS.map(([l, r], i) => `<div class="svb-row svb-u"><span>${i + 1}. ${esc(l)} ↔ ${esc(r)}</span>${bar(U.items[i])}<b>${fmt(U.items[i])}</b></div>`).join('')}</div>`;
+  }
+  function surveyAdminView() {
+    const V = S.sv;
+    if (!V) { if (S.sv === undefined) { S.sv = null; setTimeout(loadSurveyAdmin); } return '<section class="card"><p class="hint">불러오는 중…</p></section>'; }
+    if (V.err) return `<section class="card"><p class="hint">${esc(V.err)}</p></section>`;
+    const R = KOIDE_SURVEY.ROUNDS, day = iso => { const d = String(iso).split('-'); return d.length === 3 ? `${Number(d[1])}/${Number(d[2])}` : ''; };
+    const dayCard = n => {
+      const B = V.byDay[n], qs = R[n].qs.filter(q => q.t !== 'text' && B.q[q.k]);
+      return `<section class="card"><div class="row"><h2>${n}일째 · ${R[n].title}</h2><small class="hint">답 ${B.n}개</small></div>
+        ${B.n ? `<p class="hint">기도 노트 ${B.note} · 공동체 ${B.community}${B.withNums ? ` · 숫자도 함께 보낸 ${B.withNums}` : ''}</p>` : '<p class="hint">아직 온 답이 없어요.</p>'}
+        ${qs.map(q => `<div class="svb"><p class="svb-q">${esc(q.q)}</p>${q.o.map(o => { const c = B.q[q.k][o[0]] || 0, t = o[o.length - 1]; return `<div class="svb-row"><span>${esc(t)}</span><div class="svb-bar" aria-hidden="true"><i style="width:${B.n ? Math.round(c / B.n * 100) : 0}%"></i></div><b>${c}</b></div>`; }).join('')}</div>`).join('')}
+        ${n === 14 ? ueqCard(B.ueq) : ''}
+        ${B.texts.length ? `<p class="svb-q">글로 쓴 답 ${B.texts.length}</p><ul class="fb-list">${B.texts.map(x => `<li><div class="row"><span class="fb-kind">${esc((R[n].qs.find(q => q.k === x.k) || {}).q || '').replace(/ \(선택\)$/, '')}</span><small>${day(x.at)} · ${WHERE_NAME[x.where] || ''}</small></div><p class="plain">${esc(x.text)}</p></li>`).join('')}</ul>` : ''}</section>`;
+    };
+    const k = S.svKind || '', fb = V.feedback.filter(x => !k || x.kind === k), more = S.svMore ? fb : fb.slice(0, 8);
+    return `<div class="two-col"><div class="col">
+        <section class="card"><h2>표로 내려받기</h2><p class="hint">엑셀이나 구글 시트로 열어요. 설문은 누가 보냈는지 담기지 않아요. 의견은 이름을 밝힌 것만 보낸 사람이 들어가요.</p>
+          <div class="actions"><button class="btn small" data-act="svcsv" data-v="survey">설문 표 · ${V.total}줄</button><button class="btn small ghost" data-act="svcsv" data-v="feedback">의견 표 · ${V.feedback.length}줄</button></div></section>
+        ${[3, 7, 14].map(dayCard).join('')}
+      </div><div class="col side">
+        <section class="card"><h2>의견 ${V.feedback.length}</h2>
+          <div class="mchips" role="radiogroup" aria-label="의견 종류">${[['', '전체'], ...FB_KINDS.map(x => [x, x])].map(([v, l]) => `<button class="mchip${k === v ? ' on' : ''}" role="radio" aria-checked="${k === v}" data-act="svfilter" data-v="${v}">${l}</button>`).join('')}</div>
+          <ul class="fb-list">${more.map(x => `<li><div class="row"><span class="fb-kind">${esc(x.kind)}</span><small>${day(x.at)} · ${esc(x.dept)}${x.who ? ' · ' + esc(x.who) : ''}</small></div><p class="plain">${esc(x.text)}</p></li>`).join('') || '<li class="hint">아직 없어요.</li>'}</ul>
+          ${fb.length > 8 ? `<button class="link" data-act="svmore">${S.svMore ? '접기' : `${fb.length - 8}개 더 보기`}</button>` : ''}
+          <p class="hint">부서 관리자는 자기 부서 의견만 봐요. 기도 노트에서 온 의견(부서 없음)은 여기서만 보여요.</p></section>
+      </div></div>`;
+  }
+  // 표(CSV): 엑셀에서 한글이 깨지지 않게 맨 앞에 BOM. 수식으로 읽히는 글(= + - @로 시작)은 앞에 '를 붙인다
+  function surveyCsv(which) {
+    const V = S.sv; if (!V || V.err) return;
+    const cell = v => { let t = v === null || v === undefined ? '' : String(v); if (/^[=+\-@]/.test(t)) t = "'" + t; return '"' + t.replace(/"/g, '""') + '"'; };
+    let rows;
+    if (which === 'survey') {
+      const R = KOIDE_SURVEY.ROUNDS, qs = [];
+      Object.keys(R).forEach(n => R[n].qs.forEach(q => { if (q.t !== 'ueq' && !qs.some(x => x.k === q.k)) qs.push(q); }));
+      const numNames = Object.keys(KOIDE_SURVEY.NUMS);
+      rows = [['보낸 날', '어디', '몇째 날', '부서', ...qs.map(q => q.q.replace(/ \(.*?\)$/, '')), ...KOIDE_SURVEY.UEQS.map(([l, r], i) => `UEQ-S ${i + 1} ${l}(1)↔${r}(7)`), ...numNames.map(k => KOIDE_SURVEY.NUMS[k][0]), '기기 폭', '화면 버전'],
+        ...V.rows.map(r => [r.at, WHERE_NAME[r.where] || r.where, r.day + '일째', r.dept,
+          ...qs.map(q => { const v = r.a[q.k]; return v === undefined ? '' : Array.isArray(v) ? v.map(x => KOIDE_SURVEY.label(r.day, q.k, x)).join(' / ') : q.t === 'text' ? v : KOIDE_SURVEY.label(r.day, q.k, v); }),
+          ...KOIDE_SURVEY.UEQS.map((_, i) => r.a.ueq && r.a.ueq[i + 1] !== undefined ? r.a.ueq[i + 1] : ''),
+          ...numNames.map(k => r.nums && r.nums[k] !== undefined ? (typeof r.nums[k] === 'boolean' ? (r.nums[k] ? '예' : '아니요') : r.nums[k]) : ''), r.width, r.ver])];
+    } else rows = [['보낸 날', '종류', '내용', '부서', '보낸 사람', '기기 폭', '화면 버전'], ...V.feedback.map(x => [x.at, x.kind, x.text, x.dept, x.who, x.width, x.ver])];
+    const blob = new Blob(['\ufeff' + rows.map(r => r.map(cell).join(',')).join('\r\n')], { type: 'text/csv;charset=utf-8' }), url = URL.createObjectURL(blob), a = document.createElement('a'), d = new Date();
+    a.href = url; a.download = `코이데 ${which === 'survey' ? '설문' : '의견'} ${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}.csv`;
+    document.body.appendChild(a); a.click(); a.remove(); setTimeout(() => URL.revokeObjectURL(url), 10000);
+    track('내려받기', { range: which === 'survey' ? '설문' : '의견' });
+  }
   async function loadChurchAnalysis() { S.canErr = ''; try { S.can = await api('churchAnalysis'); } catch (e) { S.can = null; S.canErr = e.code === 'bad' ? '서버를 새 버전으로 배포하면 볼 수 있어요.' : e.message; } render(); }
   function churchView() {
     const ct = S.churchTab || 'home';
     const head = `${S.home ? `<button class="link back" data-act="tab" data-v="more">${ICON.chevL}더보기</button>` : ''}<div class="page-top"><div><p class="eyebrow">전체 관리자</p><h1>교회 전체</h1></div></div>
-      <div class="seg2 admin-seg" role="tablist" aria-label="교회 전체">${[['home', '한눈에'], ['analysis', '분석']].map(([k, l]) => `<button class="${ct === k ? 'on' : ''}" role="tab" aria-selected="${ct === k}" data-act="churchtab" data-v="${k}">${l}</button>`).join('')}</div>`;
+      <div class="seg2 admin-seg three" role="tablist" aria-label="교회 전체">${[['home', '한눈에'], ['survey', '의견과 설문'], ['analysis', '분석']].map(([k, l]) => `<button class="${ct === k ? 'on' : ''}" role="tab" aria-selected="${ct === k}" data-act="churchtab" data-v="${k}">${l}</button>`).join('')}</div>`;
     if (ct === 'analysis') return head + analysisView(true);
+    if (ct === 'survey') return head + surveyAdminView();
     const C = S.church;
     if (!C || C.err) return `${head}<section class="card"><p class="hint">${C ? esc(C.err) : '불러오는 중…'}</p></section>`;
     const pill = (n, l) => n ? `<span class="ch-todo">${l} ${n}</span>` : '';
@@ -3436,6 +3503,7 @@ try { const p = JSON.parse(localStorage.getItem('koide-pref') || '{}'), d = docu
     return `${head}
       <div class="two-col"><div class="col">
         <p class="more-h">부서</p><div class="ch-grid">${C.depts.map(card).join('')}</div>
+        ${C.inbox ? `<button class="card ch-dept" data-act="churchtab" data-v="survey"><span class="row"><b>의견과 설문</b>${ICON.chevR}</span><small>설문 ${C.inbox.survey}개 · 의견 ${C.inbox.feedback}개${C.inbox.feedbackNoDept ? ` (기도 노트에서 온 것 ${C.inbox.feedbackNoDept})` : ''} · 표로 내려받기</small></button>` : ''}
         <section class="card"><div class="row"><h2>앱 상태</h2><span class="ops-dot${old || C.errors.n ? ' bad' : ''}" aria-hidden="true"></span></div>
           <p class="plain">서버 <b>${esc(C.version)}</b>${old ? ` · <span class="warn-text">Apps Script를 새 버전으로 배포해 주세요</span>` : ''}</p>
           <p class="hint">최근 7일 오류 ${C.errors.n ? C.errors.n + '번 · 마지막 ' + opsWhen(C.errors.last) : '없어요'} · ${Number(C.month.month.slice(5))}월 ${C.month.opened ? opsWhen(C.month.opened) + '에 처음 열림' : '아직 넘어온 기도제목이 없어요'}</p></section>
@@ -3676,6 +3744,10 @@ try { const p = JSON.parse(localStorage.getItem('koide-pref') || '{}'), d = docu
   // ── 관리 › 운영 (설계서 S7): ① 앱 상태 ② 개인정보 요청. 할 일이 있는 카드만 관리 탭 위로 올라온다 ──
   //  NEED_SERVER: 이 화면이 바라는 서버 버전(서버 VERSION 앞 날짜). 서버 코드를 고쳐 배포해야 하는 기능을 넣을 때 함께 올린다
   const NEED_SERVER = '2026-11-04';
+  // ── 시범 설문(survey.js): 이번 달 화면 위에 3·7·14일째 카드 한 장. 처음 도움말이 떠 있으면 도움말 먼저. 기도하기·모임 모드·관리 화면·장면 주소에서는 없다 ──
+  //  시작한 날 = 이 사람이 처음 연결된 날(서버가 알면), 아니면 이 기기에서 처음 연 날. 보내는 숫자는 사용자가 켰을 때만(여기서는 홈 화면 앱 여부뿐), 기도 내용은 없다
+  if (!SC) KOIDE_SURVEY.init({ where: 'community', key: DEMO_LINK ? 'koide-demo-survey' : 'koide-survey', api, start: () => (S.me && S.me.link && S.me.link.since) || '', nums: () => ({ app: STANDALONE }), ver: NEED_SERVER, demo: DEMO });
+  const surveyCard = () => !SC && S.view === 'app' && S.tab === 'home' && !S.op && !S.grp && !S.ps && S.meet == null && S.me && S.me.link && S.me.link.status === '연결' && !tipFor() ? KOIDE_SURVEY.html() : '';
   const DOC = 'https://github.com/kwjgl/pray-for/blob/main/docs/';
   async function loadOps() { try { S.ops = await api('ops'); S.opsErr = null; } catch (e) { S.ops = null; S.opsErr = e.code === 'bad' ? 'old' : e.code === 'forbidden' ? null : e.message; S.opsWhy = e.message || ''; } render(); }
   const opsWhen = iso => { const d = new Date(iso); return isNaN(d) ? '' : `${d.getMonth() + 1}월 ${d.getDate()}일 ${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`; };
@@ -3762,7 +3834,7 @@ try { const p = JSON.parse(localStorage.getItem('koide-pref') || '{}'), d = docu
         <div class="set-row"><div><p class="label" style="margin:0">이름 밝히기</p><p class="hint" style="margin:.2em 0 0">${F.named ? `관리자가 보낸 사람(${esc(S.month.me.person)})을 봐요.` : '끄면 누가 보냈는지 남기지 않아요.'}</p></div>
           <button type="button" class="switch${F.named ? ' on' : ''}" role="switch" aria-checked="${F.named}" aria-label="이름 밝히기" data-act="fbnamed"><span></span></button></div>
         <div class="actions"><button class="btn" data-act="fbsend" ${S.busy ? 'disabled' : ''}>${S.busy ? '보내는 중…' : '보내기'}</button></div>
-        <p class="hint">${esc(S.month.dept.name)} 관리자가 읽어요. 답장은 따로 오지 않아요. 이야기가 필요하면 ${esc(grp())} 리더에게 카톡으로 알려 주세요.</p></section>`;
+        <p class="hint">${esc(S.month.dept.name)} 관리자와 교회 전체 관리자가 읽어요. 답장은 따로 오지 않아요. 이야기가 필요하면 ${esc(grp())} 리더에게 카톡으로 알려 주세요.</p></section>`;
   }
   const keepFb = () => { const t = $('#fb-t'); if (t && S.fb) S.fb.text = t.value; };
   const fbNew = () => S.ops && S.ops.feedback ? S.ops.feedback.filter(x => !x.read).length : 0;
@@ -4237,7 +4309,7 @@ try { const p = JSON.parse(localStorage.getItem('koide-pref') || '{}'), d = docu
       case 'artreset': if (!confirm('이 달 그림을 처음 자리로 되돌릴까요?')) return; setArtPos(S.bigView.month, {}); return render();
       case 'artsave': S.artSaving = true; render(); try { await saveArt(); track('화면 보기', { screen: '그림 저장' }); } catch (err) { toast('그림을 저장하지 못했어요. 다시 해 주세요.'); } S.artSaving = false; return render();
       case 'bigclose': S.bigView = null; render(); if (document.fullscreenElement) document.exitFullscreen().catch(() => {}); return;
-      case 'tipok': tipDone(v); b.closest('.tg-tip').remove(); return;
+      case 'tipok': { tipDone(v); const tip = b.closest('.tg-tip'), pt = $('#main .page-top'), sv = surveyCard(); tip.remove(); if (sv && pt) pt.insertAdjacentHTML('afterend', sv); return; }
       case 'tourre':
         try { localStorage.removeItem(TOUR_KEY()); localStorage.removeItem(TIPS_KEY()); ['scope', 'end', 'write'].forEach(k => localStorage.removeItem('koide-tip-' + k)); } catch (e) { /* 무시 */ }
         return Tour.open();
@@ -4316,7 +4388,10 @@ try { const p = JSON.parse(localStorage.getItem('koide-pref') || '{}'), d = docu
       case 'eraseask': S.eraseAsk = v || null; return render();
       case 'opsgo': S.menu = null; return enterOps(v);
       case 'church': S.menu = null; return enterChurch();
-      case 'churchtab': S.churchTab = v; render(); if (v === 'analysis') { track('화면 보기', { screen: '교회 분석' }); loadChurchAnalysis(); } return;
+      case 'churchtab': S.churchTab = v; render(); if (v === 'analysis') { track('화면 보기', { screen: '교회 분석' }); loadChurchAnalysis(); } if (v === 'survey' && S.sv !== undefined) loadSurveyAdmin(); return;
+      case 'svfilter': S.svKind = v; S.svMore = false; return render();
+      case 'svmore': S.svMore = !S.svMore; return render();
+      case 'svcsv': return surveyCsv(v);
       case 'setopen': S.setOpen = !S.setOpen; return render();
       case 'togmanage': if (S.month.me.staff) { S.tab = 'home'; render(); const c = $('[data-form="togsave"]'); if (c) c.scrollIntoView({ block: 'center' }); return; } S.fold = Object.assign({}, S.fold, { together: true }); S.tab = 'admin'; render(); window.scrollTo(0, 0); return loadAdmin();
       case 'togedit': S.togEdit = v || null; return render();
