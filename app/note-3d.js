@@ -16,9 +16,20 @@ window.KOIDE_NOTE3D = (() => {
     const el = renderer.domElement; el.style.display = 'block'; el.style.width = '100%'; el.style.height = '100%'; el.style.touchAction = 'pan-y';
     const scene = new THREE.Scene(), camera = new THREE.PerspectiveCamera(30, 1.6, 0.1, 100);
     const S = { renderer, scene, camera, el, host: null, alive: true, idleAt: 0, draw: () => renderer.render(scene, camera) };
+    // 휴대폰에서 스크롤이 걸리지 않게: 손가락은 처음 움직인 방향을 보고 옆으로면 돌리고, 위아래면 손을 떼어 화면이 스크롤되게 둔다
+    //  (그림판은 touch-action: pan-y라 위아래 밀기는 브라우저가 스크롤로 가져간다). 마우스는 위아래로 기울이기도 한다
     let drag = null;
-    el.addEventListener('pointerdown', e => { drag = { x: e.clientX, y: e.clientY, x0: e.clientX, y0: e.clientY }; el.setPointerCapture(e.pointerId); });
-    el.addEventListener('pointermove', e => { if (!drag) return; onDrag(e.clientX - drag.x, e.clientY - drag.y); drag.x = e.clientX; drag.y = e.clientY; S.idleAt = performance.now(); S.draw(); });
+    el.addEventListener('pointerdown', e => { drag = { x: e.clientX, y: e.clientY, x0: e.clientX, y0: e.clientY, touch: e.pointerType !== 'mouse', axis: e.pointerType === 'mouse' ? 'xy' : '' }; });
+    el.addEventListener('pointermove', e => {
+      if (!drag) return;
+      if (!drag.axis) {
+        const ax = Math.abs(e.clientX - drag.x0), ay = Math.abs(e.clientY - drag.y0);
+        if (ax < 6 && ay < 6) return;
+        if (ay >= ax) { drag = null; return; }
+        drag.axis = 'x'; try { el.setPointerCapture(e.pointerId); } catch (err) { /* 무시 */ }
+      }
+      onDrag(e.clientX - drag.x, drag.axis === 'xy' ? e.clientY - drag.y : 0); drag.x = e.clientX; drag.y = e.clientY; S.idleAt = performance.now(); S.draw();
+    });
     el.addEventListener('pointerup', e => {
       if (drag && Math.hypot(e.clientX - drag.x0, e.clientY - drag.y0) < 6) { const r = el.getBoundingClientRect(); onTap((e.clientX - r.left) / r.width * 2 - 1, -((e.clientY - r.top) / r.height) * 2 + 1); S.idleAt = performance.now(); }
       drag = null;

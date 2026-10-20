@@ -84,7 +84,7 @@ h2 { font-family: var(--f-display); font-size: 1.15em; margin: 0; }
 .link { background: none; border: 0; padding: .3em 0; color: var(--accent); font-weight: 600; cursor: pointer; min-height: 36px; }
 .link.quiet { color: var(--ink-2); font-weight: 500; }
 .field { width: 100%; min-width: 0; flex: 1; border: 1px solid var(--line-strong); border-radius: 12px; background: var(--surface); padding: .7em .8em; }
-textarea.field { min-height: 5.5em; resize: vertical; }
+textarea.field { flex: none; min-height: 5.5em; resize: vertical; overflow: hidden; }
 .field:focus { outline: 2px solid var(--accent-mid); border-color: var(--accent); }
 .chips { display: flex; flex-wrap: wrap; gap: 6px; }
 .chip { border: 1px solid var(--line-strong); background: var(--surface); border-radius: 999px; padding: .35em .85em; min-height: 36px; cursor: pointer; font-size: .9em; }
@@ -100,21 +100,47 @@ textarea.field { min-height: 5.5em; resize: vertical; }
 .pray-btn.on { background: var(--accent); color: var(--on-accent); }
 .pray-btn svg { width: 16px; height: 16px; }
 /* 내가 기도하는 사람들의 끈 */
-.cord { display: grid; gap: 0; align-items: start; }
-.cord svg { width: 100%; height: 46px; display: block; overflow: visible; }
-.cord .seg { fill: none; stroke-width: 2.5; stroke-linecap: round; }
-.cord .seg.loose { stroke: var(--line-strong); }
-.cord .seg.taut { stroke: var(--accent); }
-.cord .slot { fill: var(--surface); stroke: var(--line-strong); stroke-width: 1.5; }
-.cord .knot { fill: var(--accent-soft); stroke: var(--accent); stroke-width: 2.5; }
-.cord-names { display: grid; text-align: center; font-size: .72em; color: var(--ink-2); margin-top: -4px; }
-.cord-names span.on { color: var(--accent); font-weight: 600; }
+/* 기도의 끈(시안과 같게): 자리마다 매듭, 이웃한 두 자리가 다 지어지면 그 사이 끈이 팽팽, 다 이으면 양 끝 리본 */
+.cord { width: 100%; text-align: left; display: flex; flex-direction: column; gap: .3em; }
+.cord-head { display: flex; justify-content: space-between; align-items: baseline; gap: .6em; }
+.cord-n { font-size: .78em; color: var(--ink-2); margin: 0; text-align: right; }
+.cord-n b { color: var(--accent); font-weight: 700; }
+.cord-wrap { position: relative; padding: 0 18px; max-width: 520px; width: 100%; margin: 0 auto; box-sizing: border-box; }
+.cord-line { position: absolute; left: 18px; top: 3px; width: calc(100% - 36px); height: 26px; overflow: visible; pointer-events: none; }
+.cord-seg { fill: none; stroke: var(--line-strong); stroke-width: 1.5; stroke-linecap: round; }
+.cord-seg.tight { stroke: var(--accent); stroke-width: 3; }
+.cord-seg.pull { animation: cord-pull .7s ease-out; }
+@keyframes cord-pull { from { stroke: var(--line-strong); stroke-width: 1.5; } }
+.cord-end { position: absolute; top: 3px; width: 18px; height: 26px; overflow: visible; pointer-events: none; }
+.cord-end.l { left: 0; } .cord-end.r { right: 0; }
+.cord-end path { fill: none; stroke: var(--line-strong); stroke-width: 1.5; stroke-linecap: round; }
+.cord-end.bow path { stroke: var(--accent); stroke-width: 2.2; stroke-linejoin: round; }
+.cord-end.bow .loop { fill: var(--accent-soft); }
+.cord-end.bow.new { animation: knot-tie .7s .3s cubic-bezier(.3,1.6,.5,1) both; transform-origin: center; }
+.cord-knots { position: relative; display: grid; }
+.knot { display: flex; flex-direction: column; align-items: center; gap: 3px; background: none; border: 0; padding: 0 0 2px; font: inherit; color: var(--ink-2); min-height: 44px; min-width: 0; }
+button.knot { cursor: pointer; }
+.knot-g { width: 32px; height: 32px; display: grid; place-items: center; border-radius: 50%; }
+.knot-g svg { width: 32px; height: 32px; overflow: visible; }
+.knot-g .slot { fill: var(--surface); stroke: var(--line-strong); stroke-width: 1.5; }
+.knot-g .tie { fill: none; stroke: var(--accent); stroke-width: 3; stroke-linecap: round; stroke-linejoin: round; }
+.knot-l { font-size: .7em; font-weight: 600; line-height: 1; margin-top: -4px; max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.knot.on .knot-l { color: var(--accent); }
+.knot.cur .knot-g { background: color-mix(in srgb, var(--accent-soft) 85%, transparent); box-shadow: 0 0 0 1.5px var(--accent-mid); }
+.knot.cur .knot-l { color: var(--ink); }
+.knot.new .knot-g svg { animation: knot-tie .6s cubic-bezier(.3,1.6,.5,1); }
+@keyframes knot-tie { 0% { transform: scale(.3) rotate(-60deg); opacity: .3; } 100% { transform: none; opacity: 1; } }
+@media (prefers-reduced-motion: reduce) { .cord-seg.pull, .knot.new .knot-g svg, .cord-end.bow.new { animation: none; } }
 /* 노트 */
 .group h3 { margin: .3em 0 0; font-size: .86em; color: var(--ink-2); font-weight: 600; }
 .note { border-top: 1px solid var(--line); padding-top: .7em; display: flex; flex-direction: column; gap: .35em; }
 .note:first-of-type { border-top: 0; padding-top: 0; }
 .note p { margin: 0; word-break: keep-all; white-space: pre-wrap; }
 .note .row { flex-wrap: wrap; row-gap: 0; }
+.preview { display: flex; flex-direction: column; gap: 8px; border-top: 1px solid var(--line); padding-top: 10px; }
+.prev-row { display: flex; align-items: flex-start; gap: 8px; }
+.prev-row p { margin: .2em 0 0; flex: 1; min-width: 0; word-break: keep-all; }
+.prev-t { flex: none; max-width: 8.5em; border: 1px solid var(--accent-mid); background: var(--accent-soft); color: var(--accent); font-weight: 600; font-size: .8em; border-radius: 999px; padding: .3em .6em; }
 .note .acts { display: flex; gap: 14px; margin-left: auto; }
 .note .acts button { white-space: nowrap; }
 /* 지난 기록 */
@@ -127,7 +153,7 @@ textarea.field { min-height: 5.5em; resize: vertical; }
 /* 지난 기록의 입체 그림: 나의 올해 끈, 이달의 소품 선반, 끈 보관함 */
 .card-head { display: flex; justify-content: space-between; align-items: baseline; gap: 10px; flex-wrap: wrap; }
 .card-head span { font-size: .8em; color: var(--ink-2); font-variant-numeric: tabular-nums; }
-.stage3d { position: relative; width: 100%; border-radius: 12px; background: radial-gradient(120% 100% at 50% 40%, var(--surface), var(--surface-2)); cursor: grab; overflow: hidden; }
+.stage3d { position: relative; width: 100%; border-radius: 12px; background: radial-gradient(120% 100% at 50% 40%, var(--surface), var(--surface-2)); cursor: grab; overflow: hidden; touch-action: pan-y; }
 .stage3d.cord { aspect-ratio: 16 / 9; }
 .stage3d.shelf { aspect-ratio: 16 / 11; }
 .mn-t { display: flex; flex-direction: column; align-items: center; text-align: center; min-width: 0; }
@@ -236,6 +262,8 @@ textarea.field { min-height: 5.5em; resize: vertical; }
 :root[data-style="neu"] .tag { background: var(--page); box-shadow: var(--press-sm); }
 :root[data-style="neu"] .sheet { background: var(--card); box-shadow: var(--raise); }
 :root[data-style="neu"] .ps { background: var(--page); }
+/* 고른 버튼(화면 모드·내 기도제목·탭 등): new·glass는 바탕이 밝아지므로 글씨를 테마색으로 */
+:root[data-style="neu"] .seg button.on, :root[data-style="glass"] .seg button.on { color: var(--accent); }
 :root[data-style="neu"] .ps-nav .btn, :root[data-style="neu"] .ps-nav .pray-btn { box-shadow: var(--raise); border-color: transparent; }
 :root[data-style="skeu"] .chip, :root[data-style="skeu"] .pray-btn:not(.on), :root[data-style="skeu"] .btn.ghost {
   background-image: linear-gradient(180deg, rgba(255,255,255,.3), rgba(255,255,255,0) 60%, rgba(0,0,0,.06)); background-color: var(--surface); border: 1px solid color-mix(in srgb, var(--line-strong) 85%, #000 10%); box-shadow: inset 0 1px 0 rgba(255,255,255,.7), 0 1px 2px rgba(0,0,0,.15); }
@@ -430,7 +458,9 @@ textarea.field { min-height: 5.5em; resize: vertical; }
     return D.today.ids.map(id => D.items.find(i => i.id === id)).filter(Boolean);
   }
   function togglePray(id) {
-    const t = TODAY(), p = D.prays.find(x => x.item === id && x.d === t);
+    const t = TODAY(), p = D.prays.find(x => x.item === id && x.d === t), it = D.items.find(i => i.id === id);
+    // 오늘 처음 그 사람의 매듭이 지어지면 끈에서 매듭이 묶이고 끈이 당겨진다(다 그린 뒤 한 번)
+    if (it && !D.items.some(i => i.target === it.target && prayedToday(i.id))) S.cordNew = it.target;
     if (p) { p.off = !p.off; p.up = now(); } else D.prays.push({ d: t, item: id, up: now() });
     save();
   }
@@ -496,17 +526,33 @@ textarea.field { min-height: 5.5em; resize: vertical; }
   }
 
   // ── 화면 ─────────────────────────────────────────────────────────────
+  // 내가 기도하는 사람들의 끈(공동체 앱의 기도의 끈과 같은 모양): 나 + 내가 기도하는 사람마다 매듭.
+  //  오늘 그 사람을 위해 기도하면 매듭이 지어지고, 이웃한 두 자리가 다 지어지면 그 사이 끈이 팽팽해진다. 다 이으면 양 끝이 리본으로 묶인다
+  const KNOT_SVG = '<svg viewBox="0 0 32 32" aria-hidden="true"><path class="tie" d="M0 16H8.5C11 16 12 13 12 10.5C12 6.5 14.5 4 18 4S24 6.5 24 10.2 21 16 16.5 16.4"/><path class="tie" d="M11 19.2C15 17 19 16 32 16"/></svg>';
+  const SLOT_SVG = '<svg viewBox="0 0 32 32" aria-hidden="true"><circle class="slot" cx="16" cy="16" r="4.5"/></svg>';
+  const calm = () => !!(window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches);
   function cordHtml() {
-    const nodes = [['me', '나'], ...people().map(p => ['p:' + p.id, p.name])];
-    if (nodes.length < 2) return '';
-    const on = nodes.map(([t]) => D.items.some(i => i.target === t && prayedToday(i.id)));
-    const N = nodes.length, W = 100 * N, x = k => 50 + k * 100;
-    let s = '';
-    for (let k = 0; k < N - 1; k++) { const both = on[k] && on[k + 1]; s += `<path class="seg ${both ? 'taut' : 'loose'}" d="M${x(k)} 18Q${x(k) + 50} ${both ? 18 : 34} ${x(k + 1)} 18"/>`; }
-    nodes.forEach((n, k) => { s += on[k] ? `<circle class="knot" cx="${x(k)}" cy="18" r="10"/>` : `<circle class="slot" cx="${x(k)}" cy="18" r="8"/>`; });
-    return `<section class="card"><div class="row"><p class="label">내가 기도하는 사람들</p><span class="hint">${on.filter(Boolean).length} / ${N}</span></div>
-      <div class="cord"><svg viewBox="0 0 ${W} 44" preserveAspectRatio="none" aria-label="오늘 기도한 사람은 매듭이 지어져요">${s}</svg>
-      <div class="cord-names" style="grid-template-columns:repeat(${N},1fr)">${nodes.map(([, n], k) => `<span class="${on[k] ? 'on' : ''}">${esc(n)}</span>`).join('')}</div></div>
+    const slots = [['me', '나'], ...people().map(p => ['p:' + p.id, p.name])].map(([key, name]) => ({ key, name, on: D.items.some(i => i.target === key && prayedToday(i.id)) }));
+    if (slots.length < 2) return '';
+    const N = slots.length, on = slots.map(x => x.on), all = on.every(Boolean), nw = calm() ? -1 : slots.findIndex(x => x.key === S.cordNew);
+    const x = i => +((i + .5) * 100 / N).toFixed(2);
+    const seg = (x1, x2, tight, pull) => {
+      const m = +((x1 + x2) / 2).toFixed(2), loose = `M${x1} 13Q${m} 21 ${x2} 13`, taut = `M${x1} 13Q${m} 13 ${x2} 13`;
+      return `<path class="cord-seg${tight ? ' tight' : ''}${pull ? ' pull' : ''}" vector-effect="non-scaling-stroke" d="${tight && !pull ? taut : loose}">${pull
+        ? `<animate attributeName="d" dur=".6s" begin="indefinite" fill="freeze" calcMode="spline" keyTimes="0;1" keySplines=".2 .8 .3 1" values="${loose};${taut}"/>` : ''}</path>`;
+    };
+    const segs = [seg(0, x(0), all, all && nw >= 0)];
+    for (let i = 0; i < N - 1; i++) { const tight = on[i] && on[i + 1]; segs.push(seg(x(i), x(i + 1), tight, tight && (i === nw || i + 1 === nw))); }
+    segs.push(seg(x(N - 1), 100, all, all && nw >= 0));
+    const end = side => all
+      ? `<svg class="cord-end ${side} bow${nw >= 0 ? ' new' : ''}" viewBox="0 0 18 26" aria-hidden="true"><path d="${side === 'l' ? 'M9 13H18' : 'M0 13H9'}"/><path class="loop" d="M9 13C4 4 -1 8 1.5 12.5S7 14 9 13ZM9 13C14 4 19 8 16.5 12.5S11 14 9 13Z"/><path d="M9 13L5.5 22M9 13L12.5 22"/></svg>`
+      : `<svg class="cord-end ${side}" viewBox="0 0 18 26" aria-hidden="true"><path d="${side === 'l' ? 'M18 13C12 18 8 18 4 16' : 'M0 13C6 18 10 18 14 16'}"/></svg>`;
+    const knots = slots.map((k, i) => `<span class="knot${k.on ? ' on' : ''}${i === nw ? ' new' : ''}" aria-label="${esc(k.name)}, ${k.on ? '오늘 기도함' : '오늘 아직 기도하지 않음'}" title="${esc(k.name)}"><span class="knot-g">${k.on ? KNOT_SVG : SLOT_SVG}</span><span class="knot-l">${esc(k.name)}</span></span>`).join('');
+    const n = on.filter(Boolean).length;
+    return `<section class="card"><div class="cord" role="group" aria-label="내가 기도하는 사람들">
+      <div class="cord-head"><p class="label" style="margin:0">내가 기도하는 사람들</p><p class="cord-n">${all ? '오늘 모두와 이어졌어요 <span aria-hidden="true">🙌</span>' : `${N}명 중 <b>${n}명</b>과 이어졌어요`}</p></div>
+      <div class="cord-wrap">${end('l')}<svg class="cord-line" viewBox="0 0 100 26" preserveAspectRatio="none" aria-hidden="true">${segs.join('')}</svg>${end('r')}
+        <div class="cord-knots" style="grid-template-columns:repeat(${N},minmax(0,1fr))">${knots}</div></div></div>
       <p class="hint">오늘 그 사람을 위해 기도하면 매듭이 지어지고, 이웃한 두 사람을 다 기도하면 끈이 팽팽해져요.</p></section>`;
   }
   function todayView() {
@@ -527,14 +573,73 @@ textarea.field { min-height: 5.5em; resize: vertical; }
       ${t.length ? `<ul class="thanks">${t.map(x => `<li>${esc(x.text)}</li>`).join('')}</ul>` : ''}
       <form data-f="thanks" class="row" style="align-items:stretch"><input class="field" id="th-in" maxlength="200" placeholder="한 줄이면 충분해요" aria-label="오늘 감사한 것" value="${esc(S.thDraft || '')}"><button class="btn small" type="submit">남기기</button></form></section>`;
   }
+  // ── 새 기도제목 나누기: 공동체 앱의 '항목으로 나누기'와 같은 규칙 ──────────
+  //  번호(1.)·글머리(-)는 떼고, "엄마ㅡ…"처럼 이름표가 있으면 그 대상, 이름표만 있는 줄 아래는 그 대상의 항목들,
+  //  이름표 없는 줄은 글에서 대상을 짐작한다(사람 이름 → 그 사람, 교회 말 → 교회, 나라·세상 말 → 나라·세상, 그 밖은 나).
+  //  모르는 이름표(4자 이하 + 구분 기호, 예: 엄마ㅡ)는 '새 사람'으로 두고, 추가할 때 내가 기도하는 사람에 더한다
+  const NLABEL = '([^\\s\\d:：ㅡ\\-–—.]{1,8}(?:\\s[^\\s\\d:：ㅡ\\-–—.]{1,4})?(?:\\s*\\([^)]{1,8}\\))?)';
+  const NINLINE = new RegExp('^' + NLABEL + '\\s*(?:ㅡ|:|：|-|–|—)\\s*(.+)$'), NHEAD = new RegExp('^' + NLABEL + '\\s*(?:ㅡ|:|：|-|–|—)?$');
+  function labelTarget(raw) {
+    const l = raw.replace(/\s*\([^)]*\)\s*$/, '').trim();
+    if (/^(나|저|내|본인)$/.test(l)) return 'me';
+    if (/^(교회|우리\s*교회|공동체|교회\s*공동체)$/.test(l)) return 'church';
+    if (/^(나라|세상|세계|나라·세상|나라와\s*세상|민족|나라와\s*민족)$/.test(l)) return 'world';
+    const p = people().find(x => x.name === l); if (p) return 'p:' + p.id;
+    return 'new:' + l;
+  }
+  function noteLabel(s) {
+    const m = s.match(NINLINE) || s.match(NHEAD), head = !s.match(NINLINE);
+    if (!m) return null;
+    const raw = m[1].trim(), t = labelTarget(raw);
+    if (t.startsWith('new:') && (head || /\s/.test(raw.replace(/\s*\([^)]*\)$/, '')) || raw.length > 4)) return null;
+    return { target: t, rest: head ? '' : m[2].trim(), head };
+  }
+  function guessTarget(s) {
+    const p = people().find(x => s.includes(x.name)); if (p) return 'p:' + p.id;
+    if (/교회|목사|성도|예배|선교|사역|공동체|사랑방|구역|셀/.test(s)) return 'church';
+    if (/나라|정부|대통령|세계|세상|전쟁|평화|난민|재난|기후|통일|북한|이웃 나라/.test(s)) return 'world';
+    return 'me';
+  }
+  function splitNote(text) {
+    const out = []; let cur = null, open = false;
+    text.split('\n').forEach(line => {
+      let s = line.trim();
+      if (!s) { open = false; return; }
+      const numbered = /^\d+\s*[.)]/.test(s); s = s.replace(/^\d+\s*[.)]\s*/, '');
+      const bullet = /^[-•·*]\s*/.test(s); s = s.replace(/^[-•·*]\s*/, '');
+      if (!s) return;
+      const lab = noteLabel(s);
+      if (lab && lab.head) { cur = lab.target; open = false; }
+      else if (lab) { cur = lab.target; out.push({ target: cur, text: lab.rest }); open = true; }
+      else if (open && !numbered && !bullet) out[out.length - 1].text += ' ' + s;
+      // 이름표 없는 줄: 내가 기도하는 사람의 이름이 들어 있으면 그 사람, 아니면 위 이름표의 대상이나 글에서 짐작한 대상
+      else { const who = people().find(x => s.includes(x.name)); out.push({ target: who ? 'p:' + who.id : cur || guessTarget(s), text: s }); open = false; }
+    });
+    return out.filter(x => x.text).map(x => ({ target: x.target, text: x.text.slice(0, 1000) }));
+  }
+  // 미리보기에서 고를 수 있는 대상: 나 · 내가 기도하는 사람 · 교회 · 나라·세상, 그리고 이 글에서 처음 나온 이름(새 사람)
+  function prevTargets(cur) {
+    const L = targets(), fresh = [...new Set((S.preview || []).map(x => x.target).filter(t => t.startsWith('new:')))];
+    const all = [...L, ...fresh.map(t => [t, t.slice(4) + ' · 새'])];
+    return all.some(([t]) => t === cur) ? all : [...all, [cur, cur]];
+  }
+
   function noteView() {
     const T = targets(), groups = T.map(([t, n]) => [t, n, open().filter(i => i.target === t)]).filter(g => g[2].length);
     const e = S.edit && D.items.find(i => i.id === S.edit);
-    const form = `<section class="card"><p class="label">${e ? '기도제목 고치기' : '새 기도제목'}</p>
+    const P = S.preview;
+    const form = !e ? `<section class="card"><label class="label" for="it-text">새 기도제목 쓰기</label>
+      <textarea class="field" id="it-text" maxlength="3000" rows="4" placeholder="예)&#10;회사 일이 바빠도 지치지 않도록&#10;엄마ㅡ수술이 잘 끝나도록&#10;교회ㅡ새로 온 가정들이 잘 정착하도록">${esc(S.draft || '')}</textarea>
+        <p class="hint">한 줄에 하나씩 쓰면 나뉘어요. 앞에 "엄마ㅡ"처럼 이름을 쓰면 그 사람을 위한 기도제목이 돼요. 카톡에 쓰던 글을 붙여 넣어도 돼요.</p>
+        <div class="row" style="justify-content:flex-start"><button class="btn" data-a="split">항목으로 나누기</button><button class="link" data-a="sample">예시 넣어 보기</button></div>
+        ${P ? `<div class="preview"><p class="hint">${P.length}개 항목으로 나눴어요. 대상이 틀리면 바꾸고, 빼야 할 줄은 ×를 눌러요.</p>
+          ${P.map((x, k) => `<div class="prev-row"><select class="prev-t" data-k="${k}" aria-label="대상">${prevTargets(x.target).map(([t, n]) => `<option value="${esc(t)}"${t === x.target ? ' selected' : ''}>${esc(n)}</option>`).join('')}</select><p>${esc(x.text)}</p><button class="link quiet" data-a="prevrm" data-v="${k}" aria-label="이 항목 빼기">×</button></div>`).join('')}
+          <div class="row" style="justify-content:flex-start"><button class="btn" data-a="addparts">추가하기</button><button class="btn ghost" data-a="unsplit">다시 쓰기</button></div></div>` : ''}</section>`
+      : `<section class="card"><p class="label">기도제목 고치기</p>
       <form data-f="item"><textarea class="field" id="it-text" maxlength="1000" placeholder="무엇을 위해 기도할까요?" aria-label="기도제목">${esc(S.draft != null ? S.draft : e ? e.text : '')}</textarea>
         <p class="label" style="margin-top:10px">누구를 위해</p>
         <div class="chips" role="radiogroup" aria-label="누구를 위해">${T.map(([t, n]) => `<button type="button" class="chip${S.draftT === t ? ' on' : ''}" role="radio" aria-checked="${S.draftT === t}" data-a="tgt" data-v="${t}">${esc(n)}</button>`).join('')}<button type="button" class="chip add" data-a="addperson">+ 사람</button></div>
-        <div class="row" style="margin-top:12px;justify-content:flex-end">${e ? '<button type="button" class="btn ghost small" data-a="editcancel">취소</button>' : ''}<button class="btn" type="submit">${e ? '고치기' : '더하기'}</button></div></form></section>`;
+        <div class="row" style="margin-top:12px;justify-content:flex-end"><button type="button" class="btn ghost small" data-a="editcancel">취소</button><button class="btn" type="submit">고치기</button></div></form></section>`;
     return `<header class="top"><div><p class="eyebrow">나만 보는 기도제목</p><h1>내 기도</h1></div><span class="hint">${open().length}개</span></header>${form}
       ${groups.length ? `<section class="card group">${groups.map(([t, n, L]) => `<h3>${esc(n)}</h3>${L.map(i => `<div class="note"><p>${esc(i.text)}</p>
         <div class="row"><span class="days">${short(i.created)}부터 · ${daysSince(i.created)}일째${lastPrayed(i.id) ? ' · 마지막 기도 ' + short(lastPrayed(i.id)) : ''}</span>
@@ -825,8 +930,13 @@ textarea.field { min-height: 5.5em; resize: vertical; }
       ${S.done ? doneSheet() : ''}${S.tour != null ? tourSheet() : ''}${S.vsheet ? vaultSheet() : ''}${S.share ? shareSheet() : ''}${S.ps ? psHtml() : ''}${S.toast ? `<div class="toast" role="status">${esc(S.toast)}</div>` : ''}
       ${canSave ? '' : '<div class="toast" role="alert">이 브라우저에서는 저장할 수 없어요. 개인 정보 보호 모드를 끄고 열어 주세요.</div>'}`;
     document.documentElement.style.overflow = S.ps || S.done || S.vsheet || S.share || S.tour != null ? 'hidden' : '';
+    document.querySelectorAll('textarea.field').forEach(autosize);
+    if (S.cordNew) { document.querySelectorAll('.cord-seg.pull animate').forEach(a => { try { a.beginElement(); } catch (e) { /* 무시 */ } }); S.cordNew = null; }
     mount3d();
   }
+  // 글을 쓰는 칸은 글 길이에 맞춰 높이가 늘어난다(공동체 앱과 같게, 길게 써도 칸 안에서 스크롤하지 않게)
+  function autosize(t) { if (!t.value) { t.style.height = ''; return; } t.style.height = 'auto'; t.style.height = (t.scrollHeight + 2) + 'px'; }
+  document.addEventListener('input', e => { if (e.target.matches && e.target.matches('textarea.field')) autosize(e.target); });
   let toastT;
   function toast(m) { S.toast = m; render(); clearTimeout(toastT); toastT = setTimeout(() => { S.toast = ''; render(); }, 2200); }
   function go(t) { S.tab = t; S.edit = null; render(); window.scrollTo(0, 0); }
@@ -845,7 +955,22 @@ textarea.field { min-height: 5.5em; resize: vertical; }
     if (b.classList.contains('sheet-back') && e.target.closest('[data-stop]')) return;
     const a = b.dataset.a, v = b.dataset.v;
     switch (a) {
-      case 'tab': S.draft = null; S.thDraft = ''; return go(v);
+      case 'tab': S.draft = null; S.thDraft = ''; S.preview = null; return go(v);
+      case 'split': { S.draft = $('#it-text').value; const parts = splitNote(S.draft); if (!parts.length) { toast('내용을 적어 주세요.'); return $('#it-text').focus(); } S.preview = parts; return render(); }
+      case 'unsplit': S.preview = null; return render();
+      case 'prevrm': S.preview.splice(Number(v), 1); if (!S.preview.length) S.preview = null; return render();
+      case 'sample': S.draft = '회사 일이 바빠도 지치지 않도록\n엄마ㅡ다음 주 수술이 잘 끝나고 회복이 빠르도록\n교회ㅡ새로 온 가정들이 잘 정착하도록\n나라ㅡ재난을 겪은 이웃들이 다시 일어서도록'; S.preview = null; return render();
+      case 'addparts': {
+        // 새 사람(처음 나온 이름표)은 내가 기도하는 사람에 더하고, 항목을 차례대로 내 기도에 넣는다
+        const made = {}, parts = S.preview || [];
+        parts.forEach(x => {
+          let t = x.target;
+          if (t.startsWith('new:')) { const n = t.slice(4).slice(0, 12), had = people().find(p => p.name === n); t = 'p:' + (had ? had.id : (made[n] || (made[n] = (() => { const p = { id: uid(), name: n, up: now() }; D.people.push(p); return p.id; })()))); }
+          D.items.push({ id: uid(), text: x.text, target: t, created: TODAY(), done: null, up: now() });
+        });
+        S.preview = null; S.draft = null; save();
+        return toast(parts.length + '개를 내 기도에 더했어요' + (Object.keys(made).length ? ` · 새 사람 ${Object.keys(made).join(', ')}` : ''));
+      }
       case 'pray': togglePray(v); return render();
       case 'tgt': S.draftT = v; return render();
       case 'addperson': { const p = addPerson(); if (p && S.tab === 'note') S.draftT = 'p:' + p.id; return render(); }
@@ -978,6 +1103,7 @@ textarea.field { min-height: 5.5em; resize: vertical; }
     }
   });
   document.addEventListener('change', e => {
+    if (e.target.matches && e.target.matches('.prev-t') && S.preview) { const k = Number(e.target.dataset.k); if (S.preview[k]) S.preview[k].target = e.target.value; return; }
     if (e.target.id !== 'restore-file' || !e.target.files[0]) return;
     const r = new FileReader();
     r.onload = () => {
