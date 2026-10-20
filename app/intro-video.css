@@ -1,0 +1,102 @@
+/* 코이데 소개 영상(intro-video.js): 화면 전체, 테마색을 따른다. 자막은 늘 나온다. 공동체 화면과 기도 노트가 함께 쓴다 */
+html.iv-open { overflow: hidden; }
+.ivid { position: fixed; inset: 0; z-index: 120; background: var(--page); color: var(--ink); display: flex; flex-direction: column; }
+.iv-top { display: flex; align-items: flex-start; gap: 12px; padding: calc(12px + env(safe-area-inset-top, 0px)) 16px 4px; }
+/* 진행 막대: 장마다 묶음(장 이름 + 장면마다 한 칸). 장 이름을 누르면 그 장으로 */
+.iv-chs { flex: 1; display: flex; gap: 8px; min-width: 0; padding-top: 4px; }
+.iv-ch { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 6px; padding: 0 0 6px; border: 0; background: none; color: var(--ink-2); font: inherit; font-size: .78rem; text-align: left; cursor: pointer; }
+.iv-ch.on { color: var(--accent); font-weight: 600; }
+.iv-ch:focus:not(:focus-visible) { outline: none; }
+.iv-ch-l { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.iv-bars { display: flex; gap: 3px; }
+.iv-bars i { flex: 1; height: 3px; border-radius: 2px; background: var(--line); overflow: hidden; }
+.iv-bars b { display: block; height: 100%; width: 0; background: var(--accent); }
+.iv-btn { width: 48px; height: 48px; border-radius: 50%; border: 1px solid var(--line); background: var(--surface); color: var(--ink); display: grid; place-items: center; cursor: pointer; padding: 0; }
+.iv-btn svg { width: 22px; height: 22px; }
+.iv-btn.sm { width: 40px; height: 40px; border: 0; background: none; }
+.iv-btn.main { width: 60px; height: 60px; background: var(--accent); color: var(--on-accent); border-color: var(--accent); }
+.iv-btn:disabled { opacity: .35; cursor: default; }
+.iv-stage { flex: 1; min-height: 0; display: grid; place-items: center; padding: 8px 16px; overflow: hidden; cursor: pointer; }
+.iv-sc { width: min(560px, 100%); display: flex; flex-direction: column; align-items: center; gap: 16px; text-align: center; }
+.iv-cap { margin: 0 auto; padding: 0 16px; max-width: 30em; min-height: 3.4em; font-family: var(--f-display); font-size: clamp(1.05rem, 1.6vw + .8rem, 1.45rem); line-height: 1.6; word-break: keep-all; text-wrap: balance; text-align: center; }
+.iv-ctl { display: flex; justify-content: center; align-items: center; gap: 20px; padding: 12px 16px calc(18px + env(safe-area-inset-bottom, 0px)); }
+.iv-mark { width: 104px; height: 104px; border-radius: 50%; background: var(--accent); color: var(--on-accent); display: grid; place-items: center; }
+.iv-mark svg { width: 64px; height: 64px; fill: none; stroke: currentColor; stroke-width: 1.6; stroke-linecap: round; stroke-linejoin: round; overflow: visible; }
+.iv-draw { stroke-dasharray: 44; stroke-dashoffset: 44; animation: iv-draw 1s .3s ease-out forwards; }
+.iv-title { font-family: var(--f-display); font-size: clamp(2.2rem, 7vw, 3.4rem); margin: 0; line-height: 1.1; }
+.iv-sub { margin: 0; color: var(--ink-2); font-size: 1rem; word-break: keep-all; }
+.iv-big { margin: 0; font-family: var(--f-display); font-size: clamp(1.4rem, 4.6vw, 2.1rem); line-height: 1.45; word-break: keep-all; }
+.iv-big b { color: var(--accent); }
+.iv-words { display: flex; align-items: center; justify-content: center; gap: 10px; }
+.iv-w { display: flex; flex-direction: column; align-items: center; gap: 2px; padding: .7em 1em; border: 1px solid var(--line); border-radius: 16px; background: var(--surface); min-width: 7.4em; }
+.iv-w b { font-weight: 600; } .iv-w i { font-style: normal; font-family: var(--f-display); color: var(--accent); font-size: 1.15em; } .iv-w small { color: var(--ink-2); font-size: .8em; }
+.iv-words em { font-style: normal; color: var(--ink-2); font-size: 1.3em; }
+.iv-cord { width: 100%; max-width: 440px; height: auto; overflow: visible; }
+.iv-seg { fill: none; stroke-width: 3; stroke-linecap: round; }
+.iv-seg.loose { stroke: var(--line-strong); }
+.iv-seg.loose[style] { animation: iv-out .5s var(--d) forwards; }
+.iv-seg.loose.gone { opacity: 0; }
+.iv-seg.taut { stroke: var(--accent); opacity: 0; animation: iv-fade .5s var(--d) forwards; }
+.iv-seg.taut.on { opacity: 1; animation: none; }
+.iv-slot { fill: var(--surface); stroke: var(--line-strong); stroke-width: 1.5; }
+.iv-kbg { fill: var(--accent-soft); }
+.iv-knot path { fill: none; stroke: var(--accent); stroke-width: 3; stroke-linecap: round; stroke-linejoin: round; }
+.iv-home { fill: none; stroke: var(--ink-2); stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+.iv-num { opacity: 0; animation: iv-fade .4s var(--d) forwards, iv-out .5s 2.6s forwards; }
+.iv-num rect { fill: var(--surface); stroke: var(--line-strong); } .iv-num text { fill: var(--ink-2); font-size: 12px; font-weight: 600; }
+.iv-chip { margin: 0; padding: .45em 1em; border-radius: 999px; background: var(--accent-soft); color: var(--accent); font-weight: 600; }
+.iv-card.wide { grid-column: 1 / -1; justify-content: center; }
+.iv-kinds { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; width: min(380px, 100%); }
+.iv-card { display: flex; align-items: center; gap: .6em; padding: .9em 1em; border: 1px solid var(--line); border-radius: 14px; background: var(--surface); font-weight: 600; text-align: left; word-break: keep-all; }
+.iv-card small { width: 1.7em; height: 1.7em; flex: none; border-radius: 50%; background: var(--accent-soft); color: var(--accent); display: grid; place-items: center; font-size: .8em; }
+.iv-art { position: relative; width: min(460px, 100%); border-radius: 16px; overflow: hidden; border: 1px solid var(--line); }
+.iv-art svg { display: block; width: 100%; height: auto; }
+.iv-layer + .iv-layer { position: absolute; inset: 0; }
+.iv-show { opacity: 0; animation: iv-fade .8s var(--d) forwards; }
+.iv-end { display: flex; gap: 10px; justify-content: center; margin-top: 4px; }
+.iv-in { opacity: 0; animation: iv-in .7s var(--d, 0s) cubic-bezier(.2,.7,.3,1) forwards; }
+.iv-pop { opacity: 0; transform-box: fill-box; transform-origin: center; animation: iv-pop .6s var(--d, 0s) cubic-bezier(.3,1.6,.5,1) forwards; }
+.iv-from-l { opacity: 0; animation: iv-from-l .8s var(--d) cubic-bezier(.2,.7,.3,1) forwards; }
+.iv-from-r { opacity: 0; animation: iv-from-r .8s var(--d) cubic-bezier(.2,.7,.3,1) forwards; }
+/* 나 · 기도 노트 장면 */
+.iv-phone { width: 168px; height: 236px; border: 2px solid var(--line-strong); border-radius: 26px; background: var(--surface); display: flex; flex-direction: column; gap: 12px; padding: 22px 18px; position: relative; }
+.iv-ph-h { margin: 0 0 4px; font-family: var(--f-display); font-weight: 700; text-align: left; }
+.iv-line { height: 10px; border-radius: 5px; background: var(--surface-2); }
+.iv-line:nth-of-type(2) { width: 80%; } .iv-line:nth-of-type(3) { width: 62%; }
+.iv-lock { position: absolute; right: -18px; bottom: -18px; width: 56px; height: 56px; border-radius: 50%; background: var(--accent); color: var(--on-accent); display: grid; place-items: center; }
+.iv-lock svg, .iv-sync svg { width: 26px; height: 26px; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+.iv-today { width: min(360px, 100%); display: flex; flex-direction: column; gap: 10px; }
+.iv-item { display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: .8em 1em; border: 1px solid var(--line); border-radius: 14px; background: var(--surface); text-align: left; }
+.iv-item span { display: flex; flex-direction: column; font-weight: 600; word-break: keep-all; }
+.iv-item small { color: var(--ink-2); font-weight: 500; font-size: .78em; }
+.iv-done { flex: none; display: inline-flex; align-items: center; gap: .3em; padding: .35em .7em; border-radius: 999px; background: var(--accent-soft); color: var(--accent); font-size: .8em; }
+.iv-done svg { width: 14px; height: 14px; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+.iv-ans { flex: none; padding: .4em .8em; border-radius: 999px; border: 1px solid var(--accent); color: var(--accent); font-size: .8em; animation: iv-press .5s var(--d) forwards; }
+.iv-away { animation: iv-in .7s var(--d) cubic-bezier(.2,.7,.3,1) forwards, iv-away .5s 2.4s ease-in forwards; }
+.iv-thanks { padding: .9em 1em; border-radius: 14px; background: var(--accent-soft); text-align: left; }
+.iv-th-h { margin: 0 0 .4em; color: var(--accent); font-weight: 600; font-size: .85em; }
+.iv-th { margin: 0; font-weight: 600; display: flex; align-items: center; gap: .5em; }
+.iv-heart { color: #C8A24A; }
+.iv-name { fill: var(--ink-2); font-size: 13px; font-weight: 600; }
+.iv-year { width: 100%; max-width: 420px; height: auto; overflow: visible; }
+.iv-strand { fill: none; stroke: var(--accent-mid); stroke-linecap: round; stroke-dasharray: 1; stroke-dashoffset: 1; animation: iv-draw .9s var(--d) ease-out forwards; }
+.iv-gold { fill: none; stroke: #C8A24A; stroke-width: 3; stroke-linecap: round; }
+.iv-bead { fill: var(--accent); }
+.iv-mon { fill: var(--ink-2); font-size: 11px; }
+.iv-flow { display: flex; align-items: center; justify-content: center; gap: 12px; }
+.iv-box, .iv-dev { padding: .7em 1.1em; border: 1px solid var(--line); border-radius: 14px; background: var(--surface); font-weight: 600; }
+.iv-box.hl { border-color: var(--accent); color: var(--accent); }
+.iv-arrow { color: var(--ink-2); font-size: 1.4em; }
+.iv-sync { width: 48px; height: 48px; border-radius: 50%; background: var(--accent-soft); color: var(--accent); display: grid; place-items: center; }
+@keyframes iv-press { to { background: var(--accent); color: var(--on-accent); } }
+@keyframes iv-away { to { opacity: 0; transform: translateY(40px) scale(.9); } }
+.ivid.paused *, .ivid.paused *::before { animation-play-state: paused !important; }
+@keyframes iv-in { from { opacity: 0; transform: translateY(12px); } to { opacity: 1; transform: none; } }
+@keyframes iv-pop { 0% { opacity: 0; transform: scale(.4) rotate(-30deg); } 100% { opacity: 1; transform: none; } }
+@keyframes iv-from-l { from { opacity: 0; transform: translateX(-40px); } to { opacity: 1; transform: none; } }
+@keyframes iv-from-r { from { opacity: 0; transform: translateX(40px); } to { opacity: 1; transform: none; } }
+@keyframes iv-fade { to { opacity: 1; } }
+@keyframes iv-out { to { opacity: 0; } }
+@keyframes iv-draw { to { stroke-dashoffset: 0; } }
+@media (max-height: 560px) { .iv-cap { min-height: 0; font-size: 1rem; } .iv-ctl { padding-top: 6px; padding-bottom: 10px; } .iv-mark { width: 72px; height: 72px; } }
+@media (prefers-reduced-motion: reduce) { .ivid *, .ivid *::before { animation-duration: 1ms !important; animation-delay: 0s !important; } }
