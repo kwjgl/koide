@@ -222,9 +222,10 @@ button.knot { cursor: pointer; }
 .mrow { display: flex; justify-content: space-between; align-items: center; gap: 10px; background: none; border: 0; border-top: 1px solid var(--line); padding: .8em 0; width: 100%; text-align: left; cursor: pointer; }
 .mrow:first-of-type { border-top: 0; padding-top: 0; }
 .mrow small { display: block; color: var(--ink-2); font-size: .8em; }
-.seg { display: grid; grid-auto-flow: column; grid-auto-columns: 1fr; border: 1px solid var(--line-strong); border-radius: 999px; overflow: hidden; }
-.seg button { background: var(--surface); border: 0; padding: .5em .3em; min-height: 40px; cursor: pointer; font-size: .9em; }
-.seg button.on { background: var(--accent); color: var(--on-accent); font-weight: 600; }
+/* 고르는 버튼 묶음: 공동체 앱과 같은 모양(디자인 스타일 new·classic·glass가 그대로 입혀진다) */
+.seg { display: grid; grid-auto-flow: column; grid-auto-columns: 1fr; gap: 3px; padding: 3px; background: var(--surface-2); border-radius: 12px; }
+.seg button { font: inherit; font-size: .86em; word-break: keep-all; padding: 0 4px; border: 0; border-radius: 9px; min-height: 44px; background: transparent; color: var(--ink-2); cursor: pointer; }
+.seg button.on { background: var(--surface); color: var(--ink); font-weight: 600; box-shadow: 0 1px 3px rgba(0,0,0,.12); }
 .people li { display: flex; justify-content: space-between; align-items: center; padding: .4em 0; border-top: 1px solid var(--line); list-style: none; }
 .people { margin: 0; padding: 0; }
 .people li:first-child { border-top: 0; }
@@ -263,8 +264,6 @@ button.knot { cursor: pointer; }
 :root[data-style="neu"] .tag { background: var(--page); box-shadow: var(--press-sm); }
 :root[data-style="neu"] .sheet { background: var(--card); box-shadow: var(--raise); }
 :root[data-style="neu"] .ps { background: var(--page); }
-/* 고른 버튼(화면 모드·내 기도제목·탭 등): new·glass는 바탕이 밝아지므로 글씨를 테마색으로 */
-:root[data-style="neu"] .seg button.on, :root[data-style="glass"] .seg button.on { color: var(--accent); }
 :root[data-style="neu"] .ps-nav .btn, :root[data-style="neu"] .ps-nav .pray-btn { box-shadow: var(--raise); border-color: transparent; }
 :root[data-style="skeu"] .chip, :root[data-style="skeu"] .pray-btn:not(.on), :root[data-style="skeu"] .btn.ghost {
   background-image: linear-gradient(180deg, rgba(255,255,255,.3), rgba(255,255,255,0) 60%, rgba(0,0,0,.06)); background-color: var(--surface); border: 1px solid color-mix(in srgb, var(--line-strong) 85%, #000 10%); box-shadow: inset 0 1px 0 rgba(255,255,255,.7), 0 1px 2px rgba(0,0,0,.15); }
