@@ -1,0 +1,277 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+<meta name="robots" content="noindex">
+<title>코이데 화면 지도</title>
+<style>
+/* 화면 지도: 실제 데모 앱을 칸마다 iframe으로 띄워 흐름대로 펼쳐 놓는다. 앱이 바뀌면 지도도 따라 바뀐다.
+   이 파일은 혼자 선다(앱의 다른 파일을 쓰지 않는다). 기획·운영용이라 회원용 안내서에는 넣지 않는다 */
+:root { --bg: #eef0ee; --dot: #c9cfc9; --ink: #1d2a22; --ink-2: #5b6a61; --surface: #fff; --line: #aab4ad; --accent: #2f6b4f; --on-accent: #fff; --shadow: 0 6px 24px rgba(20, 40, 30, .18); }
+@media (prefers-color-scheme: dark) { :root { --bg: #151a17; --dot: #2a322d; --ink: #e8efe9; --ink-2: #9aa89f; --surface: #1f2622; --line: #5c6a61; --accent: #7cc3a0; --on-accent: #0f1a14; --shadow: 0 6px 24px rgba(0, 0, 0, .5); } }
+* { box-sizing: border-box; }
+html, body { margin: 0; height: 100%; overflow: hidden; overscroll-behavior: none; background: var(--bg); color: var(--ink); font-family: system-ui, -apple-system, 'Segoe UI', 'Malgun Gothic', sans-serif; }
+#view { position: fixed; inset: 0; touch-action: none; cursor: grab; background-image: radial-gradient(var(--dot) 1.5px, transparent 1.5px); user-select: none; -webkit-user-select: none; }
+#view.drag { cursor: grabbing; }
+#world { position: absolute; left: 0; top: 0; transform-origin: 0 0; will-change: transform; }
+#links { position: absolute; left: 0; top: 0; overflow: visible; pointer-events: none; }
+#links path { fill: none; stroke: var(--line); stroke-width: 5; }
+.chip { position: absolute; transform: translate(-50%, -50%); padding: 6px 16px; border-radius: 999px; background: var(--surface); border: 2px solid var(--line); color: var(--ink-2); font-size: 22px; white-space: nowrap; pointer-events: none; }
+.rowlabel { position: absolute; font-size: 38px; font-weight: 700; color: var(--ink); pointer-events: none; white-space: nowrap; }
+.rowlabel small { display: block; font-size: 22px; font-weight: 400; color: var(--ink-2); margin-top: 4px; }
+.cell { position: absolute; width: 390px; }
+.cell header { height: 84px; display: flex; flex-direction: column; justify-content: flex-end; padding: 0 4px 10px; position: relative; }
+.cell h2 { margin: 0; font-size: 30px; line-height: 1.2; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.cell header p { margin: 2px 0 0; font-size: 20px; color: var(--ink-2); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.acts { position: absolute; right: 0; top: 0; display: flex; gap: 8px; }
+.acts button, .acts a, .bar button, .ov-top button, .ov-top a { font: inherit; font-size: 17px; color: var(--ink-2); background: var(--surface); border: 1.5px solid var(--line); border-radius: 8px; padding: 3px 10px; cursor: pointer; text-decoration: none; white-space: nowrap; }
+.frame { position: relative; width: 390px; height: 844px; border-radius: 28px; overflow: hidden; background: var(--surface); box-shadow: var(--shadow); border: 2px solid var(--line); }
+.frame iframe { position: absolute; inset: 0; width: 390px; height: 844px; border: 0; pointer-events: none; opacity: 0; transition: opacity .2s; background: #fff; }
+.frame iframe.on { opacity: 1; }
+.ph { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 12px; text-align: center; padding: 24px; color: var(--ink-2); font-size: 22px; }
+.ph b { font-size: 40px; color: var(--ink); line-height: 1.25; }
+.ph.hide { display: none; }
+.bar { position: fixed; left: 12px; top: 12px; right: 12px; z-index: 5; display: flex; flex-wrap: wrap; align-items: center; gap: 8px; pointer-events: none; }
+.bar > * { pointer-events: auto; }
+.bar h1 { margin: 0 8px 0 0; font-size: 17px; background: var(--surface); border: 1.5px solid var(--line); border-radius: 8px; padding: 5px 12px; }
+.bar button { font-size: 14px; padding: 6px 12px; }
+.bar button.main { background: var(--accent); color: var(--on-accent); border-color: var(--accent); }
+.bar .z { font-size: 13px; color: var(--ink-2); background: var(--surface); border: 1.5px solid var(--line); border-radius: 8px; padding: 6px 10px; min-width: 52px; text-align: center; }
+.hint { position: fixed; left: 12px; bottom: 12px; z-index: 5; font-size: 13px; color: var(--ink-2); background: var(--surface); border: 1.5px solid var(--line); border-radius: 8px; padding: 6px 12px; max-width: calc(100% - 24px); pointer-events: none; }
+.ov { position: fixed; inset: 0; z-index: 20; background: rgba(10, 20, 15, .62); display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 10px; }
+.ov[hidden] { display: none; }
+.ov-top { display: flex; align-items: center; gap: 8px; color: #fff; }
+.ov-top b { font-size: 16px; margin-right: 6px; }
+.ov-top button, .ov-top a { font-size: 14px; padding: 6px 12px; }
+.ov-box { background: #fff; border-radius: 28px; overflow: hidden; box-shadow: 0 10px 40px rgba(0, 0, 0, .5); position: relative; }
+.ov-box iframe { position: absolute; left: 0; top: 0; width: 390px; height: 844px; border: 0; transform-origin: 0 0; background: #fff; }
+.toast { position: fixed; left: 50%; bottom: 56px; transform: translateX(-50%); z-index: 30; background: var(--ink); color: var(--bg); padding: 8px 16px; border-radius: 999px; font-size: 14px; }
+.toast[hidden] { display: none; }
+@media (max-width: 640px) { .hint { display: none; } .bar h1 { font-size: 15px; } }
+</style>
+</head>
+<body>
+<div id="view"><div id="world"><svg id="links"></svg></div></div>
+<div class="bar">
+  <h1>코이데 화면 지도</h1>
+  <button class="main" id="fit">전체 보기</button>
+  <button id="zout" aria-label="줄이기">−</button><span class="z" id="zv">100%</span><button id="zin" aria-label="키우기">+</button>
+  <button id="reset">데모 데이터 처음으로</button>
+</div>
+<p class="hint">끌어서 움직이고, 휠이나 두 손가락으로 크기를 바꿔요. 칸을 두 번 누르면 크게 열려서 직접 눌러 볼 수 있어요.</p>
+<div class="ov" id="ov" hidden>
+  <div class="ov-top"><b id="ov-t"></b><a id="ov-a" target="_blank" rel="noopener">새 창에서 열기</a><button id="ov-x">닫기</button></div>
+  <div class="ov-box" id="ov-box"></div>
+</div>
+<div class="toast" id="toast" hidden></div>
+<script>
+/* ── 장면 목록: 칸을 더하려면 여기에 한 줄 더하면 돼요 ──
+   row/col: 놓을 자리(가로 col, 세로 row). page: index(공동체) | note(기도 노트). as: 데모 사람(없으면 로그인 전). at: 열 화면
+   (index: home mine pray history more status admin church meet login connect wait … / note: today note pray look keep more start) */
+const SCENES = [
+  // 역할에 따라 더해지는 화면 (맨 위 줄)
+  { id: 'r-status', row: 0, col: 2, title: '사랑방 현황', who: '김도윤 · 2-20 리더', page: 'index', as: '김도윤', at: 'status' },
+  { id: 'r-meet', row: 0, col: 3, title: '모임 모드', who: '김도윤 · 2-20 리더', page: 'index', as: '김도윤', at: 'meet' },
+  { id: 'r-pastor', row: 0, col: 4, title: '목사님 홈', who: '한기쁨 · 청장년부 목사님', page: 'index', as: '한기쁨', at: 'home' },
+  { id: 'r-dept', row: 0, col: 5, title: '부서 관리', who: '윤하람 · 청년부 관리자', page: 'index', as: '윤하람', at: 'admin' },
+  { id: 'r-church', row: 0, col: 6, title: '교회 전체', who: '최운영 · 전체 관리자', page: 'index', as: '최운영', at: 'church' },
+  // 교회 공동체 (가운데 줄)
+  { id: 'connect', row: 1, col: 0, title: '공동체에 연결하기', who: '처음 온 사람 · 부서 고르기', page: 'index', as: '새사람', at: 'connect' },
+  { id: 'wait', row: 1, col: 1, title: '연결 요청 기다리는 중', who: '처음 온 사람', page: 'index', as: '새사람', at: 'wait' },
+  { id: 'c-home', row: 1, col: 2, title: '이번 달', who: '박민재 · 회원', page: 'index', as: '박민재', at: 'home' },
+  { id: 'c-mine', row: 1, col: 3, title: '내 기도', who: '박민재 · 회원', page: 'index', as: '박민재', at: 'mine' },
+  { id: 'c-pray', row: 1, col: 4, title: '기도하기', who: '박민재 · 회원', page: 'index', as: '박민재', at: 'pray' },
+  { id: 'c-history', row: 1, col: 5, title: '지난 기록', who: '박민재 · 회원', page: 'index', as: '박민재', at: 'history' },
+  { id: 'c-more', row: 1, col: 6, title: '더보기', who: '박민재 · 회원', page: 'index', as: '박민재', at: 'more' },
+  // 처음 오는 길과 나의 기도 노트 (아래 줄)
+  { id: 'first', row: 2, col: 0, title: '첫 화면', who: '로그인 전', page: 'index', at: 'login' },
+  { id: 'nstart', row: 2, col: 1, title: '기도 노트 시작', who: '처음 온 사람 · 나만 봄', page: 'note', as: '새사람', at: 'start' },
+  { id: 'n-today', row: 2, col: 2, title: '오늘', who: '나의 기도 노트 · 예시 노트', page: 'note', as: '새사람', at: 'today' },
+  { id: 'n-note', row: 2, col: 3, title: '내 기도', who: '나의 기도 노트', page: 'note', as: '새사람', at: 'note' },
+  { id: 'n-pray', row: 2, col: 4, title: '기도하기', who: '나의 기도 노트', page: 'note', as: '새사람', at: 'pray' },
+  { id: 'n-look', row: 2, col: 5, title: '지난 기록', who: '나의 기도 노트', page: 'note', as: '새사람', at: 'look' },
+  { id: 'n-keep', row: 2, col: 6, title: '보관함', who: '나의 기도 노트', page: 'note', as: '새사람', at: 'keep' },
+  { id: 'n-more', row: 2, col: 7, title: '더보기', who: '나의 기도 노트', page: 'note', as: '새사람', at: 'more' }
+];
+const ROWS = [
+  { row: 0, col: 2, label: '역할에 따라 더해지는 화면', sub: '리더 · 목사님 · 부서 관리자 · 전체 관리자' },
+  { row: 1, col: 0, label: '교회 공동체', sub: '연결을 신청하고, 승인되면 사랑방의 기도제목을 함께 봐요' },
+  { row: 2, col: 0, label: '처음 오는 길과 나의 기도 노트', sub: '카카오로 시작한 뒤, 혼자 쓰는 기도 노트로 바로 갈 수 있어요' }
+];
+/* 화살표: 같은 줄이면 옆으로, 다른 줄이면 위아래로. both는 양쪽 화살촉 */
+const ARROWS = [
+  ['first', 'connect', '공동체에 연결하기'], ['connect', 'wait', '신청'], ['wait', 'c-home', '승인되면'],
+  ['c-home', 'c-mine'], ['c-mine', 'c-pray'], ['c-pray', 'c-history'], ['c-history', 'c-more'],
+  ['first', 'nstart', '기도 노트로 바로'], ['nstart', 'n-today', '시작하기'],
+  ['n-today', 'n-note'], ['n-note', 'n-pray'], ['n-pray', 'n-look'], ['n-look', 'n-keep'], ['n-keep', 'n-more'],
+  ['n-today', 'c-home', '오가기', true],
+  ['c-more', 'r-status', '역할에 따라'], ['c-more', 'r-meet'], ['c-more', 'r-pastor'], ['c-more', 'r-dept'], ['c-more', 'r-church']
+];
+
+const FW = 390, FH = 844, HEAD = 84, GX = 500, GY = 1240, LABEL = 130, MIN_LOAD = 0.26, MAX_LIVE = 8;
+const $ = s => document.querySelector(s);
+const url = s => '../' + (s.page === 'note' ? 'note.html' : 'index.html') + '?demo' + (s.as ? '&as=' + encodeURIComponent(s.as) : '') + '&at=' + s.at;
+const esc = s => String(s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+const view = $('#view'), world = $('#world');
+let tx = 0, ty = 0, sc = 1;
+const pos = s => ({ x: s.col * GX, y: LABEL + s.row * GY });
+const byId = {}; SCENES.forEach(s => { byId[s.id] = s; });
+
+// 칸과 줄 이름, 화살표를 그린다
+ROWS.forEach(r => {
+  const e = document.createElement('div'); e.className = 'rowlabel'; e.style.left = r.col * GX + 'px'; e.style.top = r.row * GY + 'px';
+  e.innerHTML = esc(r.label) + '<small>' + esc(r.sub) + '</small>'; world.appendChild(e);
+});
+SCENES.forEach(s => {
+  const p = pos(s), c = document.createElement('article'); c.className = 'cell'; c.dataset.id = s.id; c.style.left = p.x + 'px'; c.style.top = p.y + 'px';
+  c.innerHTML = `<header><h2>${esc(s.title)}</h2><p>${esc(s.who)}</p><div class="acts"><button data-big="${s.id}">크게 보기</button><a href="${url(s)}" target="_blank" rel="noopener">새 창에서 열기</a></div></header>
+    <div class="frame"><div class="ph"><b>${esc(s.title)}</b><span>${esc(s.who)}</span><span class="st">가까이 오면 불러와요</span></div></div>`;
+  world.appendChild(c); s.el = c;
+});
+const W = Math.max(...SCENES.map(s => pos(s).x)) + FW, H = Math.max(...SCENES.map(s => pos(s).y)) + HEAD + FH;
+(function arrows() {
+  const svg = $('#links'); svg.setAttribute('width', W); svg.setAttribute('height', H);
+  svg.innerHTML = '<defs><marker id="ah" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="4" markerHeight="4" orient="auto-start-reverse"><path d="M0 0L10 5L0 10z" fill="var(--line)" stroke="none"/></marker></defs>';
+  ARROWS.forEach(([a, b, label, both]) => {
+    const A = byId[a], B = byId[b], pa = pos(A), pb = pos(B), my = HEAD + FH / 2;
+    let d, mx, mY;
+    if (A.row === B.row) {
+      const r = B.col > A.col, x1 = pa.x + (r ? FW : 0), x2 = pb.x + (r ? 0 : FW), y = pa.y + my;
+      d = `M${x1} ${y}L${x2} ${y}`; mx = (x1 + x2) / 2; mY = y - 36;
+    } else {
+      const down = B.row > A.row, x1 = pa.x + FW / 2, x2 = pb.x + FW / 2, y1 = down ? pa.y + HEAD + FH : pa.y, y2 = down ? pb.y : pb.y + HEAD + FH, k = Math.abs(y2 - y1) / 2;
+      d = `M${x1} ${y1}C${x1} ${y1 + (down ? k : -k)} ${x2} ${y2 + (down ? -k : k)} ${x2} ${y2}`; mx = (x1 + x2) / 2; mY = (y1 + y2) / 2;
+    }
+    const p = document.createElementNS('http://www.w3.org/2000/svg', 'path'); p.setAttribute('d', d); p.setAttribute('marker-end', 'url(#ah)'); if (both) p.setAttribute('marker-start', 'url(#ah)'); svg.appendChild(p);
+    if (label) { const c = document.createElement('div'); c.className = 'chip'; c.textContent = label; c.style.left = mx + 'px'; c.style.top = mY + 'px'; world.appendChild(c); }
+  });
+})();
+
+// ── 움직이기·확대 ──
+function apply() {
+  world.style.transform = `translate(${tx}px,${ty}px) scale(${sc})`;
+  view.style.backgroundSize = 40 * sc + 'px ' + 40 * sc + 'px'; view.style.backgroundPosition = tx + 'px ' + ty + 'px';
+  $('#zv').textContent = Math.round(sc * 100) + '%';
+  schedule();
+}
+function zoomAt(f, cx, cy) {
+  const n = Math.min(2, Math.max(0.04, sc * f)); f = n / sc;
+  tx = cx - (cx - tx) * f; ty = cy - (cy - ty) * f; sc = n; apply();
+}
+function fit() {
+  const vw = innerWidth, vh = innerHeight, top = $('.bar').offsetHeight + 12, pad = 24;
+  sc = Math.min((vw - pad * 2) / W, (vh - top - pad) / H); tx = (vw - W * sc) / 2; ty = top + (vh - top - H * sc) / 2; apply();
+}
+function start() {
+  // 창 크기가 아직 0이면(숨은 탭에서 열렸을 때) 크기가 잡힌 뒤에 시작한다
+  if (innerWidth < 100) return addEventListener('resize', start, { once: true });
+  const vw = innerWidth, vh = innerHeight;
+  sc = vw < 640 ? Math.min(0.9, (vw - 40) / FW) : Math.min(0.6, Math.max(0.3, vw / 1500));
+  const c = pos(byId.connect); tx = 24 - c.x * sc; ty = Math.max($('.bar').offsetHeight + 12 + LABEL * sc, (vh - (HEAD + FH) * sc) / 2) - c.y * sc; apply();
+}
+const ptrs = new Map(); let moved = 0, last = null, lastTap = null, pinch = null;
+view.addEventListener('pointerdown', e => {
+  if (e.target.closest('a, button')) return;
+  view.setPointerCapture(e.pointerId); ptrs.set(e.pointerId, { x: e.clientX, y: e.clientY }); moved = 0; view.classList.add('drag');
+  if (ptrs.size === 2) { const [a, b] = [...ptrs.values()]; pinch = { d: Math.hypot(a.x - b.x, a.y - b.y) || 1 }; }
+});
+view.addEventListener('pointermove', e => {
+  const p = ptrs.get(e.pointerId); if (!p) return;
+  const dx = e.clientX - p.x, dy = e.clientY - p.y; p.x = e.clientX; p.y = e.clientY; moved += Math.abs(dx) + Math.abs(dy);
+  if (ptrs.size === 1) { tx += dx; ty += dy; apply(); }
+  else if (ptrs.size === 2 && pinch) {
+    const [a, b] = [...ptrs.values()], d = Math.hypot(a.x - b.x, a.y - b.y) || 1;
+    tx += dx / 2; ty += dy / 2; zoomAt(d / pinch.d, (a.x + b.x) / 2, (a.y + b.y) / 2); pinch.d = d;
+  }
+});
+function up(e) {
+  if (!ptrs.has(e.pointerId)) return;
+  ptrs.delete(e.pointerId); pinch = null; if (!ptrs.size) view.classList.remove('drag');
+  // 터치로 같은 칸을 빠르게 두 번 누르면 크게 열기(마우스는 dblclick)
+  if (e.type === 'pointerup' && e.pointerType === 'touch' && moved < 10) {
+    const c = e.target.closest && e.target.closest('.cell'), now = Date.now();
+    if (c && lastTap && lastTap.id === c.dataset.id && now - lastTap.t < 400) { lastTap = null; openBig(c.dataset.id); } else lastTap = c ? { id: c.dataset.id, t: now } : null;
+  }
+}
+view.addEventListener('pointerup', up); view.addEventListener('pointercancel', up);
+view.addEventListener('wheel', e => { e.preventDefault(); zoomAt(Math.exp(-e.deltaY * (e.ctrlKey ? 0.01 : 0.0015)), e.clientX, e.clientY); }, { passive: false });
+view.addEventListener('dblclick', e => { const c = e.target.closest('.cell'); if (c) openBig(c.dataset.id); });
+document.addEventListener('click', e => { const b = e.target.closest('[data-big]'); if (b) openBig(b.dataset.big); });
+$('#fit').onclick = fit;
+$('#zin').onclick = () => zoomAt(1.3, innerWidth / 2, innerHeight / 2);
+$('#zout').onclick = () => zoomAt(1 / 1.3, innerWidth / 2, innerHeight / 2);
+addEventListener('keydown', e => {
+  if (e.key === 'Escape') closeBig();
+  else if (e.key === '+' || e.key === '=') zoomAt(1.2, innerWidth / 2, innerHeight / 2);
+  else if (e.key === '-') zoomAt(1 / 1.2, innerWidth / 2, innerHeight / 2);
+  else if (e.key === '0') fit();
+});
+addEventListener('resize', () => { if (!$('#ov').hidden) sizeBig(); });
+
+// ── 화면에 들어온 칸만 싣는다: 보이고, 너무 작지 않을 때. 한꺼번에 몰리지 않게 둘씩만 ──
+const seen = new Set(), live = [], queue = []; let busy = 0, raf = 0;
+const io = new IntersectionObserver(es => { es.forEach(e => { const s = byId[e.target.dataset.id]; e.isIntersecting ? seen.add(s) : seen.delete(s); }); schedule(); }, { rootMargin: '120px' });
+SCENES.forEach(s => io.observe(s.el));
+function schedule() { if (!raf) raf = requestAnimationFrame(() => { raf = 0; refresh(); }); }
+function refresh() {
+  const ok = sc >= MIN_LOAD;
+  SCENES.forEach(s => { const st = s.el.querySelector('.st'); if (st) st.textContent = ok ? '불러오는 중…' : '가까이 오면 불러와요'; });
+  if (!ok) return;
+  seen.forEach(s => { if (!s.frame && !queue.includes(s)) queue.push(s); });
+  // 가까이 있는 칸부터
+  queue.sort((a, b) => dist(a) - dist(b)); pump();
+  // 많이 실렸으면 화면 밖에서 오래된 것부터 내린다
+  while (live.length > MAX_LIVE) { const i = live.findIndex(s => !seen.has(s)); if (i < 0) break; unload(live[i]); }
+}
+const dist = s => { const r = s.el.getBoundingClientRect(); return Math.hypot(r.left + r.width / 2 - innerWidth / 2, r.top + r.height / 2 - innerHeight / 2); };
+function pump() {
+  while (busy < 2 && queue.length) {
+    const s = queue.shift(); if (s.frame || !seen.has(s)) continue;
+    const f = document.createElement('iframe'); f.title = s.title + ' · ' + s.who; f.src = url(s); s.frame = f; s.loading = true; busy++; live.push(s);
+    // 앱이 화면을 다 그릴 때까지(불러오는 중 글이 사라질 때까지) 이름 칸을 그대로 둔다. 6초가 지나면 그냥 보여 준다
+    f.onload = () => {
+      s.loading = false; busy--; pump(); const t0 = Date.now();
+      const look = () => {
+        if (s.frame !== f) return;
+        let ready = false; try { const d = f.contentDocument, m = d.getElementById('main') || d.getElementById('root'); ready = !!m && m.children.length > 0 && !d.querySelector('.loading') && !d.getElementById('splash'); } catch (e) { ready = true; }
+        if (ready || Date.now() - t0 > 6000) { f.classList.add('on'); s.el.querySelector('.ph').classList.add('hide'); } else setTimeout(look, 150);
+      };
+      look();
+    };
+    s.el.querySelector('.frame').appendChild(f);
+  }
+}
+function unload(s) {
+  if (!s.frame) return;
+  if (s.loading) { s.loading = false; busy--; }
+  s.frame.remove(); s.frame = null; live.splice(live.indexOf(s), 1);
+  s.el.querySelector('.ph').classList.remove('hide');
+}
+
+// ── 크게 열기: 새로 띄워서 직접 눌러 본다(여기서 한 일은 저장되지 않아요) ──
+function sizeBig() {
+  const box = $('#ov-box'), f = box.firstElementChild, k = Math.min(1, (innerHeight - 70) / FH, (innerWidth - 16) / FW);
+  box.style.width = FW * k + 'px'; box.style.height = FH * k + 'px'; if (f) f.style.transform = `scale(${k})`;
+}
+function openBig(id) {
+  const s = byId[id]; if (!s) return;
+  $('#ov-t').textContent = s.title + ' · ' + s.who; $('#ov-a').href = url(s);
+  const f = document.createElement('iframe'); f.src = url(s); f.title = s.title; $('#ov-box').replaceChildren(f); $('#ov').hidden = false; sizeBig();
+}
+function closeBig() { if ($('#ov').hidden) return; $('#ov').hidden = true; $('#ov-box').replaceChildren(); }
+$('#ov-x').onclick = closeBig;
+$('#ov').addEventListener('click', e => { if (e.target.id === 'ov') closeBig(); });
+
+// ── 데모 데이터 처음으로: 앱의 '데모 데이터 지우기'와 같은 일(koideDemo.reset). 칸은 모두 새로 싣는다 ──
+function toast(m) { const t = $('#toast'); t.textContent = m; t.hidden = false; clearTimeout(toast.t); toast.t = setTimeout(() => { t.hidden = true; }, 2600); }
+$('#reset').onclick = () => {
+  if (!confirm('이 브라우저의 데모 데이터를 처음 상태로 돌릴까요? (지어낸 예시 데이터만 바뀌어요)')) return;
+  try { localStorage.removeItem('koide-demo-db'); } catch (e) { /* 저장소를 못 쓰면 늘 처음 상태 */ }
+  [...live].forEach(unload); queue.length = 0; schedule(); toast('데모 데이터를 처음으로 돌렸어요.');
+};
+
+start();
+</script>
+</body>
+</html>

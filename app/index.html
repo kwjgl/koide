@@ -962,6 +962,7 @@ details[open] > :not(summary) { animation: reveal .22s ease-out; }
 .loading { text-align: center; color: var(--ink-2); padding: 48px 0; }
 .demo { background: var(--warn-soft); color: var(--warn); font-size: .8em; padding: .5em 16px; text-align: center; }
 .demo a { color: inherit; }
+.demo select { font: inherit; color: inherit; background: transparent; border: 1px solid currentColor; border-radius: 6px; padding: .1em .3em; margin: 0 .3em; }
 .demo button { background: none; border: 0; color: inherit; text-decoration: underline; cursor: pointer; font-size: inherit; }
 .saved { font-size: .78em; color: var(--ink-2); }
 /* 홈 화면에 두기 */
@@ -1128,6 +1129,7 @@ try { const p = JSON.parse(localStorage.getItem('koide-pref') || '{}'), d = docu
 <style>html.booting body { background-image: none !important; } html.booting body::before { display: none !important; }</style>
 </head>
 <body>
+<script src="config.js"></script>
 <script src="splash.js" data-space="community"></script>
 <div id="demo" class="demo" hidden></div>
 <header class="topbar" id="topbar"></header>
@@ -1137,7 +1139,6 @@ try { const p = JSON.parse(localStorage.getItem('koide-pref') || '{}'), d = docu
 <div id="pop" class="pop" hidden></div>
 <nav id="tabs" class="tabs" hidden></nav>
 <div id="toast" class="toast" role="status" hidden></div>
-<script src="config.js"></script>
 <script src="pray-data.js"></script>
 <script src="art-data.js"></script>
 <script src="intro-video.js"></script>
@@ -1147,6 +1148,10 @@ try { const p = JSON.parse(localStorage.getItem('koide-pref') || '{}'), d = docu
   // 데모: 서버 주소가 없거나, 주소 뒤에 ?demo를 붙였을 때. 지어낸 예시 데이터로 리더·회원 화면을 눌러 본다
   //  ?demo로 연 데모는 실제 앱과 같은 주소라서, 로그인·화면 기억을 따로 둬서 실제 로그인을 건드리지 않는다
   const DEMO_LINK = !!CFG.API_URL && new URLSearchParams(location.search).has('demo'), DEMO = !CFG.API_URL || DEMO_LINK;
+  // 장면 모드(?as=사람&at=화면, 데모에서만): 그 사람으로 바로 들어가 그 화면을 연다. 화면 지도(demo/map.html)가 쓴다.
+  //  이 창의 localStorage는 splash.js가 메모리 판으로 바꿔 놓아서, 로그인·화면 기억이 다른 창과 섞이지 않는다.
+  //  처음 도움말, 사용법, 홈 화면에 두기 창, 사용 기록은 없다(&fresh를 붙이면 도움말은 처음처럼 나온다)
+  const SC = DEMO && window.KOIDE_SCENE || null;
   const $ = s => document.querySelector(s);
   const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
   const TOKEN = DEMO_LINK ? 'koide-demo-token' : 'koide-token';
@@ -1202,6 +1207,7 @@ try { const p = JSON.parse(localStorage.getItem('koide-pref') || '{}'), d = docu
   })();
   const usageQ = () => { try { return JSON.parse(localStorage.getItem(USAGE_Q) || '[]'); } catch (e) { return []; } };
   function track(e, d) {
+    if (SC) return;
     try { const q = usageQ(); q.push({ at: new Date().toISOString(), e, d: d || {} }); localStorage.setItem(USAGE_Q, JSON.stringify(q.slice(-200))); } catch (err) { /* 기록 못 해도 앱은 그대로 */ }
     if (usageQ().length >= 30) sendUsage();
   }
@@ -1224,7 +1230,7 @@ try { const p = JSON.parse(localStorage.getItem('koide-pref') || '{}'), d = docu
 
   // ── 시작: 카카오에서 돌아왔으면(code) 로그인부터, 아니면 내 상태를 확인 ──
   async function boot() {
-    if (DEMO) { await loadDemo(); $('#demo').hidden = false; $('#demo').innerHTML = '데모 모드 · 지어낸 예시 데이터예요 <button data-act="demoreset">데모 데이터 지우기</button>' + (DEMO_LINK ? ' · <a href="./">실제 앱으로</a>' : ''); }
+    if (DEMO) { await loadDemo(); $('#demo').hidden = !!SC; $('#demo').innerHTML = '데모 모드 · 지어낸 예시 데이터예요 ' + demoPicker() + '<button data-act="demoreset">데모 데이터 지우기</button>' + (DEMO_LINK ? ' · <a href="./">실제 앱으로</a>' : ''); }
     const q = new URLSearchParams(location.search);
     // 초대 링크: 카카오 로그인을 다녀와도 남게 기기에 적어 두고 주소에서 뺀다
     // 기도 노트의 '내 모임'에서 모임을 열면 ?grp=모임ID로 온다(한 번만 쓴다)
@@ -1240,11 +1246,34 @@ try { const p = JSON.parse(localStorage.getItem('koide-pref') || '{}'), d = docu
       if (backToNote()) return;
     }
     if (q.get('error')) { toast('카카오 로그인을 취소했어요.'); history.replaceState(null, '', location.pathname); }
+    if (SC) {
+      if (SC.at === 'login') { S.view = 'login'; return render(); }
+      if (SC.at === 'connect') { try { localStorage.setItem(CONNECT, '1'); } catch (e) { /* 이번만 */ } }
+      if (SC.as && !getToken()) {
+        try { const r = await api('login', { code: 'demo:' + SC.as, redirectUri: '' }); setToken(r.token, r.uid); } catch (e) { oops(e); }
+        // 연결 요청을 기다리는 화면: 처음 온 사람이 새 가정으로 신청한 모습
+        if (SC.at === 'wait') {
+          try { S.me = await api('requestLink', { newFamily: { a: SC.as }, roomId: 'R1' }); S.view = 'wait'; } catch (e) { oops(e); }
+          return render();
+        }
+      }
+    }
     if (!getToken()) { S.view = 'login'; return render(); }
     // 지난번 화면이 기억돼 있으면 먼저 보여 주고, 서버에서 새로 받아 조용히 바꾼다
     const c = readCache();
     if (c && c.me && c.month && !GOPEN && !shareGroup()) { S.me = c.me; S.month = c.month; S.view = 'app'; render(); return refreshMe(true); }
     await refreshMe();
+  }
+  // 데모 위쪽 띠의 '사람 바꾸기': 로그아웃 없이 다른 데모 사람으로 바로 바꾼다. 보던 탭이 그 사람에게도 있으면 그대로 둔다
+  const DEMO_PEOPLE = [['김도윤', '2-20 리더'], ['박민재', '회원'], ['윤하람', '청년부 리더'], ['한기쁨', '청장년부 목사님'], ['최운영', '운영 지원 · 가정 없음']];
+  const demoPicker = () => `<select data-demoas aria-label="데모 사람 바꾸기"><option value="">사람 바꾸기…</option>${DEMO_PEOPLE.map(([n, r]) => `<option value="${n}">${n} (${r})</option>`).join('')}<option value="새 사람${Date.now() % 1000}">새 사람 (처음 오는 사람)</option></select>`;
+  async function demoSwitch(who) {
+    const keep = ['home', 'mine', 'pray', 'history', 'more'].includes(S.tab) ? S.tab : 'home';
+    try { const r = await api('login', { code: 'demo:' + who, redirectUri: '' }); setToken(r.token, r.uid); } catch (e) { return oops(e); }
+    S.op = null; S.grp = null; S.home = null; S.ops = null; S.rost = null; S.pending = null; S.hist = null; S.histTab = null; try { localStorage.removeItem(OP_KEY); } catch (e) { /* 무시 */ }
+    Object.assign(S, { famEdit: null, famMsg: '', a2hs: false, homeView: null, ex: null, draft: '', draftTgt: '', todayId: null, shareId: null, menu: null, imp: null, preview: null, tgtOpen: null, delAsk: null, openRoom: null, ps: null, meet: null, tab: keep });
+    S.openItems.clear(); S.openFams.clear();
+    S.view = 'loading'; render(); return refreshMe();
   }
   function loadDemo() {
     return new Promise((ok, bad) => {
@@ -1275,7 +1304,7 @@ try { const p = JSON.parse(localStorage.getItem('koide-pref') || '{}'), d = docu
       if (opsDepts().length && (op || !S.me.link)) {
         const id = opsDepts().some(d => d.id === op) ? op : opsDepts()[0].id;
         if (S.me.link && S.me.link.status === '연결') S.month = r.month || S.month;
-        S.op = null; return S.me.ops.all && !opsDepts().some(d => d.id === op) ? enterChurch() : enterOps(id);
+        S.op = null; return (S.me.ops.all && !opsDepts().some(d => d.id === op) ? enterChurch() : enterOps(id)).then(sceneGo);
       }
       if (S.me.link) { try { localStorage.removeItem(CONNECT); } catch (e) { /* 무시 */ } }
       // 자율 모임(기도 노트의 '내 모임'): 교회 연결과 상관없이. 초대 링크로 왔으면 함께하기 화면, 노트에서 모임을 열었거나 모임에 나누러 왔으면 그 모임으로
@@ -1288,7 +1317,7 @@ try { const p = JSON.parse(localStorage.getItem('koide-pref') || '{}'), d = docu
       }
       if (!S.me.link) {
         // 초대 링크(소그룹·부서)나 '공동체에 연결하기'로 오지 않았으면 혼자 시작한 사람: 기도 노트가 첫 화면이다
-        if (!r.join && !connecting()) { if (window.koideSpace) window.koideSpace.going('note'); location.replace('note.html' + (DEMO_LINK ? '?demo' : '')); return; }
+        if (!r.join && !connecting()) { if (window.koideSpace) window.koideSpace.going('note'); location.replace('note.html' + (SC ? location.search : DEMO_LINK ? '?demo' : '')); return; }
         // 부서를 모르는 예전 서버면 사랑방 목록을 부서 하나로 본다
         S.depts = r.depts || [Object.assign({ id: '', name: '' }, DEPT0, { rooms: r.rooms || await api('rooms') })];
         S.pick = {};
@@ -1311,6 +1340,18 @@ try { const p = JSON.parse(localStorage.getItem('koide-pref') || '{}'), d = docu
       S.view = 'error'; S.err = e;
     }
     quiet ? paint() : render();
+    sceneGo();
+  }
+  // 장면 모드: 로그인한 뒤 한 번, at= 가 가리키는 화면으로. 탭 이름은 누른 것과 같게 처리하고, 탭만으로 못 가는 화면은 이름을 따로 둔다
+  //  church(교회 전체), ops(부서 관리), meet(모임 모드), tour(사용법 카드)
+  function sceneGo() {
+    if (!SC || SC.went || S.view !== 'app' || !SC.at || ['login', 'connect', 'wait'].includes(SC.at)) return;
+    SC.went = true;
+    if (SC.at === 'church') return S.tab === 'church' ? 0 : enterChurch();
+    if (SC.at === 'meet') { S.meet = 0; S.meetSeen = 1; return render(); }
+    if (SC.at === 'tour') return Tour.open();
+    if (SC.at === 'ops' && S.op) return;
+    const b = document.createElement('button'); b.dataset.act = 'tab'; b.dataset.v = SC.at; document.body.appendChild(b); b.click(); b.remove();
   }
   async function loadMonth() { S.month = await api('month'); }
 
@@ -1463,7 +1504,7 @@ try { const p = JSON.parse(localStorage.getItem('koide-pref') || '{}'), d = docu
     return t;
   }
   function placeTip() {
-    if (S.view !== 'app' || Tour.isOpen() || S.ps || S.meet != null) return;
+    if (S.view !== 'app' || Tour.isOpen() || S.ps || S.meet != null || (SC && !SC.fresh)) return;
     const t = tipFor(); if (!t || tipsSeen()[t[0]]) return;
     const main = $('#main'), at = main.querySelector('.page-top');
     const html = `<aside class="tg-tip" role="note"><p><b>처음이세요?</b>${t[1]}</p><button class="btn small ghost" data-act="tipok" data-v="${t[0]}">알겠어요</button></aside>`;
@@ -1692,7 +1733,7 @@ try { const p = JSON.parse(localStorage.getItem('koide-pref') || '{}'), d = docu
   const STANDALONE = (window.matchMedia && matchMedia('(display-mode: standalone)').matches) || navigator.standalone === true;
   const A2HS_OFF = 'koide-a2hs-off';
   //  PC에서는 권하지 않는다(더보기에서는 볼 수 있다). 기도 노트와 같은 표시를 써서, 한쪽에서 닫으면 다른 쪽도 다시 권하지 않는다
-  const A2HS_ASK = !STANDALONE && !!(window.matchMedia && matchMedia('(pointer: coarse)').matches);
+  const A2HS_ASK = !SC && !STANDALONE && !!(window.matchMedia && matchMedia('(pointer: coarse)').matches);
   S.a2hs = false;
   // 처음 남긴 것: 기도했어요는 매듭이 지어지는 모습을 본 뒤, 기도제목은 내 기도 화면을 떠날 때 권한다(쓰는 중에 창이 뜨지 않게)
   function a2hsDue() { try { if (!A2HS_ASK || localStorage.getItem(A2HS_OFF)) return; } catch (e) { return; } S.a2hsDue = true; }
@@ -1851,7 +1892,7 @@ try { const p = JSON.parse(localStorage.getItem('koide-pref') || '{}'), d = docu
   // 처음 한 번만 보여 주는 안내: '알겠어요'를 누르면 이 기기에서는 다시 안 보여요
   // '이준건 · 정서연 가정 | 이준건': 가정 이름 안의 가운뎃점과 헷갈리지 않게 세로줄로 나눠요
   const famWho = (fam, person) => `${esc(fam)} 가정<span class="who-sep" aria-hidden="true"></span>${esc(person)}`;
-  const tipOn = (k = 'scope') => { try { return !localStorage.getItem('koide-tip-' + k); } catch (e) { return false; } };
+  const tipOn = (k = 'scope') => { if (SC && !SC.fresh) return false; try { return !localStorage.getItem('koide-tip-' + k); } catch (e) { return false; } };
   function editLi(i, first) {
     const open = S.tgtOpen === i.id, targets = [...new Set([...targetsFor(mineFam().kids), i.target])];
     return `<li class="edit s-${i.scope}"><fieldset ${i.pending ? 'disabled' : ''}>
@@ -4603,6 +4644,7 @@ try { const p = JSON.parse(localStorage.getItem('koide-pref') || '{}'), d = docu
   // 칸을 벗어나면(내용·대상) 저장
   document.addEventListener('change', e => {
     const t = e.target;
+    if (t.dataset.demoas !== undefined) { const v = t.value; t.value = ''; return v && demoSwitch(v); }
     if (t.dataset.codefam) { S.codeMk = { fam: t.value }; return render(); }
     if (t.dataset.codeperson) { S.codeMk = Object.assign(S.codeMk || {}, { person: t.value }); return; }
     if (t.dataset.ptdate && S.pt) { S.pt.date = t.value || noteDay(); return render(); }

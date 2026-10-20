@@ -5,6 +5,25 @@
 //  마지막에 쓴 곳은 기기에(localStorage), 이번 창에서 보던 곳은 창에만(sessionStorage) 둔다. 기도제목은 담지 않는다
 (() => {
   const me = document.currentScript, q = new URLSearchParams(location.search), demo = q.has('demo');
+  // 장면 모드(데모 주소에 ?as=사람 또는 ?at=화면): 화면 지도처럼 한 브라우저에 앱 창을 여러 개 띄워도 서로 로그인·기억을 덮어쓰지 않게,
+  //  이 창의 localStorage를 메모리 판으로 바꾼다(창을 닫으면 사라짐). 데모 데이터(koide-demo-db)만 기기에서 읽어 오고 쓰지는 않는다.
+  //  시작 화면도 없다. 실제 앱(서버 주소가 있고 ?demo가 없음)에서는 쓰지 않는다
+  const CFG = window.KOIDE_CONFIG || {};
+  if ((q.has('as') || q.has('at')) && (!CFG.API_URL || demo)) {
+    const mem = new Map(), real = (() => { try { return window.localStorage; } catch (e) { return null; } })();
+    const store = {
+      getItem: k => mem.has(k) ? mem.get(k) : k === 'koide-demo-db' && real ? real.getItem(k) : null,
+      setItem: (k, v) => { mem.set(String(k), String(v)); },
+      removeItem: k => { mem.set(String(k), null); },
+      clear: () => mem.clear(), key: () => null, get length() { return mem.size; }
+    };
+    try { Object.defineProperty(window, 'localStorage', { value: store, configurable: true }); } catch (e) { /* 막히면 기기 저장소를 그대로 */ }
+    window.KOIDE_SCENE = { as: q.get('as') || '', at: q.get('at') || '', fresh: q.has('fresh') };
+    window.koideSpace = { going() {}, used() {} };
+    window.koideSplash = { mode: 'quiet', hide() { document.documentElement.classList.remove('booting'); } };
+    document.documentElement.classList.remove('booting');
+    return;
+  }
   const SPACE_KEY = demo ? 'koide-demo-space' : 'koide-space', LAST = 'koide-last-space', TOKEN = demo ? 'koide-demo-token' : 'koide-token';
   const get = (st, k) => { try { return st.getItem(k); } catch (e) { return null; } };
   const set = (st, k, v) => { try { st.setItem(k, v); } catch (e) { /* 이번만 */ } };

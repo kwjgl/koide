@@ -306,9 +306,9 @@ button.knot { cursor: pointer; }
 <style>html.booting body { background-image: none !important; } html.booting body::before { display: none !important; }</style>
 </head>
 <body>
+<script src="config.js"></script>
 <script src="splash.js" data-space="note"></script>
 <div id="root"></div>
-<script src="config.js"></script>
 <script src="pray-data.js"></script>
 <script src="art-data.js"></script>
 <script src="intro-video.js"></script>
@@ -318,6 +318,9 @@ button.knot { cursor: pointer; }
   // 서버 주소가 없거나 ?demo로 열면 데모: 공동체 앱의 데모처럼 서버 코드를 브라우저 안에서 돌린다. 데모의 노트는 실제 노트와 따로 둔다
   const CFG = window.KOIDE_CONFIG || {};
   const DEMO_LINK = !!CFG.API_URL && new URLSearchParams(location.search).has('demo'), DEMO = !CFG.API_URL || DEMO_LINK, QS = DEMO_LINK ? '?demo' : '';
+  // 장면 모드(?as=사람&at=오늘|note|pray|look|keep|more|start, 데모에서만): 화면 지도(demo/map.html)용. splash.js가 이 창의 localStorage를 메모리 판으로 바꿔 놓아서,
+  //  예시 노트도 메모리에만 만들고 저장하지 않는다. 로그인·서버 확인·창·도움말도 없다
+  const SC = DEMO && window.KOIDE_SCENE || null;
   // 기도 노트는 카카오 계정마다 따로 둔다(한 기기를 여럿이 써도 다른 사람의 노트가 보이지 않게). 주인 표시는 서버가 주는 값(uid)이다.
   //  주인 표시가 생기기 전의 노트는 처음 확인된 계정의 것으로 옮긴다. 주인을 아직 모르면(예전 로그인, 예전 서버) 예전 자리를 그대로 쓴다
   function ownNoteKey(base, uid) {
@@ -336,6 +339,19 @@ button.knot { cursor: pointer; }
   const KEY = ownNoteKey(BASE, getUid()), LOCK_KEY = KEY + '-key';
   // 기도제목·사람·감사·기도한 날마다 고친 시각(up)을 둔다. 다른 기기와 이어 둘 때 더 나중 것을 남기려고(지운 것도 지웠다는 표시로 남긴다)
   const blank = () => ({ v: 2, started: false, name: '', nameUp: 0, people: [], items: [], prays: [], thanks: [], today: null, mode: '', vault: null });
+  // 장면 모드의 예시 노트: 사람 둘, 기도제목 여럿, 최근 기도한 날과 감사(날짜는 오늘 기준). at=start이면 노트 없이 시작 화면
+  function sceneNote() {
+    const day = n => { const d = new Date(Date.now() - n * 864e5); return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0'); };
+    const people = [{ id: 'sp1', name: '엄마', up: 1 }, { id: 'sp2', name: '친구 지훈', up: 1 }];
+    const it = (id, target, text, ago, done) => ({ id, target, text, created: day(ago), done: done || null, up: 1 });
+    const items = [it('si1', 'me', '회사 일이 바빠도 지치지 않도록', 20), it('si2', 'p:sp1', '다음 주 수술이 잘 끝나고 회복이 빠르도록', 12), it('si3', 'p:sp2', '새 직장에서 좋은 동료를 만나도록', 9),
+      it('si4', 'church', '새로 온 가정들이 잘 정착하도록', 30), it('si5', 'world', '전쟁으로 힘든 지역에 평화가 오도록', 30),
+      it('si6', 'p:sp2', '이사할 집을 잘 구하도록', 40, { date: day(5), how: 'answer' })];
+    const prays = []; [['si1', [1, 2, 3, 5, 6]], ['si2', [1, 2, 4]], ['si3', [2, 3]], ['si4', [1, 4, 7]], ['si6', [8, 9, 10]]].forEach(([id, ds]) => ds.forEach(n => prays.push({ d: day(n), item: id, up: 1 })));
+    const thanks = [{ id: 'st1', date: day(5), text: '좋은 집을 만나게 해 주셨어요', item: 'si6', kind: 'answer', up: 1 }, { id: 'st2', date: day(1), text: '이번 주도 건강하게 지냈어요', kind: 'thanks', up: 1 }, { id: 'st3', date: day(3), text: '가족과 함께 저녁을 먹었어요', kind: 'thanks', up: 1 }];
+    return { v: 2, started: true, name: '', nameUp: 0, people, items, prays, thanks, today: null, mode: '', vault: null };
+  }
+  if (SC && SC.at !== 'start') { try { localStorage.setItem(KEY, JSON.stringify(sceneNote())); } catch (e) { /* 무시 */ } }
   let D;
   try { D = migrate(Object.assign(blank(), JSON.parse(localStorage.getItem(KEY) || 'null') || {})); } catch (e) { D = blank(); }
   let canSave = true;
@@ -497,6 +513,7 @@ button.knot { cursor: pointer; }
   }
 
   const S = { tab: D.started ? 'today' : 'start', edit: null, draftT: 'me', done: null, ps: null, toast: '', pick: null, tour: null };
+  if (SC && ['today', 'note', 'pray', 'look', 'keep', 'more', 'start'].includes(SC.at)) S.tab = SC.at;
 
   // ── 화면 설정: 공동체 앱과 같은 곳(koide-pref)에 둔다. 예전 노트의 화면 모드는 한 번 옮긴다 ──────────
   const PREF = (() => { try { return JSON.parse(localStorage.getItem('koide-pref')) || {}; } catch (e) { return {}; } })();
@@ -554,7 +571,7 @@ button.knot { cursor: pointer; }
   const HOME_APP = !!(navigator.standalone || (window.matchMedia && matchMedia('(display-mode: standalone)').matches));
   const A2HS_ASK = !HOME_APP && !!(window.matchMedia && matchMedia('(pointer: coarse)').matches);
   S.a2hsOs = /android/i.test(navigator.userAgent) ? 'android' : 'ios';
-  function a2hsDue() { try { if (A2HS_ASK && !localStorage.getItem(A2HS_OFF)) S.a2hs = true; } catch (e) { /* 저장할 수 없으면 권하지 않는다 */ } }
+  function a2hsDue() { if (SC) return; try { if (A2HS_ASK && !localStorage.getItem(A2HS_OFF)) S.a2hs = true; } catch (e) { /* 저장할 수 없으면 권하지 않는다 */ } }
   function a2hsSheet() {
     const os = S.a2hsOs;
     const how = os === 'ios' ? ['사파리에서 이 화면을 열어요', '아래쪽 공유 버튼(네모에 위 화살표)을 눌러요', '"홈 화면에 추가"를 눌러요']
@@ -1283,13 +1300,13 @@ button.knot { cursor: pointer; }
     if (S.ps) { S.ps = null; musicOff(); render(); } else if (S.done) { S.done = null; render(); } else if (S.vsheet) { S.vsheet = null; render(); } else if (S.share) { S.share = null; render(); }
   });
   // 카카오 로그인이 기본: 로그인하지 않았으면 로그인 화면으로(노트는 이 휴대폰에 그대로 남아 있다)
-  if (!getToken()) { if (window.koideSpace) window.koideSpace.going('community'); location.replace('index.html' + QS); return; }
+  if (!SC && !getToken()) { if (window.koideSpace) window.koideSpace.going('community'); location.replace('index.html' + QS); return; }
   render();
   // 시작 화면(splash.js)을 닫고, 다시 켤 때 기도 노트로 시작하게 적어 둔다
   if (window.koideSplash) window.koideSplash.hide();
   if (window.koideSpace) window.koideSpace.used('note');
   // 노트 주인을 아직 모르면(예전 로그인) 서버에 한 번 묻고, 내 노트 자리가 달라지면 다시 연다. 서버가 답하지 않으면 이번에는 예전 자리 그대로
-  (async () => {
+  if (!SC) (async () => {
     if (!getUid()) {
       try { const r = await api('me'); if (r && r.uid) { try { localStorage.setItem(UID, r.uid); } catch (e) { /* 무시 */ } if (ownNoteKey(BASE, r.uid) !== KEY) return location.reload(); } }
       catch (e) { if (e && e.code === 'login') { if (window.koideSpace) window.koideSpace.going('community'); return location.replace('index.html' + QS); } }
