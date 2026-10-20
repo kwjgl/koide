@@ -4,7 +4,7 @@
  * 기도제목은 여기 남기지 않는다: 서버(Apps Script)와 주고받는 요청과 다른 주소의 파일은 건드리지 않는다.
  */
 const CACHE = 'koide-v2';
-const SHELL = ['./', 'index.html', 'note.html', 'config.js', 'pray-data.js', 'manifest.webmanifest', 'icons/icon-192.png', 'icons/apple-touch-icon.png'];
+const SHELL = ['./', 'index.html', 'note.html', 'config.js', 'pray-data.js', 'art-data.js', 'design-styles.css', 'manifest.webmanifest', 'icons/icon-192.png', 'icons/apple-touch-icon.png'];
 
 self.addEventListener('install', e => {
   e.waitUntil(caches.open(CACHE).then(c => c.addAll(SHELL)).then(() => self.skipWaiting()));

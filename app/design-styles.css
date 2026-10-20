@@ -1,0 +1,153 @@
+/* 공동체 앱(index.html)과 기도 노트(note.html)가 함께 쓰는 디자인 스타일. 기도 노트에만 있는 것의 짝은 note.html에 있다 */
+/* ── 디자인 스타일 (설정에서 고름, 이 기기에만): basic(기본) / new(뉴모피즘) / classic(스큐어모피즘) / glass(글래스모피즘).
+   시안(prototype/index.html)의 규칙을 실제 앱의 이름(:root[data-style], .tabs button, .seg, 기도하기·모임 모드 화면)에 맞춰 옮겼다.
+   색은 모두 테마색과 화면 모드에서 가져온다 ── */
+
+/* new: 누르는 것은 판에서 볼록하게, 고른 것과 담는 자리(이름표·입력칸)는 오목하게. 판(카드·바·메뉴)은 바탕과 같은 색에 그림자로 나눈다 */
+:root[data-style="neu"] {
+  --raise: -4px -4px 10px var(--neu-hi), 5px 5px 12px var(--neu-lo);
+  --raise-sm: -3px -3px 7px var(--neu-hi), 3px 3px 8px var(--neu-lo);
+  --press: inset 3px 3px 7px var(--neu-lo), inset -3px -3px 7px var(--neu-hi);
+  --press-sm: inset 2px 2px 4px var(--neu-lo), inset -2px -2px 4px var(--neu-hi);
+  /* 카드는 바탕보다 한 톤 밝게 올려서, 그림자만으로는 흐린 카드 경계를 또렷하게 한다 */
+  --card: color-mix(in srgb, var(--surface) 60%, var(--page));
+  --raise-card: -6px -6px 14px var(--neu-hi), 8px 8px 20px var(--neu-lo), 0 0 0 1px color-mix(in srgb, var(--line) 55%, transparent);
+}
+:root[data-style="neu"] .fam-grid, :root[data-style="neu"] .col { gap: 18px; }
+:root[data-style="neu"] .card, :root[data-style="neu"] .notice { background-color: var(--card); border-color: transparent; box-shadow: var(--raise-card); }
+:root[data-style="neu"] .card.today { background: linear-gradient(180deg, var(--accent-soft) 0%, var(--card) 100%); box-shadow: inset 0 4px 0 var(--accent), var(--raise-card); }
+:root[data-style="neu"] .topbar { background: var(--page); border-bottom-color: transparent; box-shadow: 0 4px 12px -6px var(--neu-lo); }
+:root[data-style="neu"] .tabs { background: var(--page); border-top-color: transparent; box-shadow: 0 -4px 12px -6px var(--neu-lo); }
+:root[data-style="neu"] .tabs button.on:not(.pray-tab) { box-shadow: var(--press); border-radius: 16px; margin: 5px 10px; min-height: 46px; }
+:root[data-style="neu"] .tabs button.on::after { content: none; }
+:root[data-style="neu"] .tabs button.pray-tab .ic { background: var(--card); box-shadow: var(--raise-sm); }
+:root[data-style="neu"] .tabs button.pray-tab.on .ic { background: var(--accent); box-shadow: var(--press); }
+:root[data-style="neu"] .topnav button.on { background: var(--surface); box-shadow: var(--press); }
+:root[data-style="neu"] .brand-mark { box-shadow: var(--raise-sm); }
+:root[data-style="neu"] .badge-btn, :root[data-style="neu"] .topbar .icon-btn { background: var(--card); border-color: transparent; box-shadow: var(--raise-sm); }
+:root[data-style="neu"] .topbar .icon-btn { border-radius: 50%; }
+:root[data-style="neu"] .topbar .icon-btn[aria-expanded="true"] { box-shadow: var(--press); }
+:root[data-style="neu"] .role-tag { background: var(--page); border-color: transparent; box-shadow: var(--press-sm); }
+:root[data-style="neu"] .role-tag.leader { background: var(--leader-soft); }
+:root[data-style="neu"] .role-tag.admin { background: var(--accent); }
+:root[data-style="neu"] .menu { background: var(--card); border-color: transparent; box-shadow: var(--raise), 0 18px 40px -16px var(--neu-lo); }
+:root[data-style="neu"] .mitem:hover { background: transparent; box-shadow: var(--press-sm); }
+/* 누르는 것: 볼록하게 */
+:root[data-style="neu"] .pray { border: 0; background: var(--surface); color: var(--accent); box-shadow: var(--raise-sm); transition: box-shadow .25s, background .25s, color .25s; }
+:root[data-style="neu"] .pray:hover { border: 0; }
+:root[data-style="neu"] .pray.on { background: var(--accent-soft); color: var(--accent); box-shadow: var(--press); }
+:root[data-style="neu"] .pray.hero { background: var(--accent); color: var(--on-accent); box-shadow: var(--raise); }
+:root[data-style="neu"] .pray.hero.on { background: color-mix(in srgb, var(--accent-soft) 60%, var(--surface)); color: var(--accent); box-shadow: var(--press); }
+:root[data-style="neu"] .pray.on .pray-n { background: var(--accent); color: var(--on-accent); }
+:root[data-style="neu"] .btn:not(.ghost):not(:disabled) { box-shadow: var(--raise-sm); }
+:root[data-style="neu"] .btn.ghost, :root[data-style="neu"] .mchip, :root[data-style="neu"] .chip-btn, :root[data-style="neu"] .scope-btn, :root[data-style="neu"] .tgt-btn,
+:root[data-style="neu"] .choice, :root[data-style="neu"] .icon-btn.sm, :root[data-style="neu"] .swatch, :root[data-style="neu"] .rm-x { background-color: var(--card); border-color: transparent; box-shadow: var(--raise-sm); }
+:root[data-style="neu"] .mchip.on, :root[data-style="neu"] .chip-btn.open, :root[data-style="neu"] .chip-btn.on, :root[data-style="neu"] .swatch.on { box-shadow: var(--press); border-color: transparent; }
+:root[data-style="neu"] .mchip.on, :root[data-style="neu"] .chip-btn.on { background: var(--page); color: var(--accent); font-weight: 600; }
+:root[data-style="neu"] .btn:not(:disabled):active, :root[data-style="neu"] .pray:active, :root[data-style="neu"] .mchip:active, :root[data-style="neu"] .choice:active { box-shadow: var(--press); }
+:root[data-style="neu"] .seg, :root[data-style="neu"] .seg2 { border: 0; background: var(--surface-2); box-shadow: var(--press); padding: 4px; gap: 5px; }
+:root[data-style="neu"] .seg button.on, :root[data-style="neu"] .seg2 button.on { background: var(--surface); box-shadow: var(--raise-sm); }
+/* 담는 자리: 오목하게 */
+:root[data-style="neu"] .tgt, :root[data-style="neu"] .today .tgt, :root[data-style="neu"] .chip-status, :root[data-style="neu"] .kid { background: var(--page); border-color: transparent; box-shadow: var(--press-sm); }
+:root[data-style="neu"] .st-edited, :root[data-style="neu"] .kid { background: var(--accent-soft); }
+:root[data-style="neu"] .item.s-family, :root[data-style="neu"] .today .item.s-family, :root[data-style="neu"] .sub > li.s-family { background: var(--page); box-shadow: var(--press); }
+:root[data-style="neu"] .received { box-shadow: var(--press-sm); }
+:root[data-style="neu"] .received.r-plain { box-shadow: none; }
+:root[data-style="neu"] .field, :root[data-style="neu"] .kid-form input, :root[data-style="neu"] .copybox { background: var(--page); border-color: transparent; box-shadow: var(--press); }
+:root[data-style="neu"] .export, :root[data-style="neu"] .kid-list li { background: var(--page); box-shadow: var(--press); }
+:root[data-style="neu"] .switch { background: var(--page); box-shadow: var(--press); }
+:root[data-style="neu"] .switch.on { background: var(--accent); }
+:root[data-style="neu"] .switch > span { background: var(--page); box-shadow: 1px 1px 3px var(--neu-lo); }
+:root[data-style="neu"] .pray-table thead th { background: var(--page); }
+:root[data-style="neu"] .pss { background: var(--page); }
+:root[data-style="neu"] .pss-nav button { box-shadow: var(--raise); }
+:root[data-style="neu"] .pss-nav button:first-child { background: var(--page); border-color: transparent; }
+:root[data-style="neu"] .pss-body li { background: var(--card); box-shadow: var(--raise-sm); }
+@media (prefers-reduced-motion: reduce) { :root[data-style="neu"] .pray { transition: none; } }
+
+/* classic: 종이 카드, 천 무늬 바탕, 광택 있는 버튼, 박음질 */
+:root[data-style="skeu"] {
+  --paper-hi: color-mix(in srgb, var(--surface) 92%, #FFF6E0);
+  --paper-lo: color-mix(in srgb, var(--surface) 88%, #E9DFC8);
+  --gloss: linear-gradient(180deg, rgba(255,255,255,.38) 0%, rgba(255,255,255,.08) 50%, rgba(0,0,0,.06) 51%, rgba(0,0,0,.14) 100%);
+  --bevel: inset 0 1px 0 rgba(255,255,255,.45), inset 0 -1px 0 rgba(0,0,0,.18), 0 1px 2px rgba(0,0,0,.25);
+}
+:root[data-style="skeu"] body { background-image: repeating-linear-gradient(45deg, rgba(0,0,0,.025) 0 2px, transparent 2px 4px), repeating-linear-gradient(-45deg, rgba(255,255,255,.035) 0 2px, transparent 2px 4px); }
+:root[data-style="skeu"] .card, :root[data-style="skeu"] .notice, :root[data-style="skeu"] .menu {
+  background: linear-gradient(180deg, var(--paper-hi), var(--paper-lo)); border: 1px solid color-mix(in srgb, var(--line-strong) 70%, transparent);
+  box-shadow: inset 0 1px 0 rgba(255,255,255,.6), 0 1px 1px rgba(0,0,0,.08), 0 4px 0 -2px color-mix(in srgb, var(--paper-lo) 85%, #000), 0 8px 18px -8px rgba(0,0,0,.3); }
+:root[data-style="skeu"] .card.today { background: linear-gradient(180deg, color-mix(in srgb, var(--accent-soft) 70%, var(--paper-hi)), var(--paper-lo));
+  outline: 1.5px dashed color-mix(in srgb, var(--accent) 45%, transparent); outline-offset: -8px; box-shadow: inset 0 4px 0 var(--accent), 0 1px 1px rgba(0,0,0,.08), 0 10px 22px -10px rgba(0,0,0,.35); }
+:root[data-style="skeu"] .topbar { background: linear-gradient(180deg, color-mix(in srgb, var(--surface) 80%, #fff), color-mix(in srgb, var(--surface-2) 85%, #000)); border-bottom: 1px solid rgba(0,0,0,.25); box-shadow: 0 2px 6px rgba(0,0,0,.15); }
+:root[data-style="skeu"] .tabs { background: linear-gradient(180deg, color-mix(in srgb, var(--surface-2) 85%, #000), color-mix(in srgb, var(--surface-2) 70%, #000)); border-top: 1px solid rgba(255,255,255,.25); box-shadow: 0 -2px 6px rgba(0,0,0,.18); }
+:root[data-style="skeu"] .tabs button { color: color-mix(in srgb, var(--ink) 60%, transparent); }
+:root[data-style="skeu"] .tabs button.on { color: var(--accent); filter: drop-shadow(0 0 4px color-mix(in srgb, var(--accent) 50%, transparent)); }
+:root[data-style="skeu"] .brand-mark { background: radial-gradient(circle at 35% 30%, color-mix(in srgb, var(--accent) 55%, #fff), var(--accent) 60%, color-mix(in srgb, var(--accent) 70%, #000)); box-shadow: var(--bevel); }
+:root[data-style="skeu"] h1 { text-shadow: 0 1px 0 rgba(255,255,255,.55); }
+/* 광택 버튼 */
+:root[data-style="skeu"] .btn:not(.ghost), :root[data-style="skeu"] .pray.hero, :root[data-style="skeu"] .pray.on, :root[data-style="skeu"] .pss-nav .pss-pray, :root[data-style="skeu"] .role-tag.admin, :root[data-style="skeu"] .today-tag {
+  background-image: var(--gloss); background-color: var(--accent); border: 1px solid color-mix(in srgb, var(--accent) 70%, #000); box-shadow: var(--bevel); text-shadow: 0 -1px 0 rgba(0,0,0,.25); }
+:root[data-style="skeu"] .pray.hero.on { background: linear-gradient(180deg, color-mix(in srgb, var(--accent-soft) 60%, #000 6%), var(--accent-soft)); color: var(--accent);
+  box-shadow: inset 0 2px 6px rgba(0,0,0,.25), 0 1px 0 rgba(255,255,255,.5); text-shadow: 0 1px 0 rgba(255,255,255,.5); border-color: color-mix(in srgb, var(--accent) 35%, transparent); }
+:root[data-style="skeu"] .btn.ghost, :root[data-style="skeu"] .pray:not(.hero):not(.on), :root[data-style="skeu"] .mchip, :root[data-style="skeu"] .chip-btn, :root[data-style="skeu"] .scope-btn, :root[data-style="skeu"] .tgt-btn, :root[data-style="skeu"] .badge-btn,
+:root[data-style="skeu"] .choice, :root[data-style="skeu"] .icon-btn.sm, :root[data-style="skeu"] .pss-nav button:not(.pss-pray), :root[data-style="skeu"] .pss-x, :root[data-style="skeu"] .pss-music {
+  background-image: linear-gradient(180deg, rgba(255,255,255,.3), rgba(255,255,255,0) 60%, rgba(0,0,0,.06)); background-color: var(--surface); border: 1px solid color-mix(in srgb, var(--line-strong) 85%, #000 10%); box-shadow: inset 0 1px 0 rgba(255,255,255,.7), 0 1px 2px rgba(0,0,0,.15); }
+:root[data-style="skeu"] .mchip.on, :root[data-style="skeu"] .chip-btn.open, :root[data-style="skeu"] .chip-btn.on { background: color-mix(in srgb, var(--surface-2) 80%, #000 6%); box-shadow: inset 0 2px 4px rgba(0,0,0,.2); color: var(--accent); border-color: color-mix(in srgb, var(--line-strong) 70%, #000 20%); }
+:root[data-style="skeu"] .btn:not(:disabled):active, :root[data-style="skeu"] .pray:active, :root[data-style="skeu"] .mchip:active { box-shadow: inset 0 2px 5px rgba(0,0,0,.3); }
+/* 이름표·입력칸은 종이에 찍힌 듯 */
+:root[data-style="skeu"] .tgt, :root[data-style="skeu"] .chip-status, :root[data-style="skeu"] .role-tag { box-shadow: inset 0 1px 2px rgba(0,0,0,.15), 0 1px 0 rgba(255,255,255,.6); }
+:root[data-style="skeu"] .field, :root[data-style="skeu"] .kid-form input, :root[data-style="skeu"] .copybox, :root[data-style="skeu"] .kakao {
+  background: color-mix(in srgb, var(--surface) 96%, #FFF8E6); border: 1px solid color-mix(in srgb, var(--line-strong) 80%, #000 10%); box-shadow: inset 0 2px 3px rgba(0,0,0,.12); }
+:root[data-style="skeu"] .kakao { background: #FEE500; }
+:root[data-style="skeu"] textarea.field { line-height: 1.6em; background-image: repeating-linear-gradient(180deg, transparent 0 calc(1.6em - 1px), color-mix(in srgb, var(--accent) 22%, transparent) calc(1.6em - 1px) 1.6em);
+  background-origin: content-box; background-clip: padding-box; background-attachment: local; }
+/* 스위치·선택 버튼 */
+:root[data-style="skeu"] .seg, :root[data-style="skeu"] .seg2 { background: linear-gradient(180deg, color-mix(in srgb, var(--surface-2) 85%, #000 8%), var(--surface-2)); border: 1px solid color-mix(in srgb, var(--line-strong) 80%, #000 15%); box-shadow: inset 0 1px 3px rgba(0,0,0,.18); }
+:root[data-style="skeu"] .seg button.on, :root[data-style="skeu"] .seg2 button.on { background: linear-gradient(180deg, color-mix(in srgb, var(--surface) 82%, #fff), var(--surface)); color: var(--ink); box-shadow: inset 0 1px 0 #fff, 0 1px 2px rgba(0,0,0,.25); }
+:root[data-style="skeu"] .switch { box-shadow: inset 0 2px 4px rgba(0,0,0,.3); }
+:root[data-style="skeu"] .switch.on { background-image: var(--gloss); }
+:root[data-style="skeu"] .switch > span { background: radial-gradient(circle at 40% 30%, #fff, #ddd); box-shadow: 0 1px 3px rgba(0,0,0,.4); }
+:root[data-style="skeu"] .received { box-shadow: inset 0 1px 3px rgba(0,0,0,.12); }
+:root[data-style="skeu"] .item.s-family, :root[data-style="skeu"] .sub > li.s-family { box-shadow: inset 0 1px 3px rgba(0,0,0,.12); }
+:root[data-style="skeu"] .pss-body li { background: linear-gradient(180deg, var(--paper-hi), var(--paper-lo)); box-shadow: 0 1px 1px rgba(0,0,0,.08), 0 6px 14px -8px rgba(0,0,0,.3); }
+
+/* glass: 테마색으로 은은하게 물든 바탕 위에 반투명 유리판(카드·바)을 얹는다. 글이 읽히도록 유리는 너무 투명하게 하지 않는다 */
+:root[data-style="glass"] {
+  --glass: color-mix(in srgb, var(--surface) 58%, transparent);
+  --glass-strong: color-mix(in srgb, var(--surface) 78%, transparent);
+  --glass-soft: color-mix(in srgb, var(--surface) 40%, transparent);
+  --glass-blur: blur(18px) saturate(160%);
+  --glass-edge: 1px solid color-mix(in srgb, var(--surface) 70%, transparent);
+  --glass-shadow: inset 0 1px 0 var(--neu-hi), inset 0 0 0 1px color-mix(in srgb, var(--ink) 5%, transparent), 0 10px 30px -14px var(--shadow);
+}
+:root[data-style="glass"] body { position: relative; isolation: isolate; }
+/* 바탕의 빛 번짐: 테마색 + 따뜻한 색 + 보라빛을 크게 흐리게 겹친다. 화면에 고정해 스크롤해도 유리 너머로 비친다 */
+:root[data-style="glass"] body::before { content: ""; position: fixed; inset: 0; z-index: -1; pointer-events: none;
+  background:
+    radial-gradient(42% 38% at 12% 18%, color-mix(in srgb, var(--accent) 50%, transparent), transparent 72%),
+    radial-gradient(38% 34% at 88% 30%, color-mix(in srgb, #F2A65A 45%, transparent), transparent 72%),
+    radial-gradient(46% 40% at 70% 92%, color-mix(in srgb, var(--leader) 36%, transparent), transparent 72%),
+    radial-gradient(36% 30% at 20% 85%, color-mix(in srgb, var(--accent-mid) 55%, transparent), transparent 72%); }
+:root[data-style="glass"] .card, :root[data-style="glass"] .notice {
+  background: var(--glass); -webkit-backdrop-filter: var(--glass-blur); backdrop-filter: var(--glass-blur); border: var(--glass-edge); box-shadow: var(--glass-shadow); }
+:root[data-style="glass"] .card.today { background: linear-gradient(160deg, color-mix(in srgb, var(--accent-soft) 70%, transparent), var(--glass-soft)); box-shadow: inset 0 4px 0 var(--accent), var(--glass-shadow); }
+:root[data-style="glass"] .topbar, :root[data-style="glass"] .tabs { background: var(--glass); -webkit-backdrop-filter: var(--glass-blur); backdrop-filter: var(--glass-blur); border-color: color-mix(in srgb, var(--surface) 60%, transparent); }
+/* 위에 뜨는 것(메뉴·홈 화면에 두기 창·기도하기·모임 모드)은 아래 글과 겹치지 않게 진하게. 메뉴는 유리 상단 바 안이라 흐림이 먹지 않아 불투명하게 */
+:root[data-style="glass"] .menu { background: var(--surface); border: var(--glass-edge); box-shadow: var(--glass-shadow), 0 16px 40px -12px var(--shadow); }
+:root[data-style="glass"] .pop-sheet { background: var(--glass-strong); }
+:root[data-style="glass"] .pss { background: color-mix(in srgb, var(--page) 82%, transparent); -webkit-backdrop-filter: blur(24px) saturate(160%); backdrop-filter: blur(24px) saturate(160%); }
+:root[data-style="glass"] .pss-top { background: linear-gradient(color-mix(in srgb, var(--page) 90%, transparent) 75%, transparent); }
+:root[data-style="glass"] .pss-body li { background: var(--glass); border: var(--glass-edge); }
+/* 작은 단추·칩·입력칸은 한 겹 더 얇은 유리 */
+:root[data-style="glass"] .btn.ghost, :root[data-style="glass"] .pray:not(.hero):not(.on), :root[data-style="glass"] .mchip, :root[data-style="glass"] .chip-btn, :root[data-style="glass"] .badge-btn,
+:root[data-style="glass"] .tgt, :root[data-style="glass"] .role-tag:not(.admin):not(.leader), :root[data-style="glass"] .seg, :root[data-style="glass"] .seg2 {
+  background: var(--glass-soft); border-color: color-mix(in srgb, var(--surface) 65%, transparent); }
+:root[data-style="glass"] .field, :root[data-style="glass"] .kid-form input { background: var(--glass-strong); border-color: color-mix(in srgb, var(--line-strong) 60%, transparent); }
+:root[data-style="glass"] .seg button.on, :root[data-style="glass"] .seg2 button.on { background: var(--glass-strong); box-shadow: inset 0 1px 0 var(--neu-hi), 0 2px 8px -3px var(--shadow); }
+:root[data-style="glass"] .mchip.on, :root[data-style="glass"] .chip-btn.on { background: color-mix(in srgb, var(--accent-soft) 70%, transparent); color: var(--ink); border-color: color-mix(in srgb, var(--accent) 55%, transparent); }
+:root[data-style="glass"] .btn:not(.ghost), :root[data-style="glass"] .pray.hero { box-shadow: inset 0 1px 0 rgba(255, 255, 255, .3), 0 8px 20px -10px var(--accent); }
+:root[data-style="glass"] .item.s-family, :root[data-style="glass"] .sub > li.s-family { background: color-mix(in srgb, var(--private) 60%, transparent); }
+/* 유리 흐림을 못 쓰는 브라우저는 반투명 대신 거의 불투명하게 해서 글이 읽히게 */
+@supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
+  :root[data-style="glass"] { --glass: color-mix(in srgb, var(--surface) 90%, transparent); --glass-soft: color-mix(in srgb, var(--surface) 75%, transparent); --glass-strong: var(--surface); }
+}

@@ -13,10 +13,11 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Gowun+Batang:wght@700&family=IBM+Plex+Sans+KR:wght@400;500;600&display=swap">
 <script>
-/* 화면 모드·색 테마·큰 글씨: 공동체 앱과 같은 설정(이 기기에만). 화면이 그려지기 전에 먼저 입힌다 */
+/* 화면 모드·색 테마·디자인·큰 글씨: 공동체 앱과 같은 설정(이 기기에만). 화면이 그려지기 전에 먼저 입힌다 */
 try { const p = JSON.parse(localStorage.getItem('koide-pref') || '{}'), d = document.documentElement;
   if (p.mode === 'light' || p.mode === 'dark') d.dataset.mode = p.mode;
   if (p.accent && p.accent !== 'green') d.dataset.accent = p.accent;
+  if (p.style && p.style !== 'flat') d.dataset.style = p.style;
   if (p.big) d.dataset.big = ''; } catch (e) { /* 무시 */ }
 </script>
 <style>
@@ -27,6 +28,8 @@ try { const p = JSON.parse(localStorage.getItem('koide-pref') || '{}'), d = docu
   --ink: #1B2523; --ink-2: #5B6965; --line: #DDE4E0; --line-strong: #B9C4BF;
   --accent: #2B6A62; --accent-mid: #8DBDB5; --accent-soft: #DCEBE7; --on-accent: #FFFFFF;
   --warm: #9A5A14; --warm-soft: #F5E8D6; --shadow: rgba(20, 35, 32, .14);
+  --leader: #62519E; --private: #E8ECEA; --neu-hi: rgba(255, 255, 255, .9); --neu-lo: rgba(20, 35, 32, .17);
+  --wood: #B98756; --wood-back: #E9D9C2; --plaque: #FBF6EC; --linen: #EFE6D6;
   --f-display: 'Gowun Batang', 'AppleMyungjo', 'Batang', serif;
   --f-body: 'IBM Plex Sans KR', 'Apple SD Gothic Neo', 'Malgun Gothic', sans-serif;
   --base: 16px;
@@ -35,12 +38,12 @@ try { const p = JSON.parse(localStorage.getItem('koide-pref') || '{}'), d = docu
   --page: #141B19; --surface: #1C2522; --surface-2: #232D2A;
   --ink: #E5ECE9; --ink-2: #9CAAA5; --line: #2D3935; --line-strong: #4A5853;
   --accent: #7CC2B7; --accent-mid: #3F7C73; --accent-soft: #1E3934; --on-accent: #0F1A18;
-  --warm: #E2A563; --warm-soft: #3A2C1B; --shadow: rgba(0, 0, 0, .5); color-scheme: dark; } }
+  --warm: #E2A563; --warm-soft: #3A2C1B; --shadow: rgba(0, 0, 0, .5); --leader: #B6A8EA; --private: #252E2B; --neu-hi: rgba(255, 255, 255, .06); --neu-lo: rgba(0, 0, 0, .6); --wood: #7A5636; --wood-back: #3A2E24; --plaque: #2B2620; --linen: #3A3328; color-scheme: dark; } }
 :root[data-mode="dark"] {
   --page: #141B19; --surface: #1C2522; --surface-2: #232D2A;
   --ink: #E5ECE9; --ink-2: #9CAAA5; --line: #2D3935; --line-strong: #4A5853;
   --accent: #7CC2B7; --accent-mid: #3F7C73; --accent-soft: #1E3934; --on-accent: #0F1A18;
-  --warm: #E2A563; --warm-soft: #3A2C1B; --shadow: rgba(0, 0, 0, .5); color-scheme: dark; }
+  --warm: #E2A563; --warm-soft: #3A2C1B; --shadow: rgba(0, 0, 0, .5); --leader: #B6A8EA; --private: #252E2B; --neu-hi: rgba(255, 255, 255, .06); --neu-lo: rgba(0, 0, 0, .6); --wood: #7A5636; --wood-back: #3A2E24; --plaque: #2B2620; --linen: #3A3328; color-scheme: dark; }
 /* 큰 글씨와 색 테마: 공동체 앱과 같은 값 */
 :root[data-big] { --base: 19px; }
 @media (min-width: 1000px) { :root[data-big] { --base: 18px; } }
@@ -111,12 +114,37 @@ textarea.field { min-height: 5.5em; resize: vertical; }
 .note { border-top: 1px solid var(--line); padding-top: .7em; display: flex; flex-direction: column; gap: .35em; }
 .note:first-of-type { border-top: 0; padding-top: 0; }
 .note p { margin: 0; word-break: keep-all; white-space: pre-wrap; }
-.note .acts { display: flex; gap: 14px; }
+.note .row { flex-wrap: wrap; row-gap: 0; }
+.note .acts { display: flex; gap: 14px; margin-left: auto; }
+.note .acts button { white-space: nowrap; }
 /* 지난 기록 */
 .weeks { display: grid; grid-template-columns: repeat(7, 1fr); gap: 5px; }
 .weeks i { aspect-ratio: 1; border-radius: 6px; background: var(--surface-2); display: grid; place-items: center; font-style: normal; font-size: .68em; color: var(--ink-2); }
 .weeks i.on { background: var(--accent); color: var(--on-accent); }
 .weeks i.today { outline: 2px solid var(--accent-mid); }
+.weeks i.wd { background: none; aspect-ratio: auto; font-size: .7em; }
+.weeks i.blank { background: none; }
+/* 지난 기록의 입체 그림: 나의 올해 끈, 이달의 소품 선반, 끈 보관함 */
+.card-head { display: flex; justify-content: space-between; align-items: baseline; gap: 10px; flex-wrap: wrap; }
+.card-head span { font-size: .8em; color: var(--ink-2); font-variant-numeric: tabular-nums; }
+.stage3d { position: relative; width: 100%; border-radius: 12px; background: radial-gradient(120% 100% at 50% 40%, var(--surface), var(--surface-2)); cursor: grab; overflow: hidden; }
+.stage3d.cord { aspect-ratio: 16 / 9; }
+.stage3d.shelf { aspect-ratio: 4 / 5; max-height: 70vh; }
+.stage3d.chest { aspect-ratio: 16 / 11; }
+.stage3d .wait { position: absolute; inset: 0; display: grid; place-items: center; font-size: .82em; color: var(--ink-2); }
+.pick3d { border-left: 3px solid var(--accent); padding: .3em 0 .3em .8em; }
+.pick3d.gold { border-left-color: #D4A64A; }
+.pick3d small { display: block; font-size: .76em; color: var(--ink-2); }
+.pick3d p { margin: .1em 0 0; word-break: keep-all; }
+.pick3d q { display: block; font-size: .82em; color: var(--ink-2); quotes: none; margin-top: .2em; }
+.pick3d ul { margin: .3em 0 0; padding-left: 1.1em; font-size: .9em; }
+.legend3d { display: flex; gap: 14px; flex-wrap: wrap; font-size: .78em; color: var(--ink-2); }
+.legend3d i { display: inline-block; width: 12px; height: 12px; border-radius: 50%; margin-right: 5px; vertical-align: -2px; }
+.legend3d .k { background: var(--accent); }
+.legend3d .g { background: none; border: 2.5px solid #D4A64A; width: 8px; height: 8px; }
+.month-nav { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-bottom: 12px; }
+.month-nav b { font-family: var(--f-display); font-size: 1.1em; }
+.month-nav .btn { min-width: 44px; font-size: 1.1em; }
 .thanks li { list-style: none; border-left: 3px solid var(--warm); padding: .2em 0 .2em .7em; margin-bottom: .7em; }
 .thanks { margin: 0; padding: 0; }
 .thanks small { display: block; color: var(--ink-2); font-size: .76em; }
@@ -125,11 +153,16 @@ textarea.field { min-height: 5.5em; resize: vertical; }
 .stats b { display: block; font-family: var(--f-display); font-size: 1.6em; line-height: 1.1; }
 .stats span { font-size: .76em; color: var(--ink-2); }
 /* 아래 탭 */
-.tabs { position: fixed; left: 0; right: 0; bottom: 0; background: var(--surface); border-top: 1px solid var(--line); display: grid; grid-template-columns: repeat(5, 1fr); padding: 6px 4px calc(6px + env(safe-area-inset-bottom, 0px)); z-index: 10; }
-.tabs button { background: none; border: 0; display: flex; flex-direction: column; align-items: center; gap: 2px; font-size: .7em; color: var(--ink-2); min-height: 48px; cursor: pointer; }
-.tabs button svg { width: 22px; height: 22px; }
-.tabs button.on { color: var(--accent); font-weight: 600; }
-.tabs .mid svg { width: 26px; height: 26px; }
+.ic { width: 1em; height: 1em; fill: none; stroke: currentColor; stroke-width: 1.5; stroke-linecap: round; stroke-linejoin: round; flex: none; }
+.tabs { position: fixed; left: 0; right: 0; bottom: 0; display: grid; grid-template-columns: repeat(5, 1fr); background: var(--surface); border-top: 1px solid var(--line); padding: 0 env(safe-area-inset-right, 0px) max(6px, env(safe-area-inset-bottom, 0px)) env(safe-area-inset-left, 0px); z-index: 10; }
+.tabs button { background: none; border: 0; color: var(--ink-2); display: grid; place-items: center; padding: .55em 0; min-height: 56px; cursor: pointer; position: relative; }
+.tabs .ic { width: 28px; height: 28px; stroke-width: 1.4; }
+.tabs button.on { color: var(--accent); }
+.tabs button.on .ic { stroke-width: 1.8; }
+.tabs button.on::after { content: ''; position: absolute; bottom: 6px; width: 5px; height: 5px; border-radius: 50%; background: var(--accent); }
+.tabs button.pray-tab .ic { width: 44px; height: 44px; padding: 8px; border-radius: 50%; background: var(--accent-soft); color: var(--accent); }
+.tabs button.pray-tab.on .ic { background: var(--accent); color: var(--on-accent); }
+.tabs button.pray-tab.on::after { content: none; }
 /* 기도하기 판 */
 .sheet-back { position: fixed; inset: 0; background: color-mix(in srgb, var(--ink) 45%, transparent); z-index: 30; display: grid; place-items: end center; padding: 16px; }
 .sheet { width: min(480px, 100%); background: var(--surface); border-radius: 20px; padding: 18px; display: flex; flex-direction: column; gap: 12px; max-height: calc(100dvh - 32px); overflow: auto; }
@@ -179,11 +212,33 @@ textarea.field { min-height: 5.5em; resize: vertical; }
 .tour-dots i.on { background: var(--accent); }
 @media (prefers-reduced-motion: no-preference) { .today-item, .card { transition: background .2s, border-color .2s; } }
 </style>
+<link rel="stylesheet" href="design-styles.css">
+<style>
+/* 디자인 스타일에서 기도 노트에만 있는 것(칩, 기도했어요, 오늘의 제목, 창, 한 장씩 화면)을 공동체의 짝에 맞춘다 */
+:root[data-style="neu"] .chip, :root[data-style="neu"] .pray-btn:not(.on), :root[data-style="neu"] .btn.ghost { background-color: var(--card); border-color: transparent; box-shadow: var(--raise-sm); }
+:root[data-style="neu"] .chip.on, :root[data-style="neu"] .pray-btn.on { background: var(--accent-soft); color: var(--accent); border-color: transparent; box-shadow: var(--press); }
+:root[data-style="neu"] .today-item { background: var(--page); border-color: transparent; box-shadow: var(--press-sm); }
+:root[data-style="neu"] .today-item.on { background: var(--accent-soft); }
+:root[data-style="neu"] .tag { background: var(--page); box-shadow: var(--press-sm); }
+:root[data-style="neu"] .sheet { background: var(--card); box-shadow: var(--raise); }
+:root[data-style="neu"] .ps { background: var(--page); }
+:root[data-style="neu"] .ps-nav .btn, :root[data-style="neu"] .ps-nav .pray-btn { box-shadow: var(--raise); border-color: transparent; }
+:root[data-style="skeu"] .chip, :root[data-style="skeu"] .pray-btn:not(.on), :root[data-style="skeu"] .btn.ghost {
+  background-image: linear-gradient(180deg, rgba(255,255,255,.3), rgba(255,255,255,0) 60%, rgba(0,0,0,.06)); background-color: var(--surface); border: 1px solid color-mix(in srgb, var(--line-strong) 85%, #000 10%); box-shadow: inset 0 1px 0 rgba(255,255,255,.7), 0 1px 2px rgba(0,0,0,.15); }
+:root[data-style="skeu"] .chip.on, :root[data-style="skeu"] .pray-btn.on { background-image: var(--gloss); background-color: var(--accent); color: var(--on-accent); border: 1px solid color-mix(in srgb, var(--accent) 70%, #000); box-shadow: var(--bevel); text-shadow: 0 -1px 0 rgba(0,0,0,.25); }
+:root[data-style="skeu"] .today-item, :root[data-style="skeu"] .tag { box-shadow: inset 0 1px 3px rgba(0,0,0,.12); }
+:root[data-style="skeu"] .sheet { background: linear-gradient(180deg, var(--paper-hi), var(--paper-lo)); }
+:root[data-style="glass"] .chip, :root[data-style="glass"] .pray-btn:not(.on), :root[data-style="glass"] .btn.ghost, :root[data-style="glass"] .today-item { background: var(--glass-soft); border-color: color-mix(in srgb, var(--surface) 65%, transparent); }
+:root[data-style="glass"] .today-item.on { background: color-mix(in srgb, var(--accent-soft) 70%, transparent); }
+:root[data-style="glass"] .sheet { background: var(--glass-strong); -webkit-backdrop-filter: var(--glass-blur); backdrop-filter: var(--glass-blur); border: var(--glass-edge); }
+:root[data-style="glass"] .ps { background: color-mix(in srgb, var(--page) 82%, transparent); -webkit-backdrop-filter: blur(24px) saturate(160%); backdrop-filter: blur(24px) saturate(160%); }
+</style>
 </head>
 <body>
 <div id="root"></div>
 <script src="config.js"></script>
 <script src="pray-data.js"></script>
+<script src="art-data.js"></script>
 <script>
 (() => {
   // ── 저장: 이 기기에만. 서버로 보내지 않는다 ─────────────────────────────
@@ -207,7 +262,7 @@ textarea.field { min-height: 5.5em; resize: vertical; }
     x.v = 2; return x;
   }
 
-  // ── 다른 기기와 이어 두기: 휴대폰에서 비밀 문구로 잠가 서버에 맡긴다. 서버와 시트에는 잠긴 글만 남는다 ──────────
+  // ── 다른 기기와 연결하기: 휴대폰에서 비밀 문구로 잠가 서버에 맡긴다. 서버와 시트에는 잠긴 글만 남는다 ──────────
   //  열쇠: 비밀 문구 + 소금(무작위) → PBKDF2(SHA-256, 25만 번) → AES-GCM 256. 열쇠는 이 기기에만 두고(노트도 이 기기에 그대로 있으니),
   //  비밀 문구는 어디에도 저장하지 않는다. 잊으면 다른 기기에서는 아무도 열 수 없다
   const getToken = () => { try { return localStorage.getItem(TOKEN); } catch (e) { return null; } };
@@ -272,7 +327,7 @@ textarea.field { min-height: 5.5em; resize: vertical; }
         const r = await api('noteGet');
         let base = 0;
         if (r && r.data) {
-          try { mergeIn(await unlockUp(key, r.data)); } catch (e) { throw { message: '다른 기기에서 비밀 문구를 바꿨어요. 이어 두기를 끊고 새 비밀 문구로 다시 이어 주세요.' }; }
+          try { mergeIn(await unlockUp(key, r.data)); } catch (e) { throw { message: '다른 기기에서 비밀 문구를 바꿨어요. 연결을 끊고 새 비밀 문구로 다시 연결해 주세요.' }; }
           base = r.rev;
         }
         const w = await api('notePut', { salt: D.vault.salt, data: await lockUp(key, payload()), baseRev: base });
@@ -281,7 +336,7 @@ textarea.field { min-height: 5.5em; resize: vertical; }
         break;
       }
     } catch (e) {
-      S.syncMsg = e.code === 'login' ? '카카오 로그인이 끝났어요. 다시 로그인하면 이어서 맞춰요.' : e.code === 'bad' && /모르는 요청/.test(e.message || '') ? '서버를 새 버전으로 배포해야 이어 둘 수 있어요.' : (e.message || '맞추지 못했어요.');
+      S.syncMsg = e.code === 'login' ? '카카오 로그인이 끝났어요. 다시 로그인하면 이어서 맞춰요.' : e.code === 'bad' && /모르는 요청/.test(e.message || '') ? '서버를 새 버전으로 배포해야 연결할 수 있어요.' : (e.message || '맞추지 못했어요.');
     } finally {
       syncing = false;
       if (syncAgain) { syncAgain = false; sync(); } else safeRender();
@@ -312,6 +367,15 @@ textarea.field { min-height: 5.5em; resize: vertical; }
     book: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 5.5C6 4.5 9 4.5 12 6c3-1.5 6-1.5 8-.5V19c-2-1-5-1-8 .5-3-1.5-6-1.5-8-.5z"/><path d="M12 6v13.5"/></svg>',
     more: '<svg viewBox="0 0 24 24" fill="currentColor"><circle cx="5" cy="12" r="1.6"/><circle cx="12" cy="12" r="1.6"/><circle cx="19" cy="12" r="1.6"/></svg>',
     check: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg>'
+  };
+  // 아래 탭 아이콘: 공동체 앱과 같은 그림(오늘은 해)
+  const tic = d => `<svg class="ic" viewBox="0 0 16 16" aria-hidden="true">${d}</svg>`;
+  const TICON = {
+    sun: tic('<circle cx="8" cy="8" r="2.8"/><path d="M8 1.8v1.4M8 12.8v1.4M1.8 8h1.4M12.8 8h1.4M3.6 3.6l1 1M11.4 11.4l1 1M3.6 12.4l1-1M11.4 4.6l1-1"/>'),
+    pen: tic('<path d="M3 13l.8-3.2 6.7-6.7 2.4 2.4-6.7 6.7z"/><path d="M9.3 4.3l2.4 2.4"/>'),
+    hands: tic('<path d="M8 2.5v10.5"/><path d="M8 2.5C6.7 3.8 6 5.6 6 7.6L3.4 10.4 5 13.5h3"/><path d="M8 2.5c1.3 1.3 2 3.1 2 5.1l2.6 2.8-1.6 3.1H8"/>'),
+    book: tic('<rect x="3" y="2.5" width="10" height="11" rx="1.5"/><path d="M5.8 5.5h4.4M5.8 8h4.4M5.8 10.5h2.5"/>'),
+    more: tic('<circle cx="3.5" cy="8" r=".9"/><circle cx="8" cy="8" r=".9"/><circle cx="12.5" cy="8" r=".9"/>')
   };
 
   // ── 기도 대상: 나, 내가 기도하는 사람들, 교회, 나라·세상 ─────────────────
@@ -347,6 +411,7 @@ textarea.field { min-height: 5.5em; resize: vertical; }
   // ── 화면 설정: 공동체 앱과 같은 곳(koide-pref)에 둔다. 예전 노트의 화면 모드는 한 번 옮긴다 ──────────
   const PREF = (() => { try { return JSON.parse(localStorage.getItem('koide-pref')) || {}; } catch (e) { return {}; } })();
   const MODES = [['system', '기기 설정'], ['light', '밝게'], ['dark', '어둡게']];
+  const STYLES = [['flat', 'basic'], ['neu', 'new'], ['skeu', 'classic'], ['glass', 'glass']];
   const ACCENTS = [['green', '초록', '#2B6A62'], ['amber', '주황', '#C46A24'], ['blue', '파랑', '#2F5D95'], ['rose', '장미', '#A8435C'], ['ink', '먹색', '#3A3A36']];
   function setPref(k, v) {
     PREF[k] = v;
@@ -354,6 +419,7 @@ textarea.field { min-height: 5.5em; resize: vertical; }
     const d = document.documentElement;
     if (PREF.mode === 'light' || PREF.mode === 'dark') d.dataset.mode = PREF.mode; else delete d.dataset.mode;
     if (PREF.accent && PREF.accent !== 'green') d.dataset.accent = PREF.accent; else delete d.dataset.accent;
+    if (PREF.style && PREF.style !== 'flat') d.dataset.style = PREF.style; else delete d.dataset.style;
     if (PREF.big) d.dataset.big = ''; else delete d.dataset.big;
   }
   if (D.mode && !PREF.mode) setPref('mode', D.mode);
@@ -391,7 +457,7 @@ textarea.field { min-height: 5.5em; resize: vertical; }
     ['오늘', '하루 세 가지', '날마다 기도제목 세 개가 나와요. 오래 기도하지 않은 것부터예요. 기도하고 "기도했어요"를 눌러요.'],
     ['내 기도', '쓰고, 마치고, 감사해요', '기도제목을 쓰고 누구를 위한 것인지 골라요. 응답받으면 마치기 › "응답받았어요"로 감사 기록을 남겨요.'],
     ['기도하기', '한 장씩 넘기며', '내 기도제목에 하나님 나라 주제와 잔잔한 음악을 더할 수 있어요. 마지막에는 주기도문으로 마쳐요.'],
-    ['나만 봐요', '이 휴대폰에 저장돼요', '서버로 보내지 않아서 아무도 볼 수 없어요. 휴대폰을 바꿀 때는 더보기 › 다른 기기와 이어 두기나 백업을 써요.']];
+    ['나만 봐요', '이 휴대폰에 저장돼요', '서버로 보내지 않아서 아무도 볼 수 없어요. 휴대폰을 바꿀 때는 더보기 › 다른 기기와 연결하기나 백업을 써요.']];
   function tourSheet() {
     const i = S.tour, [ey, h, t] = TOUR[i], last = i === TOUR.length - 1;
     return `<div class="sheet-back" data-a="tourend"><section class="sheet" role="dialog" aria-modal="true" aria-labelledby="tr-t" data-stop>
@@ -444,28 +510,105 @@ textarea.field { min-height: 5.5em; resize: vertical; }
         <div class="row"><span class="days">${short(i.created)}부터 · ${daysSince(i.created)}일째${lastPrayed(i.id) ? ' · 마지막 기도 ' + short(lastPrayed(i.id)) : ''}</span>
         <span class="acts"><button class="link quiet" data-a="edit" data-v="${i.id}">고치기</button><button class="link quiet" data-a="share" data-v="${i.id}">나누기</button><button class="link" data-a="done" data-v="${i.id}">마치기</button></span></div></div>`).join('')}`).join('')}</section>` : '<p class="hint" style="text-align:center">위에 첫 기도제목을 써 보세요.</p>'}`;
   }
+  // 지난 기록: 달마다 한 장. 위에서 달을 넘기고, 그 달의 기도한 날·감사와 응답·마친 기도만 보여서 쌓여도 길어지지 않는다
   function lookView() {
-    const t = new Date(), days = [];
-    for (let k = 27; k >= 0; k--) { const d = new Date(t); d.setDate(t.getDate() - k); days.push(dkey(d)); }
-    const prayedDays = new Set(prays().map(p => p.d)), month = TODAY().slice(0, 7);
-    const mDays = [...prayedDays].filter(d => d.startsWith(month)).length;
-    const doneL = D.items.filter(i => i.done).sort((a, b) => b.done.date.localeCompare(a.done.date));
-    const longest = open().slice().sort((a, b) => a.created.localeCompare(b.created)).slice(0, 3);
-    const thanks = D.thanks.slice().sort((a, b) => b.date.localeCompare(a.date));
+    const cur = TODAY().slice(0, 7), firsts = [...prays().map(p => p.d), ...D.thanks.map(x => x.date), ...D.items.map(i => i.created)].filter(Boolean).sort();
+    const first = (firsts[0] || TODAY()).slice(0, 7), M = S.lookM && S.lookM >= first && S.lookM <= cur ? S.lookM : cur;
+    const [y, m] = M.split('-').map(Number), shift = k => { const d = new Date(y, m - 1 + k, 1); return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0'); };
+    const prayedDays = new Set(prays().map(p => p.d).filter(d => d.startsWith(M)));
+    const thanks = D.thanks.filter(x => x.date.startsWith(M)).sort((p, q) => q.date.localeCompare(p.date));
+    const doneL = D.items.filter(i => i.done && i.done.date.startsWith(M)).sort((p, q) => q.done.date.localeCompare(p.done.date));
+    const lead = new Date(y, m - 1, 1).getDay(), days = new Date(y, m, 0).getDate();
+    const cells = [...Array(lead).fill('<i class="blank"></i>'), ...Array.from({ length: days }, (_, k) => { const d = M + '-' + String(k + 1).padStart(2, '0');
+      return `<i class="${prayedDays.has(d) ? 'on' : ''}${d === TODAY() ? ' today' : ''}" title="${short(d)}">${k + 1}</i>`; })].join('');
+    const tab = S.lookTab === 'done' ? 'done' : 'thanks';
+    const list = tab === 'thanks'
+      ? (thanks.length ? `<ul class="thanks">${thanks.map(x => { const it = x.item && D.items.find(i => i.id === x.item); return `<li><small>${short(x.date)}${x.kind === 'answer' ? ' · 응답' : ''}</small>${esc(x.text)}${it ? `<q>기도제목: ${esc(it.text)}</q>` : ''}</li>`; }).join('')}</ul>` : '<p class="hint">이 달에는 남긴 감사가 없어요. 기도제목을 "응답받았어요"로 마치거나, 오늘 화면에서 감사한 것을 남기면 여기에 모여요.</p>')
+      : (doneL.length ? doneL.map(i => `<div class="note"><p><span class="tag">${esc(targetName(i.target))}</span>${esc(i.text)}</p><span class="days">${short(i.created)} ~ ${short(i.done.date)} · ${i.done.how === 'answer' ? '응답받았어요' : '맡겨 두었어요'}</span>
+        <button class="link quiet" data-a="undone" data-v="${i.id}" style="align-self:flex-start">다시 기도하기</button></div>`).join('') : '<p class="hint">이 달에 마친 기도는 없어요.</p>');
+    const longest = M === cur ? open().slice().sort((p, q) => p.created.localeCompare(q.created)).slice(0, 3) : [];
+    const C = cordData(), store = S.store === 'chest' ? 'chest' : 'shelf';
     return `<header class="top"><div><p class="eyebrow">나만 보는 기록</p><h1>지난 기록</h1></div></header>
-      <section class="card"><div class="stats"><div><b>${mDays}</b><span>이번 달 기도한 날</span></div><div><b>${thanks.length}</b><span>감사·응답 기록</span></div><div><b>${doneL.length}</b><span>마친 기도</span></div></div>
-        <p class="label">최근 4주</p><div class="weeks" aria-label="최근 4주 중 기도한 날">${days.map(d => `<i class="${prayedDays.has(d) ? 'on' : ''}${d === TODAY() ? ' today' : ''}" title="${short(d)}">${Number(d.slice(8))}</i>`).join('')}</div>
+      <section class="card"><div class="card-head"><h2>나의 ${C.year}년 끈</h2><span>기도한 날 ${C.days.reduce((a, b) => a + b, 0)}일 · 응답 ${C.answers.length} · 감사 ${C.thanks.length}</span></div>
+        <div class="stage3d cord" id="cord3d"><span class="wait">끈을 엮는 중…</span></div>
+        <div class="legend3d"><span><i class="k"></i>응답 매듭</span><span><i class="g"></i>감사의 금실</span><span>가닥 굵기 = 그 달에 기도한 날</span></div>
+        <div id="cord3d-pick"><p class="hint">매듭이나 금실을 누르면 그날의 기록이 보여요. 밀어서 돌려 볼 수 있어요.</p></div></section>
+      <section class="card"><div class="seg" role="tablist">${[['shelf', '이달의 소품'], ['chest', '끈 보관함']].map(([k, l]) => `<button class="${store === k ? 'on' : ''}" role="tab" aria-selected="${store === k}" data-a="store" data-v="${k}">${l}</button>`).join('')}</div>
+        <p class="hint">${store === 'shelf' ? '기도한 날마다 그 달 그림의 소품이 하나씩 선반에 놓여요. 공동체의 이달의 그림과 같은 주제예요.' : '한 해가 끝나면 그해의 끈을 감아 상자에 넣어요. 해가 갈수록 한 칸씩 채워져요.'}</p>
+        <div class="stage3d ${store}" id="store3d"><span class="wait">불러오는 중…</span></div>
+        <div id="store3d-pick"><p class="hint">${store === 'shelf' ? '소품을 누르면 이름과 놓인 날이 보여요. 밀어서 선반을 돌려 볼 수 있어요.' : '끈을 누르면 그해의 기록이 보여요. 밀어서 상자를 돌려 볼 수 있어요.'}</p></div></section>
+      <div class="month-nav"><button class="btn ghost small" data-a="lookm" data-v="${shift(-1)}"${M > first ? '' : ' disabled'} aria-label="이전 달">‹</button><b>${y}년 ${m}월</b><button class="btn ghost small" data-a="lookm" data-v="${shift(1)}"${M < cur ? '' : ' disabled'} aria-label="다음 달">›</button></div>
+      <section class="card"><div class="stats"><div><b>${prayedDays.size}</b><span>기도한 날</span></div><div><b>${thanks.length}</b><span>감사·응답</span></div><div><b>${doneL.length}</b><span>마친 기도</span></div></div>
+        <div class="weeks" aria-label="${m}월 중 기도한 날">${'일월화수목금토'.split('').map(w => `<i class="wd">${w}</i>`).join('')}${cells}</div>
         <p class="hint">남과 견주지 않는 나만의 기록이에요. 빈 날이 있어도 괜찮아요.</p></section>
-      <section class="card"><p class="label">감사와 응답</p>${thanks.length ? `<ul class="thanks">${thanks.map(x => { const it = x.item && D.items.find(i => i.id === x.item); return `<li><small>${short(x.date)}${x.kind === 'answer' ? ' · 응답' : ''}</small>${esc(x.text)}${it ? `<q>기도제목: ${esc(it.text)}</q>` : ''}</li>`; }).join('')}</ul>` : '<p class="hint">기도제목을 "응답받았어요"로 마치거나, 오늘 화면에서 감사한 것을 남기면 여기에 모여요.</p>'}</section>
-      ${longest.length ? `<section class="card"><p class="label">오래 이어 온 기도</p>${longest.map(i => `<p class="plain"><span class="tag">${esc(targetName(i.target))}</span>${esc(i.text)} <span class="days">· ${daysSince(i.created)}일째</span></p>`).join('')}</section>` : ''}
-      ${doneL.length ? `<section class="card"><p class="label">마친 기도</p>${doneL.map(i => `<div class="note"><p><span class="tag">${esc(targetName(i.target))}</span>${esc(i.text)}</p><span class="days">${short(i.created)} ~ ${short(i.done.date)} · ${i.done.how === 'answer' ? '응답받았어요' : '맡겨 두었어요'}</span>
-        <button class="link quiet" data-a="undone" data-v="${i.id}" style="align-self:flex-start">다시 기도하기</button></div>`).join('')}</section>` : ''}`;
+      <section class="card"><div class="seg" role="tablist">${[['thanks', '감사와 응답 · ' + thanks.length], ['done', '마친 기도 · ' + doneL.length]].map(([k, l]) => `<button class="${tab === k ? 'on' : ''}" role="tab" aria-selected="${tab === k}" data-a="looktab" data-v="${k}">${l}</button>`).join('')}</div>${list}</section>
+      ${longest.length ? `<section class="card"><p class="label">오래 이어 온 기도</p>${longest.map(i => `<p class="plain"><span class="tag">${esc(targetName(i.target))}</span>${esc(i.text)} <span class="days">· ${daysSince(i.created)}일째</span></p>`).join('')}</section>` : ''}`;
   }
+  // ── 지난 기록의 입체 그림 데이터 ──────────
+  const yearOf = () => TODAY().slice(0, 4);
+  // 올해 끈: 달마다 기도한 날, 응답(감사 기록 중 응답), 감사(그 밖의 감사)
+  function cordData() {
+    const y = yearOf(), days = Array(12).fill(0);
+    new Set(prays().map(p => p.d).filter(d => d.startsWith(y))).forEach(d => { days[Number(d.slice(5, 7)) - 1]++; });
+    const T = D.thanks.filter(x => x.date && x.date.startsWith(y)).sort((a, b) => a.date.localeCompare(b.date));
+    return { year: y, days, now: new Date().getMonth(),
+      answers: T.filter(x => x.kind === 'answer').map(x => { const it = x.item && D.items.find(i => i.id === x.item); return { d: x.date, text: x.text, item: it ? it.text : '' }; }),
+      thanks: T.filter(x => x.kind !== 'answer').map(x => ({ d: x.date, text: x.text })) };
+  }
+  // 소품 선반: 이번 달과 그 앞 두 달(노트를 시작한 달부터). 그 달 그림의 주인공과 소품
+  function shelfData() {
+    const A = window.KOIDE_ART, firsts = [...prays().map(p => p.d)].sort(), first = (firsts[0] || TODAY()).slice(0, 7), rows = [];
+    for (let k = 0; k < 3; k++) {
+      const d = new Date(); d.setDate(1); d.setMonth(d.getMonth() - k);
+      const M = d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0'); if (k && M < first) break;
+      const key = A.sceneKey(M), sc = A.SCENES[key], dd = [...new Set(prays().map(p => p.d).filter(x => x.startsWith(M)))].sort();
+      rows.push({ key, title: sc.title, hero: [(sc.heroes || ['hero'])[0], sc.hero, sc.heroW], props: sc.props.map(p => [p[0], p[1], p[4]]), days: dd, count: dd.length });
+    }
+    return rows;
+  }
+  // 끈 보관함: 지난해들(기도한 날이 있는 해)과 올해 칸
+  function chestData() {
+    const y = Number(yearOf()), years = [...new Set(prays().map(p => Number(p.d.slice(0, 4))))].filter(x => x < y).sort().slice(-2);
+    return [...years.map(Y => {
+      const k = String(Y), days = new Set(prays().map(p => p.d).filter(d => d.startsWith(k))).size;
+      const answers = D.thanks.filter(x => x.kind === 'answer' && x.date.startsWith(k)).map(x => x.text);
+      const long = D.items.filter(i => i.created.startsWith(k)).map(i => ({ i, n: Math.round((new Date(i.done ? i.done.date : TODAY()) - new Date(i.created)) / 864e5) + 1 })).sort((a, b) => b.n - a.n)[0];
+      return { y: Y, days, answers, long: long ? `${long.i.text} · ${long.n}일` : '' };
+    }), { y, now: true }];
+  }
+  // 3D 도구(vendor/three.min.js)와 그림(note-3d.js)은 지난 기록을 처음 열 때 불러온다. 그림은 만들어 두고 다시 그릴 때 자리만 옮긴다
+  const G3 = { ready: null, cord: null, store: null };
+  function load3d() {
+    if (G3.ready) return G3.ready;
+    const js = src => new Promise((ok, no) => { const a = document.createElement('script'); a.src = src; a.onload = ok; a.onerror = no; document.head.appendChild(a); });
+    return (G3.ready = (window.THREE ? Promise.resolve() : js('vendor/three.min.js')).then(() => js('note-3d.js')));
+  }
+  const can3d = () => { try { const c = document.createElement('canvas'); return !!(window.WebGLRenderingContext && (c.getContext('webgl') || c.getContext('experimental-webgl'))); } catch (e) { return false; } };
+  function mount3d() {
+    if (S.tab !== 'look') return;
+    const off = () => document.querySelectorAll('.stage3d .wait').forEach(w => { w.textContent = '이 기기에서는 입체 그림을 볼 수 없어요.'; });
+    if (!can3d()) return off();
+    load3d().then(() => {
+      if (S.tab !== 'look') return;
+      const X = window.KOIDE_NOTE3D, base = CFG.ART || 'img/';
+      const make = (slot, sig, build, host) => {
+        if (!G3[slot] || G3[slot].sig !== sig) { if (G3[slot]) G3[slot].dispose(); G3[slot] = build(); G3[slot].sig = sig; }
+        const w = host.querySelector('.wait'); if (w) w.remove(); G3[slot].attach(host);
+      };
+      const c = $('#cord3d'), st = $('#store3d');
+      if (c) { const d = cordData(); make('cord', JSON.stringify(d) + (PREF.accent || '') + (PREF.mode || ''), () => X.cord(d, () => $('#cord3d-pick')), c); }
+      if (st) {
+        const kind = S.store === 'chest' ? 'chest' : 'shelf', d = kind === 'chest' ? chestData() : shelfData();
+        make('store', kind + JSON.stringify(d) + (PREF.mode || ''), () => kind === 'chest' ? X.chest(d, () => $('#store3d-pick')) : X.shelf(d, base, () => $('#store3d-pick')), st);
+      }
+    }).catch(off);
+  }
+
   function moreView() {
-    const mode = PREF.mode || 'system', accent = PREF.accent || 'green';
+    const mode = PREF.mode || 'system', accent = PREF.accent || 'green', style = PREF.style || 'flat';
     return `<header class="top"><div><p class="eyebrow">${D.name ? esc(D.name) : '코이데 기도 노트'}</p><h1>더보기</h1></div></header>
-      ${D.vault && D.vault.on ? '<div class="notice"><b>잠가서 이어 두고 있어요.</b> 서버에는 비밀 문구로 잠근 글만 있어서 아무도 읽을 수 없어요. 비밀 문구를 잊지 않게 적어 두세요.</div>'
-        : '<div class="notice"><b>이 기록은 이 휴대폰에만 있어요.</b> 서버로 보내지 않아서 아무도 볼 수 없지만, 휴대폰을 바꾸거나 브라우저 기록을 지우면 사라져요. 아이폰은 홈 화면에 두지 않고 7일 넘게 열지 않으면 지워질 수 있어요. 가끔 백업을 내려받거나, 아래에서 다른 기기와 이어 두세요.</div>'}
+      ${D.vault && D.vault.on ? '<div class="notice"><b>다른 기기와 연결되어 있어요.</b> 서버에는 비밀 문구로 잠근 글만 있어서 아무도 읽을 수 없어요. 비밀 문구를 잊지 않게 적어 두세요.</div>'
+        : '<div class="notice"><b>이 기록은 이 휴대폰에만 있어요.</b> 서버로 보내지 않아서 아무도 볼 수 없지만, 휴대폰을 바꾸거나 브라우저 기록을 지우면 사라져요. 아이폰은 홈 화면에 두지 않고 7일 넘게 열지 않으면 지워질 수 있어요. 가끔 백업을 내려받거나, 아래에서 다른 기기와 연결해 두세요.</div>'}
       ${vaultCard()}
       <section class="card"><p class="label">내가 기도하는 사람들</p>
         ${people().length ? `<ul class="people">${people().map(p => `<li><span>${esc(p.name)}</span><span><button class="link quiet" data-a="renperson" data-v="${p.id}">이름 바꾸기</button> <button class="link quiet" data-a="delperson" data-v="${p.id}">빼기</button></span></li>`).join('')}</ul>` : '<p class="hint">가족, 친구처럼 늘 기도하는 사람을 더해 두면 기도제목의 대상으로 고를 수 있고, 오늘 화면에 끈이 생겨요.</p>'}
@@ -476,7 +619,8 @@ textarea.field { min-height: 5.5em; resize: vertical; }
         <input type="file" id="restore-file" accept="application/json,.json" hidden></section>
       <section class="card"><p class="label">화면</p><div class="seg" role="radiogroup" aria-label="화면 모드">${MODES.map(([k, l]) => `<button class="${mode === k ? 'on' : ''}" role="radio" aria-checked="${mode === k}" data-a="mode" data-v="${k}">${l}</button>`).join('')}</div>
         <div class="swatches" role="radiogroup" aria-label="색 테마">${ACCENTS.map(([k, l, c]) => `<button class="swatch${accent === k ? ' on' : ''}" role="radio" aria-checked="${accent === k}" data-a="accent" data-v="${k}" aria-label="${l}" title="${l}"><i style="background:${c}"></i></button>`).join('')}</div>
-        <div class="row"><div><p class="plain">큰 글씨</p><p class="hint">글씨를 크게 봐요. 공동체 화면도 함께 바뀌어요.</p></div><button class="switch${PREF.big ? ' on' : ''}" role="switch" aria-checked="${!!PREF.big}" aria-label="큰 글씨" data-a="big"><span></span></button></div></section>
+        <div class="seg" role="radiogroup" aria-label="디자인">${STYLES.map(([k, l]) => `<button class="${style === k ? 'on' : ''}" role="radio" aria-checked="${style === k}" data-a="style" data-v="${k}">${l}</button>`).join('')}</div>
+        <div class="row"><div><p class="plain">큰 글씨</p><p class="hint">글씨를 크게 봐요. 화면 설정은 공동체 화면도 함께 바뀌어요.</p></div><button class="switch${PREF.big ? ' on' : ''}" role="switch" aria-checked="${!!PREF.big}" aria-label="큰 글씨" data-a="big"><span></span></button></div></section>
       <section class="card"><button class="mrow" data-a="tourgo" data-v="restart"><span><b>사용법 다시 보기</b><small>기도 노트의 처음 안내를 다시 봐요</small></span></button></section>
       <section class="card"><p class="label">함께하는 곳</p>${inCommunity() ? `<p class="plain">기도 노트는 혼자 쓰는 곳이에요. 사랑방이나 모임과 함께 기도하는 곳은 같은 앱의 공동체예요. 노트의 기도제목을 사랑방이나 모임에 나누고 싶으면 노트에서 "나누기"를 눌러요.</p>
         <a class="btn ghost small" style="align-self:flex-start;text-decoration:none;display:inline-flex;align-items:center" href="index.html${QS}">코이데 공동체로</a>`
@@ -489,16 +633,16 @@ textarea.field { min-height: 5.5em; resize: vertical; }
   }
   function vaultCard() {
     const on = D.vault && D.vault.on;
-    if (!canLock()) return `<section class="card" style="margin-top:12px"><p class="label">다른 기기와 이어 두기</p><p class="hint">이 화면 주소(https)에서만 쓸 수 있어요.</p></section>`;
-    if (on) return `<section class="card" style="margin-top:12px"><div class="row"><p class="label">다른 기기와 이어 두기</p><span class="tag">이어 둠</span></div>
+    if (!canLock()) return `<section class="card" style="margin-top:12px"><p class="label">다른 기기와 연결하기</p><p class="hint">이 화면 주소(https)에서만 쓸 수 있어요.</p></section>`;
+    if (on) return `<section class="card" style="margin-top:12px"><div class="row"><p class="label">다른 기기와 연결하기</p><span class="tag">연결됨</span></div>
       <p class="hint" id="sync-state" aria-live="polite">${esc(syncLabel())}</p>
       <p class="hint">고치면 몇 초 뒤 잠근 채로 맡기고, 열 때마다 다른 기기에서 고친 것을 받아 와요. 같은 카카오와 비밀 문구로 다른 기기에서 열 수 있어요.</p>
-      <div class="row" style="justify-content:flex-start"><button class="btn small" data-a="vsync"${syncing ? ' disabled' : ''}>지금 맞추기</button><button class="link quiet" data-a="voff">이어 두기 끊기</button></div></section>`;
-    return `<section class="card" style="margin-top:12px"><p class="label">다른 기기와 이어 두기</p>
+      <div class="row" style="justify-content:flex-start"><button class="btn small" data-a="vsync"${syncing ? ' disabled' : ''}>지금 맞추기</button><button class="link quiet" data-a="voff">연결 끊기</button></div></section>`;
+    return `<section class="card" style="margin-top:12px"><p class="label">다른 기기와 연결하기</p>
       <p class="plain">휴대폰과 PC에서 같은 노트를 보려면 카카오로 로그인하고 <b>비밀 문구</b>를 정해요.</p>
       <p class="hint">노트는 이 기기에서 비밀 문구로 잠근 뒤 맡겨서, 서버와 관리자도 읽을 수 없어요. 그래서 <b>비밀 문구를 잊으면 아무도 되살릴 수 없어요.</b> 꼭 적어 두세요.</p>
       ${S.syncMsg ? `<p class="hint" style="color:var(--warm)">${esc(S.syncMsg)}</p>` : ''}
-      <button class="btn small" data-a="vstart" style="align-self:flex-start"${S.vbusy ? ' disabled' : ''}>${getToken() ? '이어 두기 시작' : '카카오로 로그인하고 이어 두기'}</button></section>`;
+      <button class="btn small" data-a="vstart" style="align-self:flex-start"${S.vbusy ? ' disabled' : ''}>${getToken() ? '연결하기 시작' : '카카오로 로그인하고 연결하기'}</button></section>`;
   }
   // 나눌 곳: 공동체 앱이 이 기기에 기억해 둔 내 소그룹과 모임(로그인한 적이 없으면 공동체로 가서 로그인부터)
   function places() {
@@ -540,7 +684,7 @@ textarea.field { min-height: 5.5em; resize: vertical; }
     if (!getToken()) return toLogin();
     S.vbusy = true; S.syncMsg = ''; render();
     try { const r = await api('noteGet'); S.vsheet = r.none ? { mode: 'create' } : { mode: 'unlock', remote: r }; }
-    catch (e) { if (e.code === 'login') return toLogin(); S.syncMsg = e.code === 'bad' && /모르는 요청/.test(e.message || '') ? '서버를 새 버전으로 배포해야 이어 둘 수 있어요.' : (e.message || '서버와 이야기하지 못했어요.'); }
+    catch (e) { if (e.code === 'login') return toLogin(); S.syncMsg = e.code === 'bad' && /모르는 요청/.test(e.message || '') ? '서버를 새 버전으로 배포해야 연결할 수 있어요.' : (e.message || '서버와 이야기하지 못했어요.'); }
     S.vbusy = false; render();
   }
   function startView() {
@@ -550,7 +694,7 @@ textarea.field { min-height: 5.5em; resize: vertical; }
         <form data-f="start"><label class="label" for="st-name">부를 이름 (선택)</label><input class="field" id="st-name" maxlength="20" autocomplete="nickname" style="margin-top:6px">
           <label class="label" for="st-people" style="display:block;margin-top:12px">늘 기도하는 사람 (선택, 쉼표로 나눠요)</label><input class="field" id="st-people" maxlength="200" placeholder="예) 엄마, 아빠, 지우" style="margin-top:6px">
           <button class="btn wide" type="submit" style="margin-top:16px">시작하기</button></form>
-        ${canLock() ? '<button class="link" data-a="vstart" style="align-self:center">다른 기기에서 쓰던 노트 이어 받기</button>' : ''}</section>`;
+        ${canLock() ? '<button class="link" data-a="vstart" style="align-self:center">다른 기기에서 쓰던 노트 불러오기</button>' : ''}</section>`;
   }
   function doneSheet() {
     const i = D.items.find(x => x.id === S.done); if (!i) return '';
@@ -601,14 +745,15 @@ textarea.field { min-height: 5.5em; resize: vertical; }
           <div class="row"><p class="hint">${PS.auto ? '다 들으면 다음 곡으로 이어져요.' : HYMNS[PS.track].label + '만 반복해요.'}</p>${sw(PS.auto, 'psauto', '다 들으면 다음 곡으로')}</div>` : ''}
         <button class="btn wide" data-a="psopen" data-v="tab" style="margin-top:8px;min-height:52px"${list.length ? '' : ' disabled'}>${list.length ? '기도 시작 · ' + list.length + '장' : nA ? '무엇을 위해 기도할지 골라 주세요' : '먼저 내 기도에 기도제목을 써 주세요'}</button></section>`;
   }
-  const TABS = [['today', '오늘', ICON.sun], ['note', '내 기도', ICON.pen], ['pray', '기도하기', ICON.hands], ['look', '지난 기록', ICON.book], ['more', '더보기', ICON.more]];
+  const TABS = [['today', '오늘', TICON.sun], ['note', '내 기도', TICON.pen], ['pray', '기도하기', TICON.hands], ['look', '지난 기록', TICON.book], ['more', '더보기', TICON.more]];
   function render() {
     const V = { start: startView, today: todayView, note: noteView, pray: prayTab, look: lookView, more: moreView }[S.tab];
-    $('#root').innerHTML = `<div class="wrap">${S.tab !== 'start' ? `<div class="space"><span class="pilot" style="margin:0">나 · 기도 노트 · ${D.vault && D.vault.on ? '잠가서 이어 둠' : '이 휴대폰에만'}</span>${inCommunity() ? `<a href="index.html${QS}">공동체로 ›</a>` : ''}</div>` : ''}${V()}</div>
-      ${S.tab === 'start' ? '' : `<nav class="tabs" aria-label="메뉴">${TABS.map(([k, l, ic]) => `<button class="${k === 'pray' ? 'mid ' : ''}${S.tab === k ? 'on' : ''}" data-a="tab" data-v="${k}" ${S.tab === k ? 'aria-current="page"' : ''}>${ic}<span>${l}</span></button>`).join('')}</nav>`}
+    $('#root').innerHTML = `<div class="wrap">${S.tab !== 'start' ? `<div class="space"><span class="pilot" style="margin:0">나의 기도 노트 · ${D.vault && D.vault.on ? '연결됨' : '이 휴대폰에 저장'}</span>${inCommunity() ? `<a href="index.html${QS}">공동체로 ›</a>` : ''}</div>` : ''}${V()}</div>
+      ${S.tab === 'start' ? '' : `<nav class="tabs" aria-label="메뉴">${TABS.map(([k, l, ic]) => `<button class="${k === 'pray' ? 'pray-tab ' : ''}${S.tab === k ? 'on' : ''}" data-a="tab" data-v="${k}" aria-label="${l}" title="${l}" ${S.tab === k ? 'aria-current="page"' : ''}>${ic}</button>`).join('')}</nav>`}
       ${S.done ? doneSheet() : ''}${S.tour != null ? tourSheet() : ''}${S.vsheet ? vaultSheet() : ''}${S.share ? shareSheet() : ''}${S.ps ? psHtml() : ''}${S.toast ? `<div class="toast" role="status">${esc(S.toast)}</div>` : ''}
       ${canSave ? '' : '<div class="toast" role="alert">이 브라우저에서는 저장할 수 없어요. 개인 정보 보호 모드를 끄고 열어 주세요.</div>'}`;
     document.documentElement.style.overflow = S.ps || S.done || S.vsheet || S.share || S.tour != null ? 'hidden' : '';
+    mount3d();
   }
   let toastT;
   function toast(m) { S.toast = m; render(); clearTimeout(toastT); toastT = setTimeout(() => { S.toast = ''; render(); }, 2200); }
@@ -669,6 +814,10 @@ textarea.field { min-height: 5.5em; resize: vertical; }
       }
       case 'mode': setPref('mode', v === 'system' ? '' : v); return render();
       case 'accent': setPref('accent', v); return render();
+      case 'style': setPref('style', v); return render();
+      case 'lookm': S.lookM = v; return render();
+      case 'store': S.store = v; return render();
+      case 'looktab': S.lookTab = v; return render();
       case 'big': setPref('big', !PREF.big); return render();
       case 'tourgo': S.tour = v === 'restart' ? 0 : Math.max(0, Math.min(TOUR.length - 1, S.tour + Number(v))); return render();
       case 'tourend': S.tour = null; try { localStorage.setItem(TOUR_KEY, '1'); } catch (err) { /* 무시 */ } return render();
@@ -684,11 +833,11 @@ textarea.field { min-height: 5.5em; resize: vertical; }
       case 'vclose': S.vsheet = null; return render();
       case 'vsync': return sync();
       case 'voff': {
-        if (!confirm('이 기기에서 이어 두기를 끊을까요? 노트는 이 기기에 그대로 남아요.')) return;
-        const del = confirm('서버에 맡긴 잠긴 노트도 지울까요?\n[확인] 지우기 — 다른 기기에서도 더 이어 받을 수 없어요\n[취소] 남겨 두기 — 다른 기기는 계속 이어 둬요');
+        if (!confirm('이 기기에서 연결을 끊을까요? 노트는 이 기기에 그대로 남아요.')) return;
+        const del = confirm('서버에 맡긴 잠긴 노트도 지울까요?\n[확인] 지우기 — 다른 기기에서도 더 불러올 수 없어요\n[취소] 남겨 두기 — 다른 기기는 계속 연결돼요');
         D.vault = null; saveLocal(); try { localStorage.removeItem(LOCK_KEY); } catch (e) { /* 무시 */ }
-        if (del) api('noteDel').then(() => toast('맡긴 노트를 지웠어요'), () => toast('맡긴 노트를 지우지 못했어요. 다시 이어 둔 뒤 끊어 주세요'));
-        else toast('이 기기에서 이어 두기를 끊었어요');
+        if (del) api('noteDel').then(() => toast('맡긴 노트를 지웠어요'), () => toast('맡긴 노트를 지우지 못했어요. 다시 연결한 뒤 끊어 주세요'));
+        else toast('이 기기에서 연결을 끊었어요');
         return render();
       }
       case 'backup': {
@@ -702,11 +851,11 @@ textarea.field { min-height: 5.5em; resize: vertical; }
         api('logout').catch(() => {}).then(() => { try { localStorage.removeItem(TOKEN); localStorage.removeItem(DEMO_LINK ? 'koide-demo-cache' : 'koide-cache'); } catch (err) { /* 무시 */ } location.replace('index.html' + QS); });
         return;
       }
-      case 'wipe': if (!confirm(`이 휴대폰의 기도 노트를 모두 지울까요?${D.vault && D.vault.on ? ' 다른 기기와 이어 둔 것은 그대로 남고, 이 휴대폰만 이어 두기가 끊겨요.' : ' 되돌릴 수 없어요. 먼저 백업을 내려받아 두세요.'}`)) return;
+      case 'wipe': if (!confirm(`이 휴대폰의 기도 노트를 모두 지울까요?${D.vault && D.vault.on ? ' 다른 기기에 연결해 둔 것은 그대로 남고, 이 휴대폰만 연결이 끊겨요.' : ' 되돌릴 수 없어요. 먼저 백업을 내려받아 두세요.'}`)) return;
         D = blank(); saveLocal(); try { localStorage.removeItem(LOCK_KEY); } catch (e) { /* 무시 */ } S.tab = 'start'; return render();
       case 'fbcopy': {
         const home = !!(navigator.standalone || (window.matchMedia && matchMedia('(display-mode: standalone)').matches));
-        const t = `코이데 기도 노트 의견\n- 쓴 기간: ${prays().length ? short(prays().map(p => p.d).sort()[0]) + ' ~ ' + short(TODAY()) : '오늘'}\n- 기도제목 ${D.items.length}개 · 기도한 날 ${new Set(prays().map(p => p.d)).size}일 · 감사 기록 ${D.thanks.length}개(응답 ${D.thanks.filter(x => x.kind === 'answer').length})\n- 홈 화면 앱: ${home ? '예' : '아니요'} · 다른 기기와 이어 둠: ${D.vault && D.vault.on ? '예' : '아니요'}\n\n1. 날마다 쓰게 됐나요? 며칠쯤 지나서 덜 열게 됐나요?\n2. 응답·감사 기록은 어땠나요?\n3. 사랑방·모임에 나누기, 공동체 기도하기의 "내 기도 노트"를 써 봤나요?\n4. 휴대폰에만 저장되는 것, 이어 두기(비밀 문구)는 어땠나요?\n5. 막히거나 헷갈린 곳:\n6. 있었으면 하는 것:`;
+        const t = `코이데 기도 노트 의견\n- 쓴 기간: ${prays().length ? short(prays().map(p => p.d).sort()[0]) + ' ~ ' + short(TODAY()) : '오늘'}\n- 기도제목 ${D.items.length}개 · 기도한 날 ${new Set(prays().map(p => p.d)).size}일 · 감사 기록 ${D.thanks.length}개(응답 ${D.thanks.filter(x => x.kind === 'answer').length})\n- 홈 화면 앱: ${home ? '예' : '아니요'} · 다른 기기와 연결: ${D.vault && D.vault.on ? '예' : '아니요'}\n\n1. 날마다 쓰게 됐나요? 며칠쯤 지나서 덜 열게 됐나요?\n2. 응답·감사 기록은 어땠나요?\n3. 사랑방·모임에 나누기, 공동체 기도하기의 "내 기도 노트"를 써 봤나요?\n4. 휴대폰에만 저장되는 것, 다른 기기와 연결하기(비밀 문구)는 어땠나요?\n5. 막히거나 헷갈린 곳:\n6. 있었으면 하는 것:`;
         (navigator.clipboard ? navigator.clipboard.writeText(t) : Promise.reject()).then(() => toast('복사했어요. 카톡에 붙여 넣어 보내 주세요'), () => prompt('아래 글을 복사해 보내 주세요', t));
         return;
       }
