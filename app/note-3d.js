@@ -260,7 +260,8 @@ window.KOIDE_NOTE3D = (() => {
       loader.load(base + row.key + '/' + it.file + '.webp', tex => {
         tex.encoding = THREE.sRGBEncoding;
         const asp = tex.image.height / tex.image.width;
-        let pw = it.fp === 2 ? SZ * 1.8 : SZ * (0.55 + 0.4 * clamp((it.w - 14) / 30, 0, 1)), ph = pw * asp; const maxH = it.fp === 2 ? SZ * 2.6 : SZ * 1.4;
+        const hero = it.i === 0;   // 주인공은 칸은 2×2 그대로 쓰되 그림만 다른 큰 소품보다 작게(양이 너무 크다는 의견)
+        let pw = it.fp === 2 ? SZ * (hero ? 1.45 : 1.8) : SZ * (0.55 + 0.4 * clamp((it.w - 14) / 30, 0, 1)), ph = pw * asp; const maxH = it.fp === 2 ? SZ * (hero ? 2.1 : 2.6) : SZ * 1.4;
         if (ph > maxH) { ph = maxH; pw = ph / asp; }
         const card = new THREE.Mesh(new THREE.PlaneGeometry(pw, ph), new THREE.MeshBasicMaterial({ map: tex, transparent: true, alphaTest: 0.08, side: THREE.DoubleSide }));
         card.position.y = ph / 2; card.scale.x = it.flip ? -1 : 1; card.userData.it = it; g.add(card); it.card = card;
@@ -281,7 +282,7 @@ window.KOIDE_NOTE3D = (() => {
       const r0 = lo(N), a = lo(N) * SZ - SZ / 2, b = (lo(N) + N) * SZ - SZ / 2, mid = (r0 + (N - 1) / 2) * SZ, cam = S.camera, aspect = S.aspect || 1.3;
       cam.position.set(mid, 0, mid).addScaledVector(dir, 40); cam.lookAt(mid, 0, mid); cam.near = 0.1; cam.far = 100; cam.updateMatrixWorld();
       const pts = []; [[a, b], [a, a], [b, a], [b, b]].forEach(([x, z]) => { pts.push(new THREE.Vector3(x, -TH - SLAB, z), new THREE.Vector3(x, 0, z)); });
-      items.forEach(it => { if (it.cell) { const c = center(it); pts.push(new THREE.Vector3(c[0] * SZ, it.fp === 2 ? SZ * 2.5 : SZ * 1.3, c[1] * SZ)); } });
+      items.forEach(it => { if (it.cell) { const c = center(it); pts.push(new THREE.Vector3(c[0] * SZ, it.i === 0 ? SZ * 2.0 : it.fp === 2 ? SZ * 2.5 : SZ * 1.3, c[1] * SZ)); } });
       let x0 = 1e9, x1 = -1e9, y0 = 1e9, y1 = -1e9;
       pts.forEach(p => { p.applyMatrix4(cam.matrixWorldInverse); x0 = Math.min(x0, p.x); x1 = Math.max(x1, p.x); y0 = Math.min(y0, p.y); y1 = Math.max(y1, p.y); });
       const hw0 = (x1 - x0) / 2 * 1.08 + 0.2, hh0 = (y1 - y0) / 2 * 1.08 + 0.2;
@@ -330,7 +331,8 @@ window.KOIDE_NOTE3D = (() => {
       return pick;
     }
     function showMarks() {
-      const mover = tray ? byName[tray] : sel, ok = new Set();
+      // 칸은 꾸미는 중이거나 서랍에서 고른 때만 빛낸다. 그냥 소품을 누르면 이름·온 날 글만
+      const live = A.on() || !!tray, mover = tray ? byName[tray] : live ? sel : null, ok = new Set();
       if (mover) anchors(mover, mover.cell ? mover.name : null).forEach(a => cellsOf(mover, a).forEach(([i, j]) => ok.add(keyOf(i, j))));
       marks.forEach((m, kk) => { m.visible = ok.has(kk); });
       ok.forEach(kk => {
@@ -338,10 +340,10 @@ window.KOIDE_NOTE3D = (() => {
         m.rotation.x = -Math.PI / 2; m.position.set(i * SZ, 0.02, j * SZ); root.add(m); S.hide.push(m); marks.set(kk, m);
       });
       marks.forEach((m, kk) => { m.visible = ok.has(kk); });
-      if (sel && sel.cell) { selMark.visible = true; selMark.scale.set(sel.fp * SZ - 0.06, sel.fp * SZ - 0.06, 1); const c = center(sel); selMark.position.x = c[0] * SZ; selMark.position.z = c[1] * SZ; } else selMark.visible = false;
+      if (live && sel && sel.cell) { selMark.visible = true; selMark.scale.set(sel.fp * SZ - 0.06, sel.fp * SZ - 0.06, 1); const c = center(sel); selMark.position.x = c[0] * SZ; selMark.position.z = c[1] * SZ; } else selMark.visible = false;
       S.draw();
     }
-    const hintHtml = () => (info() && info().id === 'gbig-say') ? '' : '<p class="hint">기도한 날마다 그 달 그림의 소품이 하나씩 정원에 놓여요.</p>';
+    const hintHtml = () => (info() && info().id === 'gbig-say') ? (A.on() ? '<div class="pick3d"><small>소품을 한 번 누르고 빛나는 빈 자리를 눌러 옮겨요. 소품을 두 번 누르면 좌우가 바뀌어요. 이 기기에만 남아요.</small></div>' : '') : '<p class="hint">기도한 날마다 그 달 그림의 소품이 하나씩 정원에 놓여요.</p>';
     const say = html => { const el = info(); if (el) el.innerHTML = html == null ? hintHtml() : html; };
     const md2 = it => it.date ? `${esc(it.name)} · ${md(it.date)}에 왔어요` : esc(it.name);
     function choose(it) {
@@ -366,6 +368,8 @@ window.KOIDE_NOTE3D = (() => {
         if (a) { tray = null; move(mover, a, true); showMarks(); syncUI(); say(`<div class="pick3d"><p>${esc(mover.name)}을(를) 정원에 놓았어요</p></div>`); } else if (!it) say('<div class="pick3d"><p>빛나는 칸을 눌러 주세요</p></div>');
         return;
       }
+      // 카드에서 정원을 누르면 크게 보기(서랍에서 고른 상태는 위에서 칸 놓기로 갔다)
+      if (!A.big()) { A.open && A.open(); return; }
       if (!A.on()) { choose(it && it !== sel ? it : null); return; }
       if (it) { if (dbl) { if (sel !== it) choose(it); flip(); return; } choose(it === sel ? null : it); return; }
       if (sel) {

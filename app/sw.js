@@ -3,7 +3,7 @@
  * 늘 인터넷의 새 파일을 먼저 받아서(받으면 남겨 둔 것도 바꿈) 고친 화면이 바로 보인다. 브라우저에 남은 사본은 쓰지 않고 서버에 확인한다.
  * 기도제목은 여기 남기지 않는다: 서버(Apps Script)와 주고받는 요청과 다른 주소의 파일은 건드리지 않는다.
  */
-const CACHE = 'koide-v11';
+const CACHE = 'koide-v12';
 const SHELL = ['./', 'index.html', 'note.html', 'config.js', 'pray-data.js', 'art-data.js', 'intro-video.js', 'beatitudes.js', 'splash.js', 'places.js', 'survey.js', 'intro-video.css', 'beatitudes.css', 'design-styles.css', 'manifest.webmanifest', 'icons/icon-192.png', 'icons/apple-touch-icon.png'];
 
 self.addEventListener('install', e => {
