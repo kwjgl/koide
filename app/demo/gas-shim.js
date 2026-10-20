@@ -54,7 +54,7 @@
   window.CacheService = { getScriptCache: () => ({ get: k => cache.get(k) ?? null, put: (k, v) => cache.set(k, v), remove: k => cache.delete(k) }) };
   window.LockService = { getScriptLock: () => ({ tryLock: () => true, releaseLock() {} }) };
   const props = { KAKAO_REST_KEY: 'demo', REDIRECT_URI: '' };
-  window.PropertiesService = { getScriptProperties: () => ({ getProperties: () => Object.assign({}, props), setProperty: (k, v) => { props[k] = v; }, deleteProperty: k => { delete props[k]; } }) };
+  window.PropertiesService = { getScriptProperties: () => ({ getProperties: () => Object.assign({}, props), getProperty: k => (k in props ? props[k] : null), setProperty: (k, v) => { props[k] = v; }, deleteProperty: k => { delete props[k]; } }) };
   window.ContentService = { MimeType: { JSON: 'json' }, createTextOutput: s => ({ content: s, setMimeType() { return this; } }) };
 
   // 카카오 흉내: code가 곧 사람이다(demo:김도윤 → 카카오ID d-김도윤). 실제로는 카카오 화면에서 로그인한다
@@ -81,6 +81,12 @@
         [['김도윤', 'F1'], ['박민재', 'F2'], ['윤하람', 'F8'], ['한기쁨', 'S1']].forEach(([p, f]) => db['연결'].push(['d-' + p, DEMO_NICK[p], f, p, '연결', today, '데모', today]));
         save();
       }
+    },
+    // 데모에서만: 모든 모임의 끝나는 날을 오늘로부터 days일 뒤로 당긴다(-1이면 어제 = 끝난 모임). 화면을 다시 열면 서버의 하루 정리가 돈다
+    groupsTo(days) {
+      this.ready(); const sh = db['모임'] || [], i = sh[0] ? sh[0].indexOf('끝나는 날') : -1; if (i < 0) return;
+      const d = new Date(Date.now() + 9 * 3600e3 + days * 864e5); const v = d.getUTCFullYear() + '-' + two(d.getUTCMonth() + 1) + '-' + two(d.getUTCDate());
+      sh.slice(1).forEach(r => { r[i] = v; }); save();
     },
     call(body) { this.ready(); return JSON.parse(doPost({ postData: { contents: JSON.stringify(body) } }).content); },
     reset() { db = {}; save(); cache.clear(); localStorage.removeItem(KEY); }

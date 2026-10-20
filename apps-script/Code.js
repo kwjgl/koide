@@ -71,9 +71,10 @@ const SCHEMA = {
   //  맨 처음 한 사람은 시트에 직접 적는다(카카오ID는 연결 탭에서). 그다음부터는 앱의 일회용 초대 링크(초대 값)로 붙는다
   opsAdmins: ['전체 관리자', [['kakaoId', '카카오ID'], ['name', '이름'], ['scope', '범위'], ['status', '상태'], ['token', '초대 값'], ['at', '만든 날'], ['by', '만든 사람']]],
   // 자율 모임(설계서 13장, 2026-10-23 · 2026-10-21 기도 노트로 옮김): 카카오로 로그인한 누구나 만드는 모임. 한 모임 12명, 한 사람 3곳(원래 소그룹 포함), 모임장은 한 사람당 1곳.
+  //  모임은 잠깐 모이는 임시 공간: 만들 때 끝나는 날(1·3·6·12개월 뒤, 늘리기 없음)을 정하고, 끝나는 날이 지나면 모임·사람·기도제목·기도 기록을 모두 지운다(개수만 변경기록에 남는다).
   //  교회가 꾸리는 것이 아니어서 관리 화면에는 나오지 않는다. 사람 이름은 교회에 연결된 사람은 명단 이름, 아니면 모임에 들어올 때 적은 이름
   //  사람마다 모임 안의 ID(모임 사람ID)가 있어서, 기도제목·기도했어요는 그 ID를 가정ID 자리에 쓴다(모임마다 따로)
-  groups: ['모임', [['id', '모임ID'], ['name', '이름'], ['owner', '모임장 카카오ID'], ['token', '초대 값'], ['status', '상태'], ['at', '만든 날']]],
+  groups: ['모임', [['id', '모임ID'], ['name', '이름'], ['owner', '모임장 카카오ID'], ['token', '초대 값'], ['status', '상태'], ['at', '만든 날'], ['endsAt', '끝나는 날']]],
   gmembers: ['모임 사람', [['groupId', '모임ID'], ['id', '모임 사람ID'], ['kakaoId', '카카오ID'], ['person', '이름'], ['role', '역할'], ['status', '상태'], ['at', '들어온 날']]],
   feedback: ['의견', [['at', '보낸 날'], ['deptId', '부서ID'], ['kind', '종류'], ['text', '내용'], ['familyId', '가정ID'], ['person', '사람'], ['ver', '화면 버전'], ['width', '기기 폭'], ['read', '읽음']]]
 };
@@ -87,7 +88,7 @@ const FIRST_DEPT = { id: 'D1', name: '청장년부', group: '사랑방', unit: '
 // ── 요청 받기 ─────────────────────────────────────────────
 
 // 서버 코드를 고칠 때마다 바꾼다. 웹 앱 주소를 열면 보여서, 새 버전으로 배포됐는지 확인할 수 있다
-const VERSION = '2026-11-03 모임은 기도 노트로';
+const VERSION = '2026-11-04 모임은 끝나는 날이 있어요';
 function doGet() {
   return ContentService.createTextOutput('코이데 서버가 켜져 있어요. (버전: ' + VERSION + ')');
 }
@@ -115,6 +116,7 @@ const ACTIONS = {
   me: body => meInfo_(who_(body)),
   // 앱을 열 때 한 번에: 나 + (연결됐으면 이번 달, 연결 전이면 부서와 사랑방 목록). 서버와 두 번 이야기하던 것을 한 번으로
   start: body => {
+    groupsDaily_();
     const w = who_(body), me = meInfo_(w);
     // 기기에 모아 둔 사용기록을 앱을 열 때 함께 받는다(요청을 따로 보내지 않게)
     const usage = body.events ? usage_(w, body) : undefined;
@@ -183,6 +185,7 @@ const ACTIONS = {
   groupRemove: groupRemove_,
   groupRenew: groupRenew_,
   groupPeek: groupPeek_,
+  groupExport: groupExport_,
   // 운영 관리자·부서 만들기·소그룹과 사람(편성 관리)
   opsCtx: body => opsCtxView_(adminOf_(body)),
   church: churchView_,
@@ -1651,18 +1654,29 @@ function rosterSave_(body) {
 // ── 자율 모임 (설계서 13장, 2026-10-23) ─────────────────────────
 // 카카오로 로그인한 누구나 만든다(2026-10-21, 기도 노트의 '내 모임'으로 옮기며). 모임장의 초대 링크로 들어오고 모임장이 승인한다.
 //  교회에 연결되지 않은 사람은 모임에서 쓸 이름을 적는다. 관리 화면에는 나오지 않고, 전체 관리자는 문제가 있을 때 초대 링크로 그 모임 하나만 닫는다.
-//  오래(GROUP_IDLE_DAYS) 아무도 쓰지 않은 모임은 저절로 닫힌다(기록은 남는다)
+//  모임은 끝나는 날(endsAt, 최대 1년)이 있고, 지나면 모임과 기록을 모두 지운다. 늘리기는 없다. 남기고 싶은 기도제목은 그동안 내 기도 노트로 옮긴다(groupExport)
 //  모임은 개인 단위라 사람마다 모임 사람ID가 있고, 이번 달·내 기도·기도하기는 사랑방과 같은 화면을 모임 것으로 쓴다
 const GROUP_SCOPES = ['room', 'family'];
-const GROUP_MAX = 12, PLACES_MAX = 3, GROUP_IDLE_DAYS = 180;
+const GROUP_MAX = 12, PLACES_MAX = 3, GROUP_MONTHS = [1, 3, 6, 12], GROUP_WARN_DAYS = [30, 7], GROUP_ERASE_MAX = 20;
 const GROUP_DEPT = { id: '', name: '모임', group: '모임', unit: '개인' };
 function groupPeople_(gid, all) { return read_('gmembers').filter(m => m.groupId === gid && (all ? m.status !== '나감' : m.status === '함께')); }
+// 끝나는 날(yyyy-MM-dd). k개월 뒤, 그 달에 같은 날이 없으면 그 달 마지막 날
+function addMonths_(day, k) {
+  const [y, m, d] = day.split('-').map(Number), t = y * 12 + m - 1 + k, yy = Math.floor(t / 12), mm = t % 12 + 1;
+  const last = new Date(Date.UTC(yy, mm, 0)).getUTCDate();
+  return yy + '-' + String(mm).padStart(2, '0') + '-' + String(Math.min(d, last)).padStart(2, '0');
+}
+const dayNum_ = day => Math.round(Date.parse(day + 'T00:00:00Z') / 864e5);
+// 남은 날: 끝나는 날 당일은 0(그날까지 쓰고, 다음 날 지워진다)
+const daysLeft_ = g => g.endsAt ? dayNum_(g.endsAt) - dayNum_(today_()) : null;
+// 쓸 수 있는 모임: 활동 중이고 끝나는 날이 지나지 않았다(아직 끝나는 날이 없는 예전 모임은 다음 정리에서 채워질 때까지 쓴다)
+const groupLive_ = g => g.status === '활동' && (!g.endsAt || daysLeft_(g) >= 0);
 // 내가 속한(또는 신청한) 모임
 function myGroups_(kakaoId) {
-  const gs = read_('groups').filter(g => g.status === '활동');
+  const gs = read_('groups').filter(groupLive_);
   return read_('gmembers').filter(m => String(m.kakaoId) === String(kakaoId) && (m.status === '함께' || m.status === '요청')).map(m => {
     const g = gs.find(x => x.id === m.groupId); if (!g) return null;
-    return { id: g.id, name: g.name, role: m.role, wait: m.status === '요청', n: groupPeople_(g.id).length,
+    return { id: g.id, name: g.name, role: m.role, wait: m.status === '요청', n: groupPeople_(g.id).length, endsAt: g.endsAt || '', left: daysLeft_(g),
       asks: m.role === '모임장' ? groupPeople_(g.id, true).filter(x => x.status === '요청').length : 0 };
   }).filter(Boolean);
 }
@@ -1671,7 +1685,7 @@ function placesOf_(w) { return (w.link && w.link.status === '연결' ? 1 : 0) + 
 // 모임으로 보낸 요청의 사람: 그 모임에 '함께'인 사람
 function groupMember_(body) {
   const w = who_(body), gid = String(body.grp || '');
-  const g = read_('groups').find(x => x.id === gid && x.status === '활동');
+  const g = read_('groups').find(x => x.id === gid && groupLive_(x));
   const m = g && read_('gmembers').find(x => x.groupId === gid && String(x.kakaoId) === w.kakaoId && x.status === '함께');
   if (!m) throw fail_('forbidden', '이 모임에 함께하고 있지 않아요.');
   return { kakaoId: w.kakaoId, person: m.person, familyId: m.id, family: { id: m.id, name: m.person, kids: '' }, roomId: g.id, deptId: '',
@@ -1712,7 +1726,7 @@ function groupHistory_(c, want) {
 // 모임 정보(모임 사람 누구나): 사람, 모임장에게는 신청과 초대 값
 function groupInfo_(c) {
   const g = c.group, all = groupPeople_(g.id, true), lead = c.role === '모임장';
-  return { id: g.id, name: g.name, lead, max: GROUP_MAX, at: fmtDay_(g.at),
+  return { id: g.id, name: g.name, lead, max: GROUP_MAX, at: fmtDay_(g.at), endsAt: g.endsAt || '', left: daysLeft_(g), warn: GROUP_WARN_DAYS,
     people: all.filter(m => m.status === '함께').map(m => ({ id: m.id, person: m.person, role: m.role, me: m.id === c.familyId })),
     asks: lead ? all.filter(m => m.status === '요청').map(m => ({ id: m.id, person: m.person, at: fmtDay_(m.at) })) : [], token: lead ? g.token : '' };
 }
@@ -1723,17 +1737,18 @@ function groupPerson_(w, body) {
   if (!n) throw fail_('bad', '모임에서 쓸 이름을 적어 주세요.');
   return n;
 }
-// 모임 만들기: 카카오로 로그인한 누구나, 모임장은 한 사람당 한 모임, 속한 곳은 세 곳까지
+// 모임 만들기: 카카오로 로그인한 누구나, 모임장은 한 사람당 한 모임, 속한 곳은 세 곳까지. 기간(months)은 1·3·6·12개월만, 끝나는 날은 오늘부터 센다
 function groupCreate_(body) {
   const w = who_(body), name = String(body.name || '').trim().replace(/\s+/g, ' ').slice(0, 16);
   if (!name) throw fail_('bad', '모임 이름을 적어 주세요.');
-  const person = groupPerson_(w, body);
+  const person = groupPerson_(w, body), months = Number(body.months);
+  if (GROUP_MONTHS.indexOf(months) < 0) throw fail_('bad', '모임 기간은 ' + GROUP_MONTHS.join('·') + '개월 중에서 골라 주세요.');
   return withLock_(() => {
     const mine = myGroups_(w.kakaoId);
     if (mine.some(g => g.role === '모임장')) throw fail_('bad', '모임장은 한 모임만 맡을 수 있어요.');
     if (placesOf_(w) >= PLACES_MAX) throw fail_('bad', '모임은 교회 소그룹을 포함해 세 곳까지 함께할 수 있어요.');
     const id = 'G' + Date.now().toString(36);
-    append_('groups', { id, name, owner: w.kakaoId, token: newToken_(), status: '활동', at: new Date() });
+    append_('groups', { id, name, owner: w.kakaoId, token: newToken_(), status: '활동', at: new Date(), endsAt: addMonths_(today_(), months) });
     append_('gmembers', { groupId: id, id: 'M' + Date.now().toString(36), kakaoId: w.kakaoId, person, role: '모임장', status: '함께', at: new Date() });
     return { id, me: meInfo_(who_(body)) };
   });
@@ -1741,17 +1756,17 @@ function groupCreate_(body) {
 // 초대 링크로 들어온 사람에게 보여 줄 모임: 이름, 모임장, 사람 수(기도제목은 없다)
 function groupPeek_(body) {
   const w = who_(body), t = String(body.invite || '');
-  const g = read_('groups').find(x => x.token === t && x.status === '활동');
+  const g = read_('groups').find(x => x.token === t && groupLive_(x));
   if (!g) throw fail_('bad', '쓸 수 없는 모임 초대 링크예요. 모임장에게 새 링크를 받아 주세요.');
   const ps = groupPeople_(g.id), had = read_('gmembers').find(m => m.groupId === g.id && String(m.kakaoId) === w.kakaoId && m.status !== '나감');
-  return { name: g.name, lead: (ps.find(m => m.role === '모임장') || {}).person || '', n: ps.length, max: GROUP_MAX, places: placesOf_(w), placesMax: PLACES_MAX,
+  return { name: g.name, endsAt: g.endsAt || '', left: daysLeft_(g), lead: (ps.find(m => m.role === '모임장') || {}).person || '', n: ps.length, max: GROUP_MAX, places: placesOf_(w), placesMax: PLACES_MAX,
     linked: !!(w.link && w.link.status === '연결'), had: had ? had.status : '' };
 }
 // 초대 링크로 함께하기 신청: 카카오로 로그인한 누구나. 모임장이 승인하면 함께한다
 function groupJoin_(body) {
   const w = who_(body), t = String(body.invite || '');
   return withLock_(() => {
-    const g = read_('groups').find(x => x.token === t && x.status === '활동');
+    const g = read_('groups').find(x => x.token === t && groupLive_(x));
     if (!g) throw fail_('bad', '쓸 수 없는 모임 초대 링크예요. 모임장에게 새 링크를 받아 주세요.');
     const had = read_('gmembers').find(m => m.groupId === g.id && String(m.kakaoId) === w.kakaoId && m.status !== '나감');
     if (had) return { group: g.name, wait: had.status === '요청', me: meInfo_(w) };
@@ -1784,7 +1799,7 @@ function groupRemove_(body) {
     return groupMonthView_(groupMember_(body));
   });
 }
-// 나가기: 모임장이 나가면 가장 먼저 들어온 사람이 모임장이 되고, 아무도 없으면 모임을 닫는다(기록은 남는다)
+// 나가기: 모임장이 나가면 가장 먼저 들어온 사람이 모임장이 되고, 아무도 없으면 모임을 지운다(기록도 함께)
 function groupLeave_(body) {
   const c = groupMember_(body);
   return withLock_(() => {
@@ -1794,12 +1809,12 @@ function groupLeave_(body) {
     return { me: meInfo_(who_(body)) };
   });
 }
-// 모임장이 빠지면 가장 먼저 들어온 사람이 모임장이 되고, 아무도 없으면 모임을 닫는다
+// 모임장이 빠지면 가장 먼저 들어온 사람이 모임장이 되고, 아무도 없으면 모임을 지운다(잠금 안에서 부른다)
 function passGroup_(gid) {
   const next = groupPeople_(gid).sort((a, b) => a.at < b.at ? -1 : 1)[0], g = read_('groups').find(x => x.id === gid);
   if (!g) return;
   if (next) { next.role = '모임장'; update_('gmembers', next); g.owner = next.kakaoId; update_('groups', g); }
-  else { g.status = '닫음'; update_('groups', g); }
+  else eraseGroup_(g, null);
 }
 function groupRename_(body) {
   const c = groupMember_(body), name = String(body.name || '').trim().replace(/\s+/g, ' ').slice(0, 16);
@@ -1813,30 +1828,67 @@ function groupRenew_(body) {
   if (c.role !== '모임장') throw fail_('forbidden', '모임장만 할 수 있어요.');
   return withLock_(() => { const g = read_('groups').find(x => x.id === c.grp); g.token = newToken_(); update_('groups', g); return groupMonthView_(groupMember_(body)); });
 }
-// 전체 관리자: 문제가 있는 자율 모임 하나를 초대 링크(또는 초대 값)로 닫는다. 모임 목록은 보여 주지 않고, 기도제목도 보지 않는다
+// 전체 관리자: 문제가 있는 자율 모임 하나를 초대 링크(또는 초대 값)로 지운다(기록도 함께). 모임 목록은 보여 주지 않고, 기도제목도 보지 않는다
 function groupAdmin_(body) {
   const c = allAdmin_(body), t = String(body.invite || '').trim().replace(/^.*[?&]gjoin=/, '').replace(/[&#].*$/, '');
   if (!t) throw fail_('bad', '모임 초대 링크를 넣어 주세요.');
   return withLock_(() => {
-    const g = read_('groups').find(x => x.token === t && x.status === '활동');
-    if (!g) throw fail_('bad', '이 링크의 모임을 찾지 못했어요. 이미 닫혔거나 모임장이 링크를 새로 만들었을 수 있어요.');
+    const g = read_('groups').find(x => x.token === t && groupLive_(x));
+    if (!g) throw fail_('bad', '이 링크의 모임을 찾지 못했어요. 이미 끝났거나 모임장이 링크를 새로 만들었을 수 있어요.');
     if (body.op !== 'close') return { name: g.name, n: groupPeople_(g.id).length };
-    g.status = '닫음'; update_('groups', g); logChange_(c, '모임 닫기', g.name);
-    return { closed: g.name };
+    const n = eraseGroup_(g, c);
+    return { closed: g.name, items: n };
   });
 }
-// 오래 쓰지 않은 모임 닫기: 만든 날, 기도제목, 기도했어요 중 가장 나중 것이 GROUP_IDLE_DAYS보다 오래면 닫는다
-function tidyGroups_() {
-  const cut = Date.now() - GROUP_IDLE_DAYS * 864e5, gs = read_('groups').filter(g => g.status === '활동');
-  if (!gs.length) return;
-  const mem = read_('gmembers'), last = {};
-  const seen = (gid, t) => { const v = Date.parse(t); if (v > (last[gid] || 0)) last[gid] = v; };
-  gs.forEach(g => seen(g.id, g.at));
-  read_('items').forEach(i => { if (last[i.roomId] != null) seen(i.roomId, i.editedAt || (i.month + '-01')); });
-  const owner = {}; mem.forEach(m => { owner[m.id] = m.groupId; });
-  read_('prayers').forEach(p => { const gid = owner[p.familyId]; if (gid && last[gid] != null) seen(gid, p.at); });
-  gs.filter(g => !(last[g.id] > cut)).forEach(g => { g.status = '닫음'; update_('groups', g); });
+// 모임 하나 지우기(잠금 안에서): 그 모임의 기도제목(roomId가 모임ID이고 모임 사람ID인 줄만), 기도 기록, 월별 상태, 사람, 모임 줄.
+//  교회 사랑방 줄은 가정ID·사랑방ID가 달라 건드리지 않는다. 개수만 변경기록에 남는다. 지운 기도제목 수를 돌려준다
+function eraseGroup_(g, c) {
+  const ids = read_('gmembers').filter(m => m.groupId === g.id).map(m => m.id), has = id => ids.indexOf(id) >= 0;
+  const del = (key, hit) => read_(key).filter(hit).sort((a, b) => b._row - a._row).forEach(o => remove_(key, o));
+  const n = read_('items').filter(i => i.roomId === g.id && has(i.familyId)).length;
+  del('items', i => i.roomId === g.id && has(i.familyId));
+  del('prayers', p => has(p.familyId));
+  del('monthly', x => has(x.familyId));
+  del('gmembers', m => m.groupId === g.id);
+  del('groups', x => x.id === g.id);
+  logChange_(c || { deptId: '', person: '자동', role: '' }, '모임 끝남', g.name, '기도제목 ' + n + '개');
+  return n;
 }
+// 끝난 모임 지우기: 끝나는 날이 지난 모임을 한 번에 GROUP_ERASE_MAX개까지 지운다(나머지는 다음 정리에서).
+//  먼저 끝나는 날이 아직 없는 예전 모임에 채운다: 이 정리가 처음 도는 날부터 6개월 뒤, 단 만든 날부터 1년을 넘지 않게(최소 30일은 남긴다)
+function tidyGroups_() {
+  const today = today_(), floor = fmtDate_(new Date(Date.now() + 30 * 864e5));
+  read_('groups').filter(g => g.status === '활동' && !g.endsAt).forEach(g => {
+    const cap = addMonths_(g.at ? fmtDate_(g.at) : today, 12), want = addMonths_(today, 6), end = want < cap ? want : cap;
+    g.endsAt = end < floor ? floor : end; update_('groups', g);
+  });
+  // 예전에 닫힌 모임('닫음')도 이제는 남기지 않는다
+  read_('groups').filter(g => g.status !== '활동' || (g.endsAt && g.endsAt < today)).slice(0, GROUP_ERASE_MAX).forEach(g => eraseGroup_(g, null));
+}
+// 하루에 한 번만(앱을 여는 첫 사람이 정리한다). 시간 트리거로 dailyTidy를 걸어 두면 더 정확하다(docs/setup.md)
+function groupsDaily_() {
+  const pr = PropertiesService.getScriptProperties(), t = today_();
+  if (pr.getProperty('GROUPS_TIDY') === t) return;
+  try { withLock_(() => { tidyGroups_(); pr.setProperty('GROUPS_TIDY', t); }); } catch (e) { /* 바쁘면 다음에 */ }
+}
+function dailyTidy() { groupsDaily_(); }
+
+// 노트로 옮기기용 읽기: 이 모임에서 내가 볼 수 있는 기도제목(내 것 전부 + 다른 사람이 모임에 공개한 것)을 글·대상·쓴 달로. 같은 글은 한 번만.
+//  서버는 노트에 아무것도 쓰지 않는다. 화면이 받아서 그 휴대폰의 노트에 더한다
+function groupExport_(body) {
+  const c = groupMember_(body), people = groupPeople_(c.grp, true), seen = {};
+  const name = id => (people.find(p => p.id === id) || {}).person || '';
+  const list = [];
+  read_('items').filter(i => i.roomId === c.grp && i.text && (i.familyId === c.familyId || i.scope === 'room'))
+    .sort((a, b) => a.month < b.month ? 1 : a.month > b.month ? -1 : a.order - b.order)
+    .forEach(i => {
+      const own = i.familyId === c.familyId, k = i.familyId + '|' + i.target + '|' + i.text;
+      if (seen[k]) return; seen[k] = 1;
+      list.push({ own, who: own ? c.person : name(i.familyId), target: i.target, text: i.text, month: i.month, ended: i.state === '마침' });
+    });
+  return { name: c.group.name, endsAt: c.group.endsAt || '', left: daysLeft_(c.group), me: c.person, items: list };
+}
+
 // 변경 기록 보기: 부서 관리자는 우리 부서, 전체 관리자는 교회 전체(all). 최근 것부터 300줄
 function changesView_(body) {
   const c = adminOf_(body), all = !!body.all;
@@ -1980,11 +2032,20 @@ function sampleData() {
   append_('items', { id: newId_(), month: prev, familyId: 'DEPT-' + d1, roomId: '', target: '수련회', text: '11월 가을 수련회를 잘 준비하고, 모든 가정이 함께하도록', scope: 'dept', state: '이어짐', prevId: '', same: '아니오', order: 1, editedAt: new Date(), editedBy: '한기쁨' });
   append_('items', { id: newId_(), month: prev, familyId: 'DEPT-' + d1, roomId: '', target: '선교', text: '캄보디아 김선교 선교사님 가정의 건강과 사역을 위해', scope: 'dept', state: '이어짐', prevId: '', same: '아니오', order: 2, editedAt: new Date(), editedBy: '한기쁨' });
   // 자율 모임 예시: 박민재가 모임장인 '직장인 기도 모임'(김도윤·정우진 함께, 서준호 신청)
-  append_('groups', { id: 'G1', name: '직장인 기도 모임', owner: 'd-박민재', token: 'samplegroup1', status: '활동', at: new Date(Date.now() - 20 * 864e5) });
+  append_('groups', { id: 'G1', name: '직장인 기도 모임', owner: 'd-박민재', token: 'samplegroup1', status: '활동', at: new Date(Date.now() - 20 * 864e5), endsAt: addMonths_(today_(), 3) });
   [['M1', 'd-박민재', '박민재', '모임장', '함께'], ['M2', 'd-김도윤', '김도윤', '회원', '함께'], ['M3', 'd-정우진', '정우진', '회원', '함께'], ['M4', 'd-서준호', '서준호', '회원', '요청']]
     .forEach(([id, k, n, role, st], i) => append_('gmembers', { groupId: 'G1', id, kakaoId: k, person: n, role, status: st, at: new Date(Date.now() - (20 - i) * 864e5) }));
   it('M1', 'G1', '나', '프로젝트 마감까지 지혜와 체력을 주시도록', 'room', 1, '박민재');
   it('M2', 'G1', '나', '팀원들과 좋은 관계를 이어 가도록', 'room', 1, '김도윤');
+  it('M2', 'G1', '아내', '새 직장에 잘 적응하도록', 'family', 2, '김도윤');
+  // 끝나는 날이 가까운 모임(D-5): 정우진이 모임장인 '단기선교 준비팀'(김도윤·박민재 함께)
+  append_('groups', { id: 'G2', name: '단기선교 준비팀', owner: 'd-정우진', token: 'samplegroup2', status: '활동', at: new Date(Date.now() - 55 * 864e5), endsAt: fmtDate_(new Date(Date.now() + 5 * 864e5)) });
+  [['M5', 'd-정우진', '정우진', '모임장', '함께'], ['M6', 'd-김도윤', '김도윤', '회원', '함께'], ['M7', 'd-박민재', '박민재', '회원', '함께']]
+    .forEach(([id, k, n, role, st], i) => append_('gmembers', { groupId: 'G2', id, kakaoId: k, person: n, role, status: st, at: new Date(Date.now() - (55 - i) * 864e5) }));
+  it('M5', 'G2', '선교지', '비자와 항공편이 막힘없이 준비되도록', 'room', 1, '정우진');
+  it('M5', 'G2', '나', '현지 아이들에게 전할 말씀을 잘 준비하도록', 'room', 2, '정우진');
+  it('M6', 'G2', '팀', '팀원 모두 건강하게 다녀오도록', 'room', 1, '김도윤');
+  it('M7', 'G2', '나', '맡은 찬양 시간을 겸손히 섬기도록', 'room', 1, '박민재');
   // 의견함 예시: 이름 없는 것과 이름을 밝힌 것
   append_('feedback', { at: new Date(Date.now() - 2 * 864e5), deptId: d1, kind: '이랬으면', text: '기도하기에서 음악 소리를 조금 더 작게 시작하면 좋겠어요.', familyId: '', person: '', ver: '2026-10-22', width: 'phone', read: '' });
   append_('feedback', { at: new Date(Date.now() - 5 * 864e5), deptId: d1, kind: '고마워요', text: '매달 기도제목을 따로 모으지 않아도 돼서 편해요.', familyId: 'F3', person: '한지민', ver: '2026-10-22', width: 'phone', read: '예' });
@@ -2017,7 +2078,7 @@ function clearSampleData() {
     del('prayers', p => mine(p) || ids.indexOf(p.by) >= 0);
     del('staff', mine); del('requests', mine);
     del('opsAdmins', o => o.by === '예시');
-    del('gmembers', m => m.groupId === 'G1'); del('groups', g => g.id === 'G1'); del('items', i => i.roomId === 'G1');
+    del('gmembers', m => m.groupId === 'G1' || m.groupId === 'G2'); del('groups', g => g.id === 'G1' || g.id === 'G2'); del('items', i => i.roomId === 'G1' || i.roomId === 'G2');
     del('usage', u => /^sample\d{4}$/.test(String(u.device)));
     del('families', f => ids.indexOf(f.id) >= 0);
     del('rooms', r => ['R1', 'R2', 'R3', 'R4'].indexOf(r.id) >= 0 && !read_('roster').some(x => x.roomId === r.id));

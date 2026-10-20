@@ -1267,7 +1267,8 @@ try { const p = JSON.parse(localStorage.getItem('koide-pref') || '{}'), d = docu
   }
   // 데모 위쪽 띠의 '사람 바꾸기': 로그아웃 없이 다른 데모 사람으로 바로 바꾼다. 보던 탭이 그 사람에게도 있으면 그대로 둔다
   const DEMO_PEOPLE = [['김도윤', '2-20 리더'], ['박민재', '회원'], ['윤하람', '청년부 리더'], ['한기쁨', '청장년부 목사님'], ['최운영', '운영 지원 · 가정 없음']];
-  const demoPicker = () => `<select data-demoas aria-label="데모 사람 바꾸기"><option value="">사람 바꾸기…</option>${DEMO_PEOPLE.map(([n, r]) => `<option value="${n}">${n} (${r})</option>`).join('')}<option value="새 사람${Date.now() % 1000}">새 사람 (처음 오는 사람)</option></select>`;
+  const demoDates = () => `<select data-demodate aria-label="모임 끝나는 날 당기기(데모)"><option value="">모임 날짜 당기기…</option><option value="30">끝나기 30일 전으로</option><option value="7">끝나기 7일 전으로</option><option value="-1">끝난 다음 날로(모임이 지워져요)</option></select>`;
+  const demoPicker = () => demoDates() + `<select data-demoas aria-label="데모 사람 바꾸기"><option value="">사람 바꾸기…</option>${DEMO_PEOPLE.map(([n, r]) => `<option value="${n}">${n} (${r})</option>`).join('')}<option value="새 사람${Date.now() % 1000}">새 사람 (처음 오는 사람)</option></select>`;
   async function demoSwitch(who) {
     const keep = ['home', 'mine', 'pray', 'history', 'more'].includes(S.tab) ? S.tab : 'home';
     try { const r = await api('login', { code: 'demo:' + who, redirectUri: '' }); setToken(r.token, r.uid); } catch (e) { return oops(e); }
@@ -1490,7 +1491,7 @@ try { const p = JSON.parse(localStorage.getItem('koide-pref') || '{}'), d = docu
       const GT = {
         home: lead ? ['grp-lead', '모임장이 되었어요. 더보기 › 초대 링크 복사로 카톡에 보내면 신청이 와요. 신청이 오면 기도 노트 › 내 모임에 "신청"으로 보이고, 이 모임의 더보기에서 승인해요. 이번 달·내 기도·기도하기가 모두 이 모임 것이에요.']
           : ['grp', `이 모임의 화면이에요. 이번 달·내 기도·기도하기가 모두 이 모임 것이고, 기도제목은 ${esc(gj('과/와'))} 따로 써요. 위쪽 배지를 누르면 내 ${esc(gj('으로/로'))} 돌아가요.`],
-        more: lead ? ['grp-more', '초대 링크는 교회에 연결된 회원만 신청할 수 있어요. 링크가 엉뚱한 곳에 퍼졌으면 새 링크를 만들어요. 신청을 승인하거나, 함께하는 사람을 내보낼 수 있어요. 한 모임은 12명까지예요.'] : null
+        more: lead ? ['grp-more', '초대 링크는 교회에 연결된 회원만 신청할 수 있어요. 링크가 엉뚱한 곳에 퍼졌으면 새 링크를 만들어요. 신청을 승인하거나, 함께하는 사람을 내보낼 수 있어요. 한 모임은 12명까지예요. 모임은 끝나는 날에 기록과 함께 사라지니, 남기고 싶은 기도제목은 내 기도 노트로 옮겨 두세요.'] : null
       };
       const gt = GT[S.tab]; return gt && !tipsSeen()[gt[0]] ? gt : null;
     }
@@ -1604,10 +1605,10 @@ try { const p = JSON.parse(localStorage.getItem('koide-pref') || '{}'), d = docu
         <p>${wait ? '모임장이 승인하면 기도 노트 › 더보기 › <b>내 모임</b>에 나와요.' : '기도 노트 › 더보기 › <b>내 모임</b>에서 열어요.'}</p>${home}`;
       if (P.places >= P.placesMax) return `<p class="eyebrow">${esc(P.name)}</p><h1>세 곳이 다 찼어요</h1><p class="hint">모임은 교회 소그룹을 포함해 ${P.placesMax}곳까지 함께할 수 있어요. 다른 모임에서 나온 뒤 다시 이 링크를 열어 주세요.</p>${home}`;
       const nm = (S.me && S.me.nick) || '';
-      return `<p class="eyebrow">모임 초대</p><h1>${esc(P.name)}</h1><p class="hint">모임장 ${esc(P.lead || '')} · ${P.n}/${P.max}명 · 모임장이 승인하면 함께해요</p>
+      return `<p class="eyebrow">모임 초대</p><h1>${esc(P.name)}</h1><p class="hint">모임장 ${esc(P.lead || '')} · ${P.n}/${P.max}명${P.endsAt ? ' · ' + koidePlaces.dday(P) + ' (' + gDay(P.endsAt) + '까지)' : ''} · 모임장이 승인하면 함께해요</p>
         <form data-form="gjoin">
           ${P.linked ? '' : `<label class="f" for="gj-n">모임에서 쓸 이름</label><input id="gj-n" class="field" name="n" required maxlength="10" value="${esc(nm)}" autocomplete="name"><p class="hint">모임 사람들에게 이 이름으로 보여요.</p>`}
-          ${groupConsent()}
+          ${groupConsent(P)}
           <button class="btn wide" type="submit" ${S.busy ? 'disabled' : ''}>동의하고 함께하기 신청</button></form>
         <button class="link" data-act="tonote">나중에 할게요</button>`;
     },
@@ -1764,8 +1765,8 @@ try { const p = JSON.parse(localStorage.getItem('koide-pref') || '{}'), d = docu
   function homeView() {
     if (staffMe()) return staffHomeView();
     const M = S.month, others = M.families.filter(f => !f.own), t = todayFam();
-    return `<div class="page-top"><div><p class="eyebrow">${esc(M.room.name)}${S.grp ? ' · 모임' : ''}</p><h1>${Number(M.month.slice(5))}월 기도제목 <span aria-hidden="true">🙏</span></h1></div><p class="date">${todayLabel()}</p></div>
-      ${S.grp ? `<p class="hint grp-note">${ICON.people}모임 사람들과 함께 봐요 · 내 모임은 <a href="note.html${DEMO_LINK ? '?demo' : ''}">기도 노트</a>에 있어요</p>` : ''}${shiftCard()}<div class="home-grid"><div class="col side">${t ? `<section class="card today" aria-label="지금 함께 기도할 ${words().one}"><p class="today-tag">${ICON.hands}지금 함께 기도할 ${words().one}</p><h2>${esc(t.name)}</h2>
+    return `<div class="page-top"><div><p class="eyebrow">${esc(M.room.name)}${S.grp ? ' · 모임' + (M.group && M.group.left != null ? ' · ' + koidePlaces.dday(M.group) : '') : ''}</p><h1>${Number(M.month.slice(5))}월 기도제목 <span aria-hidden="true">🙏</span></h1></div><p class="date">${todayLabel()}</p></div>
+      ${S.grp ? `<p class="hint grp-note">${ICON.people}모임 사람들과 함께 봐요 · 내 모임은 <a href="note.html${DEMO_LINK ? '?demo' : ''}">기도 노트</a>에 있어요</p>${groupEndCard()}` : ''}${shiftCard()}<div class="home-grid"><div class="col side">${t ? `<section class="card today" aria-label="지금 함께 기도할 ${words().one}"><p class="today-tag">${ICON.hands}지금 함께 기도할 ${words().one}</p><h2>${esc(t.name)}</h2>
           <div class="today-body" data-id="${esc(t.id)}" tabindex="0" aria-label="${esc(t.name)} 기도제목">${t.items.length ? itemList(t.items, false) : `<p class="hint">아직 올린 기도제목이 없어요. 이 ${words().one}을 떠올리며 기도해요.</p>`}</div>
           <div class="pray-hero"><div class="pray-row">${prayBtn(t, false, true)}<button class="btn next${t.today ? '' : ' ghost'}" data-act="nexttoday">다음 ${words().one}</button></div>
             ${t.prayed ? `<p class="pray-done">이번 달 ${esc(t.name)}${solo() ? ' 님' : ' 가정'}을 위해 ${t.prayed}번 기도했어요</p>` : ''}</div>
@@ -3134,6 +3135,7 @@ try { const p = JSON.parse(localStorage.getItem('koide-pref') || '{}'), d = docu
       ['경쟁하지 않아요', '다른 사람이 누구를 위해 몇 번 기도했는지는 보이지 않고, 순위도 없어요. 끈이 이어진 모습만 보여 줄 뿐이에요.'],
       ['모두를 위해 기도해요', `"지금 함께 기도할 ${fam}"은 아직 기도하지 않은 ${fam}부터 차례로 나와요.`],
       ['목적에 따라 다르게 써요', `기도제목마다 고른 공개 범위(${g} · 리더·목사님 · ${esc(words().only)})대로만 보여요.`],
+      ['모임은 잠깐만 열려요', '해외선교팀이나 단기 선교처럼 잠깐 모여 서로를 위해 기도하는 모임은 만들 때 끝나는 날(최대 1년)을 정해요. 끝나는 날 기록과 함께 사라지니, 남기고 싶은 기도제목은 내 기도 노트로 옮겨 두세요. 중심은 우리 교회 공동체와 나의 기도 노트예요.'],
       ['잠잠하게 응답을 기다려요', '바뀐 게 없으면 기도제목이 다음 달로 그대로 넘어가요. "이번 달도 그대로예요"만 눌러도 괜찮아요.']
     ];
     return `<button class="link back" data-act="tab" data-v="more">${ICON.chevL}더보기</button>
@@ -3489,10 +3491,21 @@ try { const p = JSON.parse(localStorage.getItem('koide-pref') || '{}'), d = docu
     catch (e) { S.gj.err = e.code === 'bad' && /모르는 요청/.test(e.message || '') ? '서버를 새 버전으로 배포하면 모임에 함께할 수 있어요.' : e.message; }
     render();
   }
-  const groupConsent = () => `<ul class="consent">
-      <li><b>모임 사람들과 함께 봐요.</b> 모임에 쓴 기도제목은 모임 사람들이 함께 보도록 서버(교회가 맡은 저장소)에 저장돼요. 교회 관리 화면에는 나오지 않아요.</li>
-      <li><b>나만 보는 기도 노트와는 따로예요.</b> 노트의 기도제목은 내가 "나누기"를 눌러야 모임에 옮겨 적어져요.</li>
-      <li><b>언제든 나갈 수 있어요.</b> 나가도 쓴 기도제목은 모임의 지난 기록에 남아요.</li></ul>`;
+  // 끝나는 날 글('M월 d일' 또는 다른 해면 연도까지)
+  const gDay = day => { const [y, m, d] = String(day).split('-').map(Number); return y === new Date().getFullYear() ? m + '월 ' + d + '일' : y + '년 ' + m + '월 ' + d + '일'; };
+  const groupConsent = P => `<ul class="consent">
+      <li><b>끝나는 날이 있어요.</b> ${P && P.endsAt ? `이 모임은 <b>${gDay(P.endsAt)}</b>(${koidePlaces.dday(P)})에 끝나요. ` : ''}끝나는 날에 모임과 사람, 기도제목, 기도 기록이 모두 지워지고 되돌릴 수 없어요. 기간은 늘릴 수 없어요.</li>
+      <li><b>모임 사람들과 함께 봐요.</b> 모임에 쓴 기도제목은 모임 사람들이 함께 보도록 서버(교회가 맡은 저장소)에 저장돼요. 교회 관리 화면에는 나오지 않아요. <b>모임 사람들은 내 기도제목을 자기 기도 노트로 옮겨 둘 수 있어요.</b></li>
+      <li><b>나만 보는 기도 노트와는 따로예요.</b> 노트의 기도제목은 내가 "나누기"를 눌러야 모임에 옮겨 적어져요. 반대로 모임의 기도제목은 언제든 "내 기도 노트로 옮기기"로 남길 수 있어요.</li>
+      <li><b>언제든 나갈 수 있어요.</b> 나가면 이 모임을 더 볼 수 없어요. 남기고 싶은 기도제목은 나가기 전에 노트로 옮겨 두세요.</li></ul>`;
+  // 모임 화면 위쪽: 끝나기 30일 안이면 '곧 끝나요' 카드(7일 안이면 더 눈에 띄게)
+  function groupEndCard() {
+    const G = S.month && S.month.group; if (!G || G.left == null || G.left > 30) return '';
+    const soon = G.left <= 7;
+    return `<section class="card notice" role="note"><p><b>곧 끝나요 · ${koidePlaces.dday(G)}</b></p>
+      <p class="hint" style="margin:.2em 0 .6em">${gDay(G.endsAt)}에 이 모임과 기록이 함께 사라져요.${soon ? ' 남기고 싶은 기도제목을 지금 옮겨 두세요.' : ' 남기고 싶은 기도제목은 내 기도 노트로 옮겨 두세요.'}</p>
+      <button class="btn small" data-act="gmove">내 기도 노트로 옮기기</button></section>`;
+  }
   const myGroups = () => (S.me && S.me.groups) || [];
   const groupUrl = t => (CFG.REDIRECT_URI || location.origin + location.pathname) + (DEMO_LINK ? '?demo&' : '?') + 'gjoin=' + t;
   async function enterGroup(id) {
@@ -3518,6 +3531,8 @@ try { const p = JSON.parse(localStorage.getItem('koide-pref') || '{}'), d = docu
       ${E === 'rename' ? `<form class="kid-form" data-form="grename"><input class="field" name="n" maxlength="16" value="${esc(G.name)}" aria-label="모임 이름" autocomplete="off"><button class="btn small" type="submit">바꾸기</button></form>`
         : `<div class="row"><h3>${esc(G.name)}</h3>${G.lead ? '<button class="link quiet" data-act="gedit" data-v="rename">이름 바꾸기</button>' : ''}</div>`}
       <p class="hint">${G.people.length}/${G.max}명 · ${esc(G.at)} 만듦</p>
+      ${G.endsAt ? `<p class="plain"><b>${koidePlaces.dday(G)}</b> · ${gDay(G.endsAt)}에 끝나요</p><p class="hint">끝나는 날에 모임과 기록이 모두 사라지고, 기간은 늘릴 수 없어요.</p>` : ''}
+      <div class="actions"><button class="btn small ${G.left != null && G.left <= 30 ? '' : 'ghost'}" data-act="gmove">내 기도 노트로 옮기기</button></div>
       ${G.asks.length ? G.asks.map(a => `<div class="req"><b>${esc(a.person)} 님이 함께하고 싶어 해요</b><small>${esc(a.at)} 신청</small>
         <div class="actions" style="margin-top:8px"><button class="btn small" data-act="gdecide" data-v="${esc(a.id)}" data-ok="1">승인</button><button class="btn small ghost" data-act="gdecide" data-v="${esc(a.id)}">거절</button></div></div>`).join('') : ''}
       <ul class="staff-list">${G.people.map(p => `<li><div><b>${esc(p.person)}</b>${p.role === '모임장' ? '<span class="own-tag">모임장</span>' : ''}${p.me ? '<small>나</small>' : ''}</div>
@@ -3543,11 +3558,11 @@ try { const p = JSON.parse(localStorage.getItem('koide-pref') || '{}'), d = docu
   // 전체 관리자(교회 전체): 자율 모임은 교회가 꾸리지 않아 목록이 없다. 문제가 있다는 말을 들으면 그 모임의 초대 링크로 하나만 닫는다
   function groupCloseCard() {
     const F = S.gaFound;
-    return `<section class="card mrows folds">${fold('gaclose', '자율 모임 닫기', '문제가 있을 때만 · 초대 링크로', `<section class="card"><h2>자율 모임 닫기</h2>
-      <p class="hint">자율 모임은 교회가 꾸리지 않아서 목록이 없어요. 문제가 있다는 말을 들었을 때 그 모임의 초대 링크를 받아 넣으면, 그 모임 하나만 닫을 수 있어요. 기도제목은 보이지 않아요.</p>
+    return `<section class="card mrows folds">${fold('gaclose', '자율 모임 지우기', '문제가 있을 때만 · 초대 링크로', `<section class="card"><h2>자율 모임 지우기</h2>
+      <p class="hint">자율 모임은 교회가 꾸리지 않아서 목록이 없어요. 문제가 있다는 말을 들었을 때 그 모임의 초대 링크를 받아 넣으면, 그 모임 하나만 지울 수 있어요. 기도제목은 보이지 않아요.</p>
       <div class="kid-form"><input id="ga-link" class="field" value="${esc(F ? F.t : '')}" placeholder="모임 초대 링크" aria-label="모임 초대 링크" autocomplete="off"><button class="btn small ghost" data-act="gafind" ${S.busy ? 'disabled' : ''}>찾기</button></div>
-      ${F ? `<p class="plain"><b>${esc(F.name)}</b> · ${F.n}명</p><div class="actions"><button class="btn small danger" data-act="gaclose" ${S.busy ? 'disabled' : ''}>이 모임 닫기</button></div>` : ''}
-      <p class="hint">반년 동안 아무도 쓰지 않은 모임은 저절로 닫혀요.</p></section>`)}</section>`;
+      ${F ? `<p class="plain"><b>${esc(F.name)}</b> · ${F.n}명</p><div class="actions"><button class="btn small danger" data-act="gaclose" ${S.busy ? 'disabled' : ''}>이 모임 지우기</button></div>` : ''}
+      <p class="hint">모임은 만들 때 정한 끝나는 날(최대 1년)에 저절로 지워져요. 여기서 지우면 모임 사람과 기도제목, 기도 기록이 바로 사라지고 되돌릴 수 없어요.</p></section>`)}</section>`;
   }
   // ── 운영 관리자 (설계서 13장): 맡은 부서를 가정 없이 꾸린다. 운영 화면에서는 관리 탭만 열고, 서버는 기도제목 내용을 보내지 않는다 ──
   //  S.op: 지금 운영 화면으로 보는 부서ID. 운영 화면에 들어가면 내 이번 달(S.home)은 잠시 비켜 두었다가 돌아올 때 되살린다
@@ -3660,7 +3675,7 @@ try { const p = JSON.parse(localStorage.getItem('koide-pref') || '{}'), d = docu
   }
   // ── 관리 › 운영 (설계서 S7): ① 앱 상태 ② 개인정보 요청. 할 일이 있는 카드만 관리 탭 위로 올라온다 ──
   //  NEED_SERVER: 이 화면이 바라는 서버 버전(서버 VERSION 앞 날짜). 서버 코드를 고쳐 배포해야 하는 기능을 넣을 때 함께 올린다
-  const NEED_SERVER = '2026-11-03';
+  const NEED_SERVER = '2026-11-04';
   const DOC = 'https://github.com/kwjgl/pray-for/blob/main/docs/';
   async function loadOps() { try { S.ops = await api('ops'); S.opsErr = null; } catch (e) { S.ops = null; S.opsErr = e.code === 'bad' ? 'old' : e.code === 'forbidden' ? null : e.message; S.opsWhy = e.message || ''; } render(); }
   const opsWhen = iso => { const d = new Date(iso); return isNaN(d) ? '' : `${d.getMonth() + 1}월 ${d.getDate()}일 ${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`; };
@@ -4332,13 +4347,14 @@ try { const p = JSON.parse(localStorage.getItem('koide-pref') || '{}'), d = docu
       // 전체 관리자: 문제가 있는 자율 모임 하나를 초대 링크로 닫는다(모임 목록은 보지 않는다)
       case 'gafind': case 'gaclose': {
         const t = (($('#ga-link') || {}).value || '').trim(); if (!t) return toast('모임 초대 링크를 넣어 주세요.');
-        if (b.dataset.act === 'gaclose' && !confirm(`"${S.gaFound.name}" 모임을 닫을까요? 모임 사람들은 더 이상 이 모임을 열 수 없어요. 기록은 남아요.`)) return;
+        if (b.dataset.act === 'gaclose' && !confirm(`"${S.gaFound.name}" 모임을 지울까요? 모임 사람과 기도제목, 기도 기록이 모두 지워지고 되돌릴 수 없어요.`)) return;
         S.busy = true; render();
         try { const r = await api('groupAdmin', { invite: t, op: b.dataset.act === 'gaclose' ? 'close' : '' });
-          if (r.closed) { S.gaFound = null; toast(`"${r.closed}" 모임을 닫았어요.`); } else S.gaFound = Object.assign(r, { t }); }
+          if (r.closed) { S.gaFound = null; toast(`"${r.closed}" 모임을 지웠어요.`); } else S.gaFound = Object.assign(r, { t }); }
         catch (err) { S.gaFound = null; oops(err); }
         S.busy = false; return render();
       }
+      case 'gmove': { const id = S.grp; if (!id) return; if (window.koideSpace) window.koideSpace.going('note'); location.href = 'note.html?' + (DEMO_LINK ? 'demo&' : '') + 'move=' + encodeURIComponent(id); return; }
       case 'gopen': S.menu = null; return enterGroup(v);
       case 'gback': S.menu = null; return leaveGroupView();
       case 'gnew': S.menu = null; if (window.koideSpace) window.koideSpace.going('note'); location.href = 'note.html' + (DEMO_LINK ? '?demo&new' : '?new'); return;
@@ -4356,7 +4372,7 @@ try { const p = JSON.parse(localStorage.getItem('koide-pref') || '{}'), d = docu
       }
       case 'gleave': {
         const G = S.month.group;
-        if (!confirm(`"${G.name}"에서 나갈까요?` + (G.lead ? (G.people.length > 1 ? ' 가장 먼저 들어온 분이 모임장이 돼요.' : ' 함께하는 사람이 없어 모임이 닫혀요.') : '') + ' 쓴 기도제목은 지난 기록에 남아요.')) return;
+        if (!confirm(`"${G.name}"에서 나갈까요?` + (G.lead ? (G.people.length > 1 ? ' 가장 먼저 들어온 분이 모임장이 돼요.' : ' 함께하는 사람이 없어 모임이 지워져요.') : '') + ' 나가면 이 모임을 더 볼 수 없어요. 남기고 싶은 기도제목은 먼저 내 기도 노트로 옮겨 두세요.')) return;
         try { await api('groupLeave'); leaveGroupView(true); } catch (err) { oops(err); }
         return;
       }
@@ -4645,6 +4661,7 @@ try { const p = JSON.parse(localStorage.getItem('koide-pref') || '{}'), d = docu
   // 칸을 벗어나면(내용·대상) 저장
   document.addEventListener('change', e => {
     const t = e.target;
+    if (t.dataset.demodate !== undefined) { const v = t.value; t.value = ''; if (v && window.koideDemo) { window.koideDemo.groupsTo(Number(v)); location.reload(); } return; }
     if (t.dataset.demoas !== undefined) { const v = t.value; t.value = ''; return v && demoSwitch(v); }
     if (t.dataset.codefam) { S.codeMk = { fam: t.value }; return render(); }
     if (t.dataset.codeperson) { S.codeMk = Object.assign(S.codeMk || {}, { person: t.value }); return; }
