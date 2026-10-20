@@ -1033,7 +1033,7 @@ button.knot { cursor: pointer; }
     let room = null; try { const c = JSON.parse(localStorage.getItem(DEMO_LINK ? 'koide-demo-cache' : 'koide-cache') || 'null'); if (c && c.month && c.month.room && c.me && c.me.link && c.me.link.status === '연결') room = { name: c.month.room.name, group: (c.month.dept && c.month.dept.group) || '소그룹' }; } catch (e) { /* 없음 */ }
     const make = !!M && koidePlaces.canMake(!!(M && M.linked), G);
     const menu = S.menu === 'badge' ? `<div class="menu" role="menu" aria-label="함께하는 곳">${koidePlaces.html({ cur: 'note', room, groups: G, make, linked, demo: DEMO_LINK,
-        attr: (k, id) => k === 'room' ? `href="index.html${QS}"` : k === 'group' ? `href="${groupUrl(id)}"` : 'data-a="menunew"' })}</div>`
+        attr: (k, id) => k === 'room' ? `href="index.html${QS}"` : k === 'group' ? `href="${groupUrl(id, G.find(x => x.id === id))}"` : 'data-a="menunew"' })}</div>`
       : S.menu === 'settings' ? `<div class="menu" role="menu" aria-label="설정"><p class="mlabel">화면 모드 · 색 테마 · 디자인</p><div class="menu-set">${screenControls()}</div></div>` : '';
     return `<header class="topbar"><div class="wrap">
       <button class="brand" data-a="tab" data-v="today" aria-label="기도 노트 오늘"><span class="brand-mark">${TOP_ICON.knot}</span><span class="brand-name">코이데</span></button><span class="spacer"></span>
@@ -1102,7 +1102,8 @@ button.knot { cursor: pointer; }
       try { localStorage.setItem(ME_KEY, JSON.stringify(m)); } catch (e) { /* 이번만 */ } render(); return r; }
     catch (e) { return null; }
   }
-  const groupUrl = id => `index.html${DEMO_LINK ? '?demo&' : '?'}grp=${encodeURIComponent(id)}`;
+  // 모임 이름과 남은 날(gn, gl)을 함께 넘기면 공동체 앱이 모임 전환 화면에 바로 보여 준다(모르면 생략)
+  const groupUrl = (id, g) => `index.html${DEMO_LINK ? '?demo&' : '?'}grp=${encodeURIComponent(id)}` + (g && g.name ? '&gn=' + encodeURIComponent(g.name) : '') + (g && g.left != null ? '&gl=' + g.left : '');
   // 나눌 곳: 공동체 앱이 이 기기에 기억해 둔 내 소그룹 + 내 모임(로그인한 적이 없으면 공동체로 가서 로그인부터)
   function places() {
     let c = null; try { c = JSON.parse(localStorage.getItem(DEMO_LINK ? 'koide-demo-cache' : 'koide-cache') || 'null'); } catch (e) { /* 없음 */ }
@@ -1126,7 +1127,7 @@ button.knot { cursor: pointer; }
       <p class="hint">잠깐 모여 서로를 위해 기도하는 곳이에요(해외선교팀처럼). 끝나는 날이 있고, 이 노트와는 따로예요.</p>
       ${!M ? '<p class="hint">모임 목록을 불러오는 중이에요…</p>' : G.length ? G.map(g => g.wait
         ? `<div class="mrow" aria-disabled="true"><span><b>${esc(g.name)}</b><small>모임장의 승인을 기다려요</small></span></div>`
-        : `<a class="mrow" style="text-decoration:none;color:inherit" href="${groupUrl(g.id)}"><span><b>${esc(g.name)}${g.role === '모임장' ? ' · 모임장' : ''}</b><small>${g.n}명 · ${koidePlaces.dday(g) || '끝나는 날 정하는 중'}${g.endsAt ? ' (' + dayLabel(g.endsAt) + '까지)' : ''}${g.asks ? ` · 신청 ${g.asks}` : ''}</small></span><span aria-hidden="true">›</span></a>
+        : `<a class="mrow" style="text-decoration:none;color:inherit" href="${groupUrl(g.id, g)}"><span><b>${esc(g.name)}${g.role === '모임장' ? ' · 모임장' : ''}</b><small>${g.n}명 · ${koidePlaces.dday(g) || '끝나는 날 정하는 중'}${g.endsAt ? ' (' + dayLabel(g.endsAt) + '까지)' : ''}${g.asks ? ` · 신청 ${g.asks}` : ''}</small></span><span aria-hidden="true">›</span></a>
           <div class="mrow-sub"><button class="link quiet" data-a="mvopen" data-v="${esc(g.id)}">내 기도 노트로 옮기기</button>${g.left != null && g.left <= 30 ? `<small class="warn-text">곧 끝나요</small>` : ''}</div>`).join('') : ''}
       ${!M ? '' : E ? `<form data-f="gcreate" style="display:flex;flex-direction:column;gap:8px;margin-top:4px">
           <label class="label" for="gc-n" style="margin:0">모임 이름</label><input id="gc-n" class="field" maxlength="16" placeholder="예: 직장인 기도 모임" autocomplete="off">
@@ -1354,7 +1355,7 @@ button.knot { cursor: pointer; }
         // 나누기: 글만 공동체 앱의 '내 기도' 쓰기 칸으로 넘긴다(복사). 사랑방이나 고른 모임에서 공개 범위를 고르고 추가해야 나눠진다. 노트의 원본은 그대로
         const i = D.items.find(x => x.id === S.share); if (!i) return;
         try { localStorage.setItem('koide-share', JSON.stringify({ text: (i.target === 'me' ? '' : targetName(i.target) + 'ㅡ') + i.text, at: Date.now(), grp: v || null })); } catch (e) { return toast('옮겨 적지 못했어요'); }
-        S.share = null; location.href = v ? groupUrl(v) : 'index.html' + QS;
+        S.share = null; location.href = v ? groupUrl(v, ((noteMe() || {}).groups || []).find(x => x.id === v)) : 'index.html' + QS;
         return;
       }
       case 'undone': { const i = D.items.find(x => x.id === v); i.done = null; i.up = now(); save(); return toast('다시 내 기도에 넣었어요'); }
