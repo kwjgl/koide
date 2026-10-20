@@ -1,0 +1,19 @@
+/* 기도를 열며(기도하기 첫 장): 공동체·기도 노트·모임 모드가 함께 쓴다. 색은 앱의 색 변수만 쓴다. 움직임은 pray-open.js와 짝 */
+.po { display: flex; flex-direction: column; align-items: center; gap: 14px; max-width: 30em; margin: 0 auto; padding: 8px 0; text-align: center; }
+.po-mark { width: 76px; height: 76px; border-radius: 50%; background: var(--accent); color: var(--on-accent); display: grid; place-items: center; margin-bottom: .4em; }
+.po-mark svg { width: 46px; height: 46px; overflow: visible; fill: none; stroke: currentColor; stroke-width: 1.5; stroke-linecap: round; stroke-linejoin: round; }
+/* 세 줄이 다 나온 뒤(3.4초)에 느슨한 끈이 사라지며 매듭이 지어진다 */
+.po-mark .cord { animation: po-cord .3s ease-out calc(3.4s + var(--po-el, 0s)) both; }
+.po-mark .k1, .po-mark .k2 { stroke-dasharray: 1; animation: po-tie .45s cubic-bezier(.4, 0, .2, 1) calc(3.4s + var(--po-el, 0s)) both; }
+.po-mark .k2 { animation-duration: .3s; animation-delay: calc(3.8s + var(--po-el, 0s)); }
+@keyframes po-tie { 0% { stroke-dashoffset: 1; opacity: 0; } 1% { opacity: 1; } 100% { stroke-dashoffset: 0; opacity: 1; } }
+@keyframes po-cord { from { opacity: 1; } to { opacity: 0; } }
+.po-lines { display: flex; flex-direction: column; gap: .35em; }
+.po-lines p { margin: 0; font-family: var(--f-display); font-size: clamp(1.35em, 5.4vmin, 1.9em); line-height: 1.5; word-break: keep-all; animation: po-in .7s ease-out calc(var(--d) + var(--po-el, 0s)) both; }
+@keyframes po-in { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: none; } }
+.po-note { margin: .6em 0 0; max-width: 24em; color: var(--ink); font-size: 1em; line-height: 1.6; word-break: keep-all; animation: po-in .7s ease-out calc(4.3s + var(--po-el, 0s)) both; }
+.po-note small { display: block; margin-top: .25em; font-size: .88em; color: var(--ink-2); }
+@media (prefers-reduced-motion: reduce) {
+  .po-mark .cord { animation: none; opacity: 0; }
+  .po-mark .k1, .po-mark .k2, .po-lines p, .po-note { animation: none; }
+}

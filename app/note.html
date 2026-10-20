@@ -320,6 +320,7 @@ button.knot { cursor: pointer; }
 @media (prefers-reduced-motion: no-preference) { .today-item, .card { transition: background .2s, border-color .2s; } }
 </style>
 <link rel="stylesheet" href="intro-video.css">
+<link rel="stylesheet" href="pray-open.css">
 <link rel="stylesheet" href="beatitudes.css">
 <link rel="stylesheet" href="design-styles.css">
 <style>
@@ -355,6 +356,7 @@ button.knot { cursor: pointer; }
 <script src="pray-data.js"></script>
 <script src="art-data.js"></script>
 <script src="intro-video.js"></script>
+<script src="pray-open.js"></script>
 <script src="beatitudes.js"></script>
 <script>
 (() => {
@@ -594,7 +596,7 @@ button.knot { cursor: pointer; }
   // ── 기도하기 설정: 무엇을(오늘의 세 가지 / 모든 기도제목 / 빼기), 하나님 나라, 잔잔한 음악 ──────────
   const KP = window.KOIDE_PRAY;
   const PSK = DEMO_LINK ? 'koide-demo-note-pset' : 'koide-note-pset';
-  const PS = Object.assign({ set: 'today', world: false, topics: KP.PRAY_TOPICS.map(t => t.k), music: false, track: 0, auto: true }, (() => { try { return JSON.parse(localStorage.getItem(PSK)) || {}; } catch (e) { return {}; } })());
+  const PS = Object.assign({ set: 'today', world: false, topics: KP.PRAY_TOPICS.map(t => t.k), music: false, track: 0, auto: true, open: true }, (() => { try { return JSON.parse(localStorage.getItem(PSK)) || {}; } catch (e) { return {}; } })());
   const savePs = () => { try { localStorage.setItem(PSK, JSON.stringify(PS)); } catch (e) { /* 이번만 */ } };
   // 공동체용 문장의 '사랑방'을 혼자 쓰는 노트에 맞게
   const solo = x => String(x || '').replace(/우리 사랑방/g, '내 주변').replace(/사랑방/g, '공동체');
@@ -1238,6 +1240,9 @@ button.knot { cursor: pointer; }
     const P = S.ps, L = P.list, last = P.i >= L.length;
     const mus = `<span style="display:flex;gap:6px"><button class="ps-music${PS.music ? ' on' : ''}" data-a="psmusic" aria-pressed="${PS.music}">♪ <span class="trk">${PS.music ? HYMNS[PS.track].label : '음악 꺼짐'}</span></button>${PS.music ? '<button class="ps-music" data-a="psnexttrack" aria-label="다음 곡">다음 곡 ›</button>' : ''}</span>`;
     const top = `<div class="ps-top"><span class="hint">${last ? '마침' : `${P.i + 1} / ${L.length}`}</span>${mus}<button class="link" data-a="psclose">닫기</button></div><div class="bar"><b style="width:${Math.min(100, P.i / L.length * 100)}%"></b></div>`;
+    // 기도를 열며: 첫 장 앞의 한 장. 장 수에 세지 않고, 누르면 바로 첫 장으로 간다
+    if (P.open) return `<div class="ps" role="dialog" aria-modal="true" aria-label="기도하기"><div class="ps-top"><span class="hint"></span><span></span><button class="link" data-a="psclose">닫기</button></div>
+      <div class="ps-body" data-a="psskip" style="cursor:pointer"><div class="in">${KoidePrayOpen.html()}</div></div></div>`;
     const n = L.filter(x => x.topic ? P.extra.includes(x.topic) : prayedToday(x.id)).length;
     // 마지막 장: 주기도문으로 마치고, 오늘 감사한 것을 남긴다
     if (last) return `<div class="ps" role="dialog" aria-modal="true" aria-label="기도하기">${top}<div class="ps-body"><div class="in">
@@ -1261,6 +1266,11 @@ button.knot { cursor: pointer; }
         <button class="pray-btn${on ? ' on' : ''}" style="align-self:stretch;justify-content:center" data-a="${it.topic ? 'psxtra' : 'pspray'}" data-v="${it.topic || ''}" aria-pressed="${on}">${on ? ICON.check + '기도했어요' : '기도했어요'}</button>
         <button class="btn ghost" data-a="psgo" data-v="1">${P.i === L.length - 1 ? '마침' : '다음'}</button></div></div>`;
   }
+  // 기도를 열며가 끝남(누르거나 때가 됨): 첫 장으로
+  function psOpenDone(ps) {
+    if (!ps || S.ps !== ps || !ps.open) return;
+    KoidePrayOpen.stop(); ps.open = false; render(); const b = document.querySelector('.ps-body'); if (b) b.scrollTop = 0;
+  }
   function prayTab() {
     const nT = todaySet().length, nA = open().length, list = psList(PS.set);
     const seg = (items, cur, act) => `<div class="seg" role="radiogroup">${items.map(([k, l]) => `<button class="${cur === k ? 'on' : ''}" role="radio" aria-checked="${cur === k}" data-a="${act}" data-v="${k}">${l}</button>`).join('')}</div>`;
@@ -1270,6 +1280,7 @@ button.knot { cursor: pointer; }
         <p class="label">내 기도제목</p>${seg([['today', '오늘의 ' + nT + '개'], ['all', '모두 ' + nA + '개'], ['none', '빼기']], PS.set, 'psset')}
         <div class="row" style="margin-top:6px"><div><p class="plain">하나님 나라</p><p class="hint">주기도문의 간구를 따라 교회와 나라와 세상을 위해 기도해요. 마지막엔 감사와 찬양이에요.</p></div>${sw(PS.world, 'psworld', '하나님 나라')}</div>
         ${PS.world ? `<div class="chips">${KP.PRAY_TOPICS.map(t => `<button class="chip${PS.topics.includes(t.k) ? ' on' : ''}" data-a="pstopic" data-v="${t.k}" aria-pressed="${PS.topics.includes(t.k)}">${esc(t.name)}</button>`).join('')}</div>` : ''}
+        <div class="row" style="margin-top:6px"><div><p class="plain">기도를 열며</p><p class="hint">삼위일체 하나님께 간구로 시작해요</p></div>${sw(PS.open !== false, 'psopening', '기도를 열며')}</div>
         <div class="row" style="margin-top:6px"><div><p class="plain">잔잔한 음악 (찬송가 1~8장)</p><p class="hint">기도하는 동안 조용히 흘러요. 이어폰을 권해요.</p></div>${sw(PS.music, 'psmusic', '잔잔한 음악')}</div>
         ${PS.music ? `<div class="chips">${HYMNS.map((h, i) => `<button class="chip${PS.track === i ? ' on' : ''}" data-a="pstrack" data-v="${i}" aria-pressed="${PS.track === i}">${h.label}</button>`).join('')}</div>
           <div class="row"><p class="hint">${PS.auto ? '다 들으면 다음 곡으로 이어져요.' : HYMNS[PS.track].label + '만 반복해요.'}</p>${sw(PS.auto, 'psauto', '다 들으면 다음 곡으로')}</div>` : ''}
@@ -1362,11 +1373,16 @@ button.knot { cursor: pointer; }
       case 'psopen': {
         // 기도하기 탭은 고른 대로, 오늘 화면의 '한 장씩 기도하기'는 그 기도제목에 하나님 나라(켜 두었으면)를 더해서
         const L = psList(v === 'tab' ? PS.set : v); if (!L.length) return;
-        S.ps = { list: L, i: 0, extra: [] }; if (PS.music) playTrack(PS.track); render(); const b = document.querySelector('.ps-body'); if (b) b.scrollTop = 0; return;
+        S.ps = { list: L, i: 0, extra: [] }; if (PS.music) playTrack(PS.track);
+        // 기도를 열며(기본 켜짐): 첫 장 앞에 한 장. 몇 초 뒤 저절로, 또는 누르면 첫 장으로
+        if (PS.open !== false) { const ps = S.ps; ps.open = true; KoidePrayOpen.begin(() => psOpenDone(ps)); }
+        render(); const b = document.querySelector('.ps-body'); if (b) b.scrollTop = 0; return;
       }
+      case 'psopening': PS.open = PS.open === false; savePs(); return render();
+      case 'psskip': return psOpenDone(S.ps);
       case 'psgo': S.ps.i = Math.max(0, S.ps.i + Number(v)); render(); { const b = document.querySelector('.ps-body'); if (b) b.scrollTop = 0; } return;
       case 'pspray': togglePray(S.ps.list[S.ps.i].id); return render();
-      case 'psclose': S.ps = null; musicOff(); return render();
+      case 'psclose': KoidePrayOpen.stop(); S.ps = null; musicOff(); return render();
       case 'renperson': { const p = D.people.find(x => x.id === v), n = (prompt('새 이름', p.name) || '').trim().slice(0, 12); if (n) { p.name = n; p.up = now(); save(); } return render(); }
       case 'delperson': {
         const p = D.people.find(x => x.id === v), n = D.items.filter(i => i.target === 'p:' + v && !i.done).length;
@@ -1525,7 +1541,7 @@ button.knot { cursor: pointer; }
   document.addEventListener('keydown', e => {
     if ((e.key === 'Enter' || e.key === ' ') && e.target.id === 'keep3d' && e.target.getAttribute('role') === 'button') { e.preventDefault(); S.gbig = true; render(); return; }
     if (e.key !== 'Escape') return;
-    if (S.wopen != null) { S.wopen = null; render(); } else if (S.gbig) { if (G3.garden) G3.garden.leave(); S.gbig = false; S.gEdit = false; render(); } else if (S.ps) { S.ps = null; musicOff(); render(); } else if (S.done) { S.done = null; render(); } else if (S.vsheet) { S.vsheet = null; render(); } else if (S.share) { S.share = null; render(); } else if (S.mv) { S.mv = null; render(); }
+    if (S.wopen != null) { S.wopen = null; render(); } else if (S.gbig) { if (G3.garden) G3.garden.leave(); S.gbig = false; S.gEdit = false; render(); } else if (S.ps) { KoidePrayOpen.stop(); S.ps = null; musicOff(); render(); } else if (S.done) { S.done = null; render(); } else if (S.vsheet) { S.vsheet = null; render(); } else if (S.share) { S.share = null; render(); } else if (S.mv) { S.mv = null; render(); }
   });
   // 모임 화면의 '그물 담기'로 오면(?weave=모임ID) 모임 화면이 건네준 그물(sessionStorage)을 노트에 담고 '함께 짠 그물' 탭을 연다
   { const q = new URLSearchParams(location.search), wid = q.get('weave'); if (wid) {

@@ -1,4 +1,4 @@
-/* 기도하기의 공통 문장: 주기도문, 하나님 나라 주제, 감사와 찬양, 절기.
+/* 기도하기의 공통 문장: 주기도문, 하나님 나라 주제, 감사와 찬양, 절기, 기도를 열며.
  * 공동체 앱(index.html)과 기도 노트(note.html)가 함께 쓴다. 교회가 고친 문장(서버의 기도 문장 탭)은 공동체 앱이 덧입힌다 */
 window.KOIDE_PRAY = (() => {
   // 주기도문(개역개정 이전 번역)과 하나님 나라 주제 6개. 주제마다 주기도문 간구 하나씩 짝지어 그 순서대로 둔다(lines: 장 위에 다는 구절 번호)
@@ -118,6 +118,15 @@ window.KOIDE_PRAY = (() => {
   ];
   // 날짜 번호(이 기기의 날짜 기준): 같은 날에는 누가 열어도 같은 문장이 나온다
   const dayNo = d => Math.floor(Date.UTC(d.getFullYear(), d.getMonth(), d.getDate()) / 864e5);
+  // 기도를 열며(기도하기 첫 장): 세 줄이 하나씩 나타난다. 아래 작은 글은 날마다 하나씩(쉬운 풀이, 장절 포함). 모양은 pray-open.js
+  const OPENING = ['아버지께 나아갑니다', '예수님의 이름으로', '성령의 도우심을 구하며'];
+  const OPEN_NOTES = [
+    ['그리스도를 통해 한 성령 안에서 아버지께 나아가요', '에베소서 2:18'],
+    ['예수님께서 지금도 우리를 위해 간구하고 계세요', '로마서 8:34'],
+    ['무엇을 구할지 모를 때 성령께서 도와주세요', '로마서 8:26'],
+    ['성령의 교통하심이 우리를 하나로 이어요', '고린도후서 13:13']];
+  // 날짜 번호로 고른다: 같은 날에는 누가 열어도 같은 글이 나온다
+  const openNote = (day = new Date()) => OPEN_NOTES[dayNo(day) % OPEN_NOTES.length];
   // 부활절(그레고리력 계산법): 사순절·부활절·오순절이 여기서 정해진다
   function easterDay(y) {
     const a = y % 19, b = Math.floor(y / 100), c = y % 100, d = Math.floor(b / 4), e = b % 4, f = Math.floor((b + 8) / 25), g = Math.floor((b - f + 1) / 3);
@@ -135,5 +144,5 @@ window.KOIDE_PRAY = (() => {
       : on(harvest - 6, harvest) ? 'harvest' : on(advent, at(12, 24)) ? 'advent' : on(at(12, 25), at(12, 31)) ? 'christmas' : '';
     return k;
   }
-  return { LORDS_PRAYER, PRAY_TOPICS, PRAY_THANKS, PRAY_SEASONS, dayNo, seasonKey };
+  return { LORDS_PRAYER, PRAY_TOPICS, PRAY_THANKS, PRAY_SEASONS, OPENING, OPEN_NOTES, openNote, dayNo, seasonKey };
 })();

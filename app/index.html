@@ -1144,6 +1144,7 @@ body.pop-open { overflow: hidden; }
 
 </style>
 <link rel="stylesheet" href="intro-video.css">
+<link rel="stylesheet" href="pray-open.css">
 <link rel="stylesheet" href="beatitudes.css">
 <link rel="stylesheet" href="design-styles.css">
 <script>
@@ -1175,6 +1176,7 @@ try { const p = JSON.parse(localStorage.getItem('koide-pref') || '{}'), d = docu
 <script src="pray-data.js"></script>
 <script src="art-data.js"></script>
 <script src="intro-video.js"></script>
+<script src="pray-open.js"></script>
 <script src="beatitudes.js"></script>
 <script>
 (function () {
@@ -2591,7 +2593,7 @@ try { const p = JSON.parse(localStorage.getItem('koide-pref') || '{}'), d = docu
   }
   // 고른 것은 이 기기에 기억한다(다음에 열 때 그대로)
   const PSET_KEY = 'koide-pray';
-  const PSET = Object.assign({ kinds: ['room'], topics: PRAY_TOPICS.map(t => t.k), dur: 60, flow: false, music: false, track: 0, auto: true },
+  const PSET = Object.assign({ kinds: ['room'], topics: PRAY_TOPICS.map(t => t.k), dur: 60, flow: false, music: false, track: 0, auto: true, open: true },
     (() => { try { return JSON.parse(localStorage.getItem(PSET_KEY)) || {}; } catch (e) { return {}; } })());
   const savePset = () => { try { localStorage.setItem(PSET_KEY, JSON.stringify(PSET)); } catch (e) { /* 무시 */ } };
   // 예전에 '내 기도 노트'를 골라 둔 기기: 종류는 공동체 것만 남긴다
@@ -2736,6 +2738,8 @@ try { const p = JSON.parse(localStorage.getItem('koide-pref') || '{}'), d = docu
         <p class="label" style="margin-top:14px">한 장에 머무는 시간</p>${seg(PS_TIMES, PSET.dur, 'psdur')}
         ${PSET.dur ? `<div class="row" style="margin-top:10px"><div><p class="label" style="margin:0">자동으로 넘기기</p><p class="hint">만지면 멈추고, 넘기면 기도한 것으로 세요.</p></div>
           <button class="switch${PSET.flow ? ' on' : ''}" role="switch" aria-checked="${!!PSET.flow}" aria-label="자동으로 넘기기" data-act="psflow"><span></span></button></div>` : ''}
+        <div class="row" style="margin-top:14px"><div><p class="label" style="margin:0">기도를 열며</p><p class="hint">삼위일체 하나님께 간구로 시작해요</p></div>
+          <button class="switch${PSET.open !== false ? ' on' : ''}" role="switch" aria-checked="${PSET.open !== false}" aria-label="기도를 열며" data-act="psopen"><span></span></button></div>
         <div class="row" style="margin-top:14px"><div><p class="label" style="margin:0">잔잔한 음악 (찬송가 1~8장)</p><p class="hint">기도하는 동안 조용히 흘러요. 이어폰을 권해요.</p></div>
           <button class="switch${PSET.music ? ' on' : ''}" role="switch" aria-checked="${PSET.music}" aria-label="잔잔한 음악" data-act="psmusic"><span></span></button></div>
         ${PSET.music ? `<div class="ps-music-set"><p class="label" style="margin:0">처음 들을 곡</p>
@@ -2761,6 +2765,9 @@ try { const p = JSON.parse(localStorage.getItem('koide-pref') || '{}'), d = docu
           ${staffMe() ? roomCordHtml() : PSET.kinds.includes('room') || n ? cordHtml() : ''}</div>
         <div class="pss-nav one"><button data-act="psclose">마치기</button></div>`;
     }
+    // 기도를 열며: 첫 장 앞의 한 장. 장 수에 세지 않고, 누르면 바로 첫 장으로 간다
+    if (ps.open) return `<div class="pss-top"><button class="pss-x" data-act="psend">끝내기</button><span></span></div>
+      <div class="pss-body" data-act="psskip" style="justify-content:center;cursor:pointer">${KoidePrayOpen.html()}</div>`;
     const id = ps.list[ps.i], last = ps.i === ps.list.length - 1, ready = ps.dur && ps.left === 0;
     const ring = ps.dur ? `<span class="pss-timer"><svg class="pss-ring" viewBox="0 0 100 100" aria-hidden="true"><circle cx="50" cy="50" r="44" class="track"/><circle cx="50" cy="50" r="44" class="bar" stroke-dasharray="276.5" stroke-dashoffset="${(276.5 * (1 - ps.left / ps.dur)).toFixed(1)}"/></svg><span id="pss-time">${fmtTime(ps.left)}</span></span>` : '';
     const top = `<div class="pss-top"><button class="pss-x" data-act="psend">끝내기</button><span class="pss-step">${ring}<span>${ps.i + 1} / ${ps.list.length}</span></span>${musicBtn()}</div>`;
@@ -2794,7 +2801,7 @@ try { const p = JSON.parse(localStorage.getItem('koide-pref') || '{}'), d = docu
   let psTimer = null;
   function psTick() {
     clearInterval(psTimer);
-    const ps = S.ps; if (!ps || ps.done || !ps.dur) return;
+    const ps = S.ps; if (!ps || ps.done || ps.open || !ps.dur) return;
     psTimer = setInterval(() => {
       if (S.ps !== ps || ps.done) return clearInterval(psTimer);
       if (ps.cd) {
@@ -2828,7 +2835,7 @@ try { const p = JSON.parse(localStorage.getItem('koide-pref') || '{}'), d = docu
   let psRaf = 0;
   function psScroll() {
     cancelAnimationFrame(psRaf);
-    const ps = S.ps; if (!ps || ps.done || !ps.flow) return;
+    const ps = S.ps; if (!ps || ps.done || ps.open || !ps.flow) return;
     const P = $('#pss'), hold = Math.min(8, ps.dur * .1) * 1000, end = ps.dur * 700;
     const step = () => {
       if (S.ps !== ps || ps.done || ps.held) return;
@@ -2839,6 +2846,12 @@ try { const p = JSON.parse(localStorage.getItem('koide-pref') || '{}'), d = docu
     psRaf = requestAnimationFrame(step);
   }
   ['touchstart', 'wheel', 'mousedown', 'keydown'].forEach(e => $('#pss').addEventListener(e, () => { if (S.ps) S.ps.held = true; }, { passive: true }));
+  // 기도를 열며가 끝남(누르거나 때가 됨): 첫 장으로. 이때부터 한 장에 머무는 시간과 자동 넘기기가 센다
+  function psOpenDone(ps) {
+    if (!ps || S.ps !== ps || !ps.open) return;
+    KoidePrayOpen.stop(); Object.assign(ps, { open: false, left: ps.dur, cd: 0, stay: false, held: false, pt0: Date.now() });
+    render(); $('#pss').scrollTop = 0; psTick(); psScroll();
+  }
   function psGo(i) {
     const ps = S.ps; ps.seen = Math.max(ps.seen || 1, Math.min(i + 1, ps.list.length));
     if (i >= ps.list.length) { ps.done = true; clearInterval(psTimer); }
@@ -2851,6 +2864,8 @@ try { const p = JSON.parse(localStorage.getItem('koide-pref') || '{}'), d = docu
   function meetHtml() {
     const M = S.month, fams = meetFams(), i = S.meet, n = fams.length, w = words().one;
     const head = `${esc(M.room.name)} · ${Number(M.month.slice(5))}월 기도제목`;
+    if (S.meetOpen) return `<div class="pss-top"><span></span><button class="pss-x" data-act="meetclose">닫기</button></div>
+      <div class="pss-body" data-act="meetskip" style="justify-content:center;align-items:center;cursor:pointer">${KoidePrayOpen.html()}</div>`;
     const nav = (prev, next, act) => `<div class="pss-nav"><button data-act="meetprev"${prev ? '' : ' disabled'}>이전 ${w}</button><button class="pss-pray" data-act="${act}">${next}</button></div>`;
     if (i >= n) return `<div class="pss-top"><span class="pss-step">${head} · 함께 마치기</span><button class="pss-x" data-act="meetclose">닫기</button></div>
       <div class="pss-body lp"><p class="eyebrow">주기도문으로 함께 마쳐요</p><p class="lp-text">${LORDS_PRAYER.map(x => `<span>${x}</span>`).join(' ')}</p></div>
@@ -2861,6 +2876,10 @@ try { const p = JSON.parse(localStorage.getItem('koide-pref') || '{}'), d = docu
         ${its.length ? `<ul>${its.map(x => `<li><span class="tgt">${esc(SHARE_LABEL[x.target] || x.target)}</span><span>${esc(x.text)}</span></li>`).join('')}</ul>` : '<p class="hint">아직 올린 기도제목이 없어요.</p>'}</div>
       <p class="m-hint">${esc(grp())} 공개 기도제목만 나와요. 키보드 왼쪽·오른쪽 화살표로도 넘길 수 있어요.</p>
       ${nav(i > 0, i === n - 1 ? '주기도문으로 마치기' : '다음 ' + w, 'meetnext')}`;
+  }
+  function meetOpenDone() {
+    if (!S.meetOpen) return;
+    KoidePrayOpen.stop(); S.meetOpen = false; render(); $('#pss').scrollTop = 0;
   }
   function meetGo(i) { S.meet = Math.max(0, Math.min(meetFams().length, i)); S.meetSeen = Math.max(S.meetSeen || 1, S.meet + 1); render(); $('#pss').scrollTop = 0; }
   // 기도하는 동안 화면이 꺼지지 않게(되는 기기에서만)
@@ -4127,7 +4146,7 @@ try { const p = JSON.parse(localStorage.getItem('koide-pref') || '{}'), d = docu
   function viewSig() {
     const o = S.view !== 'app' ? '' : S.ps ? 'ps' : S.meet != null ? 'meet' : S.album ? 'album' : S.bigView ? 'big' : '';
     return { o, view: S.view, scr: S.tab + '/' + (S.openRoom || ''), tab: TABS.findIndex(x => x[0] === tabOn()),
-      page: o === 'ps' ? (S.ps.done ? 1e3 : S.ps.i) : o === 'meet' ? S.meet : 0, sub: [S.histTab, S.adminTab, S.homeView, S.churchTab].join('/'), today: S.todayId };
+      page: o === 'ps' ? (S.ps.done ? 1e3 : S.ps.open ? -1 : S.ps.i) : o === 'meet' ? (S.meetOpen ? -1 : S.meet) : 0, sub: [S.histTab, S.adminTab, S.homeView, S.churchTab].join('/'), today: S.todayId };
   }
   function vtKind(a, b) {
     if (!a || a.view !== b.view) return a && b.view === 'app' ? 'fade' : '';
@@ -4741,23 +4760,31 @@ try { const p = JSON.parse(localStorage.getItem('koide-pref') || '{}'), d = docu
         S.ps = { list, i: 0, dur: PSET.dur, left: PSET.dur, flow: !!(PSET.flow && PSET.dur), cd: 0, pt0: Date.now(), prayed: [], extra: [], done: false, t0: Date.now(), seen: 1 };
         track('기도하기 시작', { kinds: PSET.kinds.join('·'), cards: list.length, secs: PSET.dur, music: !!PSET.music, flow: S.ps.flow });
         if (PSET.music) { Music.unlock(); Music.play(PSET.track); }
-        wakeOn(); render(); psTick(); return psScroll();
+        wakeOn();
+        // 기도를 열며(기본 켜짐): 첫 장 앞에 한 장. 여는 동안은 장 타이머가 돌지 않고, 넘어간 뒤에 첫 장부터 센다
+        if (PSET.open !== false) { const ps = S.ps; ps.open = true; KoidePrayOpen.begin(() => psOpenDone(ps)); return render(); }
+        render(); psTick(); return psScroll();
       }
+      case 'psopen': PSET.open = PSET.open === false; savePset(); return render();
+      case 'psskip': return psOpenDone(S.ps);
       case 'psprev': return S.ps.i > 0 && psGo(S.ps.i - 1);
       case 'psnext': return psGo(S.ps.i + 1);
       case 'pspray': case 'psextra': return psMark() && psGo(S.ps.i + 1);
       case 'psstay': clearInterval(psTimer); S.ps.cd = 0; S.ps.stay = true; return psRender();
       case 'psflow': PSET.flow = !PSET.flow; savePset(); return render();
-      case 'psend': S.ps.done = true; clearInterval(psTimer); return render();
+      case 'psend': S.ps.done = true; S.ps.open = false; KoidePrayOpen.stop(); clearInterval(psTimer); return render();
       case 'psclose':
         // 몇 장까지 봤는지, 끝 장까지 가기 전에 끝냈는지(early: '끝내기'도 마친 화면을 보여 주므로 본 장 수로 정한다), 머문 시간(분)
         { const seen = Math.min(S.ps.list.length, Math.max(S.ps.seen || 1, S.ps.i + 1));
           track('기도하기 마침', { kinds: PSET.kinds.join('·'), cards: S.ps.list.length, seen, mins: (Date.now() - S.ps.t0) / 60000, music: !!PSET.music, early: seen < S.ps.list.length }); }
-        clearInterval(psTimer); S.ps = null; Music.off(); wakeOff(); return render();
-      case 'meet': S.meet = 0; S.meetSeen = 1; S.menu = null; wakeOn(); track('모임 모드 시작', { cards: meetFams().length + 1 }); return render();
+        clearInterval(psTimer); KoidePrayOpen.stop(); S.ps = null; Music.off(); wakeOff(); return render();
+      case 'meet': S.meet = 0; S.meetSeen = 1; S.menu = null; wakeOn(); track('모임 모드 시작', { cards: meetFams().length + 1 });
+        // 기도를 열며: 기도하기와 같은 설정(PSET.open)을 따른다
+        S.meetOpen = PSET.open !== false; if (S.meetOpen) KoidePrayOpen.begin(meetOpenDone); return render();
+      case 'meetskip': return meetOpenDone();
       case 'meetprev': return meetGo(S.meet - 1);
       case 'meetnext': return meetGo(S.meet + 1);
-      case 'meetclose': track('모임 모드 마침', { cards: meetFams().length + 1, seen: S.meetSeen }); S.meet = null; wakeOff(); return render();
+      case 'meetclose': track('모임 모드 마침', { cards: meetFams().length + 1, seen: S.meetSeen }); KoidePrayOpen.stop(); S.meetOpen = false; S.meet = null; wakeOff(); return render();
       case 'impparse': {
         const r = readSheet($('#imp-t').value);
         if (!r.families.length) return toast('가정을 찾지 못했어요. 시트의 ' + grp() + ' 탭을 통째로 복사해 주세요.');
@@ -4805,7 +4832,8 @@ try { const p = JSON.parse(localStorage.getItem('koide-pref') || '{}'), d = docu
     if (e.key === 'Escape' && S.wbig) { S.wbig = false; return render(); }
     if (e.key === 'Escape' && !$('#pop').hidden) { a2hsOff(); return render(); }
     if (S.meet == null || S.ps || S.view !== 'app') return;
-    if (e.key === 'Escape') { track('모임 모드 마침', { cards: meetFams().length + 1, seen: S.meetSeen }); S.meet = null; wakeOff(); render(); }
+    if (e.key === 'Escape') { track('모임 모드 마침', { cards: meetFams().length + 1, seen: S.meetSeen }); KoidePrayOpen.stop(); S.meetOpen = false; S.meet = null; wakeOff(); render(); }
+    else if (S.meetOpen) { if (e.key === 'ArrowRight' || e.key === 'ArrowLeft') meetOpenDone(); }
     else if (e.key === 'ArrowRight') meetGo(S.meet + 1);
     else if (e.key === 'ArrowLeft') meetGo(S.meet - 1);
   });
