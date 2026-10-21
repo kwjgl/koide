@@ -681,7 +681,7 @@ function staffMonthView_(c) {
   const all = read_('items').filter(i => i.month === m && i.familyId === c.familyId);
   const st = read_('monthly').find(x => x.month === m && x.familyId === c.familyId);
   const f = c.family, show = i => ({ id: i.id, target: i.target, text: i.text, scope: i.scope });
-  const own = { id: f.id, name: f.name, kids: f.kids ? String(f.kids).split(/\s*,\s*/) : [], own: true, status: st ? st.status : 'same', prayed: 0, today: 0,
+  const own = { id: f.id, name: f.name, kids: f.kids ? String(f.kids).split(/\s*,\s*/) : [], own: true, status: st ? st.status : 'same', prayed: 0, today: 0, week: 0,
     items: all.filter(i => i.state !== '마침').sort((a, b) => a.order - b.order).map(i => Object.assign(show(i), { same: yes_(i.same), isNew: !i.prevId && !yes_(i.same), editedBy: i.editedBy, editedAt: fmtDay_(i.editedAt) })),
     ended: all.filter(i => i.state === '마침').map(show) };
   return { month: m, term: termNow_(c.deptId), dept: c.dept, room: { id: '', name: c.dept.name }, me: { person: c.person, familyId: c.familyId, role: c.role, admin: c.admin, staff: true, label: c.label },
@@ -792,7 +792,9 @@ function roomFamilies_(c, roomId, m, isLeader) {
   const fams = read_('families'), roster = read_('roster').filter(r => activeRow_(r) && r.roomId === roomId);
   const items = read_('items').filter(i => i.month === m && i.state !== '마침');
   const monthly = read_('monthly').filter(x => x.month === m);
-  const prayed = read_('prayers').filter(p => fmtMonth_(p.at) === m && p.kakaoId === c.kakaoId);
+  const mineAll = read_('prayers').filter(p => p.kakaoId === c.kakaoId), prayed = mineAll.filter(p => fmtMonth_(p.at) === m);
+  // 이번 주(주일부터) 횟수는 달과 상관없이 센다(한 주가 두 달에 걸칠 수 있어서)
+  const wk = weekStart_(), weekP = mineAll.filter(p => fmtDate_(p.at) >= wk);
   return roster.map(r => fams.find(f => f.id === r.familyId)).filter(f => f && f.status === '활동').map(f => {
     const own = f.id === c.familyId;
     const st = monthly.find(x => x.familyId === f.id);
@@ -801,6 +803,7 @@ function roomFamilies_(c, roomId, m, isLeader) {
       status: st ? st.status : 'same',
       prayed: prayed.filter(p => p.familyId === f.id).length,
       today: prayed.filter(p => p.familyId === f.id && fmtDate_(p.at) === today_()).length,
+      week: weekP.filter(p => p.familyId === f.id).length,
       items: items.filter(i => i.familyId === f.id && (own || i.scope === 'room' || (i.scope === 'leader' && isLeader)))
         .sort((a, b) => a.order - b.order)
         .map(i => ({ id: i.id, target: i.target, text: i.text, scope: i.scope, same: yes_(i.same), isNew: !i.prevId && !yes_(i.same),
@@ -887,12 +890,13 @@ function pray_(body) {
   // 목사님·장로님은 부서의 모든 사랑방 가정을 위해 기도한다
   const ok = r => activeRow_(r) && r.familyId === body.familyId && (c.staff ? deptOfRoom_(r.roomId).id === c.deptId : r.roomId === c.roomId);
   if (c.grp ? !groupPeople_(c.grp).some(m => m.id === body.familyId) : !read_('roster').some(ok)) throw fail_('bad', c.staff ? '우리 부서 사랑방 가정이 아니에요.' : '우리 사랑방 가정이 아니에요.');
-  // prayed: 이번 달 내 횟수, today: 오늘 내 횟수(가정마다 하루 3번까지)
-  const mine = read_('prayers').filter(p => p.kakaoId === c.kakaoId && p.familyId === body.familyId && fmtMonth_(p.at) === month_());
-  const n = mine.filter(p => fmtDate_(p.at) === today_()).length;
-  if (n >= 3) return { prayed: mine.length, today: n, capped: true };
+  // prayed: 이번 달 내 횟수, today: 오늘 내 횟수(가정마다 하루 3번까지), week: 이번 주(주일부터) 내 횟수
+  const all = read_('prayers').filter(p => p.kakaoId === c.kakaoId && p.familyId === body.familyId), wk = weekStart_();
+  const mine = all.filter(p => fmtMonth_(p.at) === month_());
+  const n = mine.filter(p => fmtDate_(p.at) === today_()).length, w = all.filter(p => fmtDate_(p.at) >= wk).length;
+  if (n >= 3) return { prayed: mine.length, today: n, week: w, capped: true };
   append_('prayers', { at: new Date(), by: c.familyId, familyId: body.familyId, kakaoId: c.kakaoId });
-  return { prayed: mine.length + 1, today: n + 1, capped: n + 1 >= 3, art: c.staff ? undefined : artNums_(c, [month_()])[0] };
+  return { prayed: mine.length + 1, today: n + 1, week: w + 1, capped: n + 1 >= 3, art: c.staff ? undefined : artNums_(c, [month_()])[0] };
 }
 
 // ── 사용기록 ─────────────────────────────────────────────
@@ -960,7 +964,7 @@ function analysisView_(c) {
     return { month: mm, n: ids.length, visit: pct(ids.filter(f => seen[f + '|' + mm]).length, ids.length), edit: pct(ids.filter(f => done(f, mm)).length, ids.length) };
   });
   const now = famsAt(m), ids = now.map(r => r.familyId);
-  // 주별 '기도했어요': 이번 주(월요일부터)까지 8주
+  // 주별 '기도했어요': 이번 주(주일부터)까지 8주
   const day = 864e5, start = Date.parse(weekStart_() + 'T00:00:00Z') - 7 * 7 * day;
   const weeks = Array.from({ length: 8 }, (_, i) => { const d = new Date(start + i * 7 * day); return { label: (d.getUTCMonth() + 1) + '/' + d.getUTCDate(), n: 0 }; });
   prayers.forEach(p => { const i = Math.floor((Date.parse(fmtDate_(p.at) + 'T00:00:00Z') - start) / (7 * day)); if (i >= 0 && i < 8) weeks[i].n++; });
@@ -2047,11 +2051,13 @@ function groupMonthView_(c) {
   ensureFamilies_(people.map(p => p.id), m, () => c.grp);
   const items = read_('items').filter(i => i.month === m && i.roomId === c.grp && i.state !== '마침');
   const monthly = read_('monthly').filter(x => x.month === m);
-  const prayed = read_('prayers').filter(p => fmtMonth_(p.at) === m && p.kakaoId === c.kakaoId);
+  const mineAll = read_('prayers').filter(p => p.kakaoId === c.kakaoId), prayed = mineAll.filter(p => fmtMonth_(p.at) === m);
+  const wk = weekStart_(), weekP = mineAll.filter(p => fmtDate_(p.at) >= wk);
   const families = people.map(p => {
     const own = p.id === c.familyId, st = monthly.find(x => x.familyId === p.id);
     return { id: p.id, name: p.person, kids: [], own, status: st ? st.status : 'same', role: p.role,
       prayed: prayed.filter(x => x.familyId === p.id).length, today: prayed.filter(x => x.familyId === p.id && fmtDate_(x.at) === today_()).length,
+      week: weekP.filter(x => x.familyId === p.id).length,
       items: items.filter(i => i.familyId === p.id && (own || i.scope === 'room')).sort((a, b) => a.order - b.order)
         .map(i => ({ id: i.id, target: i.target, text: i.text, scope: i.scope, same: yes_(i.same), isNew: !i.prevId && !yes_(i.same), editedBy: own ? i.editedBy : '', editedAt: own ? fmtDay_(i.editedAt) : '' })),
       ended: own ? read_('items').filter(i => i.month === m && i.familyId === p.id && i.state === '마침').map(i => ({ id: i.id, target: i.target, text: i.text, scope: i.scope })) : [] };
@@ -2899,8 +2905,8 @@ function month_() { return fmt_(new Date(), 'yyyy-MM'); }
 function year_() { return fmt_(new Date(), 'yyyy'); }
 function today_() { return fmt_(new Date(), 'yyyy-MM-dd'); }
 function fmtDate_(d) { return fmt_(d, 'yyyy-MM-dd'); }
-// 이번 주 월요일(yyyy-MM-dd). 날짜 글자끼리 크기를 견줘 이번 주 기록을 고른다
-function weekStart_() { const d = new Date(today_() + 'T00:00:00Z'); d.setUTCDate(d.getUTCDate() - (d.getUTCDay() + 6) % 7); return d.toISOString().slice(0, 10); }
+// 이번 주 주일(yyyy-MM-dd). 날짜 글자끼리 크기를 견줘 이번 주 기록을 고른다
+function weekStart_() { const d = new Date(today_() + 'T00:00:00Z'); d.setUTCDate(d.getUTCDate() - d.getUTCDay()); return d.toISOString().slice(0, 10); }
 function fmtMonth_(d) { return fmt_(d, 'yyyy-MM'); }
 function fmtDay_(d) { return d ? fmt_(d, 'M월 d일') : ''; }
 function prevMonth_(m) { const [y, mo] = m.split('-').map(Number); return mo === 1 ? (y - 1) + '-12' : y + '-' + String(mo - 1).padStart(2, '0'); }

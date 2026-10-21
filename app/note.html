@@ -555,6 +555,8 @@ button.knot { cursor: pointer; }
   const uid = () => Date.now().toString(36) + Math.random().toString(36).slice(2, 6);
   const dkey = (d = new Date()) => d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
   const TODAY = () => dkey();
+  // 이번 주 시작(주일) 날짜. 기도의 끈은 주일부터 토요일까지 한 주 단위
+  const WEEK = () => { const d = new Date(); d.setDate(d.getDate() - d.getDay()); return dkey(d); };
   const dateLabel = k => { const [y, m, d] = k.split('-').map(Number), w = '일월화수목금토'[new Date(y, m - 1, d).getDay()]; return `${m}월 ${d}일 ${w}요일`; };
   const short = k => { const [, m, d] = k.split('-').map(Number); return `${m}월 ${d}일`; };
   const daysSince = k => Math.max(1, Math.round((new Date(TODAY()) - new Date(k)) / 864e5) + 1);
@@ -583,6 +585,7 @@ button.knot { cursor: pointer; }
   const open = () => D.items.filter(i => !i.done);
   const lastPrayed = id => prays().filter(p => p.item === id).reduce((m, p) => p.d > m ? p.d : m, '');
   const prayedToday = id => prays().some(p => p.item === id && p.d === TODAY());
+  const prayedThisWeek = id => prays().some(p => p.item === id && p.d >= WEEK());
 
   // 오늘 기도할 제목: 하루에 3개를 정해 두고(그날은 바뀌지 않게), 오래 기도하지 않은 것부터
   function todaySet() {
@@ -603,8 +606,8 @@ button.knot { cursor: pointer; }
   window.KoideBeatitudes.init({ count: prayedDays });
   function togglePray(id) {
     const t = TODAY(), hadToday = prays().some(x => x.d === t), p = D.prays.find(x => x.item === id && x.d === t), it = D.items.find(i => i.id === id);
-    // 오늘 처음 그 사람의 매듭이 지어지면 끈에서 매듭이 묶이고 끈이 당겨진다(다 그린 뒤 한 번)
-    if (it && !D.items.some(i => i.target === it.target && prayedToday(i.id))) S.cordNew = it.target;
+    // 이번 주 처음 그 사람의 매듭이 지어지면 끈에서 매듭이 묶이고 끈이 당겨진다(다 그린 뒤 한 번)
+    if (it && !D.items.some(i => i.target === it.target && prayedThisWeek(i.id))) S.cordNew = it.target;
     if (p) { p.off = !p.off; p.up = now(); } else D.prays.push({ d: t, item: id, up: now() });
     save();
     if (!hadToday && prays().some(x => x.d === t)) setTimeout(() => window.KoideBeatitudes.gift({ n: prayedDays(), key: DEMO_LINK ? 'koide-demo-bt-note' : 'koide-bt-note' }), 900);
@@ -707,12 +710,12 @@ button.knot { cursor: pointer; }
 
   // ── 화면 ─────────────────────────────────────────────────────────────
   // 내가 기도하는 사람들의 끈(공동체 앱의 기도의 끈과 같은 모양): 나 + 내가 기도하는 사람마다 매듭.
-  //  오늘 그 사람을 위해 기도하면 매듭이 지어지고, 이웃한 두 자리가 다 지어지면 그 사이 끈이 팽팽해진다. 다 이으면 양 끝이 리본으로 묶인다
+  //  이번 주(주일부터)에 그 사람을 위해 기도하면 매듭이 지어지고, 이웃한 두 자리가 다 지어지면 그 사이 끈이 팽팽해진다. 다 이으면 양 끝이 리본으로 묶인다
   const KNOT_SVG = '<svg viewBox="0 0 32 32" aria-hidden="true"><path class="tie" d="M0 16H8.5C11 16 12 13 12 10.5C12 6.5 14.5 4 18 4S24 6.5 24 10.2 21 16 16.5 16.4"/><path class="tie" d="M11 19.2C15 17 19 16 32 16"/></svg>';
   const SLOT_SVG = '<svg viewBox="0 0 32 32" aria-hidden="true"><circle class="slot" cx="16" cy="16" r="4.5"/></svg>';
   const calm = () => !!(window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches);
   function cordHtml() {
-    const slots = [['me', '나'], ...people().map(p => ['p:' + p.id, p.name])].map(([key, name]) => ({ key, name, on: D.items.some(i => i.target === key && prayedToday(i.id)) }));
+    const slots = [['me', '나'], ...people().map(p => ['p:' + p.id, p.name])].map(([key, name]) => ({ key, name, on: D.items.some(i => i.target === key && prayedThisWeek(i.id)) }));
     if (slots.length < 2) return '';
     const N = slots.length, on = slots.map(x => x.on), all = on.every(Boolean), nw = calm() ? -1 : slots.findIndex(x => x.key === S.cordNew);
     const x = i => +((i + .5) * 100 / N).toFixed(2);
@@ -727,13 +730,13 @@ button.knot { cursor: pointer; }
     const end = side => all
       ? `<svg class="cord-end ${side} bow${nw >= 0 ? ' new' : ''}" viewBox="0 0 18 26" aria-hidden="true"><path d="${side === 'l' ? 'M9 13H18' : 'M0 13H9'}"/><path class="loop" d="M9 13C4 4 -1 8 1.5 12.5S7 14 9 13ZM9 13C14 4 19 8 16.5 12.5S11 14 9 13Z"/><path d="M9 13L5.5 22M9 13L12.5 22"/></svg>`
       : `<svg class="cord-end ${side}" viewBox="0 0 18 26" aria-hidden="true"><path d="${side === 'l' ? 'M18 13C12 18 8 18 4 16' : 'M0 13C6 18 10 18 14 16'}"/></svg>`;
-    const knots = slots.map((k, i) => `<span class="knot${k.on ? ' on' : ''}${i === nw ? ' new' : ''}" aria-label="${esc(k.name)}, ${k.on ? '오늘 기도함' : '오늘 아직 기도하지 않음'}" title="${esc(k.name)}"><span class="knot-g">${k.on ? KNOT_SVG : SLOT_SVG}</span><span class="knot-l">${esc(k.name)}</span></span>`).join('');
+    const knots = slots.map((k, i) => `<span class="knot${k.on ? ' on' : ''}${i === nw ? ' new' : ''}" aria-label="${esc(k.name)}, ${k.on ? '이번 주 기도함' : '이번 주 아직 기도하지 않음'}" title="${esc(k.name)}"><span class="knot-g">${k.on ? KNOT_SVG : SLOT_SVG}</span><span class="knot-l">${esc(k.name)}</span></span>`).join('');
     const n = on.filter(Boolean).length;
     return `<section class="card"><div class="cord" role="group" aria-label="내가 기도하는 사람들">
-      <div class="cord-head"><p class="label" style="margin:0">내가 기도하는 사람들</p><p class="cord-n">${all ? '오늘 모두와 이어졌어요 <span aria-hidden="true">🙌</span>' : `${N}명 중 <b>${n}명</b>과 이어졌어요`}</p></div>
+      <div class="cord-head"><p class="label" style="margin:0">내가 기도하는 사람들</p><p class="cord-n">${all ? '이번 주 모두와 이어졌어요 <span aria-hidden="true">🙌</span>' : `${N}명 중 <b>${n}명</b>과 이어졌어요`}</p></div>
       <div class="cord-wrap">${end('l')}<svg class="cord-line" viewBox="0 0 100 26" preserveAspectRatio="none" aria-hidden="true">${segs.join('')}</svg>${end('r')}
         <div class="cord-knots" style="grid-template-columns:repeat(${N},minmax(0,1fr))">${knots}</div></div></div>
-      <p class="hint">오늘 그 사람을 위해 기도하면 매듭이 지어지고, 이웃한 두 사람을 다 기도하면 끈이 팽팽해져요.</p></section>`;
+      <p class="hint">이번 주에 그 사람을 위해 기도하면 매듭이 지어지고, 이웃한 두 사람을 다 기도하면 끈이 팽팽해져요.</p></section>`;
   }
   function todayView() {
     const set = todaySet(), all = open(), done = set.filter(i => prayedToday(i.id)).length;

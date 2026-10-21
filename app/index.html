@@ -2621,12 +2621,12 @@ try { const p = JSON.parse(localStorage.getItem('koide-pref') || '{}'), d = docu
   }
   function pickToday(fams, from, skip) {
     const n = fams.length, at = k => fams[(from + k) % n];
-    for (let k = 0; k < n; k++) if (at(k).id !== skip && !at(k).prayed) { S.todayId = at(k).id; return at(k); }
+    for (let k = 0; k < n; k++) if (at(k).id !== skip && !at(k).week) { S.todayId = at(k).id; return at(k); }
     const f = at(0).id === skip && n > 1 ? at(1) : at(0); S.todayId = f.id; return f;
   }
   const famById = id => S.month.families.find(f => f.id === id) || (S.room && S.room.families.find(f => f.id === id));
-  // 오늘 아직 기도하지 않은 가정부터, 그다음 이번 달 덜 기도한 가정부터
-  const psOrder = () => roomFams().slice().sort((a, b) => ((a.today || 0) > 0) - ((b.today || 0) > 0) || a.prayed - b.prayed).map(f => f.id);
+  // 오늘 아직 기도하지 않은 가정부터, 그다음 이번 주 덜 기도한 가정부터(같으면 이번 달 덜 기도한 가정)
+  const psOrder = () => roomFams().slice().sort((a, b) => ((a.today || 0) > 0) - ((b.today || 0) > 0) || (a.week || 0) - (b.week || 0) || a.prayed - b.prayed).map(f => f.id);
   function psList() {
     const K = PSET.kinds;
     const room = K.includes('room') ? psOrder().map(id => 'f:' + id) : [];
@@ -2670,13 +2670,13 @@ try { const p = JSON.parse(localStorage.getItem('koide-pref') || '{}'), d = docu
       <div class="cord-wrap">${end('l')}<svg class="cord-line" viewBox="0 0 100 26" preserveAspectRatio="none" aria-hidden="true">${segs.join('')}</svg>${end('r')}
         <div class="cord-knots" style="grid-template-columns:repeat(${N},minmax(0,1fr))">${knots}</div></div></div>`;
   }
-  // 기도의 끈(이번 달, 나만 봄): 사랑방 가정마다 매듭. cur: 지금 카드에 있는 가정. 매듭을 누르면 그 가정이 '지금 함께 기도할 가정'으로 온다
+  // 기도의 끈(이번 주, 나만 봄): 사랑방 가정마다 매듭. cur: 지금 카드에 있는 가정. 매듭을 누르면 그 가정이 '지금 함께 기도할 가정'으로 온다
   function cordHtml(cur) {
     const fams = roomFams(); if (!fams.length) return '';
-    const slots = fams.map(f => ({ key: f.id, short: f.name.slice(0, 1), name: f.name, on: f.prayed > 0, cur: f.id === cur, n: f.prayed }));
+    const slots = fams.map(f => ({ key: f.id, short: f.name.slice(0, 1), name: f.name, on: f.week > 0, cur: f.id === cur, n: f.week }));
     return cordView({ slots, nwKey: S.cordNew, act: cur !== undefined && 'cordpick', head: '기도의 끈',
-      say: k => `${k.name}${solo() ? '' : ' 가정'}, ${k.on ? `이번 달 ${k.n}번 기도함` : '아직 기도하지 않음'}${k.cur ? ', 지금 보는 ' + words().one : ''}`,
-      count: (n, N) => `${N}${words().count} 중 <b>${n}${words().count}</b>과 이어졌어요`, done: `${grp()} ${solo() ? '식구 모두와' : '모든 가정과'} 이어졌어요` });
+      say: k => `${k.name}${solo() ? '' : ' 가정'}, ${k.on ? `이번 주 ${k.n}번 기도함` : '이번 주 아직 기도하지 않음'}${k.cur ? ', 지금 보는 ' + words().one : ''}`,
+      count: (n, N) => `${N}${words().count} 중 <b>${n}${words().count}</b>과 이어졌어요`, done: `이번 주 ${grp()} ${solo() ? '식구 모두와' : '모든 가정과'} 이어졌어요` });
   }
   // 청장년부 기도의 끈(목사님·장로님): 사랑방마다 매듭. 이번 주에 그 사랑방 가정을 위해 기도하면 매듭이 지어진다.
   //  매듭을 누르면 그 사랑방을 오늘의 사랑방으로 골라 기도하러 간다
@@ -2688,7 +2688,7 @@ try { const p = JSON.parse(localStorage.getItem('koide-pref') || '{}'), d = docu
       say: k => `${k.name}, ${k.on ? '이번 주에 기도함' : '이번 주에 아직 기도하지 않음'}`,
       count: (n, N) => `이번 주 ${N}곳 중 <b>${n}곳</b>과 이어졌어요`, done: `이번 주 모든 ${gj('과/와')} 이어졌어요` });
   }
-  // 기도 효과: 메인 기도 버튼은 작은 빛이 퍼지고, 이번 달 사랑방 모든 가정을 위해 기도하면 끈이 리본으로 묶이며 꽃가루가 내린다
+  // 기도 효과: 메인 기도 버튼은 작은 빛이 퍼지고, 이번 주 사랑방 모든 가정을 위해 기도하면 끈이 리본으로 묶이며 꽃가루가 내린다
   const calm = () => !!(window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches);
   function popBurst(el) {
     if (!el || calm()) return;
@@ -2899,23 +2899,23 @@ try { const p = JSON.parse(localStorage.getItem('koide-pref') || '{}'), d = docu
     const heroBefore = S.month.art ? S.month.art.hero : 0;
     artBump(f);
     const newDay = !!S.month.art && S.month.art.hero > heroBefore;
-    const before = !staffMe() && roomFams().every(x => x.prayed > 0);
-    if (!f.prayed) S.cordNew = f.id;
-    f.today = (f.today || 0) + 1; f.prayed++; S.myp = null; S.flash = f.id;
+    const before = !staffMe() && roomFams().every(x => x.week > 0);
+    if (!f.week) S.cordNew = f.id;
+    f.today = (f.today || 0) + 1; f.prayed++; f.week = (f.week || 0) + 1; S.myp = null; S.flash = f.id;
     // 목사님·장로님: 그 사랑방 매듭을 이번 주 기도한 것으로(청장년부 기도의 끈)
     if (staffMe() && S.room && S.room.families.indexOf(f) >= 0) { const r = (S.month.rooms || []).find(x => x.id === S.room.room.id); if (r && !r.week) { r.week = true; S.roomNew = r.id; } }
     render(); S.flash = null; S.cordNew = null; S.roomNew = null;
     if (hero) popBurst($('.pray.hero'));
-    if (!before && !staffMe() && roomFams().every(x => x.prayed > 0)) setTimeout(kusudama, hero ? 450 : 100);
+    if (!before && !staffMe() && roomFams().every(x => x.week > 0)) setTimeout(kusudama, hero ? 450 : 100);
     if (!S.a2hsDue && !S.a2hs) setTimeout(() => { a2hsDue(); if (S.a2hsDue) paint(); }, 1600);
     api('pray', { familyId: f.id }).then(r => {
       const g = famById(f.id) || f;
-      if (r.today != null) { g.today = r.today; g.prayed = r.prayed; }
+      if (r.today != null) { g.today = r.today; g.prayed = r.prayed; if (r.week != null) g.week = r.week; }
       if (r.art && S.month.art) S.month.art = r.art;
       if (r.capped && S.tab === 'home') toast('이 ' + words().one + '은 오늘 충분히 기도했어요. 내일 또 기도해 주세요.');
       paint();
       if (newDay) setTimeout(beatGift, 900);
-    }).catch(err => { const g = famById(f.id) || f; g.today--; g.prayed--; paint(); oops(err); });
+    }).catch(err => { const g = famById(f.id) || f; g.today--; g.prayed--; g.week--; paint(); oops(err); });
   }
 
   // 팔복 이스터에그(beatitudes.js): 기도한 날 수는 달마다 모은 그림의 '기도한 날'을 모두 더한 것. 오늘이 새로 기도한 날이고 8의 배수가 되면 작은 카드가 한 번 뜬다
