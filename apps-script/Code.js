@@ -60,7 +60,9 @@ const SCHEMA = {
   // 초대 링크(설계서 S7 › ⑤): 부서 링크(사랑방ID 비움)와 사랑방 링크. 링크 값은 무작위. 새로 만들면 예전 링크는 '막힘'
   // 노트 보관(설계서 13장 '나 · 기도 노트'): 개인 기도 노트를 다른 기기와 이어 두려고 맡긴 것. 내용은 휴대폰에서 비밀 문구로 잠근 글이라
   //  서버와 시트를 여는 사람은 읽을 수 없다. 한 칸에 다 들어가지 않으면 조각으로 나눠 여러 줄에 둔다. 판은 맡길 때마다 1씩 는다
-  vault: ['노트 보관', [['kakaoId', '카카오ID'], ['part', '조각'], ['data', '잠긴 내용'], ['at', '맡긴 시각'], ['salt', '소금'], ['rev', '판']]],
+  vault: ['노트 보관', [['kakaoId', '카카오ID'], ['part', '조각'], ['data', '잠긴 내용'], ['at', '맡긴 시각'], ['salt', '소금'], ['rev', '판'], ['wrap', '잠긴 열쇠'], ['rsalt', '복구 소금'], ['rwrap', '복구로 잠긴 열쇠']]],
+  //  뒤의 세 칸은 복구용 문구용: 노트를 잠그는 진짜 열쇠를 비밀 문구 열쇠(wrap)와 복구용 문구 열쇠(rwrap)로 한 번씩 더 잠근 것. 열쇠는 잠긴 채로만 있다.
+  //  모든 조각 줄에 같은 값을 둔다(salt처럼). 예전 방식(wrap 없음)은 비밀 문구 열쇠가 곧 진짜 열쇠다
   // 기도문장(설계서 S7 › ③): 하나님 나라 기도 문장 중 교역자·관리자가 고친 주제만. 주제는 church·nation 같은 키, 감사와 찬양은 thanks,
   //  절기 문장은 season:lent처럼. 묶음 a(간구 문장)·b(성경의 기도, 장절)·next(내 말로 이어서). 상태 '뺌'은 돌아가는 순서에서 빠진다.
   //  한 주제에 줄이 하나도 없으면 앱에 들어 있는 기본 문장을 쓴다(기본으로 되돌리기 = 그 주제 줄을 모두 지우기)
@@ -94,7 +96,7 @@ const FIRST_DEPT = { id: 'D1', name: '청장년부', group: '사랑방', unit: '
 // ── 요청 받기 ─────────────────────────────────────────────
 
 // 서버 코드를 고칠 때마다 바꾼다. 웹 앱 주소를 열면 보여서, 새 버전으로 배포됐는지 확인할 수 있다
-const VERSION = '2026-11-05 결혼해서 가정 합치기, 다른 부서로 옮기기';
+const VERSION = '2026-10-21 기도 노트 복구용 문구';
 function doGet() {
   return ContentService.createTextOutput('코이데 서버가 켜져 있어요. (버전: ' + VERSION + ')');
 }
@@ -228,6 +230,7 @@ const ACTIONS = {
   codeMake: body => { const c = leaderOrAdmin_(body); return withLock_(() => codeMake_(c, body)); },
   codeLogin: body => withLock_(() => codeLogin_(body)),
   noteGet: body => noteGet_(auth_(body.token)),
+  noteKeys: body => { const a = auth_(body.token); return withLock_(() => noteKeys_(a, body)); },
   notePut: body => { const a = auth_(body.token); return withLock_(() => notePut_(a, body)); },
   noteDel: body => { const a = auth_(body.token); return withLock_(() => noteDel_(a)); }
 };
@@ -2679,7 +2682,7 @@ function noteUid_(kakaoId) { return hash_('note-owner:' + kakaoId).slice(0, 20);
 function noteGet_(a) {
   const rows = noteRows_(a.kakaoId);
   if (!rows.length) return { none: true };
-  return { data: rows.map(r => String(r.data)).join(''), salt: String(rows[0].salt), rev: Number(rows[0].rev) || 0, at: rows[0].at };
+  return { data: rows.map(r => String(r.data)).join(''), salt: String(rows[0].salt), rev: Number(rows[0].rev) || 0, at: rows[0].at, wrap: String(rows[0].wrap || ''), rsalt: String(rows[0].rsalt || ''), rwrap: String(rows[0].rwrap || '') };
 }
 // 다른 기기가 먼저 맡겼으면(판이 다르면) 저장하지 않고 알린다. 화면이 받아서 합친 뒤 다시 맡긴다
 function notePut_(a, body) {
@@ -2688,10 +2691,33 @@ function notePut_(a, body) {
   if (data.length > NOTE_MAX_) throw fail_('bad', '기도 노트가 너무 커서 맡길 수 없어요.');
   const rows = noteRows_(a.kakaoId), rev = rows.length ? Number(rows[0].rev) || 0 : 0;
   if (rows.length && rev !== Number(body.baseRev || 0)) return { stale: true, rev };
+  // 열쇠 관련 값(소금·잠긴 열쇠·복구 소금·복구로 잠긴 열쇠)은 줄이 이미 있으면 있던 값을 지킨다. 옛 화면이 예전 소금을 다시 보내 열쇠를 망가뜨리지 않게.
+  //  처음 맡길 때만 받은 값을 쓴다. 바꾸는 것은 noteKeys로만
+  const keep = rows.length ? rows[0] : null;
+  const keys = keep ? { salt: String(keep.salt), wrap: String(keep.wrap || ''), rsalt: String(keep.rsalt || ''), rwrap: String(keep.rwrap || '') }
+    : { salt, wrap: String(body.wrap || ''), rsalt: String(body.rsalt || ''), rwrap: String(body.rwrap || '') };
   rows.slice().sort((x, y) => y._row - x._row).forEach(r => remove_('vault', r));
   const at = new Date(), next = rev + 1;
-  for (let i = 0, k = 0; i < data.length; i += NOTE_PART_, k++) append_('vault', { kakaoId: a.kakaoId, part: k, data: data.slice(i, i + NOTE_PART_), at, salt, rev: next });
+  for (let i = 0, k = 0; i < data.length; i += NOTE_PART_, k++) append_('vault', Object.assign({ kakaoId: a.kakaoId, part: k, data: data.slice(i, i + NOTE_PART_), at, rev: next }, keys));
   return { rev: next, at };
+}
+// 열쇠만 바꾼다(노트 내용과 판은 그대로): 비밀 문구를 새로 정할 때(소금+잠긴 열쇠), 복구용 문구를 새로 만들 때(복구 소금+복구로 잠긴 열쇠).
+//  보낸 것만 바꾸고, 짝(소금과 잠긴 열쇠)은 함께 와야 한다. 맡긴 노트가 없으면 바꿀 곳이 없다
+function noteKeys_(a, body) {
+  const rows = noteRows_(a.kakaoId);
+  if (!rows.length) throw fail_('bad', '맡긴 노트가 없어요.');
+  const set = {};
+  if (body.salt !== undefined || body.wrap !== undefined) {
+    if (!body.salt || !body.wrap) throw fail_('bad', '바꿀 열쇠가 모자라요.');
+    set.salt = String(body.salt); set.wrap = String(body.wrap);
+  }
+  if (body.rsalt !== undefined || body.rwrap !== undefined) {
+    if (!body.rsalt || !body.rwrap) throw fail_('bad', '바꿀 열쇠가 모자라요.');
+    set.rsalt = String(body.rsalt); set.rwrap = String(body.rwrap);
+  }
+  if (!Object.keys(set).length) throw fail_('bad', '바꿀 열쇠가 없어요.');
+  rows.forEach(r => update_('vault', Object.assign({}, r, set)));
+  return { ok: true };
 }
 function noteDel_(a) {
   noteRows_(a.kakaoId).sort((x, y) => y._row - x._row).forEach(r => remove_('vault', r));
