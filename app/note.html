@@ -371,6 +371,7 @@ button.knot { cursor: pointer; }
 <script src="intro-video.js"></script>
 <script src="pray-open.js"></script>
 <script src="beatitudes.js"></script>
+<script src="words-ko.js"></script>
 <script>
 (() => {
   // ── 저장: 이 기기에만. 서버로 보내지 않는다 ─────────────────────────────
@@ -430,7 +431,7 @@ button.knot { cursor: pointer; }
 
   // ── 다른 기기와 연결하기: 휴대폰에서 비밀 문구로 잠가 서버에 맡긴다. 서버와 시트에는 잠긴 글만 남는다 ──────────
   //  열쇠: 비밀 문구 + 소금(무작위) → PBKDF2(SHA-256, 25만 번) → AES-GCM 256. 열쇠는 이 기기에만 두고(노트도 이 기기에 그대로 있으니),
-  //  비밀 문구는 어디에도 저장하지 않는다. 잊으면 다른 기기에서는 아무도 열 수 없다
+  //  비밀 문구는 어디에도 저장하지 않는다. 잊으면 복구용 문구로 열고, 복구용 문구도 없으면 다른 기기에서는 아무도 열 수 없다
   const getToken = () => { try { return localStorage.getItem(TOKEN); } catch (e) { return null; } };
   let demoReady = null;
   function loadDemo() {
@@ -465,6 +466,34 @@ button.knot { cursor: pointer; }
   async function loadKey() { let r = null; try { r = localStorage.getItem(LOCK_KEY); } catch (e) { /* 없음 */ } return r ? crypto.subtle.importKey('raw', unb64(r), 'AES-GCM', false, ['encrypt', 'decrypt']) : null; }
   async function lockUp(key, obj) { const iv = crypto.getRandomValues(new Uint8Array(12)); return b64(iv) + '.' + b64(await crypto.subtle.encrypt({ name: 'AES-GCM', iv }, key, te.encode(JSON.stringify(obj)))); }
   async function unlockUp(key, s) { const [iv, ct] = s.split('.'); return JSON.parse(td.decode(await crypto.subtle.decrypt({ name: 'AES-GCM', iv: unb64(iv) }, key, unb64(ct)))); }
+  // 열쇠는 두 겹이다. 노트를 잠그는 것은 '진짜 열쇠'(무작위 32바이트, 이 기기에는 LOCK_KEY로 둔다). 진짜 열쇠는 서버에 두 번 잠겨서 있다:
+  //  비밀 문구 열쇠로 잠근 것(wrap)과 복구용 문구 열쇠로 잠근 것(rwrap). 그래서 비밀 문구를 잊어도 복구용 문구로 열고 비밀 문구를 새로 정할 수 있다.
+  //  예전에 연결한 노트는 wrap이 없고, 비밀 문구 열쇠가 곧 진짜 열쇠다(그대로 열린다). 낱말 6개는 이 화면의 메모리에만 두고 저장하지 않는다
+  const rawKeep = raw => { try { localStorage.setItem(LOCK_KEY, raw); } catch (e) { /* 다음에 다시 묻는다 */ } };
+  const rawOf = async key => b64(await crypto.subtle.exportKey('raw', key));
+  const keyOfRaw = raw => crypto.subtle.importKey('raw', unb64(raw), 'AES-GCM', false, ['encrypt', 'decrypt']);
+  const randB64 = n => b64(crypto.getRandomValues(new Uint8Array(n)));
+  // 낱말 6개: 2048개 중에서 무작위로(65536이 2048로 나누어떨어져서 어느 낱말도 더 잘 뽑히지 않는다). 같은 낱말은 두 번 뽑지 않고,
+  //  기도 노트에 어울리지 않는 낱말(KOIDE_WORDS_SKIP)이 나오면 버리고 다시 뽑는다. 낱말 확인(readWords)은 2048개를 모두 받는다
+  const SKIP_WORDS = new Set(window.KOIDE_WORDS_SKIP || []);
+  function pickWords() {
+    const W = window.KOIDE_WORDS, out = [];
+    while (out.length < 6) { const w = W[crypto.getRandomValues(new Uint16Array(1))[0] & 2047]; if (!SKIP_WORDS.has(w) && !out.includes(w)) out.push(w); }
+    return out;
+  }
+  // 입력한 글을 낱말 6개로 정리한다: NFC로 맞추고 빈칸·가운뎃점·쉼표·줄바꿈·하이픈으로 나눈다. 틀리면 { err }
+  function readWords(text) {
+    const list = String(text || '').normalize('NFC').split(/[\s·,，、\-‐‑–—]+/).filter(Boolean);
+    if (list.length !== 6) return { err: '낱말 6개를 넣어 주세요.' };
+    const ok = new Set(window.KOIDE_WORDS), bad = list.findIndex(w => !ok.has(w));
+    if (bad >= 0) return { err: `${bad + 1}번째 낱말을 다시 봐 주세요.` };
+    return { phrase: list.join(' ') };
+  }
+  // 진짜 열쇠(원본 b64)를 복구용 문구로 잠근다
+  async function lockWithWords(raw) {
+    const words = pickWords(), rsalt = randB64(16);
+    return { words, rsalt, rwrap: await lockUp(await deriveKey(words.join(' '), rsalt), { k: raw }) };
+  }
   // 맡기는 것: 이 기기만의 것(오늘 고른 3개, 화면 모드, 이어 두기 상태)은 빼고
   const payload = () => ({ v: 2, name: D.name, nameUp: D.nameUp, people: D.people, items: D.items, prays: D.prays, thanks: D.thanks, weaves: D.weaves });
   function mergeBy(a, b, key) {
@@ -493,13 +522,15 @@ button.knot { cursor: pointer; }
       for (let tries = 0; tries < 3; tries++) {
         const r = await api('noteGet');
         let base = 0;
+        if (r && !r.none) D.vault.rec = !!r.rwrap;
         if (r && r.data) {
           try { mergeIn(await unlockUp(key, r.data)); } catch (e) { throw { message: '다른 기기에서 비밀 문구를 바꿨어요. 연결을 끊고 새 비밀 문구로 다시 연결해 주세요.' }; }
           base = r.rev;
         }
-        const w = await api('notePut', { salt: D.vault.salt, data: await lockUp(key, payload()), baseRev: base });
+        // 처음 맡길 때는 잠긴 열쇠들(pend)도 함께 보낸다. 서버에 이미 있으면 서버가 있던 것을 지킨다
+        const w = await api('notePut', Object.assign({ salt: D.vault.salt, data: await lockUp(key, payload()), baseRev: base }, D.vault.pend || {}));
         if (w.stale) continue;
-        D.vault.rev = w.rev; D.vault.last = now(); saveLocal();
+        delete D.vault.pend; D.vault.rev = w.rev; D.vault.last = now(); saveLocal();
         break;
       }
     } catch (e) {
@@ -1067,7 +1098,7 @@ button.knot { cursor: pointer; }
   function moreView() {
     const nick = (noteMe() || {}).nick;
     return `<header class="top"><div><p class="eyebrow">${nick ? esc(nick) : '코이데 기도 노트'}</p><h1>더보기</h1></div></header>
-      ${D.vault && D.vault.on ? '<div class="notice"><b>다른 기기와 연결되어 있어요.</b> 서버에는 비밀 문구로 잠근 글만 있어서 아무도 읽을 수 없어요. 비밀 문구를 잊지 않게 적어 두세요.</div>'
+      ${D.vault && D.vault.on ? `<div class="notice"><b>다른 기기와 연결되어 있어요.</b> 서버에는 비밀 문구로 잠근 글만 있어서 아무도 읽을 수 없어요. ${D.vault.rec ? '비밀 문구를 잊으면 복구용 문구로 열어요.' : '비밀 문구를 잊을 때를 위해 복구용 문구를 만들어 두세요.'}</div>`
         : '<div class="notice"><b>이 기록은 이 휴대폰에만 있어요.</b> 서버로 보내지 않아서 아무도 볼 수 없지만, 휴대폰을 바꾸거나 브라우저 기록을 지우면 사라져요. 아이폰은 홈 화면에 두지 않고 7일 넘게 열지 않으면 지워질 수 있어요. 가끔 백업을 내려받거나, 아래에서 다른 기기와 연결해 두세요.</div>'}
       ${groupsCard()}
       ${vaultCard()}
@@ -1111,10 +1142,11 @@ button.knot { cursor: pointer; }
     if (on) return `<section class="card" style="margin-top:12px"><div class="row"><p class="label">다른 기기와 연결하기</p><span class="tag">연결됨</span></div>
       <p class="hint" id="sync-state" aria-live="polite">${esc(syncLabel())}</p>
       <p class="hint">고치면 몇 초 뒤 잠근 채로 맡기고, 열 때마다 다른 기기에서 고친 것을 받아 와요. 같은 카카오와 비밀 문구로 다른 기기에서 열 수 있어요.</p>
-      <div class="row" style="justify-content:flex-start"><button class="btn small" data-a="vsync"${syncing ? ' disabled' : ''}>동기화</button><button class="link quiet" data-a="voff">연결 끊기</button></div></section>`;
+      ${D.vault.rec ? '' : '<div class="notice"><b>복구용 문구가 아직 없어요.</b> 비밀 문구를 잊어도 노트를 열 수 있게 만들어 두세요.</div>'}
+      <div class="row" style="justify-content:flex-start;flex-wrap:wrap"><button class="btn small" data-a="vsync"${syncing ? ' disabled' : ''}>동기화</button>${D.vault.rec ? '' : `<button class="btn small ghost" data-a="vrec"${S.recBusy ? ' disabled' : ''}>복구용 문구 만들기</button>`}<button class="link quiet" data-a="voff">연결 끊기</button>${D.vault.rec ? `<button class="link quiet" data-a="vrec"${S.recBusy ? ' disabled' : ''}>복구용 문구 새로 만들기</button>` : ''}</div></section>`;
     return `<section class="card" style="margin-top:12px"><p class="label">다른 기기와 연결하기</p>
       <p class="plain">휴대폰과 PC에서 같은 노트를 보려면 카카오로 로그인하고 <b>비밀 문구</b>를 정해요.</p>
-      <p class="hint">노트는 이 기기에서 비밀 문구로 잠근 뒤 맡겨서, 서버와 관리자도 읽을 수 없어요. 그래서 <b>비밀 문구를 잊으면 아무도 되살릴 수 없어요.</b> 꼭 적어 두세요.</p>
+      <p class="hint">노트는 이 기기에서 비밀 문구로 잠근 뒤 맡겨서, 서버와 관리자도 읽을 수 없어요. 그래서 <b>비밀 문구를 잊어도 복구용 문구로 열 수 있어요.</b> 둘 다 잃으면 아무도 되살릴 수 없어요.</p>
       ${S.syncMsg ? `<p class="hint" style="color:var(--warm)">${esc(S.syncMsg)}</p>` : ''}
       <button class="btn small" data-a="vstart" style="align-self:flex-start"${S.vbusy ? ' disabled' : ''}>${getToken() ? '연결하기 시작' : '카카오로 로그인하고 연결하기'}</button></section>`;
   }
@@ -1220,17 +1252,58 @@ button.knot { cursor: pointer; }
   }
   function vaultSheet() {
     const V = S.vsheet; if (!V) return '';
-    const make = V.mode === 'create';
+    const make = V.mode === 'create', rec = V.rec;
+    const err = V.err ? `<p class="hint" style="color:var(--warm)" role="alert">${esc(V.err)}</p>` : '';
+    const btns = txt => `<div class="row" style="justify-content:flex-end"><button type="button" class="btn ghost" data-a="vclose">취소</button><button class="btn" type="submit"${V.busy ? ' disabled' : ''}>${V.busy ? '잠그는 중…' : txt}</button></div>`;
+    // 비밀 문구를 잊었을 때: 복구용 문구 낱말 6개로 열고 새 비밀 문구를 정한다
+    if (rec) return `<div class="sheet-back" data-a="vclose"><section class="sheet" role="dialog" aria-modal="true" aria-labelledby="vs-t" data-stop>
+      <h2 id="vs-t">복구용 문구로 열기</h2>
+      <p class="plain">복구용 문구의 낱말 6개를 넣고, 이 노트의 새 비밀 문구를 정해요. 복구용 문구는 그대로 두고 또 쓸 수 있어요.</p>
+      <form data-f="vrecover" style="display:flex;flex-direction:column;gap:8px">
+        <textarea class="field" id="vs-w" rows="2" autocapitalize="none" autocomplete="off" spellcheck="false" placeholder="낱말 6개 (붙여 넣어도 돼요)" aria-label="복구용 문구" required>${esc(V.w || '')}</textarea>
+        <input class="field" id="vs-a" type="password" minlength="6" maxlength="100" autocomplete="new-password" placeholder="새 비밀 문구 (6글자 넘게)" aria-label="새 비밀 문구" required>
+        <input class="field" id="vs-b" type="password" maxlength="100" autocomplete="new-password" placeholder="한 번 더" aria-label="새 비밀 문구 한 번 더" required>
+        ${err}${btns('열고 정하기')}
+      </form><button type="button" class="link" data-a="vrecback" style="align-self:flex-start">‹ 비밀 문구로 열기</button></section></div>`;
     return `<div class="sheet-back" data-a="vclose"><section class="sheet" role="dialog" aria-modal="true" aria-labelledby="vs-t" data-stop>
       <h2 id="vs-t">${make ? '비밀 문구 정하기' : '비밀 문구 넣기'}</h2>
       <p class="plain">${make ? '이 비밀 문구로 노트를 잠가서 맡겨요. 다른 기기에서 열 때도 같은 문구를 넣어요.' : '다른 기기에서 정한 비밀 문구를 넣으면, 맡겨 둔 노트를 이 기기의 노트와 합쳐요.'}</p>
       <form data-f="${make ? 'vcreate' : 'vunlock'}" style="display:flex;flex-direction:column;gap:8px">
         <input class="field" id="vs-a" type="password" minlength="6" maxlength="100" autocomplete="${make ? 'new-password' : 'current-password'}" placeholder="비밀 문구 (6글자 넘게)" aria-label="비밀 문구" required>
         ${make ? '<input class="field" id="vs-b" type="password" maxlength="100" autocomplete="new-password" placeholder="한 번 더" aria-label="비밀 문구 한 번 더" required>' : ''}
-        ${V.err ? `<p class="hint" style="color:var(--warm)" role="alert">${esc(V.err)}</p>` : ''}
-        ${make ? '<p class="notice"><b>잊으면 되살릴 수 없어요.</b> 운영하는 사람도 열 수 없어요. 종이나 비밀번호 앱에 적어 두세요.</p>' : ''}
-        <div class="row" style="justify-content:flex-end"><button type="button" class="btn ghost" data-a="vclose">취소</button><button class="btn" type="submit"${V.busy ? ' disabled' : ''}>${V.busy ? '잠그는 중…' : make ? '정하고 맡기기' : '열기'}</button></div>
-      </form></section></div>`;
+        ${err}
+        ${make ? '<p class="notice"><b>운영하는 사람도 열 수 없어요.</b> 비밀 문구를 정하면 다음 화면에 복구용 문구(낱말 6개)가 나와요. 잊었을 때를 위해 꼭 보관해 두세요.</p>' : ''}
+        ${btns(make ? '정하고 맡기기' : '열기')}
+      </form>${make ? '' : V.remote.rwrap ? '<button type="button" class="link" data-a="vrecmode" style="align-self:flex-start">비밀 문구를 잊었어요 › 복구용 문구로 열기</button>' : '<p class="hint">비밀 문구를 잊었어요 › 복구용 문구를 만들지 않았다면 되살릴 수 없어요.</p>'}</section></div>`;
+  }
+  // 복구용 문구 창: 낱말 6개를 보여 주고, '보관했어요'를 눌러야 닫힌다(바깥을 눌러도 닫히지 않는다). 낱말은 메모리에만 둔다
+  function recSheet() {
+    const R = S.recSheet; if (!R) return '';
+    return `<div class="sheet-back"><section class="sheet" role="dialog" aria-modal="true" aria-labelledby="rc-t" data-stop>
+      <h2 id="rc-t">복구용 문구</h2>
+      <ol aria-label="복구용 문구 낱말 6개" style="list-style:none;margin:0;padding:0;display:grid;grid-template-columns:1fr 1fr;gap:8px">${R.words.map((w, i) => `<li style="background:var(--surface-2);border-radius:12px;padding:.6em .7em;font-family:var(--f-display);font-size:1.3em;font-weight:600;user-select:all;-webkit-user-select:all"><small style="font-family:var(--f-body);font-size:.55em;font-weight:500;color:var(--ink-2);margin-right:.5em">${i + 1}</small>${esc(w)}</li>`).join('')}</ol>
+      <p class="plain">비밀 문구를 잊었을 때 이 낱말로 노트를 열어요. 사진으로 찍거나 카톡 나에게 보내 두세요. 운영하는 사람도 다시 알려 드릴 수 없어요.</p>
+      <div class="row" style="justify-content:flex-start;flex-wrap:wrap">${navigator.share ? '<button class="btn small ghost" data-a="recshare">보내기</button>' : ''}<button class="btn small ghost" data-a="reccopy">복사하기</button></div>
+      ${navigator.share ? '<p class="hint">보내기를 누르고 카카오톡 나에게 보내 두면 편해요.</p>' : ''}
+      <div class="row" style="justify-content:flex-end"><button class="btn" data-a="recdone">보관했어요</button></div></section></div>`;
+  }
+  // 연결된 기기의 카드에서 복구용 문구를 (새로) 만든다. 이 기기에 둔 진짜 열쇠를 쓰니 비밀 문구는 다시 묻지 않는다
+  async function recMake() {
+    if (S.recBusy) return;
+    if (D.vault.rec && !confirm('새로 만들면 예전 복구용 문구는 더 쓸 수 없어요. 새로 만들까요?')) return;
+    let raw = null; try { raw = localStorage.getItem(LOCK_KEY); } catch (e) { /* 없음 */ }
+    if (!raw) return toast('이 기기에서 비밀 문구를 다시 넣어야 해요');
+    S.recBusy = true; render();
+    try {
+      const rc = await lockWithWords(raw);
+      // 아직 맡기기 전이면(pend) 첫 맡김에 실어 보내고, 맡긴 뒤면 열쇠만 바꾼다
+      if (D.vault.pend) { D.vault.pend.rsalt = rc.rsalt; D.vault.pend.rwrap = rc.rwrap; } else await api('noteKeys', { rsalt: rc.rsalt, rwrap: rc.rwrap });
+      D.vault.rec = true; saveLocal(); S.recSheet = { words: rc.words };
+    } catch (e) {
+      if (e.code === 'login') { S.recBusy = false; return toast('카카오 로그인이 끝났어요. 다시 로그인해 주세요'); }
+      toast(e.code === 'bad' && /모르는 요청/.test(e.message || '') ? '서버를 새 버전으로 배포해야 만들 수 있어요.' : (e.message || '만들지 못했어요. 다시 해 주세요.'));
+    }
+    S.recBusy = false; render();
   }
   async function vaultStart() {
     if (!canLock()) return toast('이 화면 주소(https)에서만 쓸 수 있어요');
@@ -1378,9 +1451,9 @@ button.knot { cursor: pointer; }
     const V = { start: startView, today: todayView, note: noteView, pray: prayTab, look: lookView, keep: keepView, more: moreView, fb: fbView }[S.tab];
     $('#root').innerHTML = `${S.tab !== 'start' ? topBar() : ''}<div class="wrap${S.tab !== 'start' ? ' has-top' : ''}">${V()}</div>
       ${S.tab === 'start' ? '' : `<nav class="tabs" aria-label="메뉴">${TABS.map(([k, l, ic]) => { const on = (S.tab === 'keep' ? 'look' : S.tab === 'fb' ? 'more' : S.tab) === k; return `<button class="${k === 'pray' ? 'pray-tab ' : ''}${on ? 'on' : ''}" data-a="tab" data-v="${k}" aria-label="${l}" title="${l}" ${on ? 'aria-current="page"' : ''}>${ic}</button>`; }).join('')}</nav>`}
-      ${S.done ? doneSheet() : ''}${S.tour != null ? tourSheet() : ''}${S.a2hs && !S.ps ? a2hsSheet() : ''}${S.vsheet ? vaultSheet() : ''}${S.share ? shareSheet() : ''}${S.mv ? mvSheet() : ''}${S.ps ? psHtml() : ''}${S.toast ? `<div class="toast" role="status">${esc(S.toast)}</div>` : ''}
+      ${S.done ? doneSheet() : ''}${S.tour != null ? tourSheet() : ''}${S.a2hs && !S.ps ? a2hsSheet() : ''}${S.vsheet ? vaultSheet() : ''}${S.recSheet ? recSheet() : ''}${S.share ? shareSheet() : ''}${S.mv ? mvSheet() : ''}${S.ps ? psHtml() : ''}${S.toast ? `<div class="toast" role="status">${esc(S.toast)}</div>` : ''}
       ${canSave ? '' : '<div class="toast" role="alert">이 브라우저에서는 저장할 수 없어요. 개인 정보 보호 모드를 끄고 열어 주세요.</div>'}`;
-    document.documentElement.style.overflow = S.ps || S.done || S.vsheet || S.share || S.tour != null || S.a2hs || S.gbig || S.wopen != null ? 'hidden' : '';
+    document.documentElement.style.overflow = S.ps || S.done || S.vsheet || S.recSheet || S.share || S.tour != null || S.a2hs || S.gbig || S.wopen != null ? 'hidden' : '';
     document.querySelectorAll('textarea.field').forEach(autosize);
     if (S.cordNew) { document.querySelectorAll('.cord-seg.pull animate').forEach(a => { try { a.beginElement(); } catch (e) { /* 무시 */ } }); S.cordNew = null; }
     mount3d();
@@ -1527,6 +1600,12 @@ button.knot { cursor: pointer; }
       case 'psxtra': psMark(); return psGo(1);
       case 'vstart': return vaultStart();
       case 'vclose': S.vsheet = null; return render();
+      case 'vrecmode': S.vsheet.rec = true; S.vsheet.err = ''; return render();
+      case 'vrecback': S.vsheet.rec = false; S.vsheet.err = ''; return render();
+      case 'vrec': return recMake();
+      case 'recshare': { const t = S.recSheet.words.join(' '); try { navigator.share({ text: `코이데 기도 노트 복구용 문구\n${t}` }).catch(() => {}); } catch (e) { /* 취소 */ } return; }
+      case 'reccopy': { const t = S.recSheet.words.join(' '); (navigator.clipboard && navigator.clipboard.writeText ? navigator.clipboard.writeText(t) : Promise.reject()).then(() => toast('복사했어요'), () => toast('복사하지 못했어요. 낱말을 길게 눌러 복사해 주세요')); return; }
+      case 'recdone': S.recSheet = null; return render();
       case 'vsync': return sync();
       case 'voff': {
         if (!confirm('이 기기에서 연결을 끊을까요? 노트는 이 기기에 그대로 남아요.')) return;
@@ -1587,24 +1666,46 @@ button.knot { cursor: pointer; }
       if (S.edit) { const i = D.items.find(x => x.id === S.edit); i.text = t; i.target = S.draftT; i.up = now(); S.edit = null; save(); return toast('고쳤어요'); }
       D.items.push({ id: uid(), text: t, target: S.draftT, created: TODAY(), done: null, up: now() }); save(); a2hsDue(); return toast('내 기도에 더했어요');
     }
-    if (f.dataset.f === 'vcreate' || f.dataset.f === 'vunlock') {
-      const V = S.vsheet, a = $('#vs-a').value, b = $('#vs-b') ? $('#vs-b').value : a;
+    if (f.dataset.f === 'vcreate' || f.dataset.f === 'vunlock' || f.dataset.f === 'vrecover') {
+      const V = S.vsheet, kind = f.dataset.f, a = $('#vs-a').value, b = $('#vs-b') ? $('#vs-b').value : a;
+      let ph = null;
+      if (kind === 'vrecover') { V.w = $('#vs-w').value; ph = readWords(V.w); if (ph.err) { V.err = ph.err; return render(); } }
       if (a.length < 6) { V.err = '6글자 넘게 써 주세요.'; return render(); }
-      if (a !== b) { V.err = '두 번 쓴 비밀 문구가 달라요.'; return render(); }
+      if (a !== b) { V.err = kind === 'vrecover' ? '두 번 쓴 새 비밀 문구가 달라요.' : '두 번 쓴 비밀 문구가 달라요.'; return render(); }
       V.busy = true; V.err = ''; render();
       (async () => {
         try {
-          if (f.dataset.f === 'vcreate') {
-            const salt = b64(crypto.getRandomValues(new Uint8Array(16))), key = await deriveKey(a, salt);
-            await keepKey(key); D.vault = { on: true, salt, rev: 0, last: 0 };
+          let words = null;
+          if (kind === 'vcreate') {
+            // 새 서버가 아니면 잠긴 열쇠를 저장하지 못해 다른 기기에서 못 열 수 있다. 맡기기 전에 알아본다(새 서버는 '맡긴 노트가 없다'고 답한다)
+            try { await api('noteKeys', {}); } catch (e) { if (e.code === 'bad' && /모르는 요청/.test(e.message || '')) { V.busy = false; V.err = '서버를 새 버전으로 배포해야 연결할 수 있어요.'; return render(); } }
+            const salt = randB64(16), pk = await deriveKey(a, salt), raw = randB64(32);
+            const wrap = await lockUp(pk, { k: raw }), rc = await lockWithWords(raw);
+            rawKeep(raw); words = rc.words;
+            D.vault = { on: true, salt, rev: 0, last: 0, rec: true, pend: { wrap, rsalt: rc.rsalt, rwrap: rc.rwrap } };
+          } else if (kind === 'vunlock') {
+            const pk = await deriveKey(a, V.remote.salt);
+            let raw, data;
+            try {
+              raw = V.remote.wrap ? (await unlockUp(pk, V.remote.wrap)).k : await rawOf(pk);
+              data = await unlockUp(await keyOfRaw(raw), V.remote.data);
+            } catch (e) { V.busy = false; V.err = '비밀 문구가 달라요.'; return render(); }
+            rawKeep(raw); mergeIn(data); D.vault = { on: true, salt: V.remote.salt, rev: V.remote.rev, last: 0, rec: !!V.remote.rwrap };
           } else {
-            const key = await deriveKey(a, V.remote.salt);
-            let data; try { data = await unlockUp(key, V.remote.data); } catch (e) { V.busy = false; V.err = '비밀 문구가 달라요.'; return render(); }
-            await keepKey(key); mergeIn(data); D.vault = { on: true, salt: V.remote.salt, rev: V.remote.rev, last: 0 };
+            // 복구용 문구로 진짜 열쇠를 풀고, 새 비밀 문구로 다시 잠가 서버의 잠긴 열쇠만 바꾼다(노트와 복구용 문구는 그대로)
+            let raw, data;
+            try {
+              raw = (await unlockUp(await deriveKey(ph.phrase, V.remote.rsalt), V.remote.rwrap)).k;
+              data = await unlockUp(await keyOfRaw(raw), V.remote.data);
+            } catch (e) { V.busy = false; V.err = '복구용 문구가 맞지 않아요. 낱말을 다시 봐 주세요.'; return render(); }
+            const salt = randB64(16), wrap = await lockUp(await deriveKey(a, salt), { k: raw });
+            await api('noteKeys', { salt, wrap });
+            rawKeep(raw); mergeIn(data); D.vault = { on: true, salt, rev: V.remote.rev, last: 0, rec: true };
           }
           D.started = true; saveLocal(); S.vsheet = null; if (S.tab === 'start') S.tab = 'today';
-          render(); toast(f.dataset.f === 'vcreate' ? '잠가서 맡겼어요' : '맡겨 둔 노트를 합쳤어요'); sync();
-        } catch (e) { V.busy = false; V.err = '잠그지 못했어요. 다시 해 주세요.'; render(); }
+          if (words) S.recSheet = { words };
+          render(); if (!words) toast(kind === 'vrecover' ? '새 비밀 문구로 바꾸고 노트를 합쳤어요' : '맡겨 둔 노트를 합쳤어요'); sync();
+        } catch (e) { V.busy = false; V.err = e && e.code === 'net' ? e.message : '잠그지 못했어요. 다시 해 주세요.'; render(); }
       })();
       return;
     }
