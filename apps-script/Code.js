@@ -24,8 +24,10 @@ const SCHEMA = {
   // 상태: 비어 있으면 쓰는 중, '닫음'이면 첫 접속에서 빠지고 그 부서 사람은 들어오지 못한다(기록은 남고 다시 열 수 있다), '지움'이면 기록까지 지운 부서
   depts: ['부서', [['id', '부서ID'], ['name', '이름'], ['group', '소그룹 이름'], ['unit', '단위'], ['order', '순서'], ['status', '상태'], ['closedAt', '닫은 날']]],
   rooms: ['사랑방', [['id', '사랑방ID'], ['name', '이름'], ['order', '순서'], ['deptId', '부서ID']]],
-  families: ['가정', [['id', '가정ID'], ['name', '이름'], ['kids', '자녀'], ['status', '상태'], ['admin', '관리자']]],
-  roster: ['편성', [['year', '연도'], ['roomId', '사랑방ID'], ['familyId', '가정ID'], ['role', '역할']]],
+  // 상태: 활동 / 승인 대기 / 거절 / 교역자 / 지움 / 합침(결혼해서 새 가정으로 합쳐진 옛 가정. 합친 가정ID·합친 달이 적힌다. 기록은 그대로 남는다) / 취소(합침을 되돌려 없앤 새 가정)
+  families: ['가정', [['id', '가정ID'], ['name', '이름'], ['kids', '자녀'], ['status', '상태'], ['admin', '관리자'], ['mergedInto', '합친 가정ID'], ['mergedAt', '합친 달']]],
+  // 들어온 달·나간 달: 한 해 중간에 결혼으로 새 가정이 되거나 다른 부서로 옮긴 줄. 비어 있으면 그 편성 연도 내내다(나간 달부터는 그 줄이 쓰이지 않는다)
+  roster: ['편성', [['year', '연도'], ['roomId', '사랑방ID'], ['familyId', '가정ID'], ['role', '역할'], ['from', '들어온 달'], ['to', '나간 달']]],
   // 편성 일정: 부서마다 그 해 편성(편성 탭의 연도)이 시작하는 달. 적어 두지 않은 편성은 그 해 1월부터다(예: 2027년 편성을 2026-12부터).
   //  리더 미리 보기·회원 안내 시작일은 개편 때 새 편성을 미리 알리는 날
   //  떠남·보류: 새 편성에 넣지 않은 가정(적용 날짜부터 그 안내가 나온다). 새 사랑방·새 가정: 예약할 때 만든 것(고치거나 취소하면 지운다)
@@ -49,7 +51,8 @@ const SCHEMA = {
   //  분류는 저장하지 않고 볼 때마다 해서, 사전을 고치면 지난 달까지 다시 분류된다. 비어 있으면 처음 읽을 때 기본 사전을 넣는다
   topics: ['주제사전', [['topic', '주제'], ['words', '키워드'], ['order', '순서']]],
   // 변경기록(설계서 S7 › ④): 누가 언제 무엇을 바꿨는지. 기도제목 내용은 넣지 않는다. 13개월 뒤 지운다
-  changes: ['변경기록', [['at', '날짜시각'], ['deptId', '부서ID'], ['who', '한 사람'], ['role', '역할'], ['kind', '종류'], ['target', '대상'], ['extra', '덧붙임']]],
+  //  관련 ID: 결혼 처리·부서 옮김을 되돌릴 때 쓰는 가정ID(그달 안에서만 되돌릴 수 있다)
+  changes: ['변경기록', [['at', '날짜시각'], ['deptId', '부서ID'], ['who', '한 사람'], ['role', '역할'], ['kind', '종류'], ['target', '대상'], ['extra', '덧붙임'], ['ref', '관련 ID']]],
   // 요청(설계서 S7 › ②): 가정의 '기록 지우기' 요청과, 관리자가 떠난 가정을 '1년 더 두기'로 미룬 것
   requests: ['요청', [['familyId', '가정ID'], ['deptId', '부서ID'], ['kind', '종류'], ['at', '요청한 날'], ['status', '상태'], ['doneAt', '처리한 날'], ['doneBy', '처리한 사람']]],
   // 오류 기록(설계서 S7 › ①): 서버에서 뜻밖에 난 오류의 요청 이름과 종류만. 이름·기도제목은 없다. 30일 뒤 지운다
@@ -91,7 +94,7 @@ const FIRST_DEPT = { id: 'D1', name: '청장년부', group: '사랑방', unit: '
 // ── 요청 받기 ─────────────────────────────────────────────
 
 // 서버 코드를 고칠 때마다 바꾼다. 웹 앱 주소를 열면 보여서, 새 버전으로 배포됐는지 확인할 수 있다
-const VERSION = '2026-11-04 의견과 설문, 모임은 끝나는 날이 있어요';
+const VERSION = '2026-11-05 결혼해서 가정 합치기, 다른 부서로 옮기기';
 function doGet() {
   return ContentService.createTextOutput('코이데 서버가 켜져 있어요. (버전: ' + VERSION + ')');
 }
@@ -209,6 +212,14 @@ const ACTIONS = {
   deptErase: deptErase_,
   roster: body => rosterView_(adminOf_(body)),
   rosterSave: rosterSave_,
+  // 결혼해서 가정 합치기 · 다른 부서로 옮기기(설계서 6장). 이름으로 사람 찾기는 이름·연결 닉네임만 준다
+  deptFind: deptFind_,
+  marryPreview: marryPreview_,
+  marrySave: marrySave_,
+  marryUndo: marryUndo_,
+  moveDept: moveDept_,
+  moveUndo: moveUndo_,
+  beforeMarriage: body => beforeMarriage_(member_(body)),
   // 나 · 기도 노트 이어 두기: 카카오로 로그인한 사람이면 누구나(교회에 연결되지 않아도). 잠긴 글만 주고받는다
   // 하나님 나라 기도 문장: 로그인한 사람은 읽고, 교역자·관리자가 주제마다 고친다
   prayText: body => { auth_(body.token); return read_('prayText').map(r => ({ topic: r.topic, kind: r.kind, order: Number(r.order) || 0, text: String(r.text), ref: String(r.ref || ''), status: r.status || '' })); },
@@ -220,7 +231,7 @@ const ACTIONS = {
   notePut: body => { const a = auth_(body.token); return withLock_(() => notePut_(a, body)); },
   noteDel: body => { const a = auth_(body.token); return withLock_(() => noteDel_(a)); }
 };
-const OPS_ACTIONS_ = ['opsCtx', 'church', 'churchAnalysis', 'groupAdmin', 'changes', 'together', 'togetherSave', 'togetherState', 'opsInvite', 'opsRemove', 'deptSave', 'deptClose', 'deptReopen', 'deptErase', 'roster', 'rosterSave', 'pending', 'approve', 'reject', 'unlink', 'saveStaff', 'endStaff',
+const OPS_ACTIONS_ = ['opsCtx', 'church', 'churchAnalysis', 'groupAdmin', 'changes', 'together', 'togetherSave', 'togetherState', 'opsInvite', 'opsRemove', 'deptSave', 'deptClose', 'deptReopen', 'deptErase', 'roster', 'rosterSave', 'deptFind', 'marryPreview', 'marrySave', 'marryUndo', 'moveDept', 'moveUndo', 'pending', 'approve', 'reject', 'unlink', 'saveStaff', 'endStaff',
   'reorg', 'reorgSave', 'reorgCancel', 'analysis', 'saveGroup', 'ops', 'groups', 'openMonth', 'handover', 'eraseFamily', 'keepFamily', 'inviteRenew', 'feedbackRead', 'usage', 'surveyAdmin'];
 
 // ── 로그인 ───────────────────────────────────────────────
@@ -266,10 +277,10 @@ function auth_(token) {
   return v;
 }
 
-// 로그인한 사람과 그 사람의 연결(요청/연결). 해제된 연결은 없는 것으로 본다
+// 로그인한 사람과 그 사람의 연결(요청/연결). 해제된 연결과 결혼으로 새 가정에 옮겨 간 옛 연결(합침)은 없는 것으로 본다
 function who_(body) {
   const a = auth_(body.token);
-  const link = read_('links').filter(l => String(l.kakaoId) === a.kakaoId && l.status !== '해제').pop() || null;
+  const link = read_('links').filter(l => String(l.kakaoId) === a.kakaoId && l.status !== '해제' && l.status !== '합침').pop() || null;
   return { kakaoId: a.kakaoId, nick: a.nick, link };
 }
 
@@ -411,7 +422,7 @@ function updateTrend_(roomId, deptId, m) {
   const status = {}; read_('monthly').forEach(x => { status[x.familyId + '|' + x.month] = x.status; });
   const roster = read_('roster').filter(r => r.roomId === roomId);
   return months.map(mm => {
-    const ids = roster.filter(r => String(r.year) === termAt_(deptId, mm)).map(r => r.familyId);
+    const ids = roster.filter(r => rowIn_(r, mm)).map(r => r.familyId);
     const k = st => ids.filter(f => status[f + '|' + mm] === st).length;
     return { month: mm, n: ids.length, edited: k('edited'), confirmed: k('confirmed') };
   });
@@ -559,14 +570,14 @@ function historyView_(c, want, roomId) {
   const items = read_('items'), rooms = read_('rooms'), fams = read_('families'), roster = read_('roster');
   // 그 달에 적용 중이던 편성에서 우리 가정이 속한 사랑방(12월부터 새 편성이면 12월은 새 사랑방)
   const myRows = roster.filter(r => r.familyId === c.familyId), at = {};
-  const myRoom = mm => at[mm] !== undefined ? at[mm] : (at[mm] = myRows.find(r => String(r.year) === termAt_(deptOfRoom_(r.roomId).id, mm)) || null);
+  const myRoom = mm => at[mm] !== undefined ? at[mm] : (at[mm] = myRows.find(r => rowIn_(r, mm)) || null);
   const seen = {};
   items.forEach(i => { const r = myRoom(i.month); if (i.familyId === c.familyId || (r && i.roomId === r.roomId)) seen[i.month] = true; });
   const months = Object.keys(seen).sort().reverse();
   const m = months.indexOf(want) >= 0 ? want : (months.find(x => x < month_()) || months[0] || month_());
   const r = myRoom(m), lead = !!r && (r.role === '리더' || r.role === '코리더');
   const show = i => ({ target: i.target, text: i.text, scope: i.scope, ended: i.state === '마침' });
-  const families = !r ? [] : roster.filter(x => String(x.year) === String(r.year) && x.roomId === r.roomId).map(x => {
+  const families = !r ? [] : roster.filter(x => x.roomId === r.roomId && rowIn_(x, m)).map(x => {
     const f = fams.find(y => y.id === x.familyId); if (!f || f.status === '지움') return null;
     const own = f.id === c.familyId;
     const its = items.filter(i => i.month === m && i.familyId === f.id && (own || i.scope === 'room' || (i.scope === 'leader' && lead)))
@@ -591,7 +602,7 @@ function search_(c, q) {
     can = i => i.familyId === c.familyId || (ids.indexOf(i.roomId) >= 0 && i.scope !== 'family');
   } else {
     const myRows = roster.filter(r => r.familyId === c.familyId), at = {};
-    const myRoom = mm => at[mm] !== undefined ? at[mm] : (at[mm] = myRows.find(r => String(r.year) === termAt_(deptOfRoom_(r.roomId).id, mm)) || null);
+    const myRoom = mm => at[mm] !== undefined ? at[mm] : (at[mm] = myRows.find(r => rowIn_(r, mm)) || null);
     can = i => {
       if (i.familyId === c.familyId) return true;
       const r = myRoom(i.month);
@@ -618,7 +629,7 @@ function staffHistory_(c, want, roomId) {
   const months = Object.keys(seen).sort().reverse();
   const m = months.indexOf(want) >= 0 ? want : (months.find(x => x < month_()) || months[0] || month_());
   // 그 달에 적용 중이던 편성에 가정이 있던 사랑방만 고를 수 있다
-  const term = termAt_(c.deptId, m), rows = roster.filter(r => String(r.year) === term && ids.indexOf(r.roomId) >= 0);
+  const rows = roster.filter(r => rowIn_(r, m) && ids.indexOf(r.roomId) >= 0);
   const rooms = deptRooms.filter(r => rows.some(x => x.roomId === r.id)).map(r => ({ id: r.id, name: r.name }));
   const room = rooms.find(r => r.id === roomId) || rooms[0] || null;
   const show = i => ({ target: i.target, text: i.text, scope: i.scope, ended: i.state === '마침' });
@@ -738,14 +749,15 @@ function monthView_(c) {
   const by = {}; read_('prayers').forEach(p => { if (p.familyId === c.familyId && p.by !== c.familyId && fmtMonth_(p.at) === m) by[p.by] = true; });
   const received = { n: Object.keys(by).length, of: Math.max(0, families.length - 1) };
   return { month: m, term: termNow_(c.deptId), shift: shift_(c), dept: c.dept, room: { id: room.id, name: room.name }, me: { person: c.person, familyId: c.familyId, role: c.role, admin: c.admin }, families, received, serve: serveView_(c.deptId),
-    art: artNums_(c, [m])[0], eraseReq: eraseAsked_(c.familyId), together: togetherItems_(c.deptId) };
+    art: artNums_(c, [m])[0], eraseReq: eraseAsked_(c.familyId), together: togetherItems_(c.deptId), news: newsOfFamily_(c.familyId) };
 }
 
 // 이달의 그림 모으기(설계서 4장): 내가 누른 '기도했어요'로 달마다 세 숫자를 센다. 나만 본다. 기도기록에서 바로 세어서 줄지 않는다.
 //  hero: 기도한 날 수(날마다 주인공 하나) / fams: 기도한 다른 가정 수(소품은 화면에서 그달 소품 수까지) / hearts: 같은 날 같은 가정을 위해 한 번 더 기도한 수.
 //  누른 사람 칸이 생기기 전 기록은 우리 가정이 누른 것으로 함께 센다
 function artNums_(c, months) {
-  const mine = read_('prayers').filter(p => (p.kakaoId ? p.kakaoId === c.kakaoId : p.by === c.familyId) && p.familyId !== c.familyId);
+  // 누른 사람 칸이 없던 옛 기록은 가정ID로 센다. 결혼 전 내 옛 가정(합침 연결)의 기록도 함께
+  const before = beforeIds_(c.kakaoId), mine = read_('prayers').filter(p => (p.kakaoId ? p.kakaoId === c.kakaoId : (p.by === c.familyId || before.indexOf(p.by) >= 0)) && p.familyId !== c.familyId && before.indexOf(p.familyId) < 0);
   return months.map(mm => {
     const days = {}, fams = {}, pair = {};
     mine.filter(p => fmtMonth_(p.at) === mm).forEach(p => { const d = fmtDate_(p.at); days[d] = 1; fams[p.familyId] = 1; pair[d + '|' + p.familyId] = (pair[d + '|' + p.familyId] || 0) + 1; });
@@ -931,7 +943,7 @@ function analysisView_(c) {
   const deptRooms = roomIdsOfDept_(c.deptId), rooms = activeRooms_(c.deptId).sort((a, b) => a.order - b.order);
   const fams = read_('families'), live = id => (fams.find(f => f.id === id) || {}).status === '활동';
   const roster = read_('roster').filter(r => deptRooms.indexOf(r.roomId) >= 0 && live(r.familyId));
-  const famsAt = mm => { const y = termAt_(c.deptId, mm); return roster.filter(r => String(r.year) === y); };
+  const famsAt = mm => roster.filter(r => rowIn_(r, mm));
   const seen = {}, st = {}, mark = (f, mm) => { seen[f + '|' + mm] = true; };
   read_('visits').forEach(v => mark(v.familyId, v.month));
   read_('monthly').forEach(x => { st[x.familyId + '|' + x.month] = x.status; if (x.status !== 'same') mark(x.familyId, x.month); });
@@ -1104,8 +1116,8 @@ function setMonthly_(familyId, m, status) {
 // ── 관리 › 운영 (설계서 S7) ─────────────────────────────────
 
 // 변경기록: 관리자·리더가 바꾼 것. 기록하다 실패해도 하던 일은 그대로 마친다
-function logChange_(c, kind, target, extra) {
-  try { append_('changes', { at: new Date(), deptId: c.deptId, who: c.person, role: c.ops ? (c.all ? '전체 관리자' : '운영 지원') : c.admin ? '부서 관리자' : c.role, kind, target: target || '', extra: extra || '' }); }
+function logChange_(c, kind, target, extra, ref, deptId) {
+  try { append_('changes', { at: new Date(), deptId: deptId || c.deptId, who: c.person, role: c.ops ? (c.all ? '전체 관리자' : '운영 지원') : c.admin ? '부서 관리자' : c.role, kind, target: target || '', extra: extra || '', ref: ref || '' }); }
   catch (e) { /* 기록을 못 남겨도 하던 일은 마친다 */ }
 }
 // 오류 기록: 요청 이름과 오류 종류만(오류 글은 80자까지)
@@ -1185,7 +1197,7 @@ function privacy_(c) {
     roster.filter(r => ids.indexOf(r.roomId) >= 0).forEach(r => { active[r.familyId] = false; });
     activeStaff_(d).forEach(s2 => { active[s2.familyId] = false; });
   }
-  fams.filter(f => !active[f.id] && ['지움', '승인 대기', '거절'].indexOf(f.status) < 0).forEach(f => {
+  fams.filter(f => !active[f.id] && ['지움', '승인 대기', '거절', '합침', '취소'].indexOf(f.status) < 0).forEach(f => {
     let since = '';
     if (closed && (roster.some(r => r.familyId === f.id && ids.indexOf(r.roomId) >= 0) || read_('staff').some(x => x.familyId === f.id && x.deptId === d))) since = closed;
     else {
@@ -1200,11 +1212,11 @@ function privacy_(c) {
     }
     if (!/^\d{4}-\d{2}$/.test(since)) return;
     const from = kept[f.id] && kept[f.id] > since ? kept[f.id] : since;
-    if (monAdd_(from, 12) <= m) due.push({ id: f.id, name: f.name, since, kept: !!kept[f.id] });
+    if (monAdd_(from, 12) <= m) due.push({ id: f.id, name: f.name, since, kept: !!kept[f.id], old: oldOf_(f.id).length });
     else later++;
   });
   const requests = reqs.filter(q => q.kind === '기록 지우기' && q.status === '요청' && q.deptId === d)
-    .map(q => ({ id: q.familyId, name: (fams.find(f => f.id === q.familyId) || {}).name || '', at: fmtDay_(q.at) })).filter(q => q.name);
+    .map(q => ({ id: q.familyId, name: (fams.find(f => f.id === q.familyId) || {}).name || '', at: fmtDay_(q.at), old: oldOf_(q.familyId).length })).filter(q => q.name);
   return { due, requests, later };
 }
 
@@ -1224,6 +1236,9 @@ function eraseFamily_(body) {
 }
 // 한 가정(사람)의 기록 지우기: 기도제목 내용·대상, 이름·자녀, 연결·로그인·카톡 공유, 의견의 이름, 모임 자리와 모임 기도제목. 개수는 남는다
 function eraseFam_(c, fam) {
+    // 결혼해서 새 가정으로 합쳐진 옛 가정들(같은 사람들의 기록)도 함께 지운다
+    let extra = 0;
+    oldOf_(fam.id).forEach(o => { extra += eraseFam_(c, o); });
     const id = fam.id, name = fam.name, items = read_('items').filter(i => i.familyId === id);
     items.forEach(i => { i.text = ''; i.target = ''; i.editedBy = ''; update_('items', i); });
     const kakao = read_('links').filter(l => l.familyId === id).map(l => String(l.kakaoId));
@@ -1242,7 +1257,7 @@ function eraseFam_(c, fam) {
     read_('requests').filter(q => q.familyId === id && q.kind === '기록 지우기' && q.status === '요청')
       .forEach(q => { Object.assign(q, { status: '처리', doneAt: today_(), doneBy: c.person }); update_('requests', q); });
     logChange_(c, '기록 지움', name, '기도제목 ' + items.length + '개');
-    return items.length;
+    return items.length + extra;
 }
 // 떠난 가정을 1년 더 두기(돌아올 수도 있을 때)
 function keepFamily_(body) {
@@ -1272,7 +1287,8 @@ function myExport_(c) {
   const items = read_('items').filter(i => i.familyId === c.familyId && i.text !== ''), months = {};
   items.forEach(i => { (months[i.month] = months[i.month] || []).push(i); });
   return { name: c.family.name, months: Object.keys(months).sort().map(mm => ({ month: mm,
-    items: months[mm].sort((a, b) => a.order - b.order).map(i => ({ target: i.target, text: i.text, scope: i.scope, ended: i.state === '마침' })) })) };
+    items: months[mm].sort((a, b) => a.order - b.order).map(i => ({ target: i.target, text: i.text, scope: i.scope, ended: i.state === '마침' })) })),
+    before: beforeMarriage_(c).before };
 }
 
 // ── 초대 링크 · QR (설계서 S7 › ⑤) ─────────────────────────
@@ -1558,6 +1574,8 @@ function deptErase_(body) {
     const ids = roomIdsOfDept_(id), cx = Object.assign({}, c, { deptId: id });
     const famIds = {};
     read_('roster').forEach(r => { if (ids.indexOf(r.roomId) >= 0) famIds[r.familyId] = true; });
+    // 다른 부서로 옮겨 가서 지금 그 부서에 있는 가정은 지우지 않는다
+    read_('roster').forEach(r => { if (activeRow_(r) && ids.indexOf(r.roomId) < 0) delete famIds[r.familyId]; });
     read_('staff').forEach(x => { if (x.deptId === id) famIds[x.familyId] = true; });
     let n = 0, items = 0;
     read_('families').filter(f => famIds[f.id] && f.status !== '지움').forEach(f => { items += eraseFam_(cx, f); n++; });
@@ -1585,7 +1603,7 @@ function churchAnalysis_(body) {
   const per = depts.map(d => {
     const rooms = roomIdsOfDept_(d.id); allRooms.push.apply(allRooms, rooms);
     const rows = roster.filter(r => rooms.indexOf(r.roomId) >= 0 && live(r.familyId));
-    const at = mm => { const y = termAt_(d.id, mm); return rows.filter(r => String(r.year) === y).map(r => r.familyId); };
+    const at = mm => rows.filter(r => rowIn_(r, mm)).map(r => r.familyId);
     return { d, at };
   });
   const famsAt = mm => per.reduce((a, x) => a.concat(x.at(mm)), []);
@@ -1664,9 +1682,12 @@ function togetherState_(body) {
 // 지금 편성의 소그룹마다 사람(가정)과 역할, 부서 관리자 여부, 연결된 사람 수. 기도제목은 없다
 function rosterView_(c) {
   const fams = read_('families'), links = read_('links'), y = termNow_(c.deptId);
-  const roster = read_('roster').filter(r => String(r.year) === y);
+  const roster = read_('roster').filter(activeRow_);
   const ROLE = { 리더: 0, 코리더: 1, 회원: 2 };
-  return { term: y, unit: c.dept.unit, rooms: activeRooms_(c.deptId).sort((a, b) => a.order - b.order).map(r => ({ id: r.id, name: r.name,
+  // 옮길 곳을 고르도록 쓰는 부서와 사랑방 이름(기도제목은 없다)
+  const depts = depts_().filter(deptOpen_).map(d => ({ id: d.id, name: d.name, group: d.group || '사랑방', unit: d.unit === '개인' ? '개인' : '가정',
+    rooms: activeRooms_(d.id).sort((a, b) => a.order - b.order).map(r => ({ id: r.id, name: r.name })) }));
+  return { term: y, unit: c.dept.unit, depts, rooms: activeRooms_(c.deptId).sort((a, b) => a.order - b.order).map(r => ({ id: r.id, name: r.name,
     people: roster.filter(x => x.roomId === r.id).map(x => ({ x, f: fams.find(f => f.id === x.familyId) })).filter(o => o.f && o.f.status === '활동')
       .sort((a, b) => ROLE[a.x.role] - ROLE[b.x.role]).map(o => ({ id: o.f.id, name: o.f.name, role: o.x.role, admin: yes_(o.f.admin),
         linked: links.filter(l => l.familyId === o.f.id && l.status === '연결').length,
@@ -1677,7 +1698,7 @@ function rosterSave_(body) {
   const c = adminOf_(body), d = c.deptId, op = String(body.op || '');
   return withLock_(() => {
     const y = termNow_(d), rooms = activeRooms_(d), roomOf = id => rooms.find(r => r.id === id);
-    const rowOf = id => read_('roster').find(r => String(r.year) === y && r.familyId === id && roomOf(r.roomId));
+    const rowOf = id => read_('roster').find(r => activeRow_(r) && r.familyId === id && roomOf(r.roomId));
     const famOf = id => read_('families').find(f => f.id === id);
     const clean = (v, n) => String(v || '').trim().replace(/\s+/g, ' ').slice(0, n);
     if (op === 'addRoom' || op === 'renameRoom') {
@@ -1703,7 +1724,7 @@ function rosterSave_(body) {
       const r = roomOf(body.roomId), a = clean(body.a, 10), b = c.dept.unit === '개인' ? '' : clean(body.b, 10);
       if (!r || !a) throw fail_('bad', '이름과 ' + c.dept.group + '을 확인해 주세요.');
       const name = b ? a + ' · ' + b : a;
-      const same = read_('roster').filter(x => String(x.year) === y && roomOf(x.roomId)).some(x => (famOf(x.familyId) || {}).name === name);
+      const same = read_('roster').filter(x => activeRow_(x) && roomOf(x.roomId)).some(x => (famOf(x.familyId) || {}).name === name);
       if (same && !body.force) throw fail_('same', '같은 이름이 이미 있어요. 그래도 더할까요?');
       const id = 'F' + Date.now().toString(36);
       append_('families', { id, name, kids: '', status: '활동', admin: '' });
@@ -1734,6 +1755,245 @@ function rosterSave_(body) {
         remove_('roster', row); logChange_(c, '떠남', f.name, roomOf(row.roomId).name);
       } else throw fail_('bad', '모르는 일이에요.');
     }
+    return rosterView_(c);
+  });
+}
+
+// ── 결혼해서 가정 합치기 · 다른 부서로 옮기기 (설계서 6장, 2026-10-20) ─────────────────
+// 관리자가 두 분(또는 옮길 가정)께 직접 확인하고 처리한다. 합친 달·옮긴 달부터 바로 새 자리로 쓰고, 지난 달 기록은 옛 자리에 그대로 남는다.
+//  편성 줄의 들어온 달(from)·나간 달(to)이 그 경계다. 옛 가정은 상태 '합침'으로 남고(합친 가정ID·합친 달), 되돌리기는 그달 안에서만 된다.
+//  다른 부서의 사람은 이 일에서만 이름·연결 닉네임을 보고 기도제목 내용은 보지 않는다(deptFind)
+// 이 가정으로 합쳐진 옛 가정들(합침)
+function oldOf_(familyId) { return read_('families').filter(f => f.mergedInto === familyId && f.status === '합침'); }
+// 내 카카오 번호로 '합침'이 된 연결이 가리키는 옛 가정ID들(결혼 전 내가 주인이었던 가정)
+function beforeIds_(kakaoId) {
+  const ids = {};
+  read_('links').filter(l => String(l.kakaoId) === String(kakaoId) && l.status === '합침').forEach(l => { ids[l.familyId] = true; });
+  return Object.keys(ids);
+}
+// 결혼 전 기록: 내가 주인이었던 옛 가정의 달마다 기도제목(읽기만). 배우자의 옛 가정은 내 연결에 없으니 주지 않는다
+function beforeMarriage_(c) {
+  const fams = read_('families'), items = read_('items');
+  return { before: beforeIds_(c.kakaoId).map(id => {
+    const f = fams.find(x => x.id === id); if (!f || f.status === '지움') return null;
+    const by = {};
+    items.filter(i => i.familyId === id && i.text !== '').forEach(i => { (by[i.month] = by[i.month] || []).push(i); });
+    return { name: f.name, months: Object.keys(by).sort().reverse().map(mm => ({ month: mm,
+      items: by[mm].sort((a, b) => a.order - b.order).map(i => ({ target: i.target, text: i.text, scope: i.scope, ended: i.state === '마침' })) })) };
+  }).filter(Boolean) };
+}
+// 새 가정(합친 달이 이번 달이거나 지난 14일 안)과 옮겨 온 가정(옮긴 달이 이번 달이거나 지난 14일 안)에게 처음 한 번 보여 줄 안내
+function newsOfFamily_(familyId) {
+  const m = month_(), recent = x => !!x && (x === m || (x === prevMonth_(m) && Number(today_().slice(8)) <= 14));
+  const out = {}, rows = read_('roster').filter(r => r.familyId === familyId);
+  const merged = read_('families').filter(f => f.mergedInto === familyId && recent(f.mergedAt))[0];
+  if (merged) out.married = { at: merged.mergedAt };
+  const now = rows.find(r => r.from && recent(r.from) && activeRow_(r));
+  const gone = now && rows.find(r => r.to === now.from && deptOfRoom_(r.roomId).id !== deptOfRoom_(now.roomId).id);
+  if (gone) out.moved = { at: now.from, dept: deptOfRoom_(gone.roomId).name };
+  return out.married || out.moved ? out : undefined;
+}
+// 받는 부서의 관리자이거나 전체 관리자만
+function canReceive_(c, deptId) { return c.deptId === deptId || !!(c.ops && c.all); }
+// 변경 기록 줄의 [되돌리기]: '' / 'marry' / 'move'. 그달 안에서, 받는 부서 관리자와 전체 관리자에게만
+function undoable_(c, x) {
+  if (!x.ref || fmtMonth_(x.at) !== month_() || (x.kind !== '결혼 처리' && x.kind !== '부서 옮김')) return '';
+  if (!(c.ops && c.all) && c.deptId !== x.deptId) return '';
+  const m = month_();
+  if (x.kind === '결혼 처리') {
+    const nf = read_('families').find(f => f.id === x.ref), row = read_('roster').find(r => r.familyId === x.ref && activeRow_(r));
+    return nf && nf.status === '활동' && row && deptOfRoom_(row.roomId).id === x.deptId && oldOf_(x.ref).some(o => o.mergedAt === m) ? 'marry' : '';
+  }
+  const rows = read_('roster').filter(r => r.familyId === x.ref);
+  const now = rows.find(r => activeRow_(r) && r.from === m), gone = rows.find(r => r.to === m);
+  return now && gone && deptOfRoom_(now.roomId).id === x.deptId ? 'move' : '';
+}
+
+// 이름으로 사람 찾기(다른 부서 포함). 이름·부서·소그룹·연결 닉네임만, 기도제목은 없다
+function deptFind_(body) {
+  adminOf_(body);
+  const q = String(body.q || '').replace(/\s+/g, '');
+  if (!q) return { list: [] };
+  const fams = read_('families'), links = read_('links'), rooms = read_('rooms'), open = depts_().filter(deptOpen_);
+  const list = [];
+  read_('roster').filter(activeRow_).forEach(r => {
+    const f = fams.find(x => x.id === r.familyId);
+    if (!f || f.status !== '활동' || !String(f.name).split(' · ').some(n => n.replace(/\s+/g, '').indexOf(q) >= 0)) return;
+    const d = deptOfRoom_(r.roomId), room = rooms.find(x => x.id === r.roomId) || {};
+    if (!open.some(x => x.id === d.id)) return;
+    list.push({ id: f.id, name: f.name, deptId: d.id, dept: d.name, unit: d.unit === '개인' ? '개인' : '가정', group: d.group || '사랑방', roomId: room.id, room: room.name || '', role: r.role,
+      links: links.filter(l => l.familyId === f.id && l.status === '연결').map(l => ({ kakaoId: String(l.kakaoId), nick: l.nick, person: l.person })) });
+  });
+  return { list: list.slice(0, 20) };
+}
+
+// 합치기에 쓸 옛 가정 하나: 가정과 지금 편성 줄(합침·떠남·지움·승인 대기는 고를 수 없다)
+function marryOld_(id) {
+  const f = read_('families').find(x => x.id === id), row = f && read_('roster').find(r => activeRow_(r) && r.familyId === id);
+  if (!f || f.status !== '활동' || !row) throw fail_('bad', '합칠 수 없는 가정이 있어요. 이미 합쳤거나 떠난 가정, 승인을 기다리는 가정은 고를 수 없어요.');
+  return { f, row };
+}
+
+// 되돌리기 전에 지워지는 기도제목 개수를 알려 준다
+function marryPreview_(body) {
+  adminOf_(body);
+  const id = String(body.familyId || ''), nf = read_('families').find(f => f.id === id);
+  if (!nf || nf.status !== '활동' || !oldOf_(id).length) throw fail_('bad', '되돌릴 수 있는 결혼 처리가 아니에요.');
+  return { name: nf.name, items: read_('items').filter(i => i.familyId === id && i.text !== '').length };
+}
+
+// 합치기. body: { famIds: [첫째, 둘째] 또는 [첫째] + newPerson(앱에 없는 배우자 이름), name(새 가정 이름), roomId(새 가정이 들어갈 사랑방),
+//  confirmed(두 분께 직접 확인), inherit(리더·코리더·관리자 이어받기), carry(이번 달 기도제목 이어받기), links: [{ kakaoId, to(새 가정의 어느 이름, 비우면 해제) }] }
+function marrySave_(body) {
+  const c = adminOf_(body), clean = (v, n) => String(v || '').trim().replace(/\s+/g, ' ').slice(0, n);
+  const ids = (Array.isArray(body.famIds) ? body.famIds : []).map(String).filter(Boolean), newPerson = clean(body.newPerson, 10), name = clean(body.name, 40);
+  if (!body.confirmed) throw fail_('bad', '두 분께 직접 확인했다고 눌러야 합칠 수 있어요.');
+  if (!name) throw fail_('bad', '새 가정 이름을 적어 주세요.');
+  if (ids.length !== (newPerson ? 1 : 2) || (ids.length === 2 && ids[0] === ids[1])) throw fail_('bad', '합칠 두 사람을 다시 골라 주세요.');
+  return withLock_(() => {
+    const m = month_(), room = read_('rooms').find(r => r.id === body.roomId), dept = room && deptOfRoom_(room.id);
+    if (!room || !deptOpen_(dept) || !activeRooms_(dept.id).some(r => r.id === room.id)) throw fail_('bad', '새 가정이 들어갈 사랑방을 골라 주세요.');
+    if (dept.unit === '개인') throw fail_('bad', '합친 가정은 가정 단위 부서(청장년부 등)에 들어가요.');
+    if (!canReceive_(c, dept.id)) throw fail_('forbidden', '새 가정이 들어가는 부서의 관리자가 합칠 수 있어요.');
+    const olds = ids.map(marryOld_), names = name.split(' · ').map(x => x.trim());
+    const ownIn = ids.indexOf(c.familyId) >= 0;
+    // 연결: 새 가정의 이름으로 옮기거나(합침) 옮기지 않고 해제. 요청 중인 것은 해제한다
+    const links = read_('links').filter(l => ids.indexOf(l.familyId) >= 0 && (l.status === '연결' || l.status === '요청'));
+    const plan = links.map(l => {
+      const pick = (body.links || []).find(x => String(x.kakaoId) === String(l.kakaoId)), to = clean(pick ? pick.to : l.person, 10);
+      return { l, was: l.status, to: l.status === '연결' && names.indexOf(to) >= 0 ? to : '' };
+    });
+    if (ownIn && !plan.some(p => p.to && String(p.l.kakaoId) === c.kakaoId)) throw fail_('bad', '내 연결은 새 가정으로 옮겨야 해요. 새 가정 이름에 내 이름이 있는지 확인해 주세요.');
+    const rank = { 리더: 2, 코리더: 1, 회원: 0 };
+    const sameRoom = olds.filter(o => o.row.roomId === room.id);
+    const role = body.inherit === false ? '회원' : sameRoom.reduce((a, o) => rank[o.row.role] > rank[a] ? o.row.role : a, '회원');
+    const admin = olds.some(o => yes_(o.f.admin)) && (body.inherit !== false || ownIn);
+    const id = 'F' + Date.now().toString(36);
+    // 새 가정과 새 가정의 편성 줄(합친 달부터)
+    append_('families', { id, name, kids: '', status: '활동', admin: admin ? '예' : '' });
+    append_('roster', { year: termNow_(dept.id), roomId: room.id, familyId: id, role, from: m });
+    // 옛 가정 '합침', 옛 편성 줄은 합친 달부터 빠진다(지난 달은 그대로)
+    olds.forEach(o => {
+      Object.assign(o.f, { status: '합침', mergedInto: id, mergedAt: m }); update_('families', o.f);
+      o.row.to = m; update_('roster', o.row);
+    });
+    // 연결 옮김
+    let moved = 0, dropped = 0;
+    plan.forEach(p => {
+      if (p.to) {
+        append_('links', { kakaoId: p.l.kakaoId, nick: p.l.nick, familyId: id, person: p.to, status: '연결', requestedAt: today_(), approvedBy: '결혼 처리 · ' + c.person, lastSeen: p.l.lastSeen });
+        p.l.status = '합침'; update_('links', p.l); moved++;
+      } else {
+        p.l.status = '해제'; p.l.approvedBy = c.person; update_('links', p.l);
+        if (p.was === '연결') { dropped++; logChange_(c, '연결 해제', olds.map(o => o.f.name).join(' + '), p.l.person); }
+      }
+    });
+    // 다음 편성 예약이 있으면 옛 가정 줄을 새 가정 한 줄로
+    const futures = [];
+    olds.forEach(o => read_('roster').filter(r => r.familyId === o.f.id && Number(r.year) > Number(termNow_(deptOfRoom_(r.roomId).id))).forEach(r => futures.push(r)));
+    let planFixed = false;
+    if (futures.length) {
+      const inNew = futures.filter(r => deptOfRoom_(r.roomId).id === dept.id), pick = inNew.find(r => r.roomId === room.id) || inNew[0];
+      futures.sort((a, b) => b._row - a._row).forEach(r => remove_('roster', r));
+      if (pick) append_('roster', { year: pick.year, roomId: pick.roomId, familyId: id, role: body.inherit === false ? '회원' : pick.role });
+      planFixed = true;
+    }
+    // 이번 달 기도제목 이어받기: 마치지 않은 '사랑방 공개'·'리더·목사님' 항목만. '우리 가정만'은 복사하지 않는다.
+    //  이번 달 항목이 아직 없으면(아직 지난달에서 넘어오지 않았으면) 지난달 마치지 않은 항목을 본다
+    let carried = 0;
+    if (body.carry !== false) {
+      const all = read_('items'), now = new Date();
+      olds.forEach(o => {
+        const mine = all.filter(i => i.familyId === o.f.id), cur = mine.filter(i => i.month === m);
+        (cur.length ? cur : mine.filter(i => i.month === prevMonth_(m))).filter(i => i.state !== '마침' && (i.scope === 'room' || i.scope === 'leader') && i.text !== '')
+          .sort((a, b) => a.order - b.order).forEach(i => {
+            append_('items', { id: newId_(), month: m, familyId: id, roomId: room.id, target: i.target, text: i.text, scope: i.scope, state: '이어짐', prevId: '', same: '아니오', order: ++carried, editedAt: now, editedBy: i.editedBy });
+          });
+      });
+    }
+    // 변경 기록: 새 가정이 들어가는 부서와, 옛 가정이 있던 다른 부서에 남긴다
+    const extra = room.name + ' · 연결 ' + moved + '명 옮김' + (dropped ? ' · 연결 ' + dropped + '명 해제' : '') + ' · 이번 달 기도제목 ' + carried + '개 이어받음' + (planFixed ? ' · 다음 편성 예약 고침' : '');
+    const target = olds.map(o => o.f.name).join(' + ') + ' → ' + name;
+    const seen = {};
+    [dept.id, c.deptId].concat(olds.map(o => deptOfRoom_(o.row.roomId).id)).forEach(d => {
+      if (seen[d]) return; seen[d] = true;
+      logChange_(c, '결혼 처리', target, extra, id, d);
+    });
+    return rosterView_(c);
+  });
+}
+
+// 합치기 되돌리기(합친 달 안에서만): 옛 가정은 '활동', 옛 연결은 '연결', 새 연결은 '해제', 새 가정의 편성 줄과 기도제목은 지우고 새 가정은 '취소'
+function marryUndo_(body) {
+  const c = adminOf_(body), id = String(body.familyId || '');
+  return withLock_(() => {
+    const m = month_(), nf = read_('families').find(f => f.id === id), olds = oldOf_(id).filter(o => o.mergedAt === m);
+    const row = read_('roster').find(r => r.familyId === id && activeRow_(r));
+    if (!nf || nf.status !== '활동' || !row || !olds.length) throw fail_('bad', '되돌릴 수 없어요. 합친 달이 지났거나 이미 되돌렸어요.');
+    const dept = deptOfRoom_(row.roomId);
+    if (!canReceive_(c, dept.id)) throw fail_('forbidden', '새 가정이 들어간 부서의 관리자가 되돌릴 수 있어요.');
+    const oldIds = olds.map(o => o.id);
+    olds.forEach(o => { Object.assign(o, { status: '활동', mergedInto: '', mergedAt: '' }); update_('families', o); });
+    read_('roster').filter(r => oldIds.indexOf(r.familyId) >= 0 && r.to === m).forEach(r => { r.to = ''; update_('roster', r); });
+    read_('links').filter(l => oldIds.indexOf(l.familyId) >= 0 && l.status === '합침').forEach(l => { l.status = '연결'; update_('links', l); });
+    read_('links').filter(l => l.familyId === id && l.status !== '해제').forEach(l => { l.status = '해제'; update_('links', l); });
+    const gone = read_('items').filter(i => i.familyId === id);
+    const n = gone.filter(i => i.text !== '').length;
+    gone.sort((a, b) => b._row - a._row).forEach(i => remove_('items', i));
+    read_('monthly').filter(x => x.familyId === id).sort((a, b) => b._row - a._row).forEach(x => remove_('monthly', x));
+    read_('roster').filter(r => r.familyId === id).sort((a, b) => b._row - a._row).forEach(r => remove_('roster', r));
+    nf.status = '취소'; nf.admin = ''; update_('families', nf);
+    const seen = {};
+    [dept.id, c.deptId].forEach(d => { if (!seen[d]) { seen[d] = true; logChange_(c, '결혼 처리 되돌림', nf.name, '지운 기도제목 ' + n + '개', '', d); } });
+    return rosterView_(c);
+  });
+}
+
+// 다른 부서의 사랑방으로 옮기기(결혼과 상관없이). body: { familyId, roomId(받는 사랑방), confirmed }
+//  가정ID와 카카오 연결은 그대로, 옛 부서의 지난 달 기록은 옛 사랑방에 그대로 남고, 옮긴 달부터 새 사랑방이다(이번 달 기도제목도 새 사랑방에서 보인다).
+//  옛 부서의 리더·관리자 역할은 끝난다. 개인 단위 부서 → 가정 단위 부서면 1인 가정(이름은 본인 이름, 자녀 칸 비움)
+function moveDept_(body) {
+  const c = adminOf_(body), id = String(body.familyId || '');
+  if (!body.confirmed) throw fail_('bad', '직접 확인했다고 눌러야 옮길 수 있어요.');
+  return withLock_(() => {
+    const m = month_(), f = read_('families').find(x => x.id === id), row = f && read_('roster').find(r => activeRow_(r) && r.familyId === id);
+    if (!f || f.status !== '활동' || !row) throw fail_('bad', '옮길 수 없는 가정이에요.');
+    const room = read_('rooms').find(r => r.id === body.roomId), to = room && deptOfRoom_(room.id), from = deptOfRoom_(row.roomId);
+    if (!room || !deptOpen_(to) || !activeRooms_(to.id).some(r => r.id === room.id)) throw fail_('bad', '받는 사랑방을 골라 주세요.');
+    if (to.id === from.id) throw fail_('bad', '같은 부서 안에서는 사랑방 옮기기를 써 주세요.');
+    if (!canReceive_(c, to.id)) throw fail_('forbidden', '받는 부서의 관리자가 옮길 수 있어요.');
+    if (f.id === c.familyId) throw fail_('bad', '내 가정은 여기서 다른 부서로 옮길 수 없어요. 다른 관리자에게 부탁해 주세요.');
+    if (from.unit !== '개인' && to.unit === '개인') throw fail_('bad', '가정 단위 부서에서 개인 단위 부서로는 옮길 수 없어요.');
+    // 옛 줄은 옮긴 달부터 빠지고, 새 줄은 옮긴 달부터. 옛 부서의 리더·관리자 역할은 끝난다
+    row.to = m; update_('roster', row);
+    append_('roster', { year: termNow_(to.id), roomId: room.id, familyId: id, role: '회원', from: m });
+    if (yes_(f.admin)) { f.admin = ''; update_('families', f); }
+    read_('items').filter(i => i.familyId === id && i.month === m).forEach(i => { i.roomId = room.id; update_('items', i); });
+    // 옛 부서의 다음 편성 예약에 든 줄은 뺀다(받는 부서의 예약에는 개편 마법사에서 넣는다)
+    const next = read_('roster').filter(r => r.familyId === id && Number(r.year) > Number(termNow_(from.id)) && deptOfRoom_(r.roomId).id === from.id);
+    next.sort((a, b) => b._row - a._row).forEach(r => remove_('roster', r));
+    const fromRoom = (read_('rooms').find(r => r.id === row.roomId) || {}).name || '';
+    const seen = {};
+    [to.id, from.id, c.deptId].forEach(d => {
+      if (seen[d]) return; seen[d] = true;
+      logChange_(c, '부서 옮김', f.name, from.name + ' ' + fromRoom + ' → ' + to.name + ' ' + room.name + (next.length ? ' · 옛 부서 다음 편성 예약에서 뺌' : ''), id, d);
+    });
+    return rosterView_(c);
+  });
+}
+
+// 부서 옮기기 되돌리기(옮긴 달 안에서만): 새 줄을 지우고 옛 줄을 되살린다. 옛 부서의 다음 편성 예약에서 뺀 줄은 다시 넣어 주지 않는다
+function moveUndo_(body) {
+  const c = adminOf_(body), id = String(body.familyId || '');
+  return withLock_(() => {
+    const m = month_(), rows = read_('roster').filter(r => r.familyId === id), now = rows.find(r => activeRow_(r) && r.from === m), gone = rows.find(r => r.to === m);
+    const f = read_('families').find(x => x.id === id);
+    if (!f || !now || !gone || deptOfRoom_(now.roomId).id === deptOfRoom_(gone.roomId).id) throw fail_('bad', '되돌릴 수 없어요. 옮긴 달이 지났거나 이미 되돌렸어요.');
+    if (!canReceive_(c, deptOfRoom_(now.roomId).id)) throw fail_('forbidden', '받는 부서의 관리자가 되돌릴 수 있어요.');
+    gone.to = ''; update_('roster', gone);
+    remove_('roster', now);
+    read_('items').filter(i => i.familyId === id && i.month === m).forEach(i => { i.roomId = gone.roomId; update_('items', i); });
+    logChange_(c, '부서 옮김 되돌림', f.name, deptOfRoom_(gone.roomId).name + '으로 돌아감');
     return rosterView_(c);
   });
 }
@@ -2016,7 +2276,7 @@ function changesView_(body) {
   if (all && !(c.ops && c.all)) throw fail_('forbidden', '전체 관리자만 볼 수 있어요.');
   const names = {}; read_('depts').forEach(d => { names[d.id] = d.name; });
   return read_('changes').filter(x => all || x.deptId === c.deptId).sort((a, b) => a.at < b.at ? 1 : -1).slice(0, 300)
-    .map(x => ({ at: x.at, who: x.who, role: x.role, kind: x.kind, target: x.target, extra: x.extra, dept: names[x.deptId] || '' }));
+    .map(x => ({ at: x.at, who: x.who, role: x.role, kind: x.kind, target: x.target, extra: x.extra, dept: names[x.deptId] || '', ref: x.ref || '', undo: undoable_(c, x) }));
 }
 
 // ── 처음 한 번: 시트 만들기와 예시 데이터 ─────────────────────
@@ -2260,7 +2520,10 @@ function terms_(deptId) {
 function termAt_(deptId, m) { const t = terms_(deptId).filter(x => x.start <= m).pop(); return t ? t.year : m.slice(0, 4); }
 function termNow_(deptId) { return termAt_(deptId, month_()); }
 // 지금 적용 중인 편성의 줄인지(편성 탭 한 줄)
-function activeRow_(r) { return String(r.year) === termNow_(deptOfRoom_(r.roomId).id); }
+function activeRow_(r) { return rowIn_(r, month_()); }
+// 편성 줄이 그 달(yyyy-MM)에 적용 중인지: 그 달의 편성 연도이고, 한 해 중간에 들어오거나 나간 줄이면 그 달 안쪽일 때
+//  (결혼해서 새 가정이 된 달, 다른 부서로 옮긴 달부터는 옛 줄이 빠지고 새 줄이 쓰인다. 지난 달은 옛 줄 그대로다)
+function rowIn_(r, mm) { return String(r.year) === termAt_(deptOfRoom_(r.roomId).id, mm) && (!r.from || r.from <= mm) && (!r.to || mm < r.to); }
 // 지금 쓰는 사랑방: 지금 편성에 가정이 있거나, 아직 어느 편성에도 쓰이지 않은 새 사랑방. 지난 편성에만 있던 사랑방은 지난 기록에만 남는다
 function activeRooms_(deptId) {
   const roster = read_('roster');
