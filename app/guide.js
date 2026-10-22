@@ -8,7 +8,9 @@
 //     done?: () => 참/거짓                 tap에서 "다 했다"의 기준. 없으면 비춘 곳을 누른 것
 //     ready?: () => 참/거짓, readyLabel?   tap에서 이 조건이 참일 때만 말풍선에 [다음] 같은 단추를 더한다(글을 다 쓴 뒤 등)
 //     wait?: () => 참/거짓                 참이 될 때까지 기다린다(다음 화면이 그려질 때까지). waitText: 기다리는 동안 보여 줄 글
-//     before?: () => 미리 할 일             단계가 시작될 때 한 번(다른 탭으로 가기 등)
+//     before?: () => 미리 할 일             단계에 들어올 때마다(앞으로든 [이전]으로든) 한 번: 이 단계가 보일 화면으로 옮겨 두기(다른 탭으로 가기 등). 비출 곳이 다른 탭에 있는 둘러보기 단계는 꼭 쓴다
+//     inert?: () => 요소들                 비춘 곳 안에 있어도 눌리지 않게 할 칸(예시가 들어간 글 칸을 밝게 보여 주되 키보드는 안 열리게). 투명한 판으로 덮는다
+//     waitStyle?: 'pill'                  기다리는 동안(waitText) 어둡게 하는 막·테두리를 걷고 위쪽 얇은 띠만 보인다(눌림은 투명한 판이 막는다). 기다림이 끝나면 평소 비춤으로 돌아온다
 //     skip?: () => 참/거짓                 참이면 이 단계는 건너뛴다
 //     back?: () => 참/거짓                 참이면 앞 단계로 되돌아간다
 //     nextLabel?                          [다음] 단추의 글(마지막 단계는 [시작하기])
@@ -24,7 +26,7 @@
 //     nudge?: { ms, when, text }          ms 동안 아무것도 안 했고 when()이 참이면 말풍선 글을 text로 바꾼다(넘어가기 대신 길을 알려 줌)
 //     bounce?: () => 글 | ''              글이 있으면 앞 단계로 되돌리고 그 글을 말풍선에 보여 준다(앞 단계에서 글자를 입력하면 사라진다)
 //   }
-//  둘러보기(mode 'next', then 없음) 단계는 [‹ 이전] [다음 ›]. 앞 단계도 둘러보기일 때만 [이전]이 있다. 누르는 단계(tap)는 머리 줄의 [‹ 이전]이
+//  둘러보기(mode 'next', then 없음) 단계는 [‹ 이전] [다음 ›]. 앞 단계도 둘러보기일 때만 [이전]이 있고, 마지막 단계에는 없다. 누르는 단계(tap)는 머리 줄의 [‹ 이전]이
 //  앞 단계 설명만 읽어 보게 하고(읽기만: 한 일을 되돌리거나 다시 시키지 않는다) [돌아가기]로 이 단계에 돌아온다
 //  첫 단계에만 "이미 써 봤어요"(skipLabel)가 있다. Esc로는 닫히지 않는다. 비출 곳이 없거나 막혀도 영영 갇히지 않게 안전장치가 있다(timeout, 한참 걸리면 [넘어가기]. 쓰기 단계 제외)
 window.KoideGuide = (() => {
@@ -60,7 +62,7 @@ window.KoideGuide = (() => {
     root.className = 'kg';
     root.innerHTML = '<div class="kg-full" hidden></div><div class="kg-b"></div><div class="kg-b"></div><div class="kg-b"></div><div class="kg-b"></div><div class="kg-shield" hidden></div><div class="kg-ring" hidden></div>' +
       '<section class="kg-bubble" role="dialog" aria-modal="true" aria-label="따라 하기" tabindex="-1"></section><i class="kg-arrow" hidden></i>';
-    G = { steps, opts: opts || {}, root, i: -1, raf: 0, paused: false, sig: '', bsig: '' };
+    G = { steps, opts: opts || {}, root, i: -1, raf: 0, paused: false, sig: '', bsig: '', inerts: [], isig: null };
     const q = s => root.querySelector(s);
     Object.assign(G, { full: q('.kg-full'), blocks: [...root.querySelectorAll('.kg-b')], shield: q('.kg-shield'), ring: q('.kg-ring'), bubble: q('.kg-bubble'), arrow: q('.kg-arrow') });
     document.body.appendChild(root);
@@ -88,7 +90,7 @@ window.KoideGuide = (() => {
     if (G.s && G.s.typing && document.activeElement && document.activeElement.matches('textarea, input')) document.activeElement.blur(); // 쓰기를 마치면 키보드를 접는다
     if (n >= G.steps.length) return finish(false);
     const s = G.steps[n];
-    Object.assign(G, { i: n, s, paused: false, clicked: false, born: Date.now(), act: Date.now(), miss: 0, seen: false, focused: false, els: [], hole: null, bsig: '', lastState: null, peek: false, notice: '', typing: false, te: null, keepT: 0, psig: '', rsig: '', vis: '', pt: '' });
+    Object.assign(G, { i: n, s, paused: false, clicked: false, born: Date.now(), act: Date.now(), miss: 0, seen: false, focused: false, els: [], hole: null, bsig: '', isig: null, lastState: null, peek: false, notice: '', typing: false, te: null, keepT: 0, psig: '', rsig: '', vis: '', pt: '' });
     G.root.classList.remove('kg-typing'); G.bubble.classList.remove('kg-bar'); G.bubble.style.transform = ''; G.bubble.style.left = ''; G.bubble.style.top = '';
     G.root.hidden = false;
     G.root.classList.toggle('kg-anim', !calm());
@@ -108,6 +110,7 @@ window.KoideGuide = (() => {
     document.removeEventListener('focusout', onOut, true);
     if (window.visualViewport) ['resize', 'scroll'].forEach(t => visualViewport.removeEventListener(t, onView));
     g.root.remove();
+    if (g.spacer) g.spacer.remove();
     document.documentElement.classList.remove('kg-on');
     if (skipped === null) return; // stop(): 앱이 직접 접은 것이라 마침으로 치지 않는다
     const f = skipped && g.opts.onSkipFirst ? g.opts.onSkipFirst : g.opts.onDone;
@@ -123,13 +126,18 @@ window.KoideGuide = (() => {
   const inside = (h, x, y) => { const V = view(); x -= V.x; y -= V.y; return x >= h.left && x <= h.right && y >= h.top && y <= h.bottom; };
 
   // 사람이 한 일(누름·입력·글 칸에 들어감)을 적어 둔다: 한참 가만히 있었는지 가늠하는 데 쓴다. 글자를 입력하면 되돌림 안내는 사라진다
-  function onAct(e) { if (!G) return; G.act = Date.now(); if (e.type === 'input') G.notice = ''; }
+  function onAct(e) {
+    if (!G) return; G.act = Date.now(); if (e.type === 'input') G.notice = '';
+    // 눌리지 않게 한 칸에 어떻게든 커서가 들어가면 바로 뺀다(키보드가 열리지 않게)
+    if (e.type === 'focusin' && G.s && G.s.inert && inertEls().some(x => x === e.target || x.contains(e.target))) e.target.blur();
+  }
   // 글 칸에서 커서가 빠져도 잠깐은 쓰는 중으로 친다(띠의 단추를 누르는 사이에 띠가 풀리지 않게)
   function onOut(e) { if (G && G.s && G.s.typing && e.target === (G.te || typingEl())) G.keepT = Date.now() + 600; }
   // 보이는 화면이 움직였을 때: 쓰는 중이면 알약 자리만, 아니면 구멍·말풍선을 다시 맞춘다(둘 다 값이 바뀔 때만 쓴다)
   function onView() { if (!G) return; if (G.typing) pillPos(); else update(); }
   // 되돌아왔을 때(앞 설명 보기에서 돌아가기, 쓰기를 마치고 막이 돌아올 때 등) 기억해 둔 것을 모두 비워 구멍·막·말풍선을 처음부터 다시 그린다
   const refresh = () => { G.sig = ''; G.psig = ''; G.bsig = ''; G.vis = ''; G.rsig = ''; G.focused = false; };
+  const inertEls = () => (G && G.s && G.s.inert ? elsOf(G.s.inert) : []);
   const lookOnly = s => !!s && s.mode === 'next' && !s.then;
   const typingEl = () => { if (!G || !G.s || !G.s.typing) return null; const t = G.s.typing; return elsOf(typeof t === 'string' ? () => t : t)[0] || null; };
 
@@ -159,7 +167,7 @@ window.KoideGuide = (() => {
     const inHole = el => { if (!G.hole || G.s.mode === 'next') return false; const q = el.getBoundingClientRect(), V = view(), h = G.hole;
       return q.left - V.x >= h.left - 4 && q.right - V.x <= h.right + 4 && q.top - V.y >= h.top - 4 && q.bottom - V.y <= h.bottom + 4; };
     const L = [...document.querySelectorAll('button, a[href], input, textarea, select, [tabindex]:not([tabindex="-1"])')]
-      .filter(el => !G.root.contains(el) && !el.disabled && shown(el) && inHole(el)).concat([...G.bubble.querySelectorAll('button')]);
+      .filter(el => !G.root.contains(el) && !el.disabled && shown(el) && inHole(el) && !inertEls().includes(el)).concat([...G.bubble.querySelectorAll('button')]);
     if (!L.length) return;
     const i = L.indexOf(document.activeElement);
     e.preventDefault();
@@ -244,29 +252,65 @@ window.KoideGuide = (() => {
     if (t !== G.pt) { G.pt = t; G.bubble.style.transform = t; }
   }
 
-  // 비출 곳이 화면 밖이면 보이게 끌어온다(이미 다 보이는 위·아래 막대 안의 것은 그대로)
+  // 화면 위·아래에 붙박이로 떠 있는 막대(머리글, 아래 메뉴 막대)가 가린 만큼: 넓고 낮은 fixed·sticky 요소의 안쪽 경계를 구한다. 단계에 들어올 때 한 번만 읽는다
+  function bars(V) {
+    let top = 0, bot = V.h;
+    document.body.querySelectorAll('*').forEach(e => {
+      if (G.root.contains(e) || e === G.root) return;
+      const p = getComputedStyle(e).position; if (p !== 'fixed' && p !== 'sticky') return;
+      const r = e.getBoundingClientRect();
+      if (r.width < V.w * .5 || r.height < 20 || r.height > V.h * .4 || r.bottom <= 0 || r.top >= V.h) return;
+      if (r.top < V.h * .3 && r.bottom < V.h * .5) top = Math.max(top, r.bottom);
+      else if (r.bottom > V.h * .7 && r.top > V.h * .5) bot = Math.min(bot, r.top);
+    });
+    return { top, bot };
+  }
+  // 비출 곳이 화면 밖이거나 위·아래 막대에 가리면 막대 사이로 보이게 끌어온다. 단계에 들어올 때 딱 한 번(이미 막대 사이에 다 보이면 그대로)
   function reveal(els) {
-    const el = els[0], r = el.getBoundingClientRect(), V = view();
-    const inView = r.top >= 0 && r.bottom <= V.h;
-    if (inView && (fixedIn(el) || (r.top >= 60 && r.bottom <= V.h - 60))) return;
-    if (r.height > V.h * .6) el.style.scrollMarginTop = '80px';
-    el.scrollIntoView({ block: r.height > V.h * .6 ? 'start' : 'center', behavior: calm() ? 'auto' : 'smooth' });
+    const V = view();
+    if (els.every(fixedIn)) return; // 막대 자신을 비추는 단계
+    let t = 1e9, b = -1e9;
+    els.forEach(e => { const q = e.getBoundingClientRect(); t = Math.min(t, q.top); b = Math.max(b, q.bottom); });
+    const B = bars(V), M = PAD + 10, lo = B.top + M, hi = B.bot - M, h = b - t;
+    if (t >= lo && b <= hi) return;
+    // 위로 올릴 만큼: 작은 것은 막대 사이 가운데로, 막대 사이보다 큰 것은 위쪽에 맞춘다
+    let delta = h > (hi - lo) * .7 ? t - lo : (t + b) / 2 - (lo + hi) / 2;
+    let sc = els[0].parentElement;
+    while (sc && sc !== document.body && sc !== document.documentElement && !(/(auto|scroll)/.test(getComputedStyle(sc).overflowY) && sc.scrollHeight > sc.clientHeight + 1)) sc = sc.parentElement;
+    const inner = sc && sc !== document.body && sc !== document.documentElement;
+    if (!inner && delta > 0) {
+      // 화면이 짧아 더 못 내려가면(맨 아래 단추가 메뉴 막대 밑에 깔림) 가운데로 맞추기는 접고, 막대를 벗어날 만큼만 아래에 빈 자리를 한 번 더한다(안내가 끝나면 걷는다)
+      const room = Math.max(document.documentElement.scrollHeight, document.body.scrollHeight) - innerHeight - scrollY;
+      if (delta > room + 1) {
+        delta = Math.max(room, b - hi);
+        if (delta > room + 1) {
+          if (!G.spacer) { G.spacer = document.createElement('div'); G.spacer.setAttribute('aria-hidden', 'true'); document.body.appendChild(G.spacer); }
+          G.spacer.style.height = Math.ceil((parseFloat(G.spacer.style.height) || 0) + delta - room) + 'px';
+        }
+      }
+    }
+    const o = { top: delta, behavior: calm() ? 'auto' : 'smooth' };
+    if (inner) sc.scrollBy(o); else window.scrollBy(o);
   }
   // 처음 눌러야 할 단추가 있으면 거기로, 아니면 말풍선으로(글 칸은 건드리지 않는다: 키보드가 갑자기 올라오지 않게)
   function focusStart(state, els) {
     const go = G.bubble.querySelector(G.peek ? '.kg-ret' : '.kg-go');
-    const t = !G.peek && G.s.mode === 'tap' && els[0] && els[0].matches('button, a[href]') ? els[0] : null;
+    const t = !G.peek && G.s.mode === 'tap' && els.find(x => x.matches('button, a[href]')) || null;
     (t || go || G.bubble).focus({ preventScroll: true });
   }
 
   function layout(state, els, V) {
-    const full = state !== 'on', s = G.s;
+    const full = state !== 'on', s = G.s, pill = state === 'wait' && s.waitStyle === 'pill';
     // 켜고 끄는 것은 바뀔 때만(어두운 막 full / 테두리 ring: 그림자가 어둠을 맡는다 / 눌림을 막는 판들)
-    const vis = (full ? 1 : 0) + ',' + (s.mode === 'next' ? 1 : 0);
+    // 띠(pill): 어둡게 하지 않고(투명한 판만 눌림을 막는다) 위쪽 얇은 띠만 보인다
+    const vis = (full ? 1 : 0) + ',' + (s.mode === 'next' ? 1 : 0) + ',' + (pill ? 1 : 0);
     if (vis !== G.vis) {
       G.vis = vis;
-      G.full.hidden = !full; G.ring.hidden = full; G.shield.hidden = full || s.mode !== 'next';
+      G.full.hidden = !full; G.full.classList.toggle('kg-clear', pill); G.ring.hidden = full; G.shield.hidden = full || s.mode !== 'next';
       G.blocks.forEach(b => { b.hidden = full; });
+      G.bubble.classList.toggle('kg-bar', pill); G.bubble.classList.remove('kg-tight');
+      if (pill) { G.bubble.style.left = ''; G.bubble.style.top = ''; G.arrow.hidden = true; }
+      G.psig = '';
     }
     let h = null;
     if (!full) {
@@ -281,7 +325,20 @@ window.KoideGuide = (() => {
       }
     } else G.sig = '';
     G.hole = h;
-    place(h, V);
+    inertPlace(full ? [] : inertEls(), V);
+    if (!pill) place(h, V);
+  }
+  // 눌리지 않게 한 칸(s.inert) 위에 투명한 판을 덮는다. 칸의 자리가 바뀔 때만 쓴다
+  function inertPlace(list, V) {
+    const sig = list.map(e => { const q = e.getBoundingClientRect(); return [q.left - V.x, q.top - V.y, q.width, q.height].map(Math.round).join(); }).join('|');
+    if (sig === G.isig) return;
+    G.isig = sig;
+    while (G.inerts.length < list.length) { const d = document.createElement('div'); d.className = 'kg-shield kg-inert'; G.root.insertBefore(d, G.ring); G.inerts.push(d); }
+    G.inerts.forEach((d, k) => {
+      const e = list[k]; d.hidden = !e; if (!e) return;
+      const q = e.getBoundingClientRect();
+      Object.assign(d.style, { left: q.left - V.x + 'px', top: q.top - V.y + 'px', width: q.width + 'px', height: q.height + 'px' });
+    });
   }
 
   // 말풍선: 구멍 아래에 들어가면 아래, 아니면 위. 화면 밖으로 나가지 않게 가둔다
@@ -323,9 +380,10 @@ window.KoideGuide = (() => {
     const nd = s.nudge, nudged = !G.notice && nd && Date.now() - G.act > nd.ms && safe(nd.when);
     let text = waiting ? (s.waitText || '잠시만 기다려 주세요…') : G.notice || (nudged ? nd.text : s.text);
     if (G.peek) text = G.steps[G.i - 1].text;
-    const look = lookOnly(s), canPrev = G.i > 0 && (look ? lookOnly(G.steps[G.i - 1]) : s.mode === 'tap');
+    const look = lookOnly(s), canPrev = G.i > 0 && !last && (look ? lookOnly(G.steps[G.i - 1]) : s.mode === 'tap');
+    const pill = waiting && s.waitStyle === 'pill';
     const goLabel = s.mode === 'next' ? (s.nextLabel || (last ? '시작하기' : '다음 ›')) : lost ? '다음' : ready ? (s.readyLabel || '다음') : '';
-    const key = [G.i, state, text, goLabel, stuck, canPrev, G.peek, typing, ready].join('|');
+    const key = [G.i, state, text, goLabel, stuck, canPrev, G.peek, typing, ready, pill].join('|');
     if (key === G.bsig) return;
     G.bsig = key;
     const skip = G.i === 0 && G.opts.skipLabel !== '';
@@ -341,6 +399,7 @@ window.KoideGuide = (() => {
       G.bubble.innerHTML = `<p class="kg-text" role="status" aria-live="polite">${esc(bt || text)}</p>${goLabel ? `<div class="kg-act"><button class="btn kg-go">${esc(goLabel)}</button></div>` : ''}`;
       return;
     }
+    if (pill) { G.bubble.innerHTML = `<p class="kg-text" role="status" aria-live="polite">${esc(text)}</p>`; return; }
     const prevBtn = canPrev ? (look ? '<button class="btn ghost kg-prev" aria-label="이전 단계">‹ 이전</button>' : '<button class="link quiet kg-prev" aria-label="이전 단계">‹ 이전</button>') : '';
     const nextAria = s.mode === 'next' && !s.nextLabel && !last ? ' aria-label="다음 단계"' : '';
     G.bubble.innerHTML = `<div class="kg-head"><span class="kg-count">${G.i + 1} / ${n}</span>${skip ? `<button class="link quiet kg-skip">${esc(G.opts.skipLabel || '이미 써 봤어요')}</button>` : ''}${!look && prevBtn ? prevBtn : ''}</div>

@@ -7,6 +7,8 @@
 .kg-b, .kg-shield, .kg-full { position: absolute; pointer-events: auto; touch-action: none; }
 .kg-full { inset: 0; background: rgb(0 0 0 / .6); }
 .kg-full[hidden], .kg-shield[hidden] { display: none; }
+.kg-full.kg-clear { background: transparent; } /* 띠만 보일 때: 어둡지 않고 눌림만 막는 투명한 판 */
+.kg-inert { background: transparent; }
 .kg-bubble { position: absolute; pointer-events: auto; box-sizing: border-box; width: min(380px, calc(100% - 32px)); max-height: calc(100% - 24px); overflow-y: auto; background: var(--surface); color: var(--ink); border: 1px solid var(--line-strong); border-radius: 18px; padding: 14px 16px 16px; display: flex; flex-direction: column; gap: 8px; box-shadow: 0 10px 34px var(--shadow); outline: none; }
 .kg-anim .kg-bubble { transition: left .28s ease, top .28s ease; }
 .kg-tight { padding: 8px 12px 10px; gap: 4px; }

@@ -1626,7 +1626,7 @@ try { const p = JSON.parse(localStorage.getItem('koide-pref') || '{}'), d = docu
         { mode: 'tap', target: () => tabBtn('mine'), text: '기도제목은 여기서 써요. 내 기도를 눌러요.' },
         { mode: 'tap', target: () => $('[data-act=sample]'), wait: onMine, done: () => ev.sample && canSplit(),
           text: '예시로 연습해 볼게요. 예시 넣어 보기를 눌러요.' },
-        { mode: 'tap', target: () => $('[data-act=split]'), wait: onMine, skip: () => !!S.preview, done: () => !!S.preview, text: '예시가 들어갔어요. 대상별로 정리하기를 눌러요.',
+        { mode: 'tap', target: () => [$('#add-t'), $('[data-act=split]')], inert: () => $('#add-t'), wait: onMine, skip: () => !!S.preview, done: () => !!S.preview, text: '예시가 들어갔어요. 대상별로 정리하기를 눌러요.',
           bounce: () => S.preview || canSplit() ? '' : '예시 넣어 보기를 먼저 눌러요.' },
         { mode: 'tap', target: () => $('.preview'), wait: () => S.tab === 'mine' && S.preview, done: () => ev.added, back: () => !S.preview && !ev.added,
           text: '정리된 목록이에요. 빼야 할 줄은 ×를 눌러요. 괜찮으면 추가하기를 눌러요.' },
@@ -1636,7 +1636,7 @@ try { const p = JSON.parse(localStorage.getItem('koide-pref') || '{}'), d = docu
         { mode: 'tap', target: () => tabBtn('pray'), text: '이제 함께 기도해 봐요. 기도하기를 눌러요.' },
         { mode: 'tap', target: () => $('[data-act=psstart]'), wait: () => S.tab === 'pray' && !S.ps, skip: () => !!S.ps, done: () => !!S.ps,
           text: '기도 시작을 눌러요. 시간이나 음악은 나중에 마음대로 골라도 돼요.' },
-        { mode: 'tap', target: () => $('.pss-pray:not([disabled])'), wait: () => S.ps && !S.ps.open && !S.ps.done, timeout: 20000, waitText: '기도를 여는 중이에요. 잠시만 기다려요…',
+        { mode: 'tap', target: () => $('.pss-pray:not([disabled])'), wait: () => S.ps && !S.ps.open && !S.ps.done, timeout: 20000, waitText: '기도를 여는 중이에요', waitStyle: 'pill',
           done: () => !!S.ps && (S.ps.prayed.length > 0 || S.ps.extra.length > 0), text: '기도하고 나서 기도했어요를 눌러요.' },
         // 계속을 누르면 안내를 접어 두고, 기도하기를 마칠 때까지 기다렸다 이어 간다
         { mode: 'next', nextLabel: '계속', then: () => !S.ps, text: '이렇게 한 장씩 넘기며 기도해요. 이제 끝까지 마음껏 해 보세요.' },
