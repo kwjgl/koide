@@ -385,6 +385,7 @@ button.knot { cursor: pointer; }
 <script src="splash.js" data-space="note"></script>
 <script src="places.js"></script>
 <script src="survey.js"></script>
+<script src="pilot.js"></script>
 <div id="root"></div>
 <script src="pray-data.js"></script>
 <script src="art-data.js"></script>
@@ -649,6 +650,7 @@ button.knot { cursor: pointer; }
     }
     // 이번 주 처음 그 사람의 매듭이 지어지면 끈에서 매듭이 묶이고 끈이 당겨진다(다 그린 뒤 한 번)
     if (it && !D.items.some(i => i.target === it.target && prayedThisWeek(i.id))) S.cordNew = it.target;
+    if (!p || p.off) { if (S.tab === 'today') KoidePilot.done('n-today'); }
     if (p) { p.off = !p.off; p.up = now(); } else D.prays.push({ d: t, item: id, up: now() });
     save();
     // 팔복 카드가 같은 때 뜨면 해와 비 카드와 아래 글은 이번엔 건너뛴다(해와 비는 다음에 다시 뜰 수 있게 보여 준 것으로 적지 않는다)
@@ -802,11 +804,16 @@ button.knot { cursor: pointer; }
   }
   // ── 시범 설문(survey.js): 시작한 지 3·7·14일째에 오늘 화면 위에 카드 한 장. 로그인하지 않았거나 장면 주소에서는 없다 ──
   //  시작한 날 = 기도제목·기도한 날·감사 기록 중 가장 이른 날(아직 없으면 survey.js가 이 기기에서 처음 연 날로 센다). 보내는 숫자는 사용자가 켰을 때만, 기도 내용은 없다
-  const APP_VER = '2026-11-04';
+  const APP_VER = '2026-11-06';
   const noteStart = () => [...D.items.map(i => i.created), ...prays().map(p => p.d), ...D.thanks.map(x => x.date)].filter(Boolean).sort()[0] || '';
   const surveyNums = () => ({ days: new Set(prays().map(p => p.d)).size, items: D.items.length, thanks: D.thanks.length, app: HOME_APP, vault: !!(D.vault && D.vault.on) });
   if (!SC) KOIDE_SURVEY.init({ where: 'note', key: DEMO_LINK ? 'koide-demo-survey' : 'koide-survey', api, start: noteStart, nums: surveyNums, ver: APP_VER, demo: DEMO });
   const surveyCard = () => !SC && D.started && getToken() ? KOIDE_SURVEY.html() : '';
+  // ── 시범 '해 볼 일' 띠(pilot.js): 시범 링크(?pilot)로 연 사람에게만. 화면 제목 바로 아래에 한 줄. 기도하기·사용법 카드·설문 카드가 있는 화면·시작 화면에는 없다 ──
+  if (!SC) KoidePilot.init({ where: 'note', demo: DEMO, home: () => HOME_APP, rerender: () => render(), feedback: () => { S.fb = null; go('fb'); } });
+  const pilotBand = () => KoidePilot.mount($('#root > .wrap'), 'header.top', !SC && D.started && S.tab !== 'start' && !S.ps && S.tour == null);
+  // 같은 사람(나 또는 내가 기도하는 사람)을 위한 기도제목이 두 개 이상인지
+  const pilotTwo = () => { const n = {}; D.items.forEach(i => { if (!i.done && (i.target === 'me' || i.target.startsWith('p:'))) n[i.target] = (n[i.target] || 0) + 1; }); if (Object.keys(n).some(t => n[t] >= 2)) KoidePilot.done('n-two'); };
   function thanksQuick() {
     const t = D.thanks.filter(x => x.date === TODAY());
     return `<section class="card"><p class="label">오늘 감사한 것</p>
@@ -1159,7 +1166,8 @@ button.knot { cursor: pointer; }
       <section class="card"><p class="label">화면</p>${screenControls()}</section>
       <section class="card"><button class="mrow" data-a="tourgo" data-v="restart"><span><b>사용법 보기</b><small>기도 노트 사용법을 카드로 봐요</small></span></button>
         ${HOME_APP ? '' : '<button class="mrow" data-a="a2hsopen"><span><b>홈 화면에 앱처럼 두기</b><small>아이콘을 눌러 바로 열 수 있게 해요</small></span></button>'}
-        <button class="mrow" data-a="ivid"><span><b>코이데 소개 영상</b><small>코이데와 기도 노트를 영상으로 봐요</small></span></button></section>
+        <button class="mrow" data-a="ivid"><span><b>코이데 소개 영상</b><small>코이데와 기도 노트를 영상으로 봐요</small></span></button>
+        ${KoidePilot.moreRows()}</section>
       <section class="card"><p class="label">함께하는 곳</p>${inCommunity() ? `<p class="plain">기도 노트는 혼자 쓰는 곳이에요. 교회 사랑방과 함께 기도하는 곳은 같은 앱의 공동체예요. 노트의 기도제목을 사랑방이나 모임에 나누고 싶으면 노트에서 "나누기"를 눌러요. 모임은 해외선교팀처럼 잠깐 모이는 임시 공간이라 끝나는 날(최대 1년)에 기록과 함께 사라져요. 남기고 싶은 기도제목은 내 기도 노트로 옮겨 두세요.</p>
         <a class="btn ghost small" style="align-self:flex-start;text-decoration:none;display:inline-flex;align-items:center" href="index.html${QS}">코이데 공동체로</a>`
         : `<p class="plain">교회 사랑방과 함께 기도하려면 공동체에 연결해요. 리더에게 초대 링크를 받았으면 그 링크를 열면 돼요. 링크가 없으면 부서와 사랑방을 골라 연결을 신청할 수 있어요.</p>
@@ -1607,6 +1615,7 @@ button.knot { cursor: pointer; }
     document.querySelectorAll('textarea.field').forEach(autosize);
     if (S.cordNew) { document.querySelectorAll('.cord-seg.pull animate').forEach(a => { try { a.beginElement(); } catch (e) { /* 무시 */ } }); S.cordNew = null; }
     mount3d();
+    pilotBand();
   }
   // 글을 쓰는 칸은 글 길이에 맞춰 높이가 늘어난다(공동체 앱과 같게, 길게 써도 칸 안에서 스크롤하지 않게)
   function autosize(t) { if (!t.value) { t.style.height = ''; return; } t.style.height = 'auto'; t.style.height = (t.scrollHeight + 2) + 'px'; }
@@ -1652,7 +1661,7 @@ button.knot { cursor: pointer; }
           if (t.startsWith('new:')) { const n = t.slice(4).slice(0, 12), had = people().find(p => p.name === n); t = 'p:' + (had ? had.id : (made[n] || (made[n] = (() => { const p = { id: uid(), name: n, up: now() }; D.people.push(p); return p.id; })()))); }
           D.items.push({ id: uid(), text: x.text, target: t, created: TODAY(), done: null, up: now() });
         });
-        S.preview = null; S.draft = null; save(); a2hsDue();
+        S.preview = null; S.draft = null; save(); a2hsDue(); pilotTwo();
         return toast(parts.length + '개를 내 기도에 더했어요' + (Object.keys(made).length ? ` · 새 사람 ${Object.keys(made).join(', ')}` : ''));
       }
       case 'pray': togglePray(v); return render();
@@ -1667,7 +1676,7 @@ button.knot { cursor: pointer; }
         const i = D.items.find(x => x.id === S.done), how = S.doneHow || 'answer', note = how === 'answer' ? ($('#dn-note').value || '').trim() : '';
         i.done = { date: TODAY(), how }; i.up = now();
         if (how === 'answer') D.thanks.push({ id: uid(), date: TODAY(), text: note || '응답받았어요', item: i.id, kind: 'answer', up: now() });
-        save(); S.done = null; return toast(how === 'answer' ? '감사 기록으로 남겼어요' : '맡겨 두었어요');
+        save(); S.done = null; if (how === 'answer') KoidePilot.done('n-answer'); return toast(how === 'answer' ? '감사 기록으로 남겼어요' : '맡겨 두었어요');
       }
       case 'share': S.share = v; return render();
       case 'shareclose': S.share = null; return render();
@@ -1685,6 +1694,7 @@ button.knot { cursor: pointer; }
         S.ps = { list: L, i: 0, extra: [], dur: PS.dur, left: PS.dur, flow: !!(PS.flow && PS.dur), cd: 0, stay: false, held: false, pt0: Date.now() }; if (PS.music) playTrack(PS.track);
         // 기도를 열며(기본 켜짐): 첫 장 앞에 한 장. 몇 초 뒤 저절로, 또는 누르면 첫 장으로
         if (PS.open !== false) { const ps = S.ps; ps.open = true; KoidePrayOpen.begin(() => psOpenDone(ps)); }
+        if (PS.dur === 60 && PS.flow) KoidePilot.done('n-ps');
         render(); const b = document.querySelector('.ps-body'); if (b) b.scrollTop = 0; psTick(); return;
       }
       case 'psopening': PS.open = PS.open === false; savePs(); return render();
@@ -1702,9 +1712,9 @@ button.knot { cursor: pointer; }
         if (!confirm(`${p.name} 님을 뺄까요?${n ? ` 이 사람을 위한 기도제목 ${n}개는 "나"로 옮겨요.` : ''}`)) return;
         D.items.forEach(i => { if (i.target === 'p:' + v) { i.target = 'me'; i.up = now(); } }); p.del = true; p.up = now(); save(); return render();
       }
-      case 'mode': setPref('mode', v === 'system' ? '' : v); return render();
-      case 'accent': setPref('accent', v); return render();
-      case 'style': setPref('style', v); return render();
+      case 'mode': setPref('mode', v === 'system' ? '' : v); KoidePilot.done('c-style'); return render();
+      case 'accent': setPref('accent', v); KoidePilot.done('c-style'); return render();
+      case 'style': setPref('style', v); KoidePilot.done('c-style'); return render();
       case 'lookm': S.lookM = v; return render();
       case 'keep': S.keep = v || S.keep; if (v === 'garden') S.keepM = null; S.gEdit = false; S.gbig = false; S.wopen = null; S.tab = 'keep'; render(); return window.scrollTo(0, 0);
       case 'keepm': S.keepM = v; S.gEdit = false; return render();
@@ -1802,7 +1812,7 @@ button.knot { cursor: pointer; }
         if (!text) { toast('내용을 적어 주세요.'); return $('#fb-t').focus(); }
         S.fbBusy = true; render();
         api('sendFeedback', { kind: F.kind, text, named: F.named, ver: APP_VER, width: innerWidth < 640 ? 'phone' : innerWidth < 1024 ? 'tablet' : 'pc' })
-          .then(() => { S.fbBusy = false; S.fb = null; S.tab = 'more'; toast('보냈어요. 고마워요.'); window.scrollTo(0, 0); },
+          .then(() => { S.fbBusy = false; S.fb = null; S.tab = 'more'; toast('보냈어요. 고마워요.'); window.scrollTo(0, 0); KoidePilot.done('a-feedback'); },
             err => { S.fbBusy = false; render(); toast(err && err.code === 'login' ? '다시 로그인해 주세요.' : err && err.code === 'notLinked' ? '서버를 새 버전으로 배포하면 보낼 수 있어요.' : (err && err.message) || '보내지 못했어요. 잠시 뒤 다시 해 주세요.'); });
         return;
       }
@@ -1830,7 +1840,7 @@ button.knot { cursor: pointer; }
       const t = $('#it-text').value.trim(); if (!t) return $('#it-text').focus();
       S.draft = null;
       if (S.edit) { const i = D.items.find(x => x.id === S.edit); i.text = t; i.target = S.draftT; i.up = now(); S.edit = null; save(); return toast('고쳤어요'); }
-      D.items.push({ id: uid(), text: t, target: S.draftT, created: TODAY(), done: null, up: now() }); save(); a2hsDue(); return toast('내 기도에 더했어요');
+      D.items.push({ id: uid(), text: t, target: S.draftT, created: TODAY(), done: null, up: now() }); save(); a2hsDue(); pilotTwo(); return toast('내 기도에 더했어요');
     }
     if (f.dataset.f === 'vcreate' || f.dataset.f === 'vunlock' || f.dataset.f === 'vrecover') {
       const V = S.vsheet, kind = f.dataset.f, a = $('#vs-a').value, b = $('#vs-b') ? $('#vs-b').value : a;
@@ -1869,6 +1879,7 @@ button.knot { cursor: pointer; }
             rawKeep(raw); mergeIn(data); D.vault = { on: true, salt, rev: V.remote.rev, last: 0, rec: true };
           }
           D.started = true; saveLocal(); S.vsheet = null; if (S.tab === 'start') S.tab = 'today';
+          KoidePilot.done('n-sync');
           if (words) S.recSheet = { words };
           render(); if (!words) toast(kind === 'vrecover' ? '새 비밀 문구로 바꾸고 노트를 합쳤어요' : '맡겨 둔 노트를 합쳤어요'); sync();
         } catch (e) { V.busy = false; V.err = e && e.code === 'net' ? e.message : '잠그지 못했어요. 다시 해 주세요.'; render(); }
@@ -1878,7 +1889,7 @@ button.knot { cursor: pointer; }
     if (f.dataset.f === 'kckeys') return kcSubmit();
     if (f.dataset.f === 'thanks') {
       const t = $('#th-in').value.trim(); if (!t) return;
-      S.thDraft = ''; D.thanks.push({ id: uid(), date: TODAY(), text: t.slice(0, 200), kind: 'thanks', up: now() }); save(); return toast('감사를 남겼어요');
+      S.thDraft = ''; D.thanks.push({ id: uid(), date: TODAY(), text: t.slice(0, 200), kind: 'thanks', up: now() }); save(); KoidePilot.done('n-thanks'); return toast('감사를 남겼어요');
     }
   });
   document.addEventListener('change', e => {

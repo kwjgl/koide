@@ -84,7 +84,7 @@ const SCHEMA = {
   //  부서ID가 비어 있으면 교회에 연결되지 않은 기도 노트 사용자가 보낸 것(전체 관리자만 본다)
   feedback: ['의견', [['at', '보낸 날'], ['deptId', '부서ID'], ['kind', '종류'], ['text', '내용'], ['familyId', '가정ID'], ['person', '사람'], ['ver', '화면 버전'], ['width', '기기 폭'], ['read', '읽음']]],
   // 시범 설문(3·7·14일째 카드): 누가 보냈는지는 남기지 않는다(카카오ID·가정ID·이름 없음). 답은 정해 둔 키와 값만(JSON), 숫자는 사용자가 '숫자도 함께 보내기'를 켰을 때만
-  survey: ['설문', [['at', '보낸 날'], ['where', '어디'], ['day', '몇째 날'], ['answers', '답'], ['nums', '숫자'], ['deptId', '부서ID'], ['width', '기기 폭'], ['ver', '화면 버전']]]
+  survey: ['설문', [['at', '보낸 날'], ['where', '어디'], ['day', '몇째 날'], ['answers', '답'], ['nums', '숫자'], ['deptId', '부서ID'], ['width', '기기 폭'], ['ver', '화면 버전'], ['pilot', '해 본 일']]]
 };
 const SCOPES = ['room', 'leader', 'family'];
 // 교역자의 공개 범위: dept(부서 공개, 섬기는 분들 카드에 나옴) / family(우리 가정만)
@@ -96,7 +96,7 @@ const FIRST_DEPT = { id: 'D1', name: '청장년부', group: '사랑방', unit: '
 // ── 요청 받기 ─────────────────────────────────────────────
 
 // 서버 코드를 고칠 때마다 바꾼다. 웹 앱 주소를 열면 보여서, 새 버전으로 배포됐는지 확인할 수 있다
-const VERSION = '2026-10-21 기도 노트 복구용 문구';
+const VERSION = '2026-11-06 시범 해 볼 일';
 function doGet() {
   return ContentService.createTextOutput('코이데 서버가 켜져 있어요. (버전: ' + VERSION + ')');
 }
@@ -1358,6 +1358,8 @@ const SURVEY_ = {
 };
 const SURVEY_ONLY_ = { amount: 'note', easy: 'community' };
 const SURVEY_NUMS_ = ['days', 'items', 'thanks', 'app', 'vault'];
+// 시범 '해 볼 일' 띠(app/pilot.js)의 항목 키. 같은 키로 맞춘다. '숫자도 함께 보내기'를 켠 사람만 해 본 키 목록이 오고(이름·날짜·기도 내용 없음), 아는 키만 받는다
+const SURVEY_PILOT_ = ['c-edit', 'c-pray', 'c-cord', 'c-ps', 'c-style', 'n-two', 'n-today', 'n-ps', 'n-answer', 'n-thanks', 'n-sync', 'a-home', 'a-feedback'];
 // 로그인한 누구나(부서가 없어도). 한 사람이 하루 6번까지. 누가 보냈는지는 시트에 남기지 않는다
 function sendSurvey_(body) {
   const w = who_(body), where = body.where === 'community' ? 'community' : body.where === 'note' ? 'note' : '', day = Number(body.day), spec = SURVEY_[day];
@@ -1389,24 +1391,30 @@ function sendSurvey_(body) {
     });
     if (Object.keys(o).length) nums = JSON.stringify(o);
   }
+  // 해 본 일: 정해 둔 키만, 한 번씩. 켠 사람만 오므로 없으면 빈칸
+  let pilot = '';
+  if (Array.isArray(body.pilot)) { const l = SURVEY_PILOT_.filter(k => body.pilot.indexOf(k) >= 0); if (l.length) pilot = JSON.stringify(l); }
   let deptId = '';
   try { deptId = memberFrom_(w).deptId || ''; } catch (e) { /* 연결되지 않은 사람은 부서 없이 */ }
   cache.put(key, String(n + 1), 86400);
-  append_('survey', { at: new Date(), where, day, answers: JSON.stringify(ans), nums, deptId, width: ['phone', 'tablet', 'pc'].indexOf(body.width) >= 0 ? body.width : '', ver: String(body.ver || '').slice(0, 20) });
+  append_('survey', { at: new Date(), where, day, answers: JSON.stringify(ans), nums, pilot, deptId, width: ['phone', 'tablet', 'pc'].indexOf(body.width) >= 0 ? body.width : '', ver: String(body.ver || '').slice(0, 20) });
   return { ok: true };
 }
-// 교회 전체 › 의견과 설문(전체 관리자): 몇째 날별 답 개수(합계만, 사람별 보기 없음)와 글 답, 부서 없는 것까지 모든 의견, 표로 내려받을 줄들
+// 교회 전체 › 의견과 설문(전체 관리자): 몇째 날별 답 개수(합계만, 사람별 보기 없음)와 시범 해 본 일 항목별 사람 수, 글 답, 부서 없는 것까지 모든 의견, 표로 내려받을 줄들
 function surveyAdmin_(body) {
   allAdmin_(body);
   const depts = read_('depts'), deptName = id => id ? ((depts.find(d => d.id === id) || {}).name || id) : '기도 노트(부서 없음)';
   const parse = t => { try { return JSON.parse(t || '{}') || {}; } catch (e) { return {}; } };
+  const pilotKeys = t => { try { const l = JSON.parse(t || 'null'); return Array.isArray(l) ? l.filter(k => SURVEY_PILOT_.indexOf(k) >= 0) : null; } catch (e) { return null; } };
   const rows = read_('survey').slice().sort((a, b) => a.at < b.at ? 1 : -1).slice(0, 2000)
-    .map(r => ({ at: fmtDate_(r.at), where: r.where, day: Number(r.day), a: parse(r.answers), nums: r.nums ? parse(r.nums) : null, dept: deptName(r.deptId), width: r.width, ver: r.ver }));
+    .map(r => ({ at: fmtDate_(r.at), where: r.where, day: Number(r.day), a: parse(r.answers), nums: r.nums ? parse(r.nums) : null, pilot: pilotKeys(r.pilot), dept: deptName(r.deptId), width: r.width, ver: r.ver }));
   const byDay = {};
-  [3, 7, 14].forEach(d => { byDay[d] = { n: 0, note: 0, community: 0, withNums: 0, q: {}, texts: [] }; });
+  [3, 7, 14].forEach(d => { byDay[d] = { n: 0, note: 0, community: 0, withNums: 0, q: {}, texts: [], pilot: { n: 0, items: {} } }; });
   rows.forEach(r => {
     const b = byDay[r.day]; if (!b) return;
     b.n++; b[r.where]++; if (r.nums) b.withNums++;
+    // 시범 해 본 일: 켠 사람이 보낸 키 목록을 항목마다 센다(설문에는 보낸 사람 표시가 없어서 같은 사람이 3·7·14일째에 또 보내면 각 날의 숫자에 한 번씩 든다. 몇째 날별로 따로 센다)
+    if (r.pilot) { b.pilot.n++; r.pilot.forEach(k => { b.pilot.items[k] = (b.pilot.items[k] || 0) + 1; }); }
     Object.keys(r.a).forEach(k => {
       const v = r.a[k];
       if (k === 'ueq') return; // UEQ-S는 아래에서 따로 계산
@@ -2453,11 +2461,11 @@ function sampleData() {
   append_('feedback', { at: new Date(Date.now() - 1 * 864e5), deptId: '', kind: '이랬으면', text: '하루 3개 말고 오늘 꼭 기도할 것을 제가 고를 수 있으면 좋겠어요.', familyId: '', person: '', ver: 'sample', width: 'phone', read: '' });
   append_('feedback', { at: new Date(Date.now() - 3 * 864e5), deptId: '', kind: '고마워요', text: '응답받은 기도를 모아 볼 수 있어서 힘이 돼요.', familyId: '', person: '민아', ver: 'sample', width: 'phone', read: '' });
   [[10, 'note', 3, { mood: 'good', stuck: '이어 두기 화면에서 비밀 문구가 무슨 뜻인지 헷갈렸어요.' }, ''], [9, 'note', 3, { mood: 'great' }, ''], [9, 'community', 3, { mood: 'good' }, ''], [8, 'community', 3, { mood: 'soso', stuck: '이번 달 화면에서 우리 가정 기도를 어디서 쓰는지 몰랐어요.' }, ''],
-    [6, 'note', 7, { amount: 'fit', liked: ['cord', 'answer'], wish: '아침 시간에 알려 주면 좋겠어요.' }, '{"days":5,"items":6,"thanks":2,"app":true,"vault":false}'],
+    [6, 'note', 7, { amount: 'fit', liked: ['cord', 'answer'], wish: '아침 시간에 알려 주면 좋겠어요.' }, '{"days":5,"items":6,"thanks":2,"app":true,"vault":false}', ['n-two', 'n-today', 'n-thanks', 'a-feedback']],
     [5, 'note', 7, { amount: 'many', liked: ['pray'] }, ''], [5, 'community', 7, { easy: 'yes', liked: ['art', 'share'] }, ''], [4, 'community', 7, { easy: 'hard', liked: ['share'], wish: '기도제목 쓰는 칸이 더 크면 좋겠어요.' }, ''],
-    [2, 'note', 14, { ueq: { 1: 6, 2: 6, 3: 5, 4: 6, 5: 5, 6: 6, 7: 4, 8: 3 }, keep: 'yes', recommend: 'yes', want: '달마다 응답 기록을 한눈에 보는 화면이요.' }, '{"days":11,"items":8,"thanks":4,"app":true,"vault":true}'],
+    [2, 'note', 14, { ueq: { 1: 6, 2: 6, 3: 5, 4: 6, 5: 5, 6: 6, 7: 4, 8: 3 }, keep: 'yes', recommend: 'yes', want: '달마다 응답 기록을 한눈에 보는 화면이요.' }, '{"days":11,"items":8,"thanks":4,"app":true,"vault":true}', ['n-two', 'n-today', 'n-ps', 'n-answer', 'n-thanks', 'n-sync', 'a-home', 'a-feedback']],
     [1, 'community', 14, { ueq: { 1: 5, 2: 5, 3: 6, 4: 4, 5: 4, 6: 5, 7: 5, 8: 4 }, keep: 'maybe', recommend: 'yes' }, ''], [1, 'note', 14, { ueq: { 1: 4, 2: 5, 3: 4, 4: 5, 5: 3, 6: 4, 7: 4, 8: 3 }, keep: 'maybe', recommend: 'maybe' }, '']]
-    .forEach(([ago, where, day, a, nums]) => append_('survey', { at: new Date(Date.now() - ago * 864e5), where, day, answers: JSON.stringify(a), nums, deptId: where === 'community' ? d1 : '', width: 'phone', ver: 'sample' }));
+    .forEach(([ago, where, day, a, nums, pilot]) => append_('survey', { at: new Date(Date.now() - ago * 864e5), where, day, answers: JSON.stringify(a), nums, pilot: pilot ? JSON.stringify(pilot) : '', deptId: where === 'community' ? d1 : '', width: 'phone', ver: 'sample' }));
   // 섬기는 분들(청장년부): 목사님 부부와 담당 장로님. 지어낸 이름
   append_('families', { id: 'S1', name: '한기쁨 · 서평안', kids: '은솔', status: '교역자', admin: '' });
   append_('staff', { familyId: 'S1', deptId: d1, label: '목사님 부부', title: '목사님', serve: '예', status: '활동', endedAt: '' });

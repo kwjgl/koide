@@ -3,7 +3,7 @@
  *
  * 시작한 지 3·7·14일째에 '오늘' 화면 위에 짧은 카드를 한 장 붙인다(창이 아니다). 보내기 / 나중에 / 그만 묻기.
  * 문항은 아래 ROUNDS 한 곳에 있다. 문항을 바꾸면 서버(apps-script/Code.js)의 SURVEY_ 허용 목록도 같은 키로 맞춘다(키와 값만, 글은 서버에 없다).
- * 보내는 것: 고른 답, 쓴 글(선택), 그리고 사용자가 '숫자도 함께 보내기'를 켰을 때만 숫자 몇 가지. 기도 내용은 어디에도 담지 않는다.
+ * 보내는 것: 고른 답, 쓴 글(선택), 그리고 사용자가 '숫자도 함께 보내기'를 켰을 때만 숫자 몇 가지(시범 '해 볼 일'에 함께하면 해 본 항목의 이름표도). 기도 내용은 어디에도 담지 않는다.
  *
  * 14일째의 첫 문항은 표준 척도 UEQ-S(User Experience Questionnaire 짧은판, 8문항, 7점)이다. 낱말·순서·방향은 UEQ 공식 사이트(https://www.ueq-online.org)의
  *  공식 한국어판(Material/UEQ_All_Languages.zip의 UEQ_Korean.pdf, UEQS_Items.pdf의 Korean version)을 그대로 쓴다. 낱말을 바꾸거나 문항을 빼지 않는다
@@ -83,7 +83,10 @@
   }
   function card(n) {
     const R = ROUNDS[n], nums = O.nums ? O.nums() : {};
-    const numLine = Object.keys(nums).filter(k => NUMS[k] && nums[k] !== undefined).map(k => NUMS[k][0] + ' ' + NUMS[k][1](nums[k])).join(' · ');
+    let numLine = Object.keys(nums).filter(k => NUMS[k] && nums[k] !== undefined).map(k => NUMS[k][0] + ' ' + NUMS[k][1](nums[k])).join(' · ');
+    // 시범 '해 볼 일'(pilot.js)에 함께하는 사람은 해 본 일의 수도 같은 스위치에 든다(보내는 것은 해 본 항목의 이름표뿐, 날짜·기도 내용 없음)
+    const pl = window.KoidePilot && KoidePilot.keys();
+    if (pl) numLine += (numLine ? ' · ' : '') + '해 본 일 ' + pl.length + '가지';
     const pages = R.pages || [qsOf(n).map(q => q.k)], last = draft.page >= pages.length - 1;
     const body = qsOf(n).filter(q => pages[draft.page].indexOf(q.k) >= 0).map(q => {
       const v = draft.a[q.k];
@@ -104,7 +107,9 @@
         <button type="button" class="svc-ghost" data-sv="later">나중에</button><button type="button" class="svc-ghost" data-sv="off">그만 묻기</button></div>
       <p class="svc-hint">기도 내용과 이름은 보내지 않아요.</p></section>`;
   }
-  function redraw() { const el = document.getElementById('sv-card'); if (!el) return; const h = html(); if (!h) { el.remove(); return; } const t = document.createElement('template'); t.innerHTML = h.trim(); el.replaceWith(t.content.firstChild); }
+  // 카드가 사라지면 시범 '해 볼 일' 띠(pilot.js)가 그 자리에 나온다(카드가 있는 동안은 카드가 먼저)
+  const settled = () => { if (window.KoidePilot) KoidePilot.remount(); };
+  function redraw() { const el = document.getElementById('sv-card'); if (!el) return; const h = html(); if (!h) { el.remove(); settled(); return; } const t = document.createElement('template'); t.innerHTML = h.trim(); el.replaceWith(t.content.firstChild); }
 
   function mark(n, v) { ST.r[O.where + n] = Object.assign(ST.r[O.where + n] || {}, v); save(); }
   async function send() {
@@ -116,9 +121,10 @@
     try {
       const body = { where: O.where, day: n, answers, width: innerWidth < 640 ? 'phone' : innerWidth < 1024 ? 'tablet' : 'pc', ver: O.ver || '' };
       if (draft.num && O.nums) body.nums = O.nums();
+      if (draft.num && window.KoidePilot && KoidePilot.keys()) body.pilot = KoidePilot.keys();
       await O.api('sendSurvey', body);
       ST.num = draft.num; mark(n, { st: 'done' }); busy = false; thanks = true; redraw();
-      setTimeout(() => { thanks = false; const el = document.getElementById('sv-card'); if (el) el.remove(); }, 2200);
+      setTimeout(() => { thanks = false; const el = document.getElementById('sv-card'); if (el) { el.remove(); settled(); } }, 2200);
     } catch (e) {
       busy = false; err = e && e.code === 'busy' ? e.message : e && /모르는 요청/.test(e.message || '') ? '서버가 아직 새 버전이 아니에요. 관리자에게 알려 주세요.' : '보내지 못했어요. 잠시 뒤 다시 눌러 주세요.'; redraw();
     }
