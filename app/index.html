@@ -1868,7 +1868,7 @@ try { const p = JSON.parse(localStorage.getItem('koide-pref') || '{}'), d = docu
     if (staffMe()) return staffHomeView();
     const M = S.month, others = M.families.filter(f => !f.own), t = todayFam();
     return `<div class="page-top"><div><p class="eyebrow">${esc(M.room.name)}${S.grp ? ' · 모임' + (M.group && M.group.left != null ? ' · ' + koidePlaces.dday(M.group) : '') : ''}</p><h1>${Number(M.month.slice(5))}월 기도제목 <span aria-hidden="true">🙏</span></h1></div><p class="date">${todayLabel()}</p></div>
-      ${surveyCard()}${S.grp ? `<p class="hint grp-note">${ICON.people}모임 사람들과 함께 봐요 · 내 모임은 <a href="note.html${DEMO_LINK ? '?demo' : ''}">기도 노트</a>에 있어요</p>${groupEndCard()}` : ''}${newsCard()}${shiftCard()}<div class="home-grid"><div class="col side">${t ? `<section class="card today" aria-label="지금 함께 기도할 ${words().one}"><p class="today-tag">${ICON.hands}지금 함께 기도할 ${words().one}</p><h2>${esc(t.name)}</h2>
+      ${S.grp ? `<p class="hint grp-note">${ICON.people}모임 사람들과 함께 봐요 · 내 모임은 <a href="note.html${DEMO_LINK ? '?demo' : ''}">기도 노트</a>에 있어요</p>${groupEndCard()}` : ''}${newsCard()}${shiftCard()}<div class="home-grid"><div class="col side">${t ? `<section class="card today" aria-label="지금 함께 기도할 ${words().one}"><p class="today-tag">${ICON.hands}지금 함께 기도할 ${words().one}</p><h2>${esc(t.name)}</h2>
           <div class="today-body" data-id="${esc(t.id)}" tabindex="0" aria-label="${esc(t.name)} 기도제목">${t.items.length ? itemList(t.items, false) : `<p class="hint">아직 올린 기도제목이 없어요. 이 ${words().one}을 떠올리며 기도해요.</p>`}</div>
           <div class="pray-hero"><div class="pray-row">${prayBtn(t, false, true)}<button class="btn next${t.today ? '' : ' ghost'}" data-act="nexttoday">다음 ${words().one}</button></div>
             ${t.prayed ? `<p class="pray-done">이번 달 ${esc(t.name)}${solo() ? ' 님' : ' 가정'}을 위해 ${t.prayed}번 기도했어요</p>` : ''}</div>
@@ -1911,7 +1911,7 @@ try { const p = JSON.parse(localStorage.getItem('koide-pref') || '{}'), d = docu
     const M = S.month, rooms = M.rooms || [], sum = k => rooms.reduce((a, r) => a + r[k], 0);
     const stat = (n, l) => `<div class="stat"><b>${n}</b><span>${l}</span></div>`;
     return `<div class="page-top"><div><p class="eyebrow">${esc(M.dept.name)} 전체 · ${esc(M.me.label || M.me.person)}</p><h1>${Number(M.month.slice(5))}월 기도제목 <span aria-hidden="true">🙏</span></h1></div><p class="date">${todayLabel()}</p></div>
-      ${surveyCard()}<div class="home-grid"><div class="col side">
+      <div class="home-grid"><div class="col side">
         <section class="card"><div class="stats">${stat(rooms.length, grp())}${stat(sum('n'), words().count)}${stat(sum('edited') + sum('confirmed'), '이번 달 손봄·확인')}</div></section>
         ${rooms.length ? `<section class="card">${roomCordHtml()}<p class="hint">매듭을 누르면 그 ${esc(gj('을/를'))} 위해 기도하러 가요.</p></section>` : ''}
         ${mineCard()}
@@ -4176,14 +4176,16 @@ try { const p = JSON.parse(localStorage.getItem('koide-pref') || '{}'), d = docu
   // ── 관리 › 운영 (설계서 S7): ① 앱 상태 ② 개인정보 요청. 할 일이 있는 카드만 관리 탭 위로 올라온다 ──
   //  NEED_SERVER: 이 화면이 바라는 서버 버전(서버 VERSION 앞 날짜). 서버 코드를 고쳐 배포해야 하는 기능을 넣을 때 함께 올린다
   const NEED_SERVER = '2026-11-08';
-  // ── 시범 설문(survey.js): 이번 달 화면 위에 3·7·14일째 카드 한 장. 처음 도움말이 떠 있으면 도움말 먼저. 기도하기·모임 모드·관리 화면·장면 주소에서는 없다 ──
+  // ── 시범 설문(survey.js): 이번 달 화면이 그려진 1.5초 뒤 3·7·14일째에 팝업 카드(앱을 연 뒤 한 번만). 처음 도움말·따라 하기·기도하기·모임 모드·다른 창이 떠 있거나 관리 화면·장면 주소에서는 없다 ──
   //  시작한 날 = 이 사람이 처음 연결된 날(서버가 알면), 아니면 이 기기에서 처음 연 날. 보내는 숫자는 사용자가 켰을 때만(여기서는 홈 화면 앱 여부뿐), 기도 내용은 없다
-  if (!SC) KOIDE_SURVEY.init({ where: 'community', key: DEMO_LINK ? 'koide-demo-survey' : 'koide-survey', api, start: () => (S.me && S.me.link && S.me.link.since) || '', nums: () => ({ app: STANDALONE }), ver: NEED_SERVER, demo: DEMO });
-  // ── 시범 '해 볼 일' 띠(pilot.js): 시범 링크(?pilot)로 연 사람에게만. 화면 제목 바로 아래에 한 줄. 기도하기·모임 모드·도움말·설문 카드가 있는 화면·관리 화면·로그인 전에는 없다 ──
+  //  진행(마쳤나·나중에·그만 묻기, 답은 없음)은 서버 '연결' 탭의 '설문 진행' 칸(me.survey)에도 둬서 기기를 바꿔도 다시 묻지 않는다. 서버가 옛 버전이면 이 기기에만 둔다
+  const surveyOk = () => !SC && S.view === 'app' && S.tab === 'home' && !S.op && !S.grp && !S.ps && S.meet == null && !S.openRoom && !S.a2hs && !S.bigView && !S.album && !S.wbig && !!(S.me && S.me.link && S.me.link.status === '연결') && !tipFor();
+  if (!SC) KOIDE_SURVEY.init({ where: 'community', key: DEMO_LINK ? 'koide-demo-survey' : 'koide-survey', api, start: () => (S.me && S.me.link && S.me.link.since) || '', nums: () => ({ app: STANDALONE }), ver: NEED_SERVER, demo: DEMO, can: surveyOk,
+    persist: wire => { api('surveyState', { survey: wire }).then(r => KOIDE_SURVEY.adopt(r && r.survey)).catch(() => { /* 서버가 옛 버전이거나 잠깐 안 됨: 이 기기에는 적어 뒀다 */ }); } });
+  // ── 시범 '해 볼 일' 띠(pilot.js): 시범 링크(?pilot)로 연 사람에게만. 화면 제목 바로 아래에 한 줄. 기도하기·모임 모드·도움말·관리 화면·로그인 전에는 없다 ──
   if (!SC) KoidePilot.init({ where: 'community', demo: DEMO, home: () => STANDALONE, solo: () => !!(S.month && S.month.dept && S.month.dept.unit === '개인'), rerender: () => render(),
     feedback: () => { S.tab = 'feedback'; render(); window.scrollTo(0, 0); } });
   const pilotBand = () => KoidePilot.mount($('#main'), '.page-top', !SC && S.view === 'app' && !S.op && !S.ps && S.meet == null && !S.bigView && !S.album && !S.wbig && !tipFor());
-  const surveyCard = () => !SC && S.view === 'app' && S.tab === 'home' && !S.op && !S.grp && !S.ps && S.meet == null && S.me && S.me.link && S.me.link.status === '연결' && !tipFor() ? KOIDE_SURVEY.html() : '';
   const DOC = 'https://github.com/kwjgl/pray-for/blob/main/docs/';
   async function loadOps() { try { S.ops = await api('ops'); S.opsErr = null; } catch (e) { S.ops = null; S.opsErr = e.code === 'bad' ? 'old' : e.code === 'forbidden' ? null : e.message; S.opsWhy = e.message || ''; } render(); }
   const opsWhen = iso => { const d = new Date(iso); return isNaN(d) ? '' : `${d.getMonth() + 1}월 ${d.getDate()}일 ${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`; };
@@ -4619,6 +4621,7 @@ try { const p = JSON.parse(localStorage.getItem('koide-pref') || '{}'), d = docu
     // 내 사랑방이 시범 중인지(서버가 월 데이터에 실어 줌). 목사님·운영 화면·모임 화면에는 이 값이 없다
     if (app && !S.op && !S.grp && S.month && S.month.room && typeof S.month.room.pilot === 'boolean') KoidePilot.room(S.month.room.pilot);
     pilotBand();
+    if (app && !S.op && !S.grp && S.month && S.month.me) KOIDE_SURVEY.adopt(S.month.me.survey);
     if (S.view !== 'loading' && !GWAIT) hideSplash();
     // 마지막에 쓴 곳: 다시 켤 때 그곳으로 시작한다(모임 화면은 기도 노트의 '내 모임'에서 여는 곳이라 기도 노트로)
     if (app && window.koideSpace) window.koideSpace.used(S.grp ? 'note' : 'community');
@@ -4660,6 +4663,7 @@ try { const p = JSON.parse(localStorage.getItem('koide-pref') || '{}'), d = docu
     stickSide();
     stickToday();
     TourC.maybe();
+    KOIDE_SURVEY.schedule();
   }
   // PC 오른쪽 칸: 화면보다 짧으면 위에 붙고, 길면 화면과 함께 내려가다 칸의 끝에서 붙는다(스크롤이 하나만 있게).
   //  그림이 늦게 불러와져 칸 높이가 바뀌어도 다시 맞춘다
@@ -4785,7 +4789,7 @@ try { const p = JSON.parse(localStorage.getItem('koide-pref') || '{}'), d = docu
       case 'artreset': if (!confirm('이 달 그림을 처음 자리로 되돌릴까요?')) return; setArtPos(S.bigView.month, {}); return render();
       case 'artsave': S.artSaving = true; render(); try { await saveArt(); track('화면 보기', { screen: '그림 저장' }); } catch (err) { toast('그림을 저장하지 못했어요. 다시 해 주세요.'); } S.artSaving = false; return render();
       case 'bigclose': S.bigView = null; render(); if (document.fullscreenElement) document.exitFullscreen().catch(() => {}); return;
-      case 'tipok': { tipDone(v); const tip = b.closest('.tg-tip'), pt = $('#main .page-top'), sv = surveyCard(); tip.remove(); if (sv && pt) pt.insertAdjacentHTML('afterend', sv); pilotBand(); return; }
+      case 'tipok': { tipDone(v); const tip = b.closest('.tg-tip'); tip.remove(); pilotBand(); return; }
       case 'ptk': if (S.pt.dirty && !confirm('고친 것을 저장하지 않고 다른 주제로 갈까요?')) return; S.pt.k = v; S.pt.rows = null; S.pt.dirty = false; return render();
       case 'ptadd': { const at = S.pt.rows.map(r => r.kind).lastIndexOf(v); S.pt.rows.splice(at + 1, 0, { kind: v, text: '', ref: '', status: '' }); S.pt.dirty = true; render(); const f = $(`[data-pt="${at + 1}"]`); if (f) f.focus(); return; }
       case 'ptdel': if (S.pt.rows.filter(r => r.kind === S.pt.rows[v].kind).length < 2) return toast('하나는 남겨 주세요.'); S.pt.rows.splice(Number(v), 1); S.pt.dirty = true; return render();

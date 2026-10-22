@@ -424,7 +424,7 @@ button.knot { cursor: pointer; }
   const getUid = () => { try { return localStorage.getItem(UID) || ''; } catch (e) { return ''; } };
   const KEY = ownNoteKey(BASE, getUid()), LOCK_KEY = KEY + '-key';
   // 기도제목·사람·감사·기도한 날마다 고친 시각(up)을 둔다. 다른 기기와 이어 둘 때 더 나중 것을 남기려고(지운 것도 지웠다는 표시로 남긴다)
-  const blank = () => ({ v: 2, started: false, name: '', nameUp: 0, people: [], items: [], prays: [], thanks: [], today: null, mode: '', vault: null, weaves: [], gone: [] });
+  const blank = () => ({ v: 2, started: false, name: '', nameUp: 0, people: [], items: [], prays: [], thanks: [], today: null, mode: '', vault: null, weaves: [], gone: [], survey: null });
   // 장면 모드의 예시 노트: 사람 둘, 기도제목 여럿, 최근 기도한 날과 감사(날짜는 오늘 기준). at=start이면 노트 없이 시작 화면
   function sceneNote() {
     const day = n => { const d = new Date(Date.now() - n * 864e5); return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0'); };
@@ -528,7 +528,7 @@ button.knot { cursor: pointer; }
     return { words, rsalt, rwrap: await lockUp(await deriveKey(words.join(' '), rsalt), { k: raw }) };
   }
   // 맡기는 것: 이 기기만의 것(오늘 고른 3개, 화면 모드, 이어 두기 상태)은 빼고
-  const payload = () => ({ v: 2, name: D.name, nameUp: D.nameUp, people: D.people, items: D.items, prays: D.prays, thanks: D.thanks, weaves: D.weaves, gone: D.gone });
+  const payload = () => ({ v: 2, name: D.name, nameUp: D.nameUp, people: D.people, items: D.items, prays: D.prays, thanks: D.thanks, weaves: D.weaves, gone: D.gone, survey: D.survey });
   function mergeBy(a, b, key) {
     const m = new Map();
     [...(a || []), ...(b || [])].forEach(x => { const k = key(x), o = m.get(k); if (!o || (x.up || 0) > (o.up || 0)) m.set(k, x); });
@@ -545,6 +545,8 @@ button.knot { cursor: pointer; }
     D.gone = [...new Set([...(D.gone || []), ...r.gone])];
     if (D.gone.length) { const G = new Set(D.gone); D.items = D.items.filter(i => !G.has(i.id)); D.prays = D.prays.filter(p => !G.has(p.item)); }
     if ((r.nameUp || 0) > (D.nameUp || 0)) { D.name = r.name; D.nameUp = r.nameUp; }
+    // 시범 설문 진행: 마침에 가까운 쪽(보냄 > 건너뜀 > 나중에)과 더 이른 시작일을 남기고, 그만 묻기는 한쪽이라도 켜졌으면 켜진 채
+    D.survey = KOIDE_SURVEY.merge(D.survey, r.survey); KOIDE_SURVEY.reload();
     D.started = true;
   }
   let syncing = false, syncAgain = false;
@@ -876,7 +878,7 @@ button.knot { cursor: pointer; }
   }
   function todayView() {
     const set = todaySet(), all = open(), done = set.filter(i => prayedToday(i.id)).length;
-    const head = `<header class="top"><div><p class="eyebrow">${dateLabel(TODAY())}</p><h1>오늘의 기도</h1></div></header>` + surveyCard();
+    const head = `<header class="top"><div><p class="eyebrow">${dateLabel(TODAY())}</p><h1>오늘의 기도</h1></div></header>`;
     if (!all.length) return head + `<section class="card empty"><h2>아직 기도제목이 없어요</h2><p class="hint">나와 가족, 친구, 교회를 위한 기도제목을 써 보세요. 이 휴대폰에만 저장돼요.</p><button class="btn" data-a="tab" data-v="note">기도제목 쓰기</button></section>` + thanksQuick();
     return head + `<section class="card"><div class="row"><p class="label">오늘 기도할 제목</p><span class="hint">${done} / ${set.length}</span></div>
       ${set.map(i => { const on = prayedToday(i.id); return `<div class="today-item${on ? ' on' : ''}"><p><span class="tag">${esc(targetName(i.target))}</span>${esc(i.text)}</p>
@@ -886,14 +888,16 @@ button.knot { cursor: pointer; }
       <button class="btn ghost" data-a="psopen" data-v="${done === set.length ? 'all' : 'today'}">${done === set.length && all.length > set.length ? '모든 기도제목으로 기도하기' : '한 장씩 기도하기'}</button></section>
       ${cordHtml()}${thanksQuick()}`;
   }
-  // ── 시범 설문(survey.js): 시작한 지 3·7·14일째에 오늘 화면 위에 카드 한 장. 로그인하지 않았거나 장면 주소에서는 없다 ──
+  // ── 시범 설문(survey.js): 시작한 지 3·7·14일째에 오늘 화면이 그려진 1.5초 뒤 팝업 카드(앱을 연 뒤 한 번만). 로그인하지 않았거나 장면 주소, 안내·기도하기·다른 창이 떠 있으면 없다 ──
   //  시작한 날 = 기도제목·기도한 날·감사 기록 중 가장 이른 날(아직 없으면 survey.js가 이 기기에서 처음 연 날로 센다). 보내는 숫자는 사용자가 켰을 때만, 기도 내용은 없다
+  //  진행(마쳤나·나중에·그만 묻기, 답은 없음)은 노트 기록(D.survey)에 둔다. 동기화를 켜면 기기 사이에 합쳐져서 다른 기기에서 다시 묻지 않는다(공유·다른 사람에게 가는 것에는 넣지 않는다)
   const APP_VER = '2026-11-08';
   const noteStart = () => [...D.items.map(i => i.created), ...prays().map(p => p.d), ...D.thanks.map(x => x.date)].filter(Boolean).sort()[0] || '';
   const surveyNums = () => ({ days: new Set(prays().map(p => p.d)).size, items: D.items.length, thanks: D.thanks.length, app: HOME_APP, vault: !!(D.vault && D.vault.on) });
-  if (!SC) KOIDE_SURVEY.init({ where: 'note', key: DEMO_LINK ? 'koide-demo-survey' : 'koide-survey', api, start: noteStart, nums: surveyNums, ver: APP_VER, demo: DEMO });
-  const surveyCard = () => !SC && D.started && getToken() ? KOIDE_SURVEY.html() : '';
-  // ── 시범 '해 볼 일' 띠(pilot.js): 시범 링크(?pilot)로 연 사람, 또는 공동체 앱이 남긴 '내 사랑방 시범 중' 표시가 있는 사람에게만(같은 앱·같은 브라우저 저장 공간 안에서). 화면 제목 바로 아래에 한 줄. 기도하기·사용법 카드·설문 카드가 있는 화면·시작 화면에는 없다 ──
+  if (!SC) KOIDE_SURVEY.init({ where: 'note', key: DEMO_LINK ? 'koide-demo-survey' : 'koide-survey', api, start: noteStart, nums: surveyNums, ver: APP_VER, demo: DEMO,
+    can: () => !SC && D.started && !!getToken() && S.tab === 'today' && !S.ps && !a2hsOn() && !S.done && !S.vsheet && !S.cut && !S.recSheet && !S.kc && !S.share && !S.mv && !S.gbig && S.wopen == null && !S.menu,
+    ready: () => !syncing, store: { get: () => D.survey, set: v => { D.survey = v; save(); } } });
+  // ── 시범 '해 볼 일' 띠(pilot.js): 시범 링크(?pilot)로 연 사람, 또는 공동체 앱이 남긴 '내 사랑방 시범 중' 표시가 있는 사람에게만(같은 앱·같은 브라우저 저장 공간 안에서). 화면 제목 바로 아래에 한 줄. 기도하기·사용법 카드·시작 화면에는 없다 ──
   if (!SC) KoidePilot.init({ where: 'note', demo: DEMO, home: () => HOME_APP, rerender: () => render(), feedback: () => { S.fb = null; go('fb'); } });
   const pilotBand = () => KoidePilot.mount($('#root > .wrap'), 'header.top', !SC && D.started && S.tab !== 'start' && !S.ps && !KoideGuide.running());
   // 같은 사람(나 또는 내가 기도하는 사람)을 위한 기도제목이 두 개 이상인지
@@ -1719,6 +1723,7 @@ button.knot { cursor: pointer; }
     mount3d();
     pilotBand();
     NoteGuide.maybe();
+    KOIDE_SURVEY.schedule();
   }
   // 글을 쓰는 칸은 글 길이에 맞춰 높이가 늘어난다(공동체 앱과 같게, 길게 써도 칸 안에서 스크롤하지 않게)
   function autosize(t) { if (!t.value) { t.style.height = ''; return; } t.style.height = 'auto'; t.style.height = (t.scrollHeight + 2) + 'px'; }
@@ -2007,7 +2012,7 @@ button.knot { cursor: pointer; }
         const x = JSON.parse(r.result);
         if (x.app !== 'koide-note' || !Array.isArray(x.items)) throw new Error();
         if (!confirm(`백업(${x.saved ? short(dkey(new Date(x.saved))) : '날짜 모름'}, 기도제목 ${x.items.length}개)으로 바꿀까요? 지금 이 휴대폰의 기도 노트는 지워져요.`)) return;
-        const vault = D.vault; D = migrate(Object.assign(blank(), x)); delete D.app; delete D.saved; D.started = true; D.vault = vault; save(); S.tab = 'today'; toast('백업을 불러왔어요');
+        const vault = D.vault, sv = D.survey; D = migrate(Object.assign(blank(), x)); delete D.app; delete D.saved; D.started = true; D.vault = vault; D.survey = KOIDE_SURVEY.merge(sv, D.survey); KOIDE_SURVEY.reload(); save(); S.tab = 'today'; toast('백업을 불러왔어요');
       } catch (err) { toast('코이데 기도 노트 백업 파일이 아니에요'); }
     };
     r.readAsText(e.target.files[0]);

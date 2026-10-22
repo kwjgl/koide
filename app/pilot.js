@@ -121,7 +121,7 @@
   function mount(host, anchor, can) {
     last = [host, anchor, can];
     const old = document.getElementById('pl-band'); if (old) old.remove();
-    if (!on() || ST.hide || !can || !host || document.getElementById('sv-card')) return;
+    if (!on() || ST.hide || !can || !host) return;
     const t = document.createElement('template'); t.innerHTML = html().trim();
     const a = anchor && host.querySelector(anchor);
     a ? a.after(t.content.firstChild) : host.prepend(t.content.firstChild);

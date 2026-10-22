@@ -34,7 +34,9 @@ const SCHEMA = {
   //  떠남·보류: 새 편성에 넣지 않은 가정(적용 날짜부터 그 안내가 나온다). 새 사랑방·새 가정: 예약할 때 만든 것(고치거나 취소하면 지운다)
   terms: ['편성 일정', [['deptId', '부서ID'], ['year', '편성 연도'], ['start', '적용 시작 달'], ['leaderFrom', '리더 미리 보기 시작일'], ['memberFrom', '회원 안내 시작일'], ['status', '상태'], ['by', '만든 사람'], ['at', '만든 날'],
     ['leave', '떠남 가정ID'], ['hold', '보류 가정ID'], ['newRooms', '새 사랑방ID'], ['newFams', '새 가정ID']]],
-  links: ['연결', [['kakaoId', '카카오ID'], ['nick', '닉네임'], ['familyId', '가정ID'], ['person', '사람'], ['status', '상태'], ['requestedAt', '요청일'], ['approvedBy', '승인한 사람'], ['lastSeen', '마지막 접속'], ['tourDone', '따라 하기 마침']]],
+  links: ['연결', [['kakaoId', '카카오ID'], ['nick', '닉네임'], ['familyId', '가정ID'], ['person', '사람'], ['status', '상태'], ['requestedAt', '요청일'], ['approvedBy', '승인한 사람'], ['lastSeen', '마지막 접속'], ['tourDone', '따라 하기 마침'],
+    // 설문 진행: 시범 설문을 어디까지 했는지만(예: {"first":"2026-10-20","community3":"sent","community7":"later:2026-10-23","off":true}). 답도 보낸 시각도 없고(나중에의 날짜만), 설문 탭의 답 줄과 이어 볼 수 있는 값이 없다
+    ['survey', '설문 진행']]],
   sessions: ['로그인', [['hash', '로그인 표시'], ['kakaoId', '카카오ID'], ['nick', '닉네임'], ['expires', '만료']]],
   items: ['기도제목', [['id', '항목ID'], ['month', '월'], ['familyId', '가정ID'], ['roomId', '당시 사랑방'], ['target', '대상'], ['text', '내용'], ['scope', '공개범위'], ['state', '상태'], ['prevId', '이전 항목ID'], ['same', '지난달과 같음'], ['order', '순서'], ['editedAt', '수정일'], ['editedBy', '고친 사람']]],
   monthly: ['월별 상태', [['month', '월'], ['familyId', '가정ID'], ['status', '상태']]],
@@ -97,7 +99,7 @@ const FIRST_DEPT = { id: 'D1', name: '청장년부', group: '사랑방', unit: '
 // ── 요청 받기 ─────────────────────────────────────────────
 
 // 서버 코드를 고칠 때마다 바꾼다. 웹 앱 주소를 열면 보여서, 새 버전으로 배포됐는지 확인할 수 있다
-const VERSION = '2026-11-10 여러 기도제목 한 번에 저장';
+const VERSION = '2026-11-11 설문 진행 따라가기';
 function doGet() {
   return ContentService.createTextOutput('코이데 서버가 켜져 있어요. (버전: ' + VERSION + ')');
 }
@@ -156,6 +158,15 @@ const ACTIONS = {
     if (!yes_(w.link.tourDone)) { w.link.tourDone = '예'; update_('links', w.link); }
     return { tourDone: true };
   },
+  // 시범 설문 진행(app/survey.js)을 이 사람의 연결 줄에 합쳐 적는다. 부른 사람 자신만 바꾸고, 진행만 받는다(답·보낸 시각 없음)
+  surveyState: body => withLock_(() => {
+    const w = who_(body);
+    if (!w.link || w.link.status !== '연결') throw fail_('notLinked', '아직 리더의 승인을 기다리고 있어요.');
+    if (JSON.stringify(body.survey === undefined ? null : body.survey).length > 600) throw fail_('bad', '설문 진행이 너무 길어요.');
+    const have = surveyClean_(surveyParse_(w.link.survey)), next = surveyMerge_(have, surveyClean_(body.survey)), text = JSON.stringify(next);
+    if (text !== JSON.stringify(have) || String(w.link.survey || '') !== text) { w.link.survey = text; update_('links', w.link); }
+    return { survey: text };
+  }),
   confirmSame: body => { const c = member_(body); setMonthly_(c.familyId, month_(), 'confirmed'); return monthView_(c); },
   pray: pray_,
   pending: body => pendingView_(leaderOrAdmin_(body)),
@@ -310,10 +321,10 @@ function memberFrom_(w) {
   const shut = d => { if (d && d.status) throw fail_('notLinked', d.name + '는 지금 닫혀 있어요. 다시 열리면 들어올 수 있어요.'); };
   if (st) {
     const d = deptById_(st.deptId); shut(d);
-    return { kakaoId: w.kakaoId, person: w.link.person, familyId: fam.id, family: fam, roomId: '', deptId: d.id, dept: deptInfo_(d), role: st.title, admin: yes_(fam.admin), staff: true, label: st.label };
+    return { kakaoId: w.kakaoId, person: w.link.person, familyId: fam.id, family: fam, roomId: '', deptId: d.id, dept: deptInfo_(d), role: st.title, admin: yes_(fam.admin), staff: true, label: st.label, survey: String(w.link.survey || '') };
   }
   const dept = deptOfRoom_(r.roomId); shut(dept);
-  return { kakaoId: w.kakaoId, person: w.link.person, familyId: fam.id, family: fam, roomId: r.roomId, deptId: dept.id, dept: deptInfo_(dept), role: r.role, admin: yes_(fam.admin), tourDone: yes_(w.link.tourDone) };
+  return { kakaoId: w.kakaoId, person: w.link.person, familyId: fam.id, family: fam, roomId: r.roomId, deptId: dept.id, dept: deptInfo_(dept), role: r.role, admin: yes_(fam.admin), tourDone: yes_(w.link.tourDone), survey: String(w.link.survey || '') };
 }
 
 function leaderOrAdmin_(body) {
@@ -715,7 +726,7 @@ function staffMonthView_(c) {
   const own = { id: f.id, name: f.name, kids: f.kids ? String(f.kids).split(/\s*,\s*/) : [], own: true, status: st ? st.status : 'same', prayed: 0, today: 0, week: 0,
     items: all.filter(i => i.state !== '마침').sort((a, b) => a.order - b.order).map(i => Object.assign(show(i), { same: yes_(i.same), isNew: !i.prevId && !yes_(i.same), editedBy: i.editedBy, editedAt: fmtDay_(i.editedAt) })),
     ended: all.filter(i => i.state === '마침').map(show) };
-  return { month: m, term: termNow_(c.deptId), dept: c.dept, room: { id: '', name: c.dept.name }, me: { person: c.person, familyId: c.familyId, role: c.role, admin: c.admin, staff: true, label: c.label },
+  return { month: m, term: termNow_(c.deptId), dept: c.dept, room: { id: '', name: c.dept.name }, me: { person: c.person, familyId: c.familyId, role: c.role, admin: c.admin, staff: true, label: c.label, survey: c.survey },
     families: [own], received: { n: 0, of: 0 }, serve: serveView_(c.deptId), rooms: staffRooms_(c, m), signals: careSignals_(roomIds, m),
     // 함께 섬기는 교역자: 섬기는 분들 카드에 나오지 않는 동역자(본인 빼고). 기도하기의 '함께 섬기는 분들' 장에 이름만
     mates: activeStaff_(c.deptId).filter(s => s.familyId !== c.familyId && !yes_(s.serve)).map(s => s.label), eraseReq: eraseAsked_(c.familyId), together: togetherItems_(c.deptId) };
@@ -782,7 +793,7 @@ function monthView_(c) {
   // 이번 달 사랑방의 다른 가정 중 몇 가정이 우리 가정을 위해 기도했는지(누가 했는지는 알리지 않는다)
   const by = {}; read_('prayers').forEach(p => { if (p.familyId === c.familyId && p.by !== c.familyId && fmtMonth_(p.at) === m) by[p.by] = true; });
   const received = { n: Object.keys(by).length, of: Math.max(0, families.length - 1) };
-  return { month: m, term: termNow_(c.deptId), shift: shift_(c), dept: c.dept, room: { id: room.id, name: room.name, pilot: yes_(room.pilot) }, me: { person: c.person, familyId: c.familyId, role: c.role, admin: c.admin, tourDone: c.tourDone }, families, received, serve: serveView_(c.deptId),
+  return { month: m, term: termNow_(c.deptId), shift: shift_(c), dept: c.dept, room: { id: room.id, name: room.name, pilot: yes_(room.pilot) }, me: { person: c.person, familyId: c.familyId, role: c.role, admin: c.admin, tourDone: c.tourDone, survey: c.survey }, families, received, serve: serveView_(c.deptId),
     art: artNums_(c, [m])[0], eraseReq: eraseAsked_(c.familyId), together: togetherItems_(c.deptId), news: newsOfFamily_(c.familyId) };
 }
 
@@ -1418,6 +1429,33 @@ const SURVEY_ONLY_ = { amount: 'note', easy: 'community' };
 const SURVEY_NUMS_ = ['days', 'items', 'thanks', 'app', 'vault'];
 // 시범 '해 볼 일' 띠(app/pilot.js)의 항목 키. 같은 키로 맞춘다. '숫자도 함께 보내기'를 켠 사람만 해 본 키 목록이 오고(이름·날짜·기도 내용 없음), 아는 키만 받는다
 const SURVEY_PILOT_ = ['c-edit', 'c-pray', 'c-cord', 'c-ps', 'c-style', 'n-two', 'n-today', 'n-ps', 'n-answer', 'n-thanks', 'n-sync', 'a-home', 'a-feedback'];
+// 설문 진행(연결 탭 '설문 진행' 칸). 공동체 회차 3·7·14일째의 보냄(sent)·건너뜀(skip)·나중에(later:날짜), 그만 묻기(off), 처음 연 날(first)만 담는다.
+//  익명 약속: 이 칸에는 답도 보낸 시각도 없다(나중에의 날짜만). sendSurvey_는 이 칸을 건드리지 않고 설문 탭 줄에는 카카오ID가 없으므로 내용으로는 이어 볼 수 없다.
+//  다만 구글 시트의 수정 기록(버전 기록)에서 이 칸이 바뀐 때를 볼 수 있는 관리자가 설문 탭의 '날짜시각'과 맞춰 보면 누구 것인지 짐작할 수는 있다(실시간으로 지켜본 경우와 같은 위험이다)
+const SURVEY_STATE_KEYS_ = ['community3', 'community7', 'community14'];
+const SURVEY_DATE_ = /^\d{4}-\d{2}-\d{2}$/;
+function surveyParse_(t) { try { const o = JSON.parse(t || 'null'); return o && typeof o === 'object' ? o : {}; } catch (e) { return {}; } }
+function surveyClean_(o) {
+  const out = {};
+  if (!o || typeof o !== 'object') return out;
+  if (typeof o.first === 'string' && SURVEY_DATE_.test(o.first)) out.first = o.first;
+  if (o.off === true) out.off = true;
+  SURVEY_STATE_KEYS_.forEach(k => { const v = o[k]; if (v === 'sent' || v === 'skip' || (typeof v === 'string' && v.indexOf('later:') === 0 && SURVEY_DATE_.test(v.slice(6)))) out[k] = v; });
+  return out;
+}
+// 합칠 때 마침에 가까운 쪽을 남긴다: 보냄 > 건너뜀 > 나중에(나중에끼리는 더 늦은 날). 처음 연 날은 더 이른 쪽, 그만 묻기는 한쪽이라도 켜졌으면 켜진 채. 오래된 기기가 나중에 올려도 되돌리지 못한다
+function surveyMerge_(a, b) {
+  const rank = v => v === 'sent' ? 3 : v === 'skip' ? 2 : v ? 1 : 0, out = {};
+  const first = a.first && b.first ? (a.first < b.first ? a.first : b.first) : a.first || b.first;
+  if (first) out.first = first;
+  if (a.off || b.off) out.off = true;
+  SURVEY_STATE_KEYS_.forEach(k => {
+    const x = a[k], y = b[k], rx = rank(x), ry = rank(y);
+    const v = rx > ry ? x : ry > rx ? y : rx === 1 ? (x >= y ? x : y) : x || y;
+    if (v) out[k] = v;
+  });
+  return out;
+}
 // 로그인한 누구나(부서가 없어도). 한 사람이 하루 6번까지. 누가 보냈는지는 시트에 남기지 않는다
 function sendSurvey_(body) {
   const w = who_(body), where = body.where === 'community' ? 'community' : body.where === 'note' ? 'note' : '', day = Number(body.day), spec = SURVEY_[day];
@@ -1986,7 +2024,7 @@ function marrySave_(body) {
     let moved = 0, dropped = 0;
     plan.forEach(p => {
       if (p.to) {
-        append_('links', { kakaoId: p.l.kakaoId, nick: p.l.nick, familyId: id, person: p.to, status: '연결', requestedAt: today_(), approvedBy: '결혼 처리 · ' + c.person, lastSeen: p.l.lastSeen, tourDone: p.l.tourDone });
+        append_('links', { kakaoId: p.l.kakaoId, nick: p.l.nick, familyId: id, person: p.to, status: '연결', requestedAt: today_(), approvedBy: '결혼 처리 · ' + c.person, lastSeen: p.l.lastSeen, tourDone: p.l.tourDone, survey: p.l.survey });
         p.l.status = '합침'; update_('links', p.l); moved++;
       } else {
         p.l.status = '해제'; p.l.approvedBy = c.person; update_('links', p.l);

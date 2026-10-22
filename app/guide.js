@@ -33,7 +33,7 @@ window.KoideGuide = (() => {
   const calm = () => { try { return matchMedia('(prefers-reduced-motion: reduce)').matches; } catch (e) { return false; } };
   const esc = s => String(s == null ? '' : s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]);
   const PAD = 6, STUCK = 30000;
-  let G = null;
+  let G = null, ran = false;   // ran: 이 앱을 연 뒤 안내가 한 번이라도 돌았는지(설문 팝업이 안내 직후에는 뜨지 않게)
 
   const shown = el => { const r = el.getBoundingClientRect(); return r.width > 0 && r.height > 0; };
   // 비출 곳을 요소들로: 요소 하나, 요소 여럿, 선택자 모두 받는다
@@ -58,6 +58,7 @@ window.KoideGuide = (() => {
 
   function run(steps, opts) {
     if (G || !steps || !steps.length) return false;
+    ran = true;
     const root = document.createElement('div');
     root.className = 'kg';
     root.innerHTML = '<div class="kg-full" hidden></div><div class="kg-b"></div><div class="kg-b"></div><div class="kg-b"></div><div class="kg-b"></div><div class="kg-shield" hidden></div><div class="kg-ring" hidden></div>' +
@@ -407,5 +408,5 @@ window.KoideGuide = (() => {
       <div class="kg-act${last && s.mode === 'next' && goLabel ? ' kg-final' : ''}">${look ? prevBtn : ''}${stuck && !goLabel ? '<button class="link quiet kg-go">넘어가기</button>' : ''}${goLabel ? `<button class="btn kg-go"${nextAria}>${esc(goLabel)}</button>` : ''}</div>`;
   }
 
-  return { run, stop: () => finish(null), running: () => !!G };
+  return { run, stop: () => finish(null), running: () => !!G, ran: () => ran };
 })();
