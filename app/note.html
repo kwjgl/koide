@@ -428,8 +428,9 @@ button.knot { cursor: pointer; }
     const it = (id, target, text, ago, done) => ({ id, target, text, created: day(ago), done: done || null, up: 1 });
     const items = [it('si1', 'me', '회사 일이 바빠도 지치지 않도록', 20), it('si2', 'p:sp1', '다음 주 수술이 잘 끝나고 회복이 빠르도록', 12), it('si3', 'p:sp2', '새 직장에서 좋은 동료를 만나도록', 9),
       it('si4', 'church', '새로 온 가정들이 잘 정착하도록', 30), it('si5', 'world', '전쟁으로 힘든 지역에 평화가 오도록', 30),
-      it('si6', 'p:sp2', '이사할 집을 잘 구하도록', 40, { date: day(5), how: 'answer' })];
-    const prays = []; [['si1', [1, 2, 3, 5, 6, 22, 26, 30]], ['si2', [1, 2, 4]], ['si3', [2, 3]], ['si4', [1, 4, 7]], ['si6', [8, 9, 10]]].forEach(([id, ds]) => ds.forEach(n => prays.push({ d: day(n), item: id, up: 1 })));
+      it('si6', 'p:sp2', '이사할 집을 잘 구하도록', 40, { date: day(5), how: 'answer' }),
+      it('si7', 'me', '하루를 서두르지 않고 천천히 시작하도록', 16), it('si8', 'me', '만나는 사람마다 따뜻하게 말하도록', 8), it('si9', 'p:sp1', '병원을 오가는 길이 힘들지 않도록', 11)];
+    const prays = []; [['si1', [1, 2, 3, 5, 6, 22, 26, 30]], ['si2', [1, 2, 4]], ['si3', [2, 3]], ['si4', [1, 4, 7]], ['si6', [8, 9, 10]], ['si7', [1, 3, 6]], ['si8', [2, 4]], ['si9', [1, 5]]].forEach(([id, ds]) => ds.forEach(n => prays.push({ d: day(n), item: id, up: 1 })));
     const thanks = [{ id: 'st1', date: day(5), text: '좋은 집을 만나게 해 주셨어요', item: 'si6', kind: 'answer', up: 1 }, { id: 'st2', date: day(1), text: '이번 주도 건강하게 지냈어요', kind: 'thanks', up: 1 }, { id: 'st3', date: day(3), text: '가족과 함께 저녁을 먹었어요', kind: 'thanks', up: 1 }];
     // at=weaves: 담아 둔 그물 네 개(말뚝 8·5·3·12명). 실은 말뚝 쌍마다 겉보기에 흩어진 값으로 만든다
     const wv = (id, name, from, to, n, keep) => { const pairs = []; for (let a = 0; a < n; a++) for (let b = a + 1; b < n; b++) { const h = Math.sin((a * 13 + b * 7 + n) * 4.37) * 9301.7, r = h - Math.floor(h); if (r < keep) pairs.push([a, b, 1 + Math.floor(r / keep * 2.99)]); } return { id, name, from, to, n, pairs, at: day(0), up: 1 }; };
