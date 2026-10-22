@@ -335,6 +335,7 @@ button.knot { cursor: pointer; }
 <link rel="stylesheet" href="intro-video.css">
 <link rel="stylesheet" href="pray-open.css">
 <link rel="stylesheet" href="beatitudes.css">
+<link rel="stylesheet" href="sunrain.css">
 <link rel="stylesheet" href="design-styles.css">
 <style>
 /* 디자인 스타일에서 기도 노트에만 있는 것(칩, 기도했어요, 오늘의 제목, 창, 한 장씩 화면)을 공동체의 짝에 맞춘다 */
@@ -371,6 +372,7 @@ button.knot { cursor: pointer; }
 <script src="intro-video.js"></script>
 <script src="pray-open.js"></script>
 <script src="beatitudes.js"></script>
+<script src="sunrain.js"></script>
 <script src="words-ko.js"></script>
 <script>
 (() => {
@@ -604,13 +606,34 @@ button.knot { cursor: pointer; }
   // 팔복 이스터에그(beatitudes.js): 기도한 날 수는 기도한 날짜의 가짓수. 오늘이 새로 기도한 날이고 8의 배수가 되면 작은 카드가 한 번 뜬다
   const prayedDays = () => new Set(prays().map(p => p.d)).size;
   window.KoideBeatitudes.init({ count: prayedDays });
+  // 해와 비 이스터에그(sunrain.js): 끈이 이번 주 모두 지어졌는지, 그 사람을 마지막으로 기도한 날(오늘 앞)이 언제인지를 기도 기록에서 바로 셈한다. 따로 저장하는 것은 없다
+  const cordAll = () => { const ps = people(); return ps.length > 0 && ['me', ...ps.map(p => 'p:' + p.id)].every(k => D.items.some(i => i.target === k && prayedThisWeek(i.id))); };
+  const targetOf = id => (D.items.find(i => i.id === id) || {}).target;
+  const lastBefore = (target, t) => prays().filter(p => p.d < t && targetOf(p.item) === target).reduce((m, p) => p.d > m ? p.d : m, '');
+  const dayDiff = (a, b) => { const f = k => { const [y, m, d] = k.split('-').map(Number); return new Date(y, m - 1, d); }; return Math.round((f(b) - f(a)) / 864e5); };
   function togglePray(id) {
     const t = TODAY(), hadToday = prays().some(x => x.d === t), p = D.prays.find(x => x.item === id && x.d === t), it = D.items.find(i => i.id === id);
+    const wasAll = cordAll(), opener = document.activeElement;
+    // 30일 넘게 기도하지 못한 사람(남이 아니라 'p:' 사람만)을 오늘 처음 기도하면 그 사람 매듭 위에 작은 해. 지금까지 기도한 적이 없으면 해당 없음
+    let rise = -1;
+    if (it && it.target.startsWith('p:') && (!p || p.off) && !prays().some(x => x.d === t && targetOf(x.item) === it.target)) {
+      const last = lastBefore(it.target, t);
+      if (last && dayDiff(last, t) >= 30) rise = people().findIndex(x => 'p:' + x.id === it.target) + 1;
+    }
     // 이번 주 처음 그 사람의 매듭이 지어지면 끈에서 매듭이 묶이고 끈이 당겨진다(다 그린 뒤 한 번)
     if (it && !D.items.some(i => i.target === it.target && prayedThisWeek(i.id))) S.cordNew = it.target;
     if (p) { p.off = !p.off; p.up = now(); } else D.prays.push({ d: t, item: id, up: now() });
     save();
-    if (!hadToday && prays().some(x => x.d === t)) setTimeout(() => window.KoideBeatitudes.gift({ n: prayedDays(), key: DEMO_LINK ? 'koide-demo-bt-note' : 'koide-bt-note' }), 900);
+    // 팔복 카드가 같은 때 뜨면 해와 비 카드와 아래 글은 이번엔 건너뛴다(해와 비는 다음에 다시 뜰 수 있게 보여 준 것으로 적지 않는다)
+    const newDay = !hadToday && prays().some(x => x.d === t), tied = !wasAll && cordAll();
+    if (rise > 0) setTimeout(() => window.KoideSunrain.rise({ idx: rise }), 80);
+    if (newDay || tied || rise > 0) setTimeout(() => {
+      if (newDay) window.KoideBeatitudes.gift({ n: prayedDays(), key: DEMO_LINK ? 'koide-demo-bt-note' : 'koide-bt-note' });
+      const gifted = !!document.querySelector('.bt-gift, .bt');
+      let shown = false;
+      if (tied && !gifted) shown = window.KoideSunrain.cord({ n: people().length + 1, key: DEMO_LINK ? 'koide-demo-sunrain-note' : 'koide-sunrain-note', opener });
+      if (rise > 0 && !gifted && !shown) window.KoideSunrain.line();
+    }, 900);
   }
 
   const S = { tab: D.started ? 'today' : 'start', edit: null, draftT: 'me', done: null, ps: null, toast: '', pick: null, tour: null };
@@ -1753,7 +1776,7 @@ button.knot { cursor: pointer; }
   // 시작 화면(splash.js)을 닫고, 다시 켤 때 기도 노트로 시작하게 적어 둔다
   if (window.koideSplash) window.koideSplash.hide();
   if (window.koideSpace) window.koideSpace.used('note');
-  if (SC) window.KoideBeatitudes.scene(SC.at);
+  if (SC && !window.KoideBeatitudes.scene(SC.at)) window.KoideSunrain.scene(SC.at, { n: people().length + 1 });
   // 노트 주인을 아직 모르면(예전 로그인) 서버에 한 번 묻고, 내 노트 자리가 달라지면 다시 연다. 서버가 답하지 않으면 이번에는 예전 자리 그대로
   if (!SC) (async () => {
     if (!getUid()) {

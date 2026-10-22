@@ -1,0 +1,74 @@
+/* 마태복음 5:43~48 이스터에그 "해와 비"·"작은 해"(sunrain.js): 기도 노트 전용, 테마색을 따르고 금빛(#E9A93A)만 더한다 */
+html.sr-open { overflow: hidden; }
+.sr, .sr-line { touch-action: manipulation; }
+/* ① 해와 비: 화면 전체 */
+.sr { position: fixed; inset: 0; z-index: 125; background: var(--page); color: var(--ink); display: flex; flex-direction: column; }
+.sr-top { display: flex; justify-content: flex-end; padding: calc(12px + env(safe-area-inset-top, 0px)) 16px 4px; }
+.sr-x { width: 44px; height: 44px; border: 0; border-radius: 50%; background: none; color: var(--ink); display: grid; place-items: center; cursor: pointer; padding: 0; }
+.sr-x svg { width: 22px; height: 22px; }
+.sr-stage { flex: 1; min-height: 0; display: grid; place-items: center; align-content: safe center; padding: 8px 16px calc(24px + env(safe-area-inset-bottom, 0px)); overflow-y: auto; cursor: pointer; }
+.sr-body { width: min(560px, 100%); display: flex; flex-direction: column; align-items: center; gap: 14px; }
+.sr-scene { width: 100%; max-width: 480px; height: auto; overflow: visible; transition: max-width .9s ease; }
+.sr.card .sr-scene { max-width: 300px; }
+.sr-end, .sr-seg { fill: none; stroke-width: 3; stroke-linecap: round; }
+.sr-end { stroke: var(--line-strong); }
+.sr-seg { stroke: var(--accent); }
+.sr-kn path { fill: none; stroke: var(--accent); stroke-width: 3; stroke-linecap: round; stroke-linejoin: round; }
+.sr-kbg { fill: var(--accent-soft); }
+/* 해: 처음엔 지평선 아래, 천천히 떠올라 자리를 잡는다 */
+.sr-sun { transform: translate(180px, 232px); transition: transform 3.4s cubic-bezier(.25, .6, .3, 1); }
+.sr.sun .sr-sun { transform: translate(180px, 48px); }
+.sr-glow { opacity: 0; transition: opacity 3.4s ease; }
+.sr.sun .sr-glow { opacity: 1; }
+.sr-rays path { stroke: #E9A93A; stroke-width: 2.6; stroke-linecap: round; }
+.sr-rays { animation: sr-spin 60s linear infinite; }
+/* 빛: 모든 매듭에 같은 빛줄기와 같은 둥근 빛이 한꺼번에 내려앉는다 */
+.sr-beams path { fill: none; stroke: #E9A93A; stroke-width: 1.3; stroke-linecap: round; opacity: 0; transition: opacity 1.6s ease; }
+.sr-halos circle { fill: #E9A93A; opacity: 0; transition: opacity 1.6s ease; }
+.sr.light .sr-beams path { opacity: .38; }
+.sr.light .sr-halos circle { opacity: .26; }
+/* 비: 모든 매듭 위로 같은 짜임으로 고르게 */
+/* 비: 모든 매듭 위로 같은 짜임으로 고르게, 보슬비처럼 두 번쯤 이어 내리다 잦아든다 */
+.sr-drop { fill: none; stroke: var(--accent); stroke-width: 2.6; stroke-linecap: round; opacity: 0; }
+.sr.rain .sr-drop { animation: sr-drop 1.25s ease-in 3 both; }
+.sr-rip { fill: none; stroke: var(--accent); stroke-width: 1.3; opacity: 0; transform-box: fill-box; transform-origin: center; }
+.sr.rain .sr-rip { animation: sr-rip 1.25s ease-out 3 both; animation-delay: .9s; }
+/* 비가 지나간 뒤 매듭을 감싸는 옅은 테두리(모든 매듭에 똑같이) */
+.sr-fresh { fill: none; stroke: var(--accent-mid); stroke-width: 1.5; opacity: 0; transition: opacity 1.6s ease 3.2s; }
+.sr.rain .sr-fresh { opacity: .9; }
+.sr-card { box-sizing: border-box; width: 100%; padding: 18px 18px 20px; border: 1px solid var(--accent-mid); border-radius: 18px; background: var(--surface); box-shadow: 0 10px 30px var(--shadow);
+  display: flex; flex-direction: column; gap: 8px; text-align: center; cursor: default; }
+.sr-card[hidden] { display: none; }
+.sr.card .sr-card { animation: sr-rise .9s cubic-bezier(.2, .7, .3, 1); }
+.sr-plain { margin: 0; color: var(--ink-2); font-size: .92rem; line-height: 1.6; word-break: keep-all; text-wrap: balance; }
+.sr-text { margin: 4px 0 0; font-family: var(--f-display); font-size: clamp(1.1rem, 4vw, 1.3rem); line-height: 1.7; word-break: keep-all; text-wrap: balance; }
+.sr-ref { margin: 0; color: var(--accent); font-size: .85rem; font-weight: 600; }
+/* ② 작은 해: 사람의 매듭 위로 잠깐 떠올랐다 사라진다 */
+.sr-mini { position: absolute; z-index: 60; width: 30px; height: 30px; margin: -30px 0 0 -15px; pointer-events: none; opacity: 0; animation: sr-mini 3.2s ease-in-out both; }
+.sr-mini svg { width: 100%; height: 100%; overflow: visible; }
+.sr-mini-rays path { stroke: #E9A93A; stroke-width: 1.8; stroke-linecap: round; }
+.sr-line { position: fixed; left: 50%; bottom: calc(84px + env(safe-area-inset-bottom, 0px)); transform: translateX(-50%); z-index: 60; width: min(380px, calc(100% - 32px)); box-sizing: border-box;
+  padding: 12px 40px 12px 16px; border: 1px solid var(--accent-mid); border-radius: 16px; background: var(--surface); color: var(--ink); box-shadow: 0 8px 24px var(--shadow);
+  display: flex; flex-direction: column; gap: 4px; text-align: center; cursor: pointer; animation: sr-line-in .7s ease both; transition: opacity .7s ease; }
+.sr-line.top { bottom: auto; top: calc(64px + env(safe-area-inset-top, 0px)); }
+.sr-line.out { opacity: 0; pointer-events: none; }
+.sr-line .sr-plain { font-size: .82rem; line-height: 1.5; }
+.sr-line .sr-text { margin: 0; font-size: 1rem; line-height: 1.6; }
+.sr-line .sr-ref { font-size: .8rem; }
+.sr-lx { position: absolute; top: 2px; right: 2px; width: 44px; height: 44px; border: 0; border-radius: 50%; background: none; color: var(--ink-2); display: grid; place-items: center; cursor: pointer; padding: 0; }
+.sr-lx svg { width: 18px; height: 18px; }
+@keyframes sr-spin { to { transform: rotate(360deg); } }
+@keyframes sr-drop { 0% { opacity: 0; transform: translateY(0); } 15% { opacity: .8; } 85% { opacity: .8; } 100% { opacity: 0; transform: translateY(70px); } }
+@keyframes sr-rip { 0% { opacity: 0; transform: scale(.4); } 25% { opacity: .55; } 100% { opacity: 0; transform: scale(2.2); } }
+@keyframes sr-rise { from { opacity: 0; transform: translateY(12px); } to { opacity: 1; transform: none; } }
+@keyframes sr-mini { 0% { opacity: 0; transform: translateY(14px) scale(.7); } 35% { opacity: 1; transform: translateY(-4px) scale(1); } 70% { opacity: 1; transform: translateY(-10px) scale(1); } 100% { opacity: 0; transform: translateY(-16px) scale(1); } }
+@keyframes sr-line-in { from { opacity: 0; transform: translate(-50%, 10px); } to { opacity: 1; transform: translate(-50%, 0); } }
+/* 움직임 줄이기: 움직임 없이 그림만(해는 떠 있고, 빛과 비는 멈춘 모습). 작은 해와 아래 카드는 나타났다 사라지기만 한다 */
+@media (prefers-reduced-motion: reduce) {
+  .sr *, .sr-card { animation: none !important; transition: none !important; }
+  .sr .sr-drop { opacity: .7; transform: translateY(calc(var(--t, 0) * 60px)); }
+  .sr .sr-fresh { opacity: .9; }
+  .sr-mini { animation: sr-mini-fade 3.2s ease-in-out both; margin-top: -42px; }
+  .sr-line { animation: none; }
+  @keyframes sr-mini-fade { 0%, 100% { opacity: 0; } 30%, 70% { opacity: 1; } }
+}
