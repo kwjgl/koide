@@ -282,6 +282,22 @@ button.knot { cursor: pointer; }
 .gbig-foot .gtray { pointer-events: auto; width: 100%; max-width: 640px; margin-top: 0; }
 .notice { background: var(--warm-soft); color: var(--ink); border-radius: 14px; padding: .8em .9em; font-size: .86em; word-break: keep-all; margin-bottom: 12px; }
 .notice b { color: var(--warm); }
+/* 동기화 카드 */
+.sync-h { display: flex; justify-content: space-between; align-items: center; gap: .6em; }
+.sync-h h2 { margin: 0; font-family: var(--f-display); font-size: 1.1em; font-weight: 700; }
+.sync-st { display: flex; align-items: flex-start; gap: .6em; margin: 0; font-size: .95em; line-height: 1.55; word-break: keep-all; }
+.sync-st .dot { flex: none; width: 8px; height: 8px; margin-top: .62em; border-radius: 50%; background: var(--accent); }
+.sync-st.off { color: var(--ink-2); }
+.sync-st.off .dot { background: var(--line-strong); }
+.sync-st .dot.err { background: var(--warm); }
+.sync-lock { display: flex; align-items: flex-start; gap: .5em; margin: 0; font-size: .84em; color: var(--ink-2); line-height: 1.55; word-break: keep-all; }
+.sync-lock .ic { width: 1.1em; height: 1.1em; margin-top: .22em; }
+.sync-act { display: flex; align-items: center; justify-content: space-between; gap: .6em; margin-top: .2em; padding-top: .8em; border-top: 1px solid var(--line); }
+.sync-act .btn { display: inline-flex; align-items: center; gap: .4em; }
+.sync-act .btn .ic { width: 1.15em; height: 1.15em; }
+.quiet-link { display: inline-block; margin: 0 0 0 auto; padding: 0; background: none; border: 0; font: inherit; color: var(--ink-2); font-size: .84em; min-height: 36px; cursor: pointer; text-decoration: underline; text-underline-offset: 3px; }
+.chk { display: flex; align-items: center; gap: .6em; min-height: 44px; cursor: pointer; }
+.chk input { width: 20px; height: 20px; accent-color: var(--accent); flex: none; }
 .mrow { display: flex; justify-content: space-between; align-items: center; gap: 10px; background: none; border: 0; border-top: 1px solid var(--line); padding: .8em 0; width: 100%; text-align: left; cursor: pointer; }
 .mrow:first-of-type { border-top: 0; padding-top: 0; }
 .mrow-sub { display: flex; align-items: center; gap: 10px; margin: -.3em 0 .5em; }
@@ -420,10 +436,15 @@ button.knot { cursor: pointer; }
   let D;
   try { D = migrate(Object.assign(blank(), JSON.parse(localStorage.getItem(KEY) || 'null') || {})); } catch (e) { D = blank(); }
   let canSave = true;
-  function saveLocal() { try { localStorage.setItem(KEY, JSON.stringify(D)); } catch (e) { canSave = false; } }
+  function saveLocal() { try { localStorage.setItem(KEY, JSON.stringify(D)); } catch (e) { canSave = false; } syncFlag(); }
+  // 공동체 더보기의 '나의 기도 노트' 설명이 읽는 켜짐/꺼짐 표시. 'on' 동기화 중 / 'off' 연결은 있고 잠시 끔 / '' 연결 없음. 기록 내용은 담지 않는다
+  function syncFlag() {
+    try { localStorage.setItem(DEMO_LINK ? 'koide-demo-note-sync' : 'koide-note-sync', D.vault && D.vault.on ? (D.vault.paused ? 'off' : 'on') : ''); } catch (e) { /* 표시만이라 무시 */ }
+  }
+  syncFlag();
   // 손으로 고친 것은 저장한 뒤 몇 초 있다가 이어 둔 곳에도 맡긴다
   let syncT;
-  function save() { saveLocal(); if (D.vault && D.vault.on) { clearTimeout(syncT); syncT = setTimeout(() => sync(), 3000); } }
+  function save() { saveLocal(); if (D.vault && D.vault.on && !D.vault.paused) { clearTimeout(syncT); syncT = setTimeout(() => sync(), 3000); } }
   if (navigator.storage && navigator.storage.persist) navigator.storage.persist().catch(() => {});
   // 예전(고친 시각이 없던) 노트도 그대로 쓰게: 고친 시각이 없으면 0(가장 오래된 것)으로 본다
   function migrate(x) {
@@ -431,9 +452,9 @@ button.knot { cursor: pointer; }
     x.v = 2; return x;
   }
 
-  // ── 다른 기기와 연결하기: 휴대폰에서 비밀 문구로 잠가 서버에 맡긴다. 서버와 시트에는 잠긴 글만 남는다 ──────────
+  // ── 동기화: 휴대폰에서 비밀 문구로 잠가 서버에 맡긴다. 서버와 시트에는 잠긴 글만 남는다 ──────────
   //  열쇠: 비밀 문구 + 소금(무작위) → PBKDF2(SHA-256, 25만 번) → AES-GCM 256. 열쇠는 이 기기에만 두고(노트도 이 기기에 그대로 있으니),
-  //  비밀 문구는 어디에도 저장하지 않는다. 잊으면 복구용 문구로 열고, 복구용 문구도 없으면 다른 기기에서는 아무도 열 수 없다
+  //  비밀 문구는 어디에도 저장하지 않는다. 잊으면 복구용 낱말로 열고, 복구용 낱말도 없으면 다른 기기에서는 아무도 열 수 없다
   const getToken = () => { try { return localStorage.getItem(TOKEN); } catch (e) { return null; } };
   let demoReady = null;
   function loadDemo() {
@@ -469,7 +490,7 @@ button.knot { cursor: pointer; }
   async function lockUp(key, obj) { const iv = crypto.getRandomValues(new Uint8Array(12)); return b64(iv) + '.' + b64(await crypto.subtle.encrypt({ name: 'AES-GCM', iv }, key, te.encode(JSON.stringify(obj)))); }
   async function unlockUp(key, s) { const [iv, ct] = s.split('.'); return JSON.parse(td.decode(await crypto.subtle.decrypt({ name: 'AES-GCM', iv: unb64(iv) }, key, unb64(ct)))); }
   // 열쇠는 두 겹이다. 노트를 잠그는 것은 '진짜 열쇠'(무작위 32바이트, 이 기기에는 LOCK_KEY로 둔다). 진짜 열쇠는 서버에 두 번 잠겨서 있다:
-  //  비밀 문구 열쇠로 잠근 것(wrap)과 복구용 문구 열쇠로 잠근 것(rwrap). 그래서 비밀 문구를 잊어도 복구용 문구로 열고 비밀 문구를 새로 정할 수 있다.
+  //  비밀 문구 열쇠로 잠근 것(wrap)과 복구용 낱말 열쇠로 잠근 것(rwrap). 그래서 비밀 문구를 잊어도 복구용 낱말로 열고 비밀 문구를 새로 정할 수 있다.
   //  예전에 연결한 노트는 wrap이 없고, 비밀 문구 열쇠가 곧 진짜 열쇠다(그대로 열린다). 낱말 6개는 이 화면의 메모리에만 두고 저장하지 않는다
   const rawKeep = raw => { try { localStorage.setItem(LOCK_KEY, raw); } catch (e) { /* 다음에 다시 묻는다 */ } };
   const rawOf = async key => b64(await crypto.subtle.exportKey('raw', key));
@@ -491,7 +512,7 @@ button.knot { cursor: pointer; }
     if (bad >= 0) return { err: `${bad + 1}번째 낱말을 다시 봐 주세요.` };
     return { phrase: list.join(' ') };
   }
-  // 진짜 열쇠(원본 b64)를 복구용 문구로 잠근다
+  // 진짜 열쇠(원본 b64)를 복구용 낱말로 잠근다
   async function lockWithWords(raw) {
     const words = pickWords(), rsalt = randB64(16);
     return { words, rsalt, rwrap: await lockUp(await deriveKey(words.join(' '), rsalt), { k: raw }) };
@@ -516,6 +537,7 @@ button.knot { cursor: pointer; }
   let syncing = false, syncAgain = false;
   async function sync() {
     if (!D.vault || !D.vault.on || !canLock()) return;
+    if (D.vault.paused) return; // 이 기기에서 잠시 끈 동안은 맡기지도 받아 오지도 않는다
     if (syncing) { syncAgain = true; return; }
     syncing = true; S.syncMsg = ''; paintSync('동기화 중…');
     try {
@@ -546,7 +568,7 @@ button.knot { cursor: pointer; }
   function paintSync(t) { const el = document.getElementById('sync-state'); if (el) el.textContent = t; }
   function safeRender() { const a = document.activeElement; if (a && a.matches && a.matches('input, textarea')) return paintSync(syncLabel()); render(); }
   const hhmm = t => { const d = new Date(t); return `${d.getMonth() + 1}월 ${d.getDate()}일 ${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`; };
-  const syncLabel = () => syncing ? '동기화 중…' : S.syncMsg ? S.syncMsg : D.vault && D.vault.last ? '마지막 동기화 · ' + hhmm(D.vault.last) : '아직 동기화하지 않았어요';
+  const syncLabel = () => syncing ? '동기화 중…' : S.syncMsg ? S.syncMsg : D.vault && D.vault.last ? '연결됨 · 마지막으로 맡긴 때 ' + hhmm(D.vault.last) : '연결됨 · 아직 맡기지 않았어요';
 
 
   const $ = s => document.querySelector(s);
@@ -568,6 +590,8 @@ button.knot { cursor: pointer; }
     hands: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 21V9.5c0-1.6-.8-3-2-4L8 4v6"/><path d="M12 21V9.5c0-1.6.8-3 2-4L16 4v6"/><path d="M8 10l-3 5 4 6M16 10l3 5-4 6"/></svg>',
     book: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 5.5C6 4.5 9 4.5 12 6c3-1.5 6-1.5 8-.5V19c-2-1-5-1-8 .5-3-1.5-6-1.5-8-.5z"/><path d="M12 6v13.5"/></svg>',
     more: '<svg viewBox="0 0 24 24" fill="currentColor"><circle cx="5" cy="12" r="1.6"/><circle cx="12" cy="12" r="1.6"/><circle cx="19" cy="12" r="1.6"/></svg>',
+    lock: '<svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><rect x="5" y="11" width="14" height="9" rx="2.5"/><path d="M8.5 11V8a3.5 3.5 0 0 1 7 0v3"/></svg>',
+    sync: '<svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M19.5 8A8 8 0 0 0 5 7.5M4.5 4v3.6h3.6M4.5 16a8 8 0 0 0 14.5.5M19.5 20v-3.6h-3.6"/></svg>',
     check: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg>'
   };
   // 아래 탭 아이콘: 공동체 앱과 같은 그림(오늘은 해)
@@ -704,7 +728,7 @@ button.knot { cursor: pointer; }
     ['오늘', '하루 세 가지', '날마다 기도제목 세 개가 나와요. 오래 기도하지 않은 것부터예요. 기도하고 "기도했어요"를 눌러요.'],
     ['내 기도', '쓰고, 마치고, 감사해요', '기도제목을 쓰고 누구를 위한 것인지 골라요. 응답받으면 마치기 › "응답받았어요"로 감사 기록을 남겨요.'],
     ['기도하기', '한 장씩 넘기며', '내 기도제목에 하나님 나라 주제와 잔잔한 음악을 더할 수 있어요. 마지막에는 주기도문으로 마쳐요.'],
-    ['나만 봐요', '이 휴대폰에 저장돼요', '서버로 보내지 않아서 아무도 볼 수 없어요. 휴대폰을 바꿀 때는 더보기 › 다른 기기와 연결하기나 백업을 써요.']];
+    ['나만 봐요', '이 휴대폰에 저장돼요', '서버로 보내지 않아서 아무도 볼 수 없어요. 휴대폰을 바꿀 때는 더보기 › 동기화나 기록 저장하기를 써요.']];
   // ── 홈 화면에 두기: 처음 기도제목을 더한 뒤 한 번 권한다(아이폰은 홈 화면에 두지 않으면 노트가 지워질 수 있다) ──
   //  공동체 화면과 같은 표시(koide-a2hs-off)를 써서, 어느 쪽에서 닫든 다시 권하지 않는다. 더보기에서는 언제든 연다
   const A2HS_OFF = 'koide-a2hs-off';
@@ -1124,17 +1148,19 @@ button.knot { cursor: pointer; }
   function moreView() {
     const nick = (noteMe() || {}).nick;
     return `<header class="top"><div><p class="eyebrow">${nick ? esc(nick) : '코이데 기도 노트'}</p><h1>더보기</h1></div></header>
-      ${D.vault && D.vault.on ? `<div class="notice"><b>다른 기기와 연결되어 있어요.</b> 서버에는 비밀 문구로 잠근 글만 있어서 아무도 읽을 수 없어요. ${D.vault.rec ? '비밀 문구를 잊으면 복구용 문구로 열어요.' : '비밀 문구를 잊을 때를 위해 복구용 문구를 만들어 두세요.'}</div>`
-        : '<div class="notice"><b>이 기록은 이 휴대폰에만 있어요.</b> 서버로 보내지 않아서 아무도 볼 수 없지만, 휴대폰을 바꾸거나 브라우저 기록을 지우면 사라져요. 아이폰은 홈 화면에 두지 않고 7일 넘게 열지 않으면 지워질 수 있어요. 가끔 백업을 내려받거나, 아래에서 다른 기기와 연결해 두세요.</div>'}
       ${groupsCard()}
       ${vaultCard()}
       <section class="card"><p class="label">내가 기도하는 사람들</p>
         ${people().length ? `<ul class="people">${people().map(p => `<li><span>${esc(p.name)}</span><span><button class="link quiet" data-a="renperson" data-v="${p.id}">이름 바꾸기</button> <button class="link quiet" data-a="delperson" data-v="${p.id}">빼기</button></span></li>`).join('')}</ul>` : '<p class="hint">가족, 친구처럼 늘 기도하는 사람을 더해 두면 기도제목의 대상으로 고를 수 있고, 오늘 화면에 끈이 생겨요.</p>'}
         <button class="btn ghost small" data-a="addperson" style="align-self:flex-start">+ 사람 더하기</button></section>
-      <section class="card"><p class="label">백업</p>
-        <button class="mrow" data-a="backup"><span><b>백업 파일 내려받기</b><small>기도 노트를 파일 하나로 저장해요. 다른 사람에게 보내지 마세요</small></span></button>
-        <button class="mrow" data-a="restore"><span><b>백업 불러오기</b><small>새 휴대폰에서 백업 파일을 열어 이어 써요</small></span></button>
+      <section class="card"><p class="label">내 기록 파일</p>
+        <button class="mrow" data-a="backup"><span><b>기록 저장하기</b><small>파일·드라이브에 저장하거나, 카카오톡으로 보내요.</small></span></button>
+        <button class="mrow" data-a="restore"><span><b>불러오기</b><small>저장해 둔 파일로 기록을 되살려요.</small></span></button>
         <input type="file" id="restore-file" accept="application/json,.json" hidden></section>
+      <section class="card"><p class="label">알아 두세요</p>
+        <p class="hint">· 브라우저의 인터넷 기록·사이트 데이터를 지우면 이 기기의 사본과 화면 설정이 지워질 수 있어요.</p>
+        <p class="hint">· 맡긴 기록은 비밀 문구로 다시 열 수 있어요.</p>
+        ${D.vault && D.vault.on ? '' : '<p class="hint">· 아이폰은 홈 화면에 두지 않고 7일 넘게 열지 않으면 이 기기의 기록이 지워질 수 있어요.</p>'}</section>
       <section class="card"><p class="label">화면</p>${screenControls()}</section>
       <section class="card"><button class="mrow" data-a="tourgo" data-v="restart"><span><b>사용법 보기</b><small>기도 노트 사용법을 카드로 봐요</small></span></button>
         ${HOME_APP ? '' : '<button class="mrow" data-a="a2hsopen"><span><b>홈 화면에 앱처럼 두기</b><small>아이콘을 눌러 바로 열 수 있게 해요</small></span></button>'}
@@ -1162,19 +1188,36 @@ button.knot { cursor: pointer; }
         <button class="btn wide" data-a="fbsend"${S.fbBusy ? ' disabled' : ''}>${S.fbBusy ? '보내는 중…' : '보내기'}</button>
         <p class="hint">코이데를 꾸리는 분들이 읽어요. 답장은 따로 오지 않아요.</p></section>`;
   }
+  // 동기화 카드(디다코와 같은 모양): 제목 + 스위치, 상태 한 줄, 암호화 안내, 동작 줄. 스위치는 '연결 유지한 채 잠시 끄기'(D.vault.paused)
+  const SYNC_LOCK = '<p class="sync-lock">' + ICON.lock + '<span>기록은 암호화하여 보관해요. 운영자·목사님·리더도 볼 수 없어요.</span></p>';
   function vaultCard() {
-    const on = D.vault && D.vault.on;
-    if (!canLock()) return `<section class="card" style="margin-top:12px"><p class="label">다른 기기와 연결하기</p><p class="hint">이 화면 주소(https)에서만 쓸 수 있어요.</p></section>`;
-    if (on) return `<section class="card" style="margin-top:12px"><div class="row"><p class="label">다른 기기와 연결하기</p><span class="tag">연결됨</span></div>
-      <p class="hint" id="sync-state" aria-live="polite">${esc(syncLabel())}</p>
-      <p class="hint">고치면 몇 초 뒤 잠근 채로 맡기고, 열 때마다 다른 기기에서 고친 것을 받아 와요. 같은 카카오와 비밀 문구로 다른 기기에서 열 수 있어요.</p>
-      ${D.vault.rec ? '' : '<div class="notice"><b>복구용 문구가 아직 없어요.</b> 비밀 문구를 잊어도 노트를 열 수 있게 만들어 두세요.</div>'}
-      <div class="row" style="justify-content:flex-start;flex-wrap:wrap"><button class="btn small" data-a="vsync"${syncing ? ' disabled' : ''}>동기화</button>${D.vault.rec ? '' : `<button class="btn small ghost" data-a="vrec"${S.recBusy ? ' disabled' : ''}>복구용 문구 만들기</button>`}<button class="link quiet" data-a="voff">연결 끊기</button>${D.vault.rec ? `<button class="link quiet" data-a="vrec"${S.recBusy ? ' disabled' : ''}>복구용 문구 새로 만들기</button>` : ''}</div></section>`;
-    return `<section class="card" style="margin-top:12px"><p class="label">다른 기기와 연결하기</p>
-      <p class="plain">휴대폰과 PC에서 같은 노트를 보려면 카카오로 로그인하고 <b>비밀 문구</b>를 정해요.</p>
-      <p class="hint">노트는 이 기기에서 비밀 문구로 잠근 뒤 맡겨서, 서버와 관리자도 읽을 수 없어요. 그래서 <b>비밀 문구를 잊어도 복구용 문구로 열 수 있어요.</b> 둘 다 잃으면 아무도 되살릴 수 없어요.</p>
-      ${S.syncMsg ? `<p class="hint" style="color:var(--warm)">${esc(S.syncMsg)}</p>` : ''}
-      <button class="btn small" data-a="vstart" style="align-self:flex-start"${S.vbusy ? ' disabled' : ''}>${getToken() ? '연결하기 시작' : '카카오로 로그인하고 연결하기'}</button></section>`;
+    const V = D.vault, conn = !!(V && V.on), paused = conn && !!V.paused, live = conn && !paused;
+    if (!canLock()) return `<section class="card" style="margin-top:12px"><div class="sync-h"><h2>동기화</h2></div><p class="hint">이 화면 주소(https)에서만 쓸 수 있어요.</p></section>`;
+    const sw = `<button type="button" class="switch${live ? ' on' : ''}" role="switch" aria-checked="${live}" aria-label="동기화 켜기" data-a="${!conn ? 'vstart' : paused ? 'vresume' : 'vpause'}"${S.vbusy ? ' disabled' : ''}><span></span></button>`;
+    const head = `<div class="sync-h"><h2>동기화 켜기</h2>${sw}</div>`;
+    if (!conn) return `<section class="card" style="margin-top:12px">${head}
+      <p class="sync-st off"><i class="dot" aria-hidden="true"></i><span>켜면 휴대폰을 바꿔도 기록이 이어져요</span></p>
+      ${S.syncMsg ? `<p class="sync-st"><i class="dot err" aria-hidden="true"></i><span>${esc(S.syncMsg)}</span></p>` : ''}${SYNC_LOCK}
+      <div class="sync-act"><button class="btn small" data-a="vstart"${S.vbusy ? ' disabled' : ''}>${getToken() ? '켜기' : '카카오로 로그인하고 켜기'}</button></div></section>`;
+    const rec = `<button class="mrow" style="padding:.2em 0 0" data-a="vrec"${S.recBusy ? ' disabled' : ''}><span><b>${V.rec ? '복구용 낱말 새로 만들기' : '복구용 낱말 만들기'}</b>${V.rec ? '' : '<small>아직 없어요. 비밀 문구를 잊어도 열 수 있게 만들어 두세요.</small>'}</span></button>
+      <p class="hint">비밀 문구와 복구용 낱말을 둘 다 잃으면 기록을 되살릴 수 없어요.</p>`;
+    const cut = '<button class="quiet-link" data-a="cutopen">연결 끊기</button>';
+    if (paused) return `<section class="card" style="margin-top:12px">${head}
+      <p class="sync-st off"><i class="dot" aria-hidden="true"></i><span>동기화하지 않아요. 이 기기의 기록은 그대로 있고, 켜면 이어서 동기화해요.</span></p>${SYNC_LOCK}
+      <div class="sync-act">${cut}</div>${rec}</section>`;
+    return `<section class="card" style="margin-top:12px">${head}
+      <p class="sync-st"><i class="dot${S.syncMsg && !syncing ? ' err' : ''}" aria-hidden="true"></i><span id="sync-state" aria-live="polite">${esc(syncLabel())}</span></p>${SYNC_LOCK}
+      <div class="sync-act"><button class="btn small ghost" data-a="vsync"${syncing ? ' disabled' : ''}>${ICON.sync}지금 동기화</button>${cut}</div>${rec}</section>`;
+  }
+  // 연결 끊기 창: 이 기기에서만 끊는다. 서버에 맡긴 기록을 지울지는 고른다(기본은 남겨 둠)
+  function cutSheet() {
+    const C = S.cut; if (!C) return '';
+    return `<div class="sheet-back" data-a="cutclose"><section class="sheet" role="dialog" aria-modal="true" aria-labelledby="ct-t" data-stop>
+      <h2 id="ct-t">연결을 끊을까요?</h2>
+      <p class="plain">이 기기와 동기화를 끊어요. 맡겨 둔 기록은 지워지지 않고, 다시 연결하려면 비밀 문구가 필요해요.</p>
+      <label class="chk"><input type="checkbox" id="cut-del"${C.del ? ' checked' : ''}><span>서버에 맡긴 기록도 지우기</span></label>
+      <p class="hint" id="cut-hint" style="color:var(--warm)"${C.del ? '' : ' hidden'}>다른 기기에서도 더 불러올 수 없어요.</p>
+      <div class="row" style="justify-content:flex-end"><button class="btn ghost" data-a="cutclose">취소</button><button class="btn" id="cut-go" data-a="cutgo">끊기</button></div></section></div>`;
   }
   // 내 모임(자율 모임): 서버의 내 정보에서 모임 목록과 교회 연결 여부를 받아 이 기기에 기억해 둔다(열 때마다 새로 받는다). 기도제목은 담지 않는다
   const ME_KEY = DEMO_LINK ? 'koide-demo-note-me' : 'koide-note-me', PLACES = koidePlaces.MAX;
@@ -1281,12 +1324,12 @@ button.knot { cursor: pointer; }
     const make = V.mode === 'create', rec = V.rec;
     const err = V.err ? `<p class="hint" style="color:var(--warm)" role="alert">${esc(V.err)}</p>` : '';
     const btns = txt => `<div class="row" style="justify-content:flex-end"><button type="button" class="btn ghost" data-a="vclose">취소</button><button class="btn" type="submit"${V.busy ? ' disabled' : ''}>${V.busy ? '잠그는 중…' : txt}</button></div>`;
-    // 비밀 문구를 잊었을 때: 복구용 문구 낱말 6개로 열고 새 비밀 문구를 정한다
+    // 비밀 문구를 잊었을 때: 복구용 낱말 6개로 열고 새 비밀 문구를 정한다
     if (rec) return `<div class="sheet-back" data-a="vclose"><section class="sheet" role="dialog" aria-modal="true" aria-labelledby="vs-t" data-stop>
-      <h2 id="vs-t">복구용 문구로 열기</h2>
-      <p class="plain">복구용 문구의 낱말 6개를 넣고, 이 노트의 새 비밀 문구를 정해요. 복구용 문구는 그대로 두고 또 쓸 수 있어요.</p>
+      <h2 id="vs-t">복구용 낱말로 열기</h2>
+      <p class="plain">복구용 낱말 6개를 넣고, 이 노트의 새 비밀 문구를 정해요. 복구용 낱말은 그대로 두고 또 쓸 수 있어요.</p>
       <form data-f="vrecover" style="display:flex;flex-direction:column;gap:8px">
-        <textarea class="field" id="vs-w" rows="2" autocapitalize="none" autocomplete="off" spellcheck="false" placeholder="낱말 6개 (붙여 넣어도 돼요)" aria-label="복구용 문구" required>${esc(V.w || '')}</textarea>
+        <textarea class="field" id="vs-w" rows="2" autocapitalize="none" autocomplete="off" spellcheck="false" placeholder="낱말 6개 (붙여 넣어도 돼요)" aria-label="복구용 낱말" required>${esc(V.w || '')}</textarea>
         <input class="field" id="vs-a" type="password" minlength="6" maxlength="100" autocomplete="new-password" placeholder="새 비밀 문구 (6글자 넘게)" aria-label="새 비밀 문구" required>
         <input class="field" id="vs-b" type="password" maxlength="100" autocomplete="new-password" placeholder="한 번 더" aria-label="새 비밀 문구 한 번 더" required>
         ${err}${btns('열고 정하기')}
@@ -1298,25 +1341,25 @@ button.knot { cursor: pointer; }
         <input class="field" id="vs-a" type="password" minlength="6" maxlength="100" autocomplete="${make ? 'new-password' : 'current-password'}" placeholder="비밀 문구 (6글자 넘게)" aria-label="비밀 문구" required>
         ${make ? '<input class="field" id="vs-b" type="password" maxlength="100" autocomplete="new-password" placeholder="한 번 더" aria-label="비밀 문구 한 번 더" required>' : ''}
         ${err}
-        ${make ? '<p class="notice"><b>운영하는 사람도 열 수 없어요.</b> 비밀 문구를 정하면 다음 화면에 복구용 문구(낱말 6개)가 나와요. 잊었을 때를 위해 꼭 보관해 두세요.</p>' : ''}
+        ${make ? '<p class="notice"><b>운영하는 사람도 열 수 없어요.</b> 비밀 문구를 정하면 다음 화면에 복구용 낱말(6개)이 나와요. 잊었을 때를 위해 꼭 보관해 두세요.</p>' : ''}
         ${btns(make ? '정하고 맡기기' : '열기')}
-      </form>${make ? '' : V.remote.rwrap ? '<button type="button" class="link" data-a="vrecmode" style="align-self:flex-start">비밀 문구를 잊었어요 › 복구용 문구로 열기</button>' : '<p class="hint">비밀 문구를 잊었어요 › 복구용 문구를 만들지 않았다면 되살릴 수 없어요.</p>'}</section></div>`;
+      </form>${make ? '' : V.remote.rwrap ? '<button type="button" class="link" data-a="vrecmode" style="align-self:flex-start">비밀 문구를 잊었어요 › 복구용 낱말로 열기</button>' : '<p class="hint">비밀 문구를 잊었어요 › 복구용 낱말을 만들지 않았다면 되살릴 수 없어요.</p>'}</section></div>`;
   }
-  // 복구용 문구 창: 낱말 6개를 보여 주고, '보관했어요'를 눌러야 닫힌다(바깥을 눌러도 닫히지 않는다). 낱말은 메모리에만 둔다
+  // 복구용 낱말 창: 낱말 6개를 보여 주고, '보관했어요'를 눌러야 닫힌다(바깥을 눌러도 닫히지 않는다). 낱말은 메모리에만 둔다
   function recSheet() {
     const R = S.recSheet; if (!R) return '';
     return `<div class="sheet-back"><section class="sheet" role="dialog" aria-modal="true" aria-labelledby="rc-t" data-stop>
-      <h2 id="rc-t">복구용 문구</h2>
-      <ol aria-label="복구용 문구 낱말 6개" style="list-style:none;margin:0;padding:0;display:grid;grid-template-columns:1fr 1fr;gap:8px">${R.words.map((w, i) => `<li style="background:var(--surface-2);border-radius:12px;padding:.6em .7em;font-family:var(--f-display);font-size:1.3em;font-weight:600;user-select:all;-webkit-user-select:all"><small style="font-family:var(--f-body);font-size:.55em;font-weight:500;color:var(--ink-2);margin-right:.5em">${i + 1}</small>${esc(w)}</li>`).join('')}</ol>
+      <h2 id="rc-t">복구용 낱말</h2>
+      <ol aria-label="복구용 낱말 6개" style="list-style:none;margin:0;padding:0;display:grid;grid-template-columns:1fr 1fr;gap:8px">${R.words.map((w, i) => `<li style="background:var(--surface-2);border-radius:12px;padding:.6em .7em;font-family:var(--f-display);font-size:1.3em;font-weight:600;user-select:all;-webkit-user-select:all"><small style="font-family:var(--f-body);font-size:.55em;font-weight:500;color:var(--ink-2);margin-right:.5em">${i + 1}</small>${esc(w)}</li>`).join('')}</ol>
       <p class="plain">비밀 문구를 잊었을 때 이 낱말로 노트를 열어요. 사진으로 찍거나 카톡 나에게 보내 두세요. 운영하는 사람도 다시 알려 드릴 수 없어요.</p>
       <div class="row" style="justify-content:flex-start;flex-wrap:wrap">${navigator.share ? '<button class="btn small ghost" data-a="recshare">보내기</button>' : ''}<button class="btn small ghost" data-a="reccopy">복사하기</button></div>
       ${navigator.share ? '<p class="hint">보내기를 누르고 카카오톡 나에게 보내 두면 편해요.</p>' : ''}
       <div class="row" style="justify-content:flex-end"><button class="btn" data-a="recdone">보관했어요</button></div></section></div>`;
   }
-  // 연결된 기기의 카드에서 복구용 문구를 (새로) 만든다. 이 기기에 둔 진짜 열쇠를 쓰니 비밀 문구는 다시 묻지 않는다
+  // 연결된 기기의 카드에서 복구용 낱말을 (새로) 만든다. 이 기기에 둔 진짜 열쇠를 쓰니 비밀 문구는 다시 묻지 않는다
   async function recMake() {
     if (S.recBusy) return;
-    if (D.vault.rec && !confirm('새로 만들면 예전 복구용 문구는 더 쓸 수 없어요. 새로 만들까요?')) return;
+    if (D.vault.rec && !confirm('새로 만들면 예전 복구용 낱말은 더 쓸 수 없어요. 새로 만들까요?')) return;
     let raw = null; try { raw = localStorage.getItem(LOCK_KEY); } catch (e) { /* 없음 */ }
     if (!raw) return toast('이 기기에서 비밀 문구를 다시 넣어야 해요');
     S.recBusy = true; render();
@@ -1343,7 +1386,7 @@ button.knot { cursor: pointer; }
   function startView() {
     return `<header class="top"><div><p class="eyebrow">코이데 · 나만 보는 기도 노트</p><h1>나와 내가 사랑하는 사람들을 위해</h1></div></header>
       <section class="card"><p class="plain">기도제목을 쓰고, 날마다 몇 개씩 기도하고, 감사와 응답을 남겨요.</p>
-        <div class="notice"><b>기록은 이 휴대폰에만 저장돼요.</b> 서버로 보내지 않아서 운영하는 사람도 볼 수 없어요. 그래서 휴대폰을 바꾸면 백업 파일로 옮겨야 해요. 아이폰은 꼭 <b>홈 화면에 추가</b>해서 써 주세요(공유 버튼 › 홈 화면에 추가).</div>
+        <div class="notice"><b>기록은 이 휴대폰에만 저장돼요.</b> 서버로 보내지 않아서 운영하는 사람도 볼 수 없어요. 그래서 휴대폰을 바꾸면 기록 파일로 옮겨야 해요. 아이폰은 꼭 <b>홈 화면에 추가</b>해서 써 주세요(공유 버튼 › 홈 화면에 추가).</div>
         <form data-f="start"><label class="label" for="st-people" style="display:block">늘 기도하는 사람 (선택, 쉼표로 나눠요)</label><input class="field" id="st-people" maxlength="200" placeholder="예) 엄마, 아빠, 지우" style="margin-top:6px">
           <button class="btn wide" type="submit" style="margin-top:16px">시작하기</button></form>
         <p class="hint" style="text-align:center">사용법은 시작한 뒤 더보기 › 사용법 보기에서 언제든 볼 수 있어요.</p>
@@ -1477,9 +1520,9 @@ button.knot { cursor: pointer; }
     const V = { start: startView, today: todayView, note: noteView, pray: prayTab, look: lookView, keep: keepView, more: moreView, fb: fbView }[S.tab];
     $('#root').innerHTML = `${S.tab !== 'start' ? topBar() : ''}<div class="wrap${S.tab !== 'start' ? ' has-top' : ''}">${V()}</div>
       ${S.tab === 'start' ? '' : `<nav class="tabs" aria-label="메뉴">${TABS.map(([k, l, ic]) => { const on = (S.tab === 'keep' ? 'look' : S.tab === 'fb' ? 'more' : S.tab) === k; return `<button class="${k === 'pray' ? 'pray-tab ' : ''}${on ? 'on' : ''}" data-a="tab" data-v="${k}" aria-label="${l}" title="${l}" ${on ? 'aria-current="page"' : ''}>${ic}</button>`; }).join('')}</nav>`}
-      ${S.done ? doneSheet() : ''}${S.tour != null ? tourSheet() : ''}${S.a2hs && !S.ps ? a2hsSheet() : ''}${S.vsheet ? vaultSheet() : ''}${S.recSheet ? recSheet() : ''}${S.share ? shareSheet() : ''}${S.mv ? mvSheet() : ''}${S.ps ? psHtml() : ''}${S.toast ? `<div class="toast" role="status">${esc(S.toast)}</div>` : ''}
+      ${S.done ? doneSheet() : ''}${S.tour != null ? tourSheet() : ''}${S.a2hs && !S.ps ? a2hsSheet() : ''}${S.vsheet ? vaultSheet() : ''}${S.cut ? cutSheet() : ''}${S.recSheet ? recSheet() : ''}${S.share ? shareSheet() : ''}${S.mv ? mvSheet() : ''}${S.ps ? psHtml() : ''}${S.toast ? `<div class="toast" role="status">${esc(S.toast)}</div>` : ''}
       ${canSave ? '' : '<div class="toast" role="alert">이 브라우저에서는 저장할 수 없어요. 개인 정보 보호 모드를 끄고 열어 주세요.</div>'}`;
-    document.documentElement.style.overflow = S.ps || S.done || S.vsheet || S.recSheet || S.share || S.tour != null || S.a2hs || S.gbig || S.wopen != null ? 'hidden' : '';
+    document.documentElement.style.overflow = S.ps || S.done || S.vsheet || S.cut || S.recSheet || S.share || S.tour != null || S.a2hs || S.gbig || S.wopen != null ? 'hidden' : '';
     document.querySelectorAll('textarea.field').forEach(autosize);
     if (S.cordNew) { document.querySelectorAll('.cord-seg.pull animate').forEach(a => { try { a.beginElement(); } catch (e) { /* 무시 */ } }); S.cordNew = null; }
     mount3d();
@@ -1629,30 +1672,42 @@ button.knot { cursor: pointer; }
       case 'vrecmode': S.vsheet.rec = true; S.vsheet.err = ''; return render();
       case 'vrecback': S.vsheet.rec = false; S.vsheet.err = ''; return render();
       case 'vrec': return recMake();
-      case 'recshare': { const t = S.recSheet.words.join(' '); try { navigator.share({ text: `코이데 기도 노트 복구용 문구\n${t}` }).catch(() => {}); } catch (e) { /* 취소 */ } return; }
+      case 'recshare': { const t = S.recSheet.words.join(' '); try { navigator.share({ text: `코이데 기도 노트 복구용 낱말\n${t}` }).catch(() => {}); } catch (e) { /* 취소 */ } return; }
       case 'reccopy': { const t = S.recSheet.words.join(' '); (navigator.clipboard && navigator.clipboard.writeText ? navigator.clipboard.writeText(t) : Promise.reject()).then(() => toast('복사했어요'), () => toast('복사하지 못했어요. 낱말을 길게 눌러 복사해 주세요')); return; }
       case 'recdone': S.recSheet = null; return render();
-      case 'vsync': return sync();
-      case 'voff': {
-        if (!confirm('이 기기에서 연결을 끊을까요? 노트는 이 기기에 그대로 남아요.')) return;
-        const del = confirm('서버에 맡긴 잠긴 노트도 지울까요?\n[확인] 지우기 — 다른 기기에서도 더 불러올 수 없어요\n[취소] 남겨 두기 — 다른 기기는 계속 연결돼요');
+      case 'vsync': { const r = sync(); render(); return r; } // 누르자마자 '동기화 중…'과 눌러 둔 단추로 보이게
+      case 'vpause': D.vault.paused = true; clearTimeout(syncT); saveLocal(); return render();
+      case 'vresume': D.vault.paused = false; saveLocal(); render(); return sync();
+      case 'cutopen': S.cut = { del: false }; render(); { const g = $('#cut-go'); if (g) g.focus(); } return;
+      case 'cutclose': S.cut = null; return render();
+      case 'cutgo': {
+        const del = !!S.cut.del; S.cut = null; clearTimeout(syncT);
         D.vault = null; saveLocal(); try { localStorage.removeItem(LOCK_KEY); } catch (e) { /* 무시 */ }
         if (del) api('noteDel').then(() => toast('맡긴 노트를 지웠어요'), () => toast('맡긴 노트를 지우지 못했어요. 다시 연결한 뒤 끊어 주세요'));
         else toast('이 기기에서 연결을 끊었어요');
         return render();
       }
       case 'backup': {
-        const blob = new Blob([JSON.stringify(Object.assign({ app: 'koide-note', saved: new Date().toISOString() }, D, { vault: null }), null, 1)], { type: 'application/json' });
-        const u = URL.createObjectURL(blob), l = document.createElement('a'); l.href = u; l.download = `코이데-기도노트-${TODAY()}.json`; document.body.appendChild(l); l.click(); l.remove(); setTimeout(() => URL.revokeObjectURL(u), 1000);
-        return toast('백업 파일을 내려받았어요');
+        // 공유 창(카카오톡·드라이브 등)을 쓸 수 있으면 파일로 공유하고, 안 되면 내려받는다
+        const text = JSON.stringify(Object.assign({ app: 'koide-note', saved: new Date().toISOString() }, D, { vault: null }), null, 1), fname = `코이데-기도노트-${TODAY()}.json`;
+        const download = () => {
+          const u = URL.createObjectURL(new Blob([text], { type: 'application/json' })), l = document.createElement('a'); l.href = u; l.download = fname; document.body.appendChild(l); l.click(); l.remove(); setTimeout(() => URL.revokeObjectURL(u), 1000);
+          toast('기록을 저장했어요');
+        };
+        let file = null; try { file = new File([text], fname, { type: 'application/json' }); } catch (err) { /* 파일을 만들 수 없는 브라우저 */ }
+        if (file && navigator.canShare && navigator.canShare({ files: [file] })) {
+          navigator.share({ files: [file], title: '코이데 기도 노트' }).then(() => toast('기록을 저장했어요'), err => { if (!err || err.name !== 'AbortError') download(); });
+          return;
+        }
+        return download();
       }
       case 'restore': return $('#restore-file').click();
       case 'logout': {
         if (!confirm('로그아웃할까요? 기도 노트는 이 기기에 그대로 남고, 같은 카카오로 다시 로그인해야 보여요. 다른 사람이 이 기기에서 로그인해도 내 노트는 보이지 않아요.')) return;
-        api('logout').catch(() => {}).then(() => { try { localStorage.removeItem(TOKEN); localStorage.removeItem(UID); localStorage.removeItem(ME_KEY); localStorage.removeItem(DEMO_LINK ? 'koide-demo-cache' : 'koide-cache'); } catch (err) { /* 무시 */ } location.replace('index.html' + QS); });
+        api('logout').catch(() => {}).then(() => { try { localStorage.removeItem(TOKEN); localStorage.removeItem(UID); localStorage.removeItem(ME_KEY); localStorage.removeItem(DEMO_LINK ? 'koide-demo-note-sync' : 'koide-note-sync'); localStorage.removeItem(DEMO_LINK ? 'koide-demo-cache' : 'koide-cache'); } catch (err) { /* 무시 */ } location.replace('index.html' + QS); });
         return;
       }
-      case 'wipe': if (!confirm(`이 휴대폰의 기도 노트를 모두 지울까요?${D.vault && D.vault.on ? ' 다른 기기에 연결해 둔 것은 그대로 남고, 이 휴대폰만 연결이 끊겨요.' : ' 되돌릴 수 없어요. 먼저 백업을 내려받아 두세요.'}`)) return;
+      case 'wipe': if (!confirm(`이 휴대폰의 기도 노트를 모두 지울까요?${D.vault && D.vault.on ? ' 다른 기기에 연결해 둔 것은 그대로 남고, 이 휴대폰만 연결이 끊겨요.' : ' 되돌릴 수 없어요. 먼저 기록을 저장해 두세요.'}`)) return;
         D = blank(); saveLocal(); try { localStorage.removeItem(LOCK_KEY); } catch (e) { /* 무시 */ } S.tab = 'start'; return render();
       case 'fbopen': S.fb = null; return go('fb');
       case 'fbkind': S.fb.kind = v; return render();
@@ -1718,12 +1773,12 @@ button.knot { cursor: pointer; }
             } catch (e) { V.busy = false; V.err = '비밀 문구가 달라요.'; return render(); }
             rawKeep(raw); mergeIn(data); D.vault = { on: true, salt: V.remote.salt, rev: V.remote.rev, last: 0, rec: !!V.remote.rwrap };
           } else {
-            // 복구용 문구로 진짜 열쇠를 풀고, 새 비밀 문구로 다시 잠가 서버의 잠긴 열쇠만 바꾼다(노트와 복구용 문구는 그대로)
+            // 복구용 낱말로 진짜 열쇠를 풀고, 새 비밀 문구로 다시 잠가 서버의 잠긴 열쇠만 바꾼다(노트와 복구용 낱말은 그대로)
             let raw, data;
             try {
               raw = (await unlockUp(await deriveKey(ph.phrase, V.remote.rsalt), V.remote.rwrap)).k;
               data = await unlockUp(await keyOfRaw(raw), V.remote.data);
-            } catch (e) { V.busy = false; V.err = '복구용 문구가 맞지 않아요. 낱말을 다시 봐 주세요.'; return render(); }
+            } catch (e) { V.busy = false; V.err = '복구용 낱말이 맞지 않아요. 낱말을 다시 봐 주세요.'; return render(); }
             const salt = randB64(16), wrap = await lockUp(await deriveKey(a, salt), { k: raw });
             await api('noteKeys', { salt, wrap });
             rawKeep(raw); mergeIn(data); D.vault = { on: true, salt, rev: V.remote.rev, last: 0, rec: true };
@@ -1755,10 +1810,13 @@ button.knot { cursor: pointer; }
     };
     r.readAsText(e.target.files[0]);
   });
+  document.addEventListener('change', e => {
+    if (e.target.id === 'cut-del' && S.cut) { S.cut.del = e.target.checked; const h = $('#cut-hint'); if (h) h.hidden = !S.cut.del; }
+  });
   document.addEventListener('keydown', e => {
     if ((e.key === 'Enter' || e.key === ' ') && e.target.id === 'keep3d' && e.target.getAttribute('role') === 'button') { e.preventDefault(); S.gbig = true; render(); return; }
     if (e.key !== 'Escape') return;
-    if (S.wopen != null) { S.wopen = null; render(); } else if (S.gbig) { if (G3.garden) G3.garden.leave(); S.gbig = false; S.gEdit = false; render(); } else if (S.ps) { psStop(); render(); } else if (S.done) { S.done = null; render(); } else if (S.vsheet) { S.vsheet = null; render(); } else if (S.share) { S.share = null; render(); } else if (S.mv) { S.mv = null; render(); }
+    if (S.wopen != null) { S.wopen = null; render(); } else if (S.gbig) { if (G3.garden) G3.garden.leave(); S.gbig = false; S.gEdit = false; render(); } else if (S.ps) { psStop(); render(); } else if (S.done) { S.done = null; render(); } else if (S.cut) { S.cut = null; render(); } else if (S.vsheet) { S.vsheet = null; render(); } else if (S.share) { S.share = null; render(); } else if (S.mv) { S.mv = null; render(); }
   });
   // 모임 화면의 '그물 담기'로 오면(?weave=모임ID) 모임 화면이 건네준 그물(sessionStorage)을 노트에 담고 '함께 짠 그물' 탭을 연다
   { const q = new URLSearchParams(location.search), wid = q.get('weave'); if (wid) {
@@ -1785,10 +1843,10 @@ button.knot { cursor: pointer; }
     }
     let resume = null; try { resume = localStorage.getItem('koide-note-resume'); localStorage.removeItem('koide-note-resume'); } catch (e) { /* 무시 */ }
     if (resume === 'vault' && getToken()) { if (D.started) S.tab = 'more'; vaultStart(); }
-    else if (D.vault && D.vault.on) sync();
+    else if (D.vault && D.vault.on && !D.vault.paused) sync();
     loadMe();
   })();
-  document.addEventListener('visibilitychange', () => { if (!document.hidden && D.vault && D.vault.on) sync(); });
+  document.addEventListener('visibilitychange', () => { if (!document.hidden && D.vault && D.vault.on && !D.vault.paused) sync(); });
   if ('serviceWorker' in navigator && (location.protocol === 'https:' || location.hostname === 'localhost')) navigator.serviceWorker.register('sw.js').catch(() => {});
 })();
 </script>

@@ -3120,6 +3120,8 @@ try { const p = JSON.parse(localStorage.getItem('koide-pref') || '{}'), d = docu
       <span><span class="rm-head"><b>${title}</b><span class="role-tag ${role}">${roleLabel}</span></span><small>${what}</small>
         <span class="rm-feats">${feats.map(f => `<span>${f}</span>`).join('')}</span></span>${ICON.chevR}</button>`;
   // 더보기(시안과 같게): 왼쪽 우리 가정 정보, 오른쪽 역할 메뉴(사랑방 현황·관리), 홈 화면에 두기, 로그아웃
+  // 기도 노트가 남기는 켜짐/꺼짐 표시('on' | 'off' | '')만 읽는다. 노트 내용은 여기서 읽지 않는다
+  const noteSyncOn = () => { try { return localStorage.getItem(DEMO_LINK ? 'koide-demo-note-sync' : 'koide-note-sync') === 'on'; } catch (e) { return false; } };
   function moreView() {
     const me = S.month.me, mine = mineFam();
     // 한 줄 메뉴: 제목, 무엇을 하는 곳인지, 역할 표
@@ -3134,7 +3136,7 @@ try { const p = JSON.parse(localStorage.getItem('koide-pref') || '{}'), d = docu
     return `<div class="page-top"><div><p class="eyebrow">${solo() ? esc(me.person) : famWho(mine.name, me.person)}</p><h1>더보기</h1></div></div>
       <div class="fam-grid" style="margin-top:12px">
         <div class="col"><p class="more-h">나</p>
-          <section class="card mrows">${row('note', '', '나의 기도 노트', '나만 보는 기도제목과 감사 기록. 이 휴대폰에만 저장돼요')}</section>
+          <section class="card mrows">${row('note', '', '나의 기도 노트', noteSyncOn() ? '나만 보는 기도제목과 감사 기록. 암호화해서 다른 기기와 동기화해요' : '나만 보는 기도제목과 감사 기록. 이 기기에 저장돼요')}</section>
           ${S.grp ? groupMoreCard() : famInfoCard()}
           ${me.staff && !S.grp ? `<section class="card"><p class="label">섬기는 곳</p><h3>${esc(S.month.dept && S.month.dept.name || '')} · ${esc(me.label || me.role)}</h3>
             <p class="hint">${(S.month.serve || []).some(s => s.familyId === me.familyId) ? '회원의 이번 달 화면 맨 아래 "섬기는 분들"과 기도하기 마지막 장에 나와요. ' + esc(S.month.dept && S.month.dept.name || '부서') + ' 공개로 쓴 기도제목만 보여요.' : '섬기는 분들 카드에는 나오지 않아요(관리자가 정해요).'}${me.admin ? ' 관리자도 함께 맡고 있어요.' : ''}</p></section>` : ''}
