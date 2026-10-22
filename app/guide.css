@@ -21,6 +21,9 @@
 .kg-text { margin: 0; font-size: 1.08em; line-height: 1.6; word-break: keep-all; }
 .kg-act { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; justify-content: flex-end; }
 .kg-act .btn { min-height: 48px; padding: 0 1.4em; }
+/* 마지막 [시작하기]: 말풍선 가로를 가득 채운 큰 단추 */
+.kg-act.kg-final .btn { flex: 1 1 100%; min-height: 56px; font-size: 1.12em; font-weight: 700; }
+.kg-tight .kg-act.kg-final .btn { min-height: 48px; }
 /* 말풍선이 구멍을 가리키는 작은 마름모(말풍선 바깥에 따로 둔다: 말풍선이 길면 안에서 스크롤되어 잘리므로). 구멍과 겹치면 감춘다 */
 .kg-arrow { position: absolute; pointer-events: none; width: 14px; height: 14px; background: var(--surface); border: 1px solid var(--line-strong); transform: rotate(45deg); }
 .kg-arrow[hidden] { display: none; }

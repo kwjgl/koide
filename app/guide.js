@@ -404,7 +404,7 @@ window.KoideGuide = (() => {
     const nextAria = s.mode === 'next' && !s.nextLabel && !last ? ' aria-label="다음 단계"' : '';
     G.bubble.innerHTML = `<div class="kg-head"><span class="kg-count">${G.i + 1} / ${n}</span>${skip ? `<button class="link quiet kg-skip">${esc(G.opts.skipLabel || '이미 써 봤어요')}</button>` : ''}${!look && prevBtn ? prevBtn : ''}</div>
       ${s.title && !waiting ? `<h2 class="kg-title">${esc(s.title)}</h2>` : ''}<p class="kg-text" role="status" aria-live="polite">${esc(text)}</p>
-      <div class="kg-act">${look ? prevBtn : ''}${stuck && !goLabel ? '<button class="link quiet kg-go">넘어가기</button>' : ''}${goLabel ? `<button class="btn kg-go"${nextAria}>${esc(goLabel)}</button>` : ''}</div>`;
+      <div class="kg-act${last && s.mode === 'next' && goLabel ? ' kg-final' : ''}">${look ? prevBtn : ''}${stuck && !goLabel ? '<button class="link quiet kg-go">넘어가기</button>' : ''}${goLabel ? `<button class="btn kg-go"${nextAria}>${esc(goLabel)}</button>` : ''}</div>`;
   }
 
   return { run, stop: () => finish(null), running: () => !!G };

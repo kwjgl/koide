@@ -345,10 +345,12 @@ button.knot { cursor: pointer; }
 .ps-lord span { display: block; }
 .ps-music { background: none; border: 1px solid var(--line-strong); border-radius: 999px; padding: .25em .8em; min-height: 34px; font-size: .82em; color: var(--ink-2); cursor: pointer; }
 .ps-music.on { color: var(--accent); border-color: var(--accent-mid); }
-/* 사용법 안내 */
-.tour-dots { display: flex; gap: 6px; justify-content: center; }
-.tour-dots i { width: 7px; height: 7px; border-radius: 50%; background: var(--line-strong); }
-.tour-dots i.on { background: var(--accent); }
+/* 사용법 페이지: 따라 하기 단추와 궁금한 것 찾아보기(눌러서 펼치는 줄) */
+.help-go { min-height: 56px; font-size: 1.1em; font-weight: 700; }
+.help-body { display: flex; flex-direction: column; gap: .5em; padding: 0 0 .9em; }
+.help-body .link { align-self: flex-start; font-size: .86em; }
+.mrow .chev { display: inline-block; color: var(--ink-2); transition: transform .2s; }
+.mrow[aria-expanded="true"] .chev { transform: rotate(90deg); }
 @media (prefers-reduced-motion: no-preference) { .today-item, .card { transition: background .2s, border-color .2s; } }
 </style>
 <link rel="stylesheet" href="intro-video.css">
@@ -672,7 +674,7 @@ button.knot { cursor: pointer; }
     }, 900);
   }
 
-  const S = { tab: D.started ? 'today' : 'start', edit: null, draftT: 'me', done: null, ps: null, toast: '', pick: null, tour: null };
+  const S = { tab: D.started ? 'today' : 'start', edit: null, draftT: 'me', done: null, ps: null, toast: '', pick: null };
   if (SC && ['today', 'note', 'pray', 'look', 'keep', 'more', 'start'].includes(SC.at)) S.tab = SC.at;
   // 그물 장면(at=weaves: 함께 짠 그물 탭에 그물 네 개가 걸려 있다)
   if (SC && SC.at === 'weaves') { S.tab = 'keep'; S.keep = 'weaves'; }
@@ -734,13 +736,6 @@ button.knot { cursor: pointer; }
   player.addEventListener('ended', () => { if (S.ps && PS.music) playTrack(PS.auto ? (PS.track + 1) % HYMNS.length : PS.track); });
   const musicOff = () => { player.pause(); };
 
-  // ── 사용법 안내: 저절로 뜨지 않고 더보기 › 사용법 보기에서만 연다 ──────────
-  const TOUR_KEY = DEMO_LINK ? 'koide-demo-note-tour' : 'koide-note-tour';
-  const TOUR = [
-    ['오늘', '하루 세 가지', '날마다 기도제목 세 개가 나와요. 오래 기도하지 않은 것부터예요. 기도하고 "기도했어요"를 눌러요.'],
-    ['내 기도', '쓰고, 마치고, 감사해요', '기도제목을 쓰고 누구를 위한 것인지 골라요. 응답받으면 마치기 › "응답받았어요"로 감사 기록을 남겨요.'],
-    ['기도하기', '한 장씩 넘기며', '내 기도제목에 하나님 나라 주제와 잔잔한 음악을 더할 수 있어요. 마지막에는 주기도문으로 마쳐요.'],
-    ['나만 봐요', '이 휴대폰에 저장돼요', '서버로 보내지 않아서 아무도 볼 수 없어요. 휴대폰을 바꿀 때는 더보기 › 동기화나 기록 저장하기를 써요.']];
   // ── 홈 화면에 두기: 처음 기도제목을 더한 뒤 한 번 권한다(아이폰은 홈 화면에 두지 않으면 노트가 지워질 수 있다) ──
   //  공동체 화면과 같은 표시(koide-a2hs-off)를 써서, 어느 쪽에서 닫든 다시 권하지 않는다. 더보기에서는 언제든 연다
   const A2HS_OFF = 'koide-a2hs-off';
@@ -761,19 +756,11 @@ button.knot { cursor: pointer; }
       <ol class="plain" style="margin:0;padding-left:1.3em">${how.map(x => `<li>${x}</li>`).join('')}</ol>
       <button class="btn wide" data-a="a2hsoff">알겠어요</button></section></div>`;
   }
-  function tourSheet() {
-    const i = S.tour, [ey, h, t] = TOUR[i], last = i === TOUR.length - 1;
-    return `<div class="sheet-back" data-a="tourend"><section class="sheet" role="dialog" aria-modal="true" aria-labelledby="tr-t" data-stop>
-      <p class="eyebrow">${ey}</p><h2 id="tr-t">${h}</h2><p class="plain">${t}</p>
-      <div class="tour-dots" aria-hidden="true">${TOUR.map((_, k) => `<i class="${k === i ? 'on' : ''}"></i>`).join('')}</div>
-      <div class="row"><button class="link quiet" data-a="tourend">건너뛰기</button><span style="display:flex;gap:8px">${i ? '<button class="btn ghost small" data-a="tourgo" data-v="-1">이전</button>' : ''}<button class="btn small" data-a="${last ? 'tourend' : 'tourgo'}" data-v="1">${last ? '다 봤어요' : '다음'}</button></span></div></section></div>`;
-  }
-
   // ── 따라 하기(처음 쓰는 사람, 결정 기록 2026-10-22): 시작 화면을 지나고 기도제목이 하나도 없는 사람이 처음 열면 저절로 시작한다 ──
   //  ① 써 보기(내 기도 › 예시 넣어 보기 › 대상별로 정리하기 › 추가하기) ② 기도해 보기(오늘 › 기도했어요) ③ 둘러보기(기도하기·지난 기록·더보기 › 동기화) ④ 이제 직접 써 보세요(쓰기 칸을 비춤). 모양과 움직임은 guide.js(공동체와 같은 틀)
   //  직접 쓰는 단계는 없다(키보드가 열리지 않게 예시로만 연습). 연습으로 더한 기도제목·사람은 practice 표시를 달고, ④에 들어갈 때 기도 기록과 함께 저절로 지운다(지움 표시 D.gone을 남겨 동기화로 되살아나지 않게)
   //  기도 노트는 이 기기에만 있어서 마쳤는지도 이 기기에만 적는다(GUIDE_KEY). 더보기 › 따라 하기 다시 하기는 기도제목이 있어도, 마쳤어도 연다
-  //  사용법 카드(TOUR)는 처음부터 저절로 뜨지 않고 더보기 › 사용법 보기에서만 열려서, 따라 하기와 겹치는 것이 없다
+  //  하나만 궁금할 때는 더보기 › 사용법(helpView)에서 찾는다. 예전 사용법 카드는 없앴다(결정 기록 2026-10-22)
   const GUIDE_KEY = DEMO_LINK ? 'koide-demo-note-guide' : 'koide-note-guide';
   const NoteGuide = (() => {
     let ev = null, timer = 0;
@@ -782,7 +769,7 @@ button.knot { cursor: pointer; }
     // 열 수 있는 때: 노트를 시작한 뒤이고, 장면 모드(화면 지도)가 아니다
     const can = () => !SC && D.started && S.tab !== 'start' && !KoideGuide.running();
     // 창이나 메뉴가 떠 있으면 시작하지 않는다
-    const calmNow = () => !(S.menu || S.done || S.tour != null || S.a2hs || S.vsheet || S.cut || S.recSheet || S.kc || S.share || S.mv || S.ps || S.gNew || S.fb) && !document.documentElement.classList.contains('booting');
+    const calmNow = () => !(S.menu || S.done || S.a2hs || S.vsheet || S.cut || S.recSheet || S.kc || S.share || S.mv || S.ps || S.gNew || S.fb) && !document.documentElement.classList.contains('booting');
     const tabBtn = k => document.querySelector(`.tabs [data-v="${k}"]`);
     const goTab = k => { const b = document.createElement('button'); b.dataset.a = 'tab'; b.dataset.v = k; document.body.appendChild(b); b.click(); b.remove(); };
     // 오늘 화면에서 누를 기도했어요: 이번에 더한 기도제목 것이 있으면 그것, 없으면 보이는 첫 번째
@@ -810,7 +797,7 @@ button.knot { cursor: pointer; }
           get text() { return cord() ? '기도할 때마다 끈에 매듭이 지어져요. 이번 주 모두와 이으면 끈이 묶여요.' : '기도한 날이 쌓여요. 더보기에서 늘 기도하는 사람을 더하면, 사람마다 매듭이 지어지는 끈도 생겨요.'; } },
         // ③ 둘러보기
         { mode: 'next', target: () => tabBtn('pray'), text: '한 장씩 넘기며 차분히 기도할 때는 기도하기를 써요.' },
-        { mode: 'next', target: () => tabBtn('look'), text: '기도한 날, 감사와 응답을 다시 볼 수 있어요.' },
+        { mode: 'next', target: () => tabBtn('look'), text: '기도한 날, 감사와 응답을 다시 볼 수 있어요. 맨 아래 기도 서랍에 기도한 날들이 조각보와 실타래로 쌓여요.' },
         { mode: 'tap', target: () => tabBtn('more'), text: '마지막이에요. 더보기를 눌러요.' },
         { mode: 'next', before: () => { if (S.tab !== 'more') goTab('more'); }, target: () => { const b = document.querySelector('[data-a="tab"][data-v="sync"]'); return b && b.closest('.card'); }, wait: () => S.tab === 'more',
           get text() { return syncOn() ? '동기화가 켜져 있어요. 휴대폰을 바꿔도 이어져요.' : '기도 노트는 이 기기에만 있어요. 휴대폰을 바꿔도 이어지게 동기화를 켜 두세요.'; } },
@@ -908,7 +895,7 @@ button.knot { cursor: pointer; }
   const surveyCard = () => !SC && D.started && getToken() ? KOIDE_SURVEY.html() : '';
   // ── 시범 '해 볼 일' 띠(pilot.js): 시범 링크(?pilot)로 연 사람, 또는 공동체 앱이 남긴 '내 사랑방 시범 중' 표시가 있는 사람에게만(같은 앱·같은 브라우저 저장 공간 안에서). 화면 제목 바로 아래에 한 줄. 기도하기·사용법 카드·설문 카드가 있는 화면·시작 화면에는 없다 ──
   if (!SC) KoidePilot.init({ where: 'note', demo: DEMO, home: () => HOME_APP, rerender: () => render(), feedback: () => { S.fb = null; go('fb'); } });
-  const pilotBand = () => KoidePilot.mount($('#root > .wrap'), 'header.top', !SC && D.started && S.tab !== 'start' && !S.ps && S.tour == null && !KoideGuide.running());
+  const pilotBand = () => KoidePilot.mount($('#root > .wrap'), 'header.top', !SC && D.started && S.tab !== 'start' && !S.ps && !KoideGuide.running());
   // 같은 사람(나 또는 내가 기도하는 사람)을 위한 기도제목이 두 개 이상인지
   const pilotTwo = () => { const n = {}; D.items.forEach(i => { if (!i.done && (i.target === 'me' || i.target.startsWith('p:'))) n[i.target] = (n[i.target] || 0) + 1; }); if (Object.keys(n).some(t => n[t] >= 2)) KoidePilot.done('n-two'); };
   function thanksQuick() {
@@ -1261,8 +1248,7 @@ button.knot { cursor: pointer; }
         ${people().length ? `<ul class="people">${people().map(p => `<li><span>${esc(p.name)}</span><span><button class="link quiet" data-a="renperson" data-v="${p.id}">이름 바꾸기</button> <button class="link quiet" data-a="delperson" data-v="${p.id}">빼기</button></span></li>`).join('')}</ul>` : '<p class="hint">가족, 친구처럼 늘 기도하는 사람을 더해 두면 기도제목의 대상으로 고를 수 있고, 오늘 화면에 끈이 생겨요.</p>'}
         <button class="btn ghost small" data-a="addperson" style="align-self:flex-start">+ 사람 더하기</button></section>
       <section class="card"><p class="label">화면</p>${screenControls()}</section>
-      <section class="card"><button class="mrow" data-a="tourgo" data-v="restart"><span><b>사용법 보기</b><small>기도 노트 사용법을 카드로 봐요</small></span></button>
-        <button class="mrow" data-a="guidere"><span><b>따라 하기 다시 하기</b><small>쓰기와 기도하기를 직접 눌러 보며 한 걸음씩 익혀요</small></span></button>
+      <section class="card"><button class="mrow" data-a="tab" data-v="help"><span><b>사용법</b><small>따라 하기와 도움말</small></span><span aria-hidden="true">›</span></button>
         ${HOME_APP ? '' : '<button class="mrow" data-a="a2hsopen"><span><b>홈 화면에 앱처럼 두기</b><small>아이콘을 눌러 바로 열 수 있게 해요</small></span></button>'}
         <button class="mrow" data-a="ivid"><span><b>코이데 소개 영상</b><small>코이데와 기도 노트를 영상으로 봐요</small></span></button>
         ${KoidePilot.moreRows()}</section>
@@ -1274,6 +1260,24 @@ button.knot { cursor: pointer; }
         <button class="btn ghost small" data-a="fbopen" style="align-self:flex-start">의견 보내기</button></section>
       <button class="link quiet" data-a="logout" style="display:block;margin:6px auto 0">로그아웃</button>
       <button class="link quiet" data-a="wipe" style="display:block;margin:6px auto 0">이 휴대폰의 기도 노트 모두 지우기</button>`;
+  }
+  // 사용법(더보기 › 사용법): 위는 따라 하기 시작, 아래는 궁금한 것 찾아보기(질문을 누르면 풀이와 그 화면으로 가는 링크). 글은 실제 동작과 같게 쓴다
+  const HELP = [
+    ['기도제목은 어떻게 써요?', ['내 기도의 "새 기도제목 쓰기" 칸에 한 줄에 하나씩 써요.', '줄 앞에 "엄마ㅡ"처럼 이름을 쓰고 ㅡ를 붙이면 그 사람을 위한 기도제목이 돼요.', '대상별로 정리하기를 누르고, 미리보기에서 괜찮으면 추가하기를 눌러요.'], '내 기도로 가기', 'note'],
+    ['오늘 화면의 세 개는 뭐예요?', ['오늘 기도할 제목을 하루에 세 개만 골라 보여 줘요. 그날은 바뀌지 않아요.', '오래 기도하지 않은 것부터 나와요. 기도하고 기도했어요를 눌러요.'], '오늘로 가기', 'today'],
+    ['기도의 끈은 뭐예요?', ['오늘 화면의 끈은 내가 기도하는 사람마다 매듭이 하나씩이에요.', '이번 주(주일부터) 그 사람을 위해 기도하면 매듭이 지어지고, 매주 주일에 새로 시작해요. 더보기에서 사람을 더하면 끈이 생겨요.'], '오늘로 가기', 'today'],
+    ['기도 서랍은 뭐예요?', ['기도한 날들이 이달의 조각보, 올해의 실타래, 실타래 상자로 쌓이는 곳이에요.', '모임에서 담아 둔 그물이 있으면 함께 짠 그물도 보여요. 나만 봐요.'], '기도 서랍 열기', 'keep'],
+    ['휴대폰을 바꿔도 이어지게 하려면?', ['기도 노트는 이 휴대폰에만 있어요. 더보기 › 동기화를 켜면 카카오 로그인과 비밀 문구로 잠가서 맡겨 둬요.', '비밀 문구를 잊을 때를 위해 복구용 낱말도 만들어 두세요. 둘 다 잃으면 되살릴 수 없어요.'], '동기화로 가기', 'sync']
+  ];
+  function helpView() {
+    return `<button class="link" data-a="tab" data-v="more" style="align-self:flex-start;margin-bottom:6px">‹ 더보기</button>
+      <header class="top"><div><p class="eyebrow">따라 하기와 도움말</p><h1>사용법</h1></div></header>
+      <section class="card"><p class="label">처음처럼 따라 해 보기</p><p class="plain">예시로 쓰기와 기도하기를 직접 눌러 보며 한 걸음씩 익혀요. 연습한 것은 지워져요.</p>
+        <button class="btn wide help-go" data-a="guidere">▶ 따라 하기 시작</button></section>
+      <section class="card"><p class="label">궁금한 것 찾아보기</p>
+        ${HELP.map(([q, lines, go, to], k) => { const on = S.helpQ === k;
+          return `<button class="mrow" data-a="helpq" data-v="${k}" aria-expanded="${on}"><span><b>${q}</b></span><span class="chev" aria-hidden="true">›</span></button>
+            ${on ? `<div class="help-body">${lines.map(t => `<p class="plain">${t}</p>`).join('')}<button class="link" data-a="helpgo" data-v="${to}">${go} ›</button></div>` : ''}`; }).join('')}</section>`;
   }
   // 더보기의 동기화 한 줄(디다코와 같은 모양): 누르면 동기화 페이지로 간다. 켜짐/꺼짐 표시는 잠시 끈 것도 '꺼짐'
   function syncRow() {
@@ -1576,7 +1580,7 @@ button.knot { cursor: pointer; }
         <div class="notice"><b>기록은 이 휴대폰에만 저장돼요.</b> 서버로 보내지 않아서 운영하는 사람도 볼 수 없어요. 그래서 휴대폰을 바꾸면 기록 파일로 옮겨야 해요. 아이폰은 꼭 <b>홈 화면에 추가</b>해서 써 주세요(공유 버튼 › 홈 화면에 추가).</div>
         <form data-f="start"><label class="label" for="st-people" style="display:block">늘 기도하는 사람 (선택, 쉼표로 나눠요)</label><input class="field" id="st-people" maxlength="200" placeholder="예) 엄마, 아빠, 지우" style="margin-top:6px">
           <button class="btn wide" type="submit" style="margin-top:16px">시작하기</button></form>
-        <p class="hint" style="text-align:center">사용법은 시작한 뒤 더보기 › 사용법 보기에서 언제든 볼 수 있어요.</p>
+        <p class="hint" style="text-align:center">사용법은 시작한 뒤 더보기 › 사용법에서 언제든 볼 수 있어요.</p>
         ${canLock() ? '<button class="link" data-a="vstart" style="align-self:center">다른 기기에서 쓰던 노트 불러오기</button>' : ''}</section>`;
   }
   function doneSheet() {
@@ -1704,12 +1708,12 @@ button.knot { cursor: pointer; }
   const TABS = [['today', '오늘', TICON.sun], ['note', '내 기도', TICON.pen], ['pray', '기도하기', TICON.hands], ['look', '지난 기록', TICON.book], ['more', '더보기', TICON.more]];
   function render() {
     if (S.tab !== 'keep') { S.gbig = false; S.wopen = null; }
-    const V = { start: startView, today: todayView, note: noteView, pray: prayTab, look: lookView, keep: keepView, more: moreView, sync: syncView, fb: fbView }[S.tab];
+    const V = { start: startView, today: todayView, note: noteView, pray: prayTab, look: lookView, keep: keepView, more: moreView, sync: syncView, fb: fbView, help: helpView }[S.tab];
     $('#root').innerHTML = `${S.tab !== 'start' ? topBar() : ''}<div class="wrap${S.tab !== 'start' ? ' has-top' : ''}">${V()}</div>
-      ${S.tab === 'start' ? '' : `<nav class="tabs" aria-label="메뉴">${TABS.map(([k, l, ic]) => { const on = (S.tab === 'keep' ? 'look' : S.tab === 'fb' || S.tab === 'sync' ? 'more' : S.tab) === k; return `<button class="${k === 'pray' ? 'pray-tab ' : ''}${on ? 'on' : ''}" data-a="tab" data-v="${k}" aria-label="${l}" title="${l}" ${on ? 'aria-current="page"' : ''}>${ic}</button>`; }).join('')}</nav>`}
-      ${S.done ? doneSheet() : ''}${S.tour != null ? tourSheet() : ''}${a2hsOn() ? a2hsSheet() : ''}${S.vsheet ? vaultSheet() : ''}${S.cut ? cutSheet() : ''}${S.recSheet ? recSheet() : ''}${S.kc ? kcSheet() : ''}${S.share ? shareSheet() : ''}${S.mv ? mvSheet() : ''}${S.ps ? psHtml() : ''}${S.toast ? `<div class="toast" role="status">${esc(S.toast)}</div>` : ''}
+      ${S.tab === 'start' ? '' : `<nav class="tabs" aria-label="메뉴">${TABS.map(([k, l, ic]) => { const on = (S.tab === 'keep' ? 'look' : S.tab === 'fb' || S.tab === 'sync' || S.tab === 'help' ? 'more' : S.tab) === k; return `<button class="${k === 'pray' ? 'pray-tab ' : ''}${on ? 'on' : ''}" data-a="tab" data-v="${k}" aria-label="${l}" title="${l}" ${on ? 'aria-current="page"' : ''}>${ic}</button>`; }).join('')}</nav>`}
+      ${S.done ? doneSheet() : ''}${a2hsOn() ? a2hsSheet() : ''}${S.vsheet ? vaultSheet() : ''}${S.cut ? cutSheet() : ''}${S.recSheet ? recSheet() : ''}${S.kc ? kcSheet() : ''}${S.share ? shareSheet() : ''}${S.mv ? mvSheet() : ''}${S.ps ? psHtml() : ''}${S.toast ? `<div class="toast" role="status">${esc(S.toast)}</div>` : ''}
       ${canSave ? '' : '<div class="toast" role="alert">이 브라우저에서는 저장할 수 없어요. 개인 정보 보호 모드를 끄고 열어 주세요.</div>'}`;
-    document.documentElement.style.overflow = S.ps || S.done || S.vsheet || S.cut || S.recSheet || S.kc || S.share || S.tour != null || a2hsOn() || S.gbig || S.wopen != null ? 'hidden' : '';
+    document.documentElement.style.overflow = S.ps || S.done || S.vsheet || S.cut || S.recSheet || S.kc || S.share || a2hsOn() || S.gbig || S.wopen != null ? 'hidden' : '';
     document.querySelectorAll('textarea.field').forEach(autosize);
     if (S.cordNew) { document.querySelectorAll('.cord-seg.pull animate').forEach(a => { try { a.beginElement(); } catch (e) { /* 무시 */ } }); S.cordNew = null; }
     mount3d();
@@ -1747,7 +1751,7 @@ button.knot { cursor: pointer; }
       case 'mvall': S.mv.list.forEach((_, i) => { S.mv.sel[i] = v === '1'; }); return render();
       case 'mvgo': return mvGo();
       case 'menunew': S.menu = null; S.gNew = true; go('more'); { const f = $('#gc-n'); if (f) { f.scrollIntoView({ block: 'center' }); f.focus(); } } return;
-      case 'tab': S.menu = null; S.draft = null; S.thDraft = ''; S.preview = null; return go(v);
+      case 'tab': S.menu = null; S.draft = null; S.thDraft = ''; S.preview = null; if (v === 'help') S.helpQ = null; return go(v);
       case 'split': { S.draft = $('#it-text').value; const parts = splitNote(S.draft); if (!parts.length) { toast('내용을 적어 주세요.'); return $('#it-text').focus(); } S.preview = parts; return render(); }
       case 'unsplit': S.preview = null; return render();
       case 'prevrm': S.preview.splice(Number(v), 1); if (!S.preview.length) S.preview = null; return render();
@@ -1766,6 +1770,8 @@ button.knot { cursor: pointer; }
       }
       case 'pray': { const was = prayedToday(v); togglePray(v); NoteGuide.pray(!was); return render(); }
       case 'guidere': return NoteGuide.start(true);
+      case 'helpq': S.helpQ = S.helpQ === Number(v) ? null : Number(v); return render();
+      case 'helpgo': S.helpQ = null; if (v !== 'keep') return go(v); S.gEdit = false; S.gbig = false; S.wopen = null; S.tab = 'keep'; render(); return window.scrollTo(0, 0);
       case 'tgt': S.draftT = v; return render();
       case 'addperson': { const p = addPerson(); if (p && S.tab === 'note') S.draftT = 'p:' + p.id; return render(); }
       case 'edit': { const i = D.items.find(x => x.id === v); S.edit = v; S.draftT = i.target; S.draft = null; render(); $('#it-text').focus(); return window.scrollTo(0, 0); }
@@ -1846,11 +1852,9 @@ button.knot { cursor: pointer; }
       }
       case 'gnew': S.gNew = true; render(); { const f = $('#gc-n'); if (f) f.focus(); } return;
       case 'gcancel': S.gNew = false; return render();
-      case 'tourgo': S.tour = v === 'restart' ? 0 : Math.max(0, Math.min(TOUR.length - 1, S.tour + Number(v))); return render();
       case 'a2hsos': S.a2hsOs = v; return render();
       case 'a2hsoff': S.a2hs = false; try { localStorage.setItem(A2HS_OFF, '1'); } catch (err) { /* 이번만 */ } return render();
       case 'a2hsopen': S.a2hs = true; return render();
-      case 'tourend': S.tour = null; try { localStorage.setItem(TOUR_KEY, '1'); } catch (err) { /* 무시 */ } return render();
       case 'psset': PS.set = v; savePs(); return render();
       case 'psworld': PS.world = !PS.world; savePs(); return render();
       case 'pstopic': { const k = PS.topics.indexOf(v); if (k >= 0) { if (PS.topics.length > 1) PS.topics.splice(k, 1); } else PS.topics.push(v); savePs(); return render(); }
