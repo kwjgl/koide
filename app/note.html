@@ -805,12 +805,12 @@ button.knot { cursor: pointer; }
   }
   // ── 시범 설문(survey.js): 시작한 지 3·7·14일째에 오늘 화면 위에 카드 한 장. 로그인하지 않았거나 장면 주소에서는 없다 ──
   //  시작한 날 = 기도제목·기도한 날·감사 기록 중 가장 이른 날(아직 없으면 survey.js가 이 기기에서 처음 연 날로 센다). 보내는 숫자는 사용자가 켰을 때만, 기도 내용은 없다
-  const APP_VER = '2026-11-06';
+  const APP_VER = '2026-11-07';
   const noteStart = () => [...D.items.map(i => i.created), ...prays().map(p => p.d), ...D.thanks.map(x => x.date)].filter(Boolean).sort()[0] || '';
   const surveyNums = () => ({ days: new Set(prays().map(p => p.d)).size, items: D.items.length, thanks: D.thanks.length, app: HOME_APP, vault: !!(D.vault && D.vault.on) });
   if (!SC) KOIDE_SURVEY.init({ where: 'note', key: DEMO_LINK ? 'koide-demo-survey' : 'koide-survey', api, start: noteStart, nums: surveyNums, ver: APP_VER, demo: DEMO });
   const surveyCard = () => !SC && D.started && getToken() ? KOIDE_SURVEY.html() : '';
-  // ── 시범 '해 볼 일' 띠(pilot.js): 시범 링크(?pilot)로 연 사람에게만. 화면 제목 바로 아래에 한 줄. 기도하기·사용법 카드·설문 카드가 있는 화면·시작 화면에는 없다 ──
+  // ── 시범 '해 볼 일' 띠(pilot.js): 시범 링크(?pilot)로 연 사람, 또는 공동체 앱이 남긴 '내 사랑방 시범 중' 표시가 있는 사람에게만(같은 앱·같은 브라우저 저장 공간 안에서). 화면 제목 바로 아래에 한 줄. 기도하기·사용법 카드·설문 카드가 있는 화면·시작 화면에는 없다 ──
   if (!SC) KoidePilot.init({ where: 'note', demo: DEMO, home: () => HOME_APP, rerender: () => render(), feedback: () => { S.fb = null; go('fb'); } });
   const pilotBand = () => KoidePilot.mount($('#root > .wrap'), 'header.top', !SC && D.started && S.tab !== 'start' && !S.ps && S.tour == null);
   // 같은 사람(나 또는 내가 기도하는 사람)을 위한 기도제목이 두 개 이상인지

@@ -1139,6 +1139,7 @@ body.pop-open { overflow: hidden; }
 .rs-people li.on { background: var(--surface-2); border-radius: 10px; padding: 0 .6em .6em; margin: .2em 0; }
 .rs-acts { display: flex; flex-direction: column; gap: .6em; padding-top: .2em; }
 .rs-acts .label { margin: 0; }
+.rs-pilot { padding: .2em 0 .8em; }
 .rs-foot { flex-wrap: wrap; padding: .2em 0 .8em; }
 .rs-form { margin: .3em 0 .8em; }
 .fam-rec { display: flex; flex-wrap: wrap; align-items: center; gap: .3em 1em; margin: .9em 0 0; padding-top: .7em; border-top: 1px solid var(--line); font-size: .9em; color: var(--ink-2); }
@@ -3834,7 +3835,7 @@ try { const p = JSON.parse(localStorage.getItem('koide-pref') || '{}'), d = docu
     S.busy = true; render();
     try {
       S.rost = await api('rosterSave', payload); toast(msg);
-      if (/Room$/.test(payload.op)) { if (S.op) S.month = await api('opsCtx'); }
+      if (/Room$/.test(payload.op)) { if (S.op) S.month = await api('opsCtx'); else if (payload.op === 'pilotRoom') S.month = await api('month'); }
       S.pending = await api('pending');
     } catch (e) {
       if (e.code === 'same' && confirm(e.message)) { S.busy = false; return rosterDo(Object.assign({}, payload, { force: true }), msg); }
@@ -3859,7 +3860,9 @@ try { const p = JSON.parse(localStorage.getItem('koide-pref') || '{}'), d = docu
     const room = r => {
       const on = !!open[r.id], E = S.rostEdit && S.rostEdit.roomId === r.id ? S.rostEdit : null;
       return `<li class="rs-room${on ? ' open' : ''}"><button class="rs-head" data-act="rsopen" data-v="${esc(r.id)}" aria-expanded="${on}"><b>${esc(r.name)}</b><small>${r.people.length}${words().count}</small><span class="ops-chev" aria-hidden="true">${ICON.chev}</span></button>
-        ${!on ? '' : `<ul class="rs-people">${r.people.map(p => `<li class="${sel === p.id ? 'on' : ''}"><button class="rs-p" data-act="rssel" data-v="${esc(p.id)}" aria-expanded="${sel === p.id}"><span>${esc(p.name)}</span>${tag(p)}<small>${p.linked ? '연결 ' + p.linked : '아직 연결 없음'}</small></button>${sel === p.id ? acts(p, r) : ''}</li>`).join('') || `<li class="hint">아직 ${solo() ? '사람' : '가정'}이 없어요.</li>`}</ul>
+        ${!on ? '' : `<div class="set-row rs-pilot"><div><p class="label" style="margin:0">시범 중</p><p class="hint" style="margin:.2em 0 0">켜면 이 ${esc(grp())} 사람들에게 '해 볼 일' 띠가 보여요(어느 기기에서든)</p></div>
+          <button type="button" class="switch${r.pilot ? ' on' : ''}" role="switch" aria-checked="${!!r.pilot}" aria-label="${esc(r.name)} 시범 중" data-act="rspilot" data-v="${esc(r.id)}" ${S.busy ? 'disabled' : ''}><span></span></button></div>
+        <ul class="rs-people">${r.people.map(p => `<li class="${sel === p.id ? 'on' : ''}"><button class="rs-p" data-act="rssel" data-v="${esc(p.id)}" aria-expanded="${sel === p.id}"><span>${esc(p.name)}</span>${tag(p)}<small>${p.linked ? '연결 ' + p.linked : '아직 연결 없음'}</small></button>${sel === p.id ? acts(p, r) : ''}</li>`).join('') || `<li class="hint">아직 ${solo() ? '사람' : '가정'}이 없어요.</li>`}</ul>
           ${E && E.kind === 'person' ? `<form class="plain-form rs-form" data-form="rsadd" data-v="${esc(r.id)}">
               <input class="field" name="a" maxlength="10" required placeholder="${solo() ? '이름' : '남편 또는 본인 이름'}" aria-label="${solo() ? '이름' : '남편 또는 본인 이름'}" autocomplete="off">
               ${solo() ? '' : '<input class="field" name="b" maxlength="10" placeholder="아내 이름 · 1인 가정이면 비워 두세요" aria-label="아내 이름" autocomplete="off">'}
@@ -4005,12 +4008,12 @@ try { const p = JSON.parse(localStorage.getItem('koide-pref') || '{}'), d = docu
   }
   // ── 관리 › 운영 (설계서 S7): ① 앱 상태 ② 개인정보 요청. 할 일이 있는 카드만 관리 탭 위로 올라온다 ──
   //  NEED_SERVER: 이 화면이 바라는 서버 버전(서버 VERSION 앞 날짜). 서버 코드를 고쳐 배포해야 하는 기능을 넣을 때 함께 올린다
-  const NEED_SERVER = '2026-11-06';
+  const NEED_SERVER = '2026-11-07';
   // ── 시범 설문(survey.js): 이번 달 화면 위에 3·7·14일째 카드 한 장. 처음 도움말이 떠 있으면 도움말 먼저. 기도하기·모임 모드·관리 화면·장면 주소에서는 없다 ──
   //  시작한 날 = 이 사람이 처음 연결된 날(서버가 알면), 아니면 이 기기에서 처음 연 날. 보내는 숫자는 사용자가 켰을 때만(여기서는 홈 화면 앱 여부뿐), 기도 내용은 없다
   if (!SC) KOIDE_SURVEY.init({ where: 'community', key: DEMO_LINK ? 'koide-demo-survey' : 'koide-survey', api, start: () => (S.me && S.me.link && S.me.link.since) || '', nums: () => ({ app: STANDALONE }), ver: NEED_SERVER, demo: DEMO });
   // ── 시범 '해 볼 일' 띠(pilot.js): 시범 링크(?pilot)로 연 사람에게만. 화면 제목 바로 아래에 한 줄. 기도하기·모임 모드·도움말·설문 카드가 있는 화면·관리 화면·로그인 전에는 없다 ──
-  if (!SC) KoidePilot.init({ where: 'community', demo: DEMO, home: () => STANDALONE, rerender: () => render(),
+  if (!SC) KoidePilot.init({ where: 'community', demo: DEMO, home: () => STANDALONE, solo: () => !!(S.month && S.month.dept && S.month.dept.unit === '개인'), rerender: () => render(),
     feedback: () => { S.tab = 'feedback'; render(); window.scrollTo(0, 0); } });
   const pilotBand = () => KoidePilot.mount($('#main'), '.page-top', !SC && S.view === 'app' && !S.op && !S.ps && S.meet == null && !S.bigView && !S.album && !S.wbig && !Tour.isOpen() && !tipFor());
   const surveyCard = () => !SC && S.view === 'app' && S.tab === 'home' && !S.op && !S.grp && !S.ps && S.meet == null && S.me && S.me.link && S.me.link.status === '연결' && !tipFor() ? KOIDE_SURVEY.html() : '';
@@ -4418,6 +4421,8 @@ try { const p = JSON.parse(localStorage.getItem('koide-pref') || '{}'), d = docu
     const tb = $('.today-body'), tbKeep = tb && { id: tb.dataset.id, top: tb.scrollTop };
     $('#main').innerHTML = VIEWS[S.view]();
     if (app) placeTip();
+    // 내 사랑방이 시범 중인지(서버가 월 데이터에 실어 줌). 목사님·운영 화면·모임 화면에는 이 값이 없다
+    if (app && !S.op && !S.grp && S.month && S.month.room && typeof S.month.room.pilot === 'boolean') KoidePilot.room(S.month.room.pilot);
     pilotBand();
     if (S.view !== 'loading' && !GWAIT) hideSplash();
     // 마지막에 쓴 곳: 다시 켤 때 그곳으로 시작한다(모임 화면은 기도 노트의 '내 모임'에서 여는 곳이라 기도 노트로)
@@ -4749,6 +4754,7 @@ try { const p = JSON.parse(localStorage.getItem('koide-pref') || '{}'), d = docu
       case 'rsopen': S.rostOpen = Object.assign({}, S.rostOpen, { [v]: !(S.rostOpen || {})[v] }); S.rostSel = null; S.rostEdit = null; return render();
       case 'rssel': S.rostSel = S.rostSel === v ? null : v; return render();
       case 'rsedit': { const [kind, roomId] = (v || '').split('|'); S.rostEdit = kind ? { kind, roomId } : null; render(); const f = $('.rs-form .field'); if (f) f.focus(); return; }
+      case 'rspilot': { const on = !b.classList.contains('on'); return rosterDo({ op: 'pilotRoom', roomId: v, on }, on ? '시범 중을 켰어요.' : '시범 중을 껐어요.'); }
       case 'rsrole': return rosterDo({ op: 'role', familyId: S.rostSel, role: v }, euro(v) + ' 정했어요.');
       case 'rsadmin': { const on = !b.classList.contains('on'); return rosterDo({ op: 'admin', familyId: S.rostSel, on }, on ? '부서 관리자로 정했어요.' : '부서 관리자에서 뺐어요.'); }
       case 'mvstart': return mvStart(v, b.dataset.fam || '');

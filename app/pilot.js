@@ -1,7 +1,12 @@
 /*
  * 시범 "해 볼 일" 띠 (공동체 index.html · 기도 노트 note.html이 함께 쓴다)
  *
- * 시범에 함께하는 사람에게만 보인다. 시범 링크(주소 뒤에 pilot, 예: /app/?pilot)로 열면 이 기기에 켜 두고 주소에서 pilot을 뺀다.
+ * 시범에 함께하는 사람에게만 보인다. 두 길이 있다.
+ *  ① 사랑방 단위: 관리자가 부서 관리 › 소그룹과 사람에서 그 사랑방의 '시범 중'을 켜면, 그 사랑방 사람은 어느 기기·어느 앱에서든 로그인한 뒤 보인다.
+ *     공동체 앱(index.html)이 서버에서 알게 되면 room(true)로 이 기기에 표시(room)를 남기고, 같은 저장 공간을 쓰는 기도 노트(note.html)도 그 표시를 보고 띠를 보인다. 꺼지면 room(false)로 표시를 지운다.
+ *  ② 링크: 시범 링크(주소 뒤에 pilot, 예: /app/?pilot)로 열면 이 기기에 켜 두고 주소에서 pilot을 뺀다. 기도 노트만 쓰는 사람(사랑방이 없는 사람)이 쓴다.
+ *     아이폰은 사파리와 홈 화면 앱의 저장 공간이 달라서, 링크로 켠 띠는 연 곳(사파리)에서만 보인다. 그래서 사랑방 단위가 따로 있다.
+ *  시범 끝내기(더보기)는 그 사람이 이 기기에서 끈 것이다. 사랑방이 켜져 있을 때 끝냈으면 그 기기에서는 계속 숨기고(off), 사랑방이 꺼지면 처음으로 돌아간다.
  *  ?demo&pilot이면 데모에서 보인다(기억은 메모리에만, 새로 고치면 처음부터).
  * 화면 위쪽에 한 줄로 접힌 띠가 있고, 누르면 해 볼 일 목록이 펴진다. 해 볼 일을 실제로 하면 저절로 체크되고, 눌러서 직접 체크·해제도 된다.
  *  항목은 "무엇을 해 볼지"만 적는다(어떻게는 적지 않는다). 항목을 바꾸면 서버(apps-script/Code.js)의 SURVEY_PILOT_ 키도 같게 맞춘다.
@@ -31,34 +36,52 @@
       ['a-feedback', '불편한 점이나 바라는 점을 의견 보내기로 보내 보세요']
     ]]
   };
+  // 개인 단위 부서(청년부 등)는 '우리 가정' 대신 쓰는 말이 다른 항목. 공동체 앱의 words()와 같은 말(mine '나', one '사람')
+  const SOLO = {
+    'c-edit': '내 기도제목을 이번 달에 맞게 고쳐 보세요',
+    'c-pray': '"지금 함께 기도할 사람"을 위해 기도했어요를 눌러 보세요',
+    'c-cord': '기도의 끈에서 아직 느슨한 곳을 찾아 그 사람을 위해 기도해 보세요'
+  };
+  const label = (k, t) => (O && O.solo && O.solo() && SOLO[k]) || t;
   const KEYS = [].concat(...Object.keys(LISTS).map(g => LISTS[g][1].map(x => x[0])));
   const SAVE = 'koide-pilot';
 
   const iso = d => { const x = new Date(d); return x.getFullYear() + '-' + String(x.getMonth() + 1).padStart(2, '0') + '-' + String(x.getDate()).padStart(2, '0'); };
   const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 
-  // on: 시범에 함께함 / hide: 띠를 숨겨 둠 / open: 목록을 펴 둠 / done: { 키: 'yyyy-mm-dd' }
-  let O = null, ST = { on: false, hide: false, open: false, done: {} }, demo = false;
+  // on: 시범 링크로 함께함 / room: 내 사랑방이 시범 중(공동체 앱이 남긴 표시) / off: 사랑방이 시범 중일 때 내가 끝냈음 / hide: 띠를 숨겨 둠 / open: 목록을 펴 둠 / done: { 키: 'yyyy-mm-dd' }
+  let O = null, ST = { on: false, room: false, off: false, hide: false, open: false, done: {} }, demo = false;
 
   function load() {
     try { const v = JSON.parse(localStorage.getItem(SAVE) || 'null'); if (v && typeof v === 'object') ST = Object.assign(ST, v, { done: Object.assign({}, v.done) }); } catch (e) { /* 처음 */ }
   }
   function save() { if (demo) return; try { localStorage.setItem(SAVE, JSON.stringify(ST)); } catch (e) { /* 이번만 */ } }
 
-  // opts: { where: 'community'|'note', demo, rerender(), feedback(), home(): 홈 화면 앱으로 열었는지 }
+  // 공동체 앱이 서버에서 알게 된 '내 사랑방 시범 중' 값을 이 기기에 남긴다(기도 노트가 같은 저장 공간에서 읽는다)
+  function room(v) {
+    v = !!v;
+    if (!O || ST.room === v) return;
+    ST.room = v;
+    if (!v) ST.off = false;
+    if (on() && O.home && O.home() && !ST.done['a-home']) ST.done['a-home'] = iso(new Date());
+    save();
+  }
+
+  // opts: { where: 'community'|'note', demo, rerender(), feedback(), home(): 홈 화면 앱으로 열었는지, solo(): 개인 단위 부서인지 }
   function init(opts) {
     O = opts; demo = !!O.demo;
     if (!demo) load();
     const q = new URLSearchParams(location.search);
     if (q.has('pilot')) {
-      ST.on = true; ST.hide = false; save();
+      ST.on = true; ST.off = false; ST.hide = false; save();
       q.delete('pilot');
       history.replaceState(null, '', location.pathname + (q.toString() ? '?' + q.toString().replace(/=(&|$)/g, '$1') : '') + location.hash);
     }
-    if (ST.on && O.home && O.home() && !ST.done['a-home']) { ST.done['a-home'] = iso(new Date()); save(); }
+    if (on() && O.home && O.home() && !ST.done['a-home']) { ST.done['a-home'] = iso(new Date()); save(); }
   }
 
-  const on = () => !!(O && ST.on);
+  // 링크로 켰거나 내 사랑방이 시범 중이면 함께함(내가 끝낸 기기는 빼고)
+  const on = () => !!(O && !ST.off && (ST.on || ST.room));
   const total = () => KEYS.length;
   const count = () => KEYS.filter(k => ST.done[k]).length;
   // 설문에 실어 보낼 해 본 항목 키(시범에 함께하지 않으면 null)
@@ -80,7 +103,7 @@
     const order = [O.where, O.where === 'note' ? 'community' : 'note', 'all'];
     const sec = g => `<li class="pl-sec">${esc(LISTS[g][0])}</li>` + LISTS[g][1].map(([k, t]) => {
       const d = !!ST.done[k];
-      return `<li><button type="button" class="pl-task${d ? ' done' : ''}" role="checkbox" aria-checked="${d}" data-pl="tog" data-k="${k}"><span class="pl-box">${d ? CHECK : ''}</span><span class="pl-txt">${esc(t)}</span></button></li>`;
+      return `<li><button type="button" class="pl-task${d ? ' done' : ''}" role="checkbox" aria-checked="${d}" data-pl="tog" data-k="${k}"><span class="pl-box">${d ? CHECK : ''}</span><span class="pl-txt">${esc(label(k, t))}</span></button></li>`;
     }).join('');
     return `<section class="card pl${open ? ' open' : ''}" id="pl-band" aria-label="시범 해 볼 일">
       <button type="button" class="pl-head" data-pl="fold" aria-expanded="${open}"><b>시범 · 해 볼 일</b><span class="pl-cnt">${count()}/${total()}</span>${CHEV}</button>
@@ -123,7 +146,7 @@
     if (a === 'show') { ST.hide = !ST.hide; save(); return O.rerender && O.rerender(); }
     if (a === 'off') {
       if (!confirm('시범 "해 볼 일"을 끝낼까요? 체크한 것이 이 기기에서 지워져요.')) return;
-      ST.on = false; ST.hide = false; ST.open = false; ST.done = {}; save(); return O.rerender && O.rerender();
+      ST.off = ST.room; ST.on = false; ST.hide = false; ST.open = false; ST.done = {}; save(); return O.rerender && O.rerender();
     }
   });
 
@@ -144,5 +167,5 @@
 .pl-task.done .pl-box{background:var(--accent);border-color:var(--accent)}`;
   document.head.appendChild(css);
 
-  window.KoidePilot = { init, on, done, keys, count, total, mount, remount, moreRows, LISTS, KEYS };
+  window.KoidePilot = { init, room, on, done, keys, count, total, mount, remount, moreRows, LISTS, KEYS };
 })();

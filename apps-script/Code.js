@@ -23,7 +23,8 @@ const SESSION_DAYS = 30;
 const SCHEMA = {
   // 상태: 비어 있으면 쓰는 중, '닫음'이면 첫 접속에서 빠지고 그 부서 사람은 들어오지 못한다(기록은 남고 다시 열 수 있다), '지움'이면 기록까지 지운 부서
   depts: ['부서', [['id', '부서ID'], ['name', '이름'], ['group', '소그룹 이름'], ['unit', '단위'], ['order', '순서'], ['status', '상태'], ['closedAt', '닫은 날']]],
-  rooms: ['사랑방', [['id', '사랑방ID'], ['name', '이름'], ['order', '순서'], ['deptId', '부서ID']]],
+  // 시범: '예'이면 이 사랑방 사람들에게 시범 "해 볼 일" 띠가 보인다(비어 있으면 꺼짐). 부서 관리 › 소그룹과 사람에서 켠다
+  rooms: ['사랑방', [['id', '사랑방ID'], ['name', '이름'], ['order', '순서'], ['deptId', '부서ID'], ['pilot', '시범 중']]],
   // 상태: 활동 / 승인 대기 / 거절 / 교역자 / 지움 / 합침(결혼해서 새 가정으로 합쳐진 옛 가정. 합친 가정ID·합친 달이 적힌다. 기록은 그대로 남는다) / 취소(합침을 되돌려 없앤 새 가정)
   families: ['가정', [['id', '가정ID'], ['name', '이름'], ['kids', '자녀'], ['status', '상태'], ['admin', '관리자'], ['mergedInto', '합친 가정ID'], ['mergedAt', '합친 달']]],
   // 들어온 달·나간 달: 한 해 중간에 결혼으로 새 가정이 되거나 다른 부서로 옮긴 줄. 비어 있으면 그 편성 연도 내내다(나간 달부터는 그 줄이 쓰이지 않는다)
@@ -96,7 +97,7 @@ const FIRST_DEPT = { id: 'D1', name: '청장년부', group: '사랑방', unit: '
 // ── 요청 받기 ─────────────────────────────────────────────
 
 // 서버 코드를 고칠 때마다 바꾼다. 웹 앱 주소를 열면 보여서, 새 버전으로 배포됐는지 확인할 수 있다
-const VERSION = '2026-11-06 시범 해 볼 일';
+const VERSION = '2026-11-07 사랑방 시범 중';
 function doGet() {
   return ContentService.createTextOutput('코이데 서버가 켜져 있어요. (버전: ' + VERSION + ')');
 }
@@ -751,7 +752,7 @@ function monthView_(c) {
   // 이번 달 사랑방의 다른 가정 중 몇 가정이 우리 가정을 위해 기도했는지(누가 했는지는 알리지 않는다)
   const by = {}; read_('prayers').forEach(p => { if (p.familyId === c.familyId && p.by !== c.familyId && fmtMonth_(p.at) === m) by[p.by] = true; });
   const received = { n: Object.keys(by).length, of: Math.max(0, families.length - 1) };
-  return { month: m, term: termNow_(c.deptId), shift: shift_(c), dept: c.dept, room: { id: room.id, name: room.name }, me: { person: c.person, familyId: c.familyId, role: c.role, admin: c.admin }, families, received, serve: serveView_(c.deptId),
+  return { month: m, term: termNow_(c.deptId), shift: shift_(c), dept: c.dept, room: { id: room.id, name: room.name, pilot: yes_(room.pilot) }, me: { person: c.person, familyId: c.familyId, role: c.role, admin: c.admin }, families, received, serve: serveView_(c.deptId),
     art: artNums_(c, [m])[0], eraseReq: eraseAsked_(c.familyId), together: togetherItems_(c.deptId), news: newsOfFamily_(c.familyId) };
 }
 
@@ -1702,13 +1703,13 @@ function rosterView_(c) {
   // 옮길 곳을 고르도록 쓰는 부서와 사랑방 이름(기도제목은 없다)
   const depts = depts_().filter(deptOpen_).map(d => ({ id: d.id, name: d.name, group: d.group || '사랑방', unit: d.unit === '개인' ? '개인' : '가정',
     rooms: activeRooms_(d.id).sort((a, b) => a.order - b.order).map(r => ({ id: r.id, name: r.name })) }));
-  return { term: y, unit: c.dept.unit, depts, rooms: activeRooms_(c.deptId).sort((a, b) => a.order - b.order).map(r => ({ id: r.id, name: r.name,
+  return { term: y, unit: c.dept.unit, depts, rooms: activeRooms_(c.deptId).sort((a, b) => a.order - b.order).map(r => ({ id: r.id, name: r.name, pilot: yes_(r.pilot),
     people: roster.filter(x => x.roomId === r.id).map(x => ({ x, f: fams.find(f => f.id === x.familyId) })).filter(o => o.f && o.f.status === '활동')
       .sort((a, b) => ROLE[a.x.role] - ROLE[b.x.role]).map(o => ({ id: o.f.id, name: o.f.name, role: o.x.role, admin: yes_(o.f.admin),
         linked: links.filter(l => l.familyId === o.f.id && l.status === '연결').length,
         links: links.filter(l => l.familyId === o.f.id && l.status === '연결').map(l => ({ kakaoId: String(l.kakaoId), person: l.person, nick: l.nick, since: fmtDay_(l.requestedAt), me: String(l.kakaoId) === c.kakaoId })) })) })) };
 }
-// 바꾸기: addRoom / renameRoom / dropRoom(빈 소그룹만) / addPerson / move / role / admin / leave
+// 바꾸기: addRoom / renameRoom / pilotRoom(시범 중 켜기·끄기) / dropRoom(빈 소그룹만) / addPerson / move / role / admin / leave
 function rosterSave_(body) {
   const c = adminOf_(body), d = c.deptId, op = String(body.op || '');
   return withLock_(() => {
@@ -1730,6 +1731,12 @@ function rosterSave_(body) {
         logChange_(c, c.dept.group + ' 이름 바꾸기', r.name + ' → ' + name);
         r.name = name; update_('rooms', r);
       }
+    } else if (op === 'pilotRoom') {
+      // 시범 중: 켜면 이 사랑방 사람들에게 시범 "해 볼 일" 띠가 보인다(자기 부서 사랑방만)
+      const r = read_('rooms').find(x => x.id === body.roomId && roomOf(x.id));
+      if (!r) throw fail_('bad', '찾지 못했어요.');
+      r.pilot = body.on ? '예' : ''; update_('rooms', r);
+      logChange_(c, body.on ? '시범 중 켜기' : '시범 중 끄기', r.name);
     } else if (op === 'dropRoom') {
       const r = read_('rooms').find(x => x.id === body.roomId && roomOf(x.id));
       if (!r) throw fail_('bad', '찾지 못했어요.');
