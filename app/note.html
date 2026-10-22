@@ -303,6 +303,9 @@ button.knot { cursor: pointer; }
 .mrow-sub { display: flex; align-items: center; gap: 10px; margin: -.3em 0 .5em; }
 .mrow-sub .link { font-size: .86em; padding: 0; }
 .mrow-sub .warn-text { color: var(--warm); font-size: .8em; }
+.mrow-end { display: flex; align-items: center; gap: .5em; flex: none; color: var(--ink-2); }
+.mrow-end .tag { margin-right: 0; }
+.tag.off { color: var(--ink-2); background: var(--surface-2); }
 .mrow small { display: block; color: var(--ink-2); font-size: .8em; }
 /* 고르는 버튼 묶음: 공동체 앱과 같은 모양(디자인 스타일 new·classic·glass가 그대로 입혀진다) */
 .seg { display: grid; grid-auto-flow: column; grid-auto-columns: 1fr; gap: 3px; padding: 3px; background: var(--surface-2); border-radius: 12px; }
@@ -566,7 +569,7 @@ button.knot { cursor: pointer; }
   }
   // 글을 쓰는 중이면 다시 그리지 않고 상태 글만 바꾼다(쓰던 글이 날아가지 않게)
   function paintSync(t) { const el = document.getElementById('sync-state'); if (el) el.textContent = t; }
-  function safeRender() { const a = document.activeElement; if (a && a.matches && a.matches('input, textarea')) return paintSync(syncLabel()); render(); }
+  function safeRender() { const a = document.activeElement; if (S.kc || (a && a.matches && a.matches('input, textarea'))) return paintSync(syncLabel()); render(); }
   const hhmm = t => { const d = new Date(t); return `${d.getMonth() + 1}월 ${d.getDate()}일 ${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`; };
   const syncLabel = () => syncing ? '동기화 중…' : S.syncMsg ? S.syncMsg : D.vault && D.vault.last ? '연결됨 · 마지막으로 맡긴 때 ' + hhmm(D.vault.last) : '연결됨 · 아직 맡기지 않았어요';
 
@@ -1149,18 +1152,10 @@ button.knot { cursor: pointer; }
     const nick = (noteMe() || {}).nick;
     return `<header class="top"><div><p class="eyebrow">${nick ? esc(nick) : '코이데 기도 노트'}</p><h1>더보기</h1></div></header>
       ${groupsCard()}
-      ${vaultCard()}
+      ${syncRow()}
       <section class="card"><p class="label">내가 기도하는 사람들</p>
         ${people().length ? `<ul class="people">${people().map(p => `<li><span>${esc(p.name)}</span><span><button class="link quiet" data-a="renperson" data-v="${p.id}">이름 바꾸기</button> <button class="link quiet" data-a="delperson" data-v="${p.id}">빼기</button></span></li>`).join('')}</ul>` : '<p class="hint">가족, 친구처럼 늘 기도하는 사람을 더해 두면 기도제목의 대상으로 고를 수 있고, 오늘 화면에 끈이 생겨요.</p>'}
         <button class="btn ghost small" data-a="addperson" style="align-self:flex-start">+ 사람 더하기</button></section>
-      <section class="card"><p class="label">내 기록 파일</p>
-        <button class="mrow" data-a="backup"><span><b>기록 저장하기</b><small>파일·드라이브에 저장하거나, 카카오톡으로 보내요.</small></span></button>
-        <button class="mrow" data-a="restore"><span><b>불러오기</b><small>저장해 둔 파일로 기록을 되살려요.</small></span></button>
-        <input type="file" id="restore-file" accept="application/json,.json" hidden></section>
-      <section class="card"><p class="label">알아 두세요</p>
-        <p class="hint">· 브라우저의 인터넷 기록·사이트 데이터를 지우면 이 기기의 사본과 화면 설정이 지워질 수 있어요.</p>
-        <p class="hint">· 맡긴 기록은 비밀 문구로 다시 열 수 있어요.</p>
-        ${D.vault && D.vault.on ? '' : '<p class="hint">· 아이폰은 홈 화면에 두지 않고 7일 넘게 열지 않으면 이 기기의 기록이 지워질 수 있어요.</p>'}</section>
       <section class="card"><p class="label">화면</p>${screenControls()}</section>
       <section class="card"><button class="mrow" data-a="tourgo" data-v="restart"><span><b>사용법 보기</b><small>기도 노트 사용법을 카드로 봐요</small></span></button>
         ${HOME_APP ? '' : '<button class="mrow" data-a="a2hsopen"><span><b>홈 화면에 앱처럼 두기</b><small>아이콘을 눌러 바로 열 수 있게 해요</small></span></button>'}
@@ -1173,6 +1168,33 @@ button.knot { cursor: pointer; }
         <button class="btn ghost small" data-a="fbopen" style="align-self:flex-start">의견 보내기</button></section>
       <button class="link quiet" data-a="logout" style="display:block;margin:6px auto 0">로그아웃</button>
       <button class="link quiet" data-a="wipe" style="display:block;margin:6px auto 0">이 휴대폰의 기도 노트 모두 지우기</button>`;
+  }
+  // 더보기의 동기화 한 줄(디다코와 같은 모양): 누르면 동기화 페이지로 간다. 켜짐/꺼짐 표시는 잠시 끈 것도 '꺼짐'
+  function syncRow() {
+    const V = D.vault, conn = !!(V && V.on), paused = conn && !!V.paused, live = conn && !paused;
+    const st = !canLock() ? '이 화면 주소(https)에서만 쓸 수 있어요' : paused ? '꺼짐' : live ? syncLabel() : '켜면 휴대폰을 바꿔도 기록이 이어져요';
+    return `<section class="card"><button class="mrow" data-a="tab" data-v="sync"><span><b>동기화</b><small>${esc(st)}</small></span>
+      <span class="mrow-end">${canLock() ? `<span class="tag${live ? '' : ' off'}">${live ? '켜짐' : '꺼짐'}</span>` : ''}<span aria-hidden="true">›</span></span></button></section>`;
+  }
+  // 동기화 페이지(더보기 › 동기화): 동기화 카드, 연결된 기기의 비밀 문구·복구용 낱말 줄, 내 기록 파일, 알아 두세요
+  function syncView() {
+    const nick = (noteMe() || {}).nick, conn = !!(D.vault && D.vault.on);
+    return `<button class="link" data-a="tab" data-v="more" style="align-self:flex-start;margin-bottom:6px">‹ 더보기</button>
+      <header class="top"><div><p class="eyebrow">${nick ? esc(nick) : '코이데 기도 노트'}</p><h1>동기화</h1></div></header>
+      ${vaultCard()}
+      ${conn && canLock() ? `<section class="card">
+        <button class="mrow" data-a="kcchange"><span><b>비밀 문구 바꾸기</b><small>기록을 잠그는 문구를 새로 정해요</small></span><span aria-hidden="true">›</span></button>
+        <button class="mrow" data-a="kcforgot"><span><b>비밀 문구를 잊었어요</b><small>적어 둔 복구용 낱말로 다시 열어요</small></span><span aria-hidden="true">›</span></button>
+        <button class="mrow" data-a="vrec"${S.recBusy ? ' disabled' : ''}><span><b>${D.vault.rec ? '복구용 낱말 새로 만들기' : '복구용 낱말 만들기'}</b>${D.vault.rec ? '' : '<small>아직 없어요. 비밀 문구를 잊어도 열 수 있게 만들어 두세요.</small>'}</span><span aria-hidden="true">›</span></button>
+        <p class="hint">비밀 문구와 복구용 낱말을 둘 다 잃으면 기록을 되살릴 수 없어요.</p></section>` : ''}
+      <section class="card"><p class="label">내 기록 파일</p>
+        <button class="mrow" data-a="backup"><span><b>기록 저장하기</b><small>파일·드라이브에 저장하거나, 카카오톡으로 보내요.</small></span></button>
+        <button class="mrow" data-a="restore"><span><b>불러오기</b><small>저장해 둔 파일로 기록을 되살려요.</small></span></button>
+        <input type="file" id="restore-file" accept="application/json,.json" hidden></section>
+      <section class="card"><p class="label">알아 두세요</p>
+        <p class="hint">· 브라우저의 인터넷 기록·사이트 데이터를 지우면 이 기기의 사본과 화면 설정이 지워질 수 있어요.</p>
+        <p class="hint">· 맡긴 기록은 비밀 문구로 다시 열 수 있어요.</p>
+        ${D.vault && D.vault.on ? '' : '<p class="hint">· 아이폰은 홈 화면에 두지 않고 7일 넘게 열지 않으면 이 기기의 기록이 지워질 수 있어요.</p>'}</section>`;
   }
   // 의견 보내기: 공동체와 같은 종류. 교회에 연결되지 않아도 보낼 수 있고(로그인만), 운영하는 분(교회 전체 관리자)이 읽는다. 기도제목은 담지 않는다
   const FB_KINDS = ['불편해요', '이랬으면', '고마워요'];
@@ -1199,15 +1221,13 @@ button.knot { cursor: pointer; }
       <p class="sync-st off"><i class="dot" aria-hidden="true"></i><span>켜면 휴대폰을 바꿔도 기록이 이어져요</span></p>
       ${S.syncMsg ? `<p class="sync-st"><i class="dot err" aria-hidden="true"></i><span>${esc(S.syncMsg)}</span></p>` : ''}${SYNC_LOCK}
       <div class="sync-act"><button class="btn small" data-a="vstart"${S.vbusy ? ' disabled' : ''}>${getToken() ? '켜기' : '카카오로 로그인하고 켜기'}</button></div></section>`;
-    const rec = `<button class="mrow" style="padding:.2em 0 0" data-a="vrec"${S.recBusy ? ' disabled' : ''}><span><b>${V.rec ? '복구용 낱말 새로 만들기' : '복구용 낱말 만들기'}</b>${V.rec ? '' : '<small>아직 없어요. 비밀 문구를 잊어도 열 수 있게 만들어 두세요.</small>'}</span></button>
-      <p class="hint">비밀 문구와 복구용 낱말을 둘 다 잃으면 기록을 되살릴 수 없어요.</p>`;
     const cut = '<button class="quiet-link" data-a="cutopen">연결 끊기</button>';
     if (paused) return `<section class="card" style="margin-top:12px">${head}
       <p class="sync-st off"><i class="dot" aria-hidden="true"></i><span>동기화하지 않아요. 이 기기의 기록은 그대로 있고, 켜면 이어서 동기화해요.</span></p>${SYNC_LOCK}
-      <div class="sync-act">${cut}</div>${rec}</section>`;
+      <div class="sync-act">${cut}</div></section>`;
     return `<section class="card" style="margin-top:12px">${head}
       <p class="sync-st"><i class="dot${S.syncMsg && !syncing ? ' err' : ''}" aria-hidden="true"></i><span id="sync-state" aria-live="polite">${esc(syncLabel())}</span></p>${SYNC_LOCK}
-      <div class="sync-act"><button class="btn small ghost" data-a="vsync"${syncing ? ' disabled' : ''}>${ICON.sync}지금 동기화</button>${cut}</div>${rec}</section>`;
+      <div class="sync-act"><button class="btn small ghost" data-a="vsync"${syncing ? ' disabled' : ''}>${ICON.sync}지금 동기화</button>${cut}</div></section>`;
   }
   // 연결 끊기 창: 이 기기에서만 끊는다. 서버에 맡긴 기록을 지울지는 고른다(기본은 남겨 둠)
   function cutSheet() {
@@ -1374,6 +1394,67 @@ button.knot { cursor: pointer; }
     }
     S.recBusy = false; render();
   }
+  // 비밀 문구 바꾸기 · 비밀 문구를 잊었어요(연결된 기기): 진짜 열쇠는 그대로 두고, 새 소금으로 만든 비밀 문구 열쇠로 다시 잠가(wrap) 서버의 소금·wrap만 바꾼다.
+  //  노트 내용은 다시 잠그지 않고, 복구용 낱말(rsalt·rwrap)도 건드리지 않는다. 다른 연결된 기기는 진짜 열쇠를 자기 기기에 두고 있어서 그대로 이어진다
+  //  (서버는 맡길 때 소금을 다시 받지 않는다). 열 때 서버의 잠긴 열쇠를 받아 확인한다. 낱말·비밀 문구는 메모리에만 두고 저장하지 않는다
+  const KC_LEGACY = '이 노트는 예전 방식으로 연결돼 있어요. 복구용 낱말을 먼저 만들어 주세요.';
+  async function kcOpen(kind) {
+    if (S.kc) return;
+    const P = S.kc = { kind, loading: true }; render();
+    let r = null;
+    try { r = await api('noteGet'); }
+    catch (e) { if (S.kc === P) { S.kc = null; toast(e.code === 'login' ? '카카오 로그인이 끝났어요. 다시 로그인해 주세요' : (e.message || '서버와 이야기하지 못했어요.')); } return; }
+    if (S.kc !== P) return;
+    delete P.loading;
+    if (r.none) P.block = { msg: '아직 맡긴 기록이 없어요. 먼저 "지금 동기화"를 한 번 해 주세요.' };
+    else {
+      D.vault.rec = !!r.rwrap; saveLocal();
+      if (kind === 'change' && !r.wrap) P.block = r.rwrap ? { msg: "이 노트는 예전 방식으로 연결돼 있어서 여기서는 바꿀 수 없어요. '비밀 문구를 잊었어요'에 복구용 낱말을 넣으면 새 비밀 문구를 정할 수 있어요." } : { msg: KC_LEGACY, make: true };
+      else if (kind === 'forgot' && !r.rwrap) P.block = r.wrap ? { msg: "복구용 낱말이 없어서 이 방법을 쓸 수 없어요. 이 기기는 연결되어 있으니 '비밀 문구 바꾸기'를 쓰거나 복구용 낱말을 먼저 만들어 주세요.", make: true } : { msg: KC_LEGACY, make: true };
+      else P.remote = r;
+    }
+    render(); const f = $('#kc-c') || $('#kc-w'); if (f) f.focus();
+  }
+  function kcSheet() {
+    const P = S.kc, change = P.kind === 'change', box = body => `<div class="sheet-back" data-a="kcclose"><section class="sheet" role="dialog" aria-modal="true" aria-labelledby="kc-t" data-stop>
+      <h2 id="kc-t">${change ? '비밀 문구 바꾸기' : '비밀 문구를 잊었어요'}</h2>${body}</section></div>`;
+    if (P.loading) return box('<p class="hint">불러오는 중…</p>');
+    if (P.block) return box(`<p class="plain" role="alert">${esc(P.block.msg)}</p>
+      <div class="row" style="justify-content:flex-end"><button class="btn ghost" data-a="kcclose">닫기</button>${P.block.make ? '<button class="btn" data-a="kcmake">복구용 낱말 만들기</button>' : ''}</div>`);
+    return box(`<p class="plain">${change ? '지금 비밀 문구와 새 비밀 문구를 넣어요. 맡겨 둔 기록은 그대로이고, 다른 기기도 계속 이어져요.' : '적어 둔 복구용 낱말 6개를 넣고, 새 비밀 문구를 정해요. 복구용 낱말은 그대로 두고 또 쓸 수 있어요.'}</p>
+      <form data-f="kckeys" style="display:flex;flex-direction:column;gap:8px">
+        ${change ? '<input class="field" id="kc-c" type="password" maxlength="100" autocomplete="current-password" placeholder="지금 비밀 문구" aria-label="지금 비밀 문구" required>'
+          : '<textarea class="field" id="kc-w" rows="2" autocapitalize="none" autocomplete="off" spellcheck="false" placeholder="낱말 6개 (붙여 넣어도 돼요)" aria-label="복구용 낱말" required></textarea>'}
+        <input class="field" id="kc-a" type="password" minlength="6" maxlength="100" autocomplete="new-password" placeholder="새 비밀 문구 (6글자 넘게)" aria-label="새 비밀 문구" required>
+        <input class="field" id="kc-b" type="password" maxlength="100" autocomplete="new-password" placeholder="한 번 더" aria-label="새 비밀 문구 한 번 더" required>
+        <p class="hint" id="kc-err" style="color:var(--warm)" role="alert"></p>
+        <div class="row" style="justify-content:flex-end"><button type="button" class="btn ghost" data-a="kcclose">취소</button><button class="btn" type="submit" id="kc-go">${change ? '바꾸기' : '열고 정하기'}</button></div>
+      </form>`);
+  }
+  async function kcSubmit() {
+    const P = S.kc; if (!P || !P.remote || P.busy) return;
+    const change = P.kind === 'change', R = P.remote, err = m => { const el = $('#kc-err'); if (el) el.textContent = m; };
+    const cur = change ? $('#kc-c').value : '', a = $('#kc-a').value, b = $('#kc-b').value;
+    let ph = null;
+    if (change) { if (!cur) return err('지금 비밀 문구를 적어 주세요.'); } else { ph = readWords($('#kc-w').value); if (ph.err) return err(ph.err); }
+    if (a.length < 6) return err('6글자 넘게 써 주세요.');
+    if (a !== b) return err('두 번 쓴 새 비밀 문구가 달라요.');
+    P.busy = true; err(''); const go = $('#kc-go'); if (go) { go.disabled = true; go.textContent = '바꾸는 중…'; }
+    const fail = m => { P.busy = false; err(m); const g = $('#kc-go'); if (g) { g.disabled = false; g.textContent = change ? '바꾸기' : '열고 정하기'; } };
+    let raw;
+    try {
+      // 서버의 잠긴 열쇠를 풀어 진짜 열쇠를 얻고, 그 열쇠로 노트가 열리는지까지 본다(틀린 열쇠를 다시 잠가 두지 않게)
+      raw = change ? (await unlockUp(await deriveKey(cur, R.salt), R.wrap)).k : (await unlockUp(await deriveKey(ph.phrase, R.rsalt), R.rwrap)).k;
+      await unlockUp(await keyOfRaw(raw), R.data);
+    } catch (e) { return fail(change ? '비밀 문구가 맞지 않아요.' : '복구용 낱말이 맞지 않아요. 낱말을 다시 봐 주세요.'); }
+    try {
+      const salt = randB64(16), wrap = await lockUp(await deriveKey(a, salt), { k: raw });
+      await api('noteKeys', { salt, wrap });
+      D.vault.salt = salt; saveLocal(); S.kc = null; render(); toast('비밀 문구를 바꿨어요');
+    } catch (e) {
+      fail(e.code === 'login' ? '카카오 로그인이 끝났어요. 다시 로그인해 주세요.' : e.code === 'bad' && /모르는 요청/.test(e.message || '') ? '서버를 새 버전으로 배포해야 바꿀 수 있어요.' : '바꾸지 못했어요. 예전 비밀 문구는 그대로예요. 다시 해 주세요.');
+    }
+  }
   async function vaultStart() {
     if (!canLock()) return toast('이 화면 주소(https)에서만 쓸 수 있어요');
     const toLogin = () => { try { localStorage.setItem('koide-after-login', 'note'); localStorage.setItem('koide-note-resume', 'vault'); } catch (e) { /* 무시 */ } location.href = 'index.html' + QS; };
@@ -1517,12 +1598,12 @@ button.knot { cursor: pointer; }
   const TABS = [['today', '오늘', TICON.sun], ['note', '내 기도', TICON.pen], ['pray', '기도하기', TICON.hands], ['look', '지난 기록', TICON.book], ['more', '더보기', TICON.more]];
   function render() {
     if (S.tab !== 'keep') { S.gbig = false; S.wopen = null; }
-    const V = { start: startView, today: todayView, note: noteView, pray: prayTab, look: lookView, keep: keepView, more: moreView, fb: fbView }[S.tab];
+    const V = { start: startView, today: todayView, note: noteView, pray: prayTab, look: lookView, keep: keepView, more: moreView, sync: syncView, fb: fbView }[S.tab];
     $('#root').innerHTML = `${S.tab !== 'start' ? topBar() : ''}<div class="wrap${S.tab !== 'start' ? ' has-top' : ''}">${V()}</div>
-      ${S.tab === 'start' ? '' : `<nav class="tabs" aria-label="메뉴">${TABS.map(([k, l, ic]) => { const on = (S.tab === 'keep' ? 'look' : S.tab === 'fb' ? 'more' : S.tab) === k; return `<button class="${k === 'pray' ? 'pray-tab ' : ''}${on ? 'on' : ''}" data-a="tab" data-v="${k}" aria-label="${l}" title="${l}" ${on ? 'aria-current="page"' : ''}>${ic}</button>`; }).join('')}</nav>`}
-      ${S.done ? doneSheet() : ''}${S.tour != null ? tourSheet() : ''}${S.a2hs && !S.ps ? a2hsSheet() : ''}${S.vsheet ? vaultSheet() : ''}${S.cut ? cutSheet() : ''}${S.recSheet ? recSheet() : ''}${S.share ? shareSheet() : ''}${S.mv ? mvSheet() : ''}${S.ps ? psHtml() : ''}${S.toast ? `<div class="toast" role="status">${esc(S.toast)}</div>` : ''}
+      ${S.tab === 'start' ? '' : `<nav class="tabs" aria-label="메뉴">${TABS.map(([k, l, ic]) => { const on = (S.tab === 'keep' ? 'look' : S.tab === 'fb' || S.tab === 'sync' ? 'more' : S.tab) === k; return `<button class="${k === 'pray' ? 'pray-tab ' : ''}${on ? 'on' : ''}" data-a="tab" data-v="${k}" aria-label="${l}" title="${l}" ${on ? 'aria-current="page"' : ''}>${ic}</button>`; }).join('')}</nav>`}
+      ${S.done ? doneSheet() : ''}${S.tour != null ? tourSheet() : ''}${S.a2hs && !S.ps ? a2hsSheet() : ''}${S.vsheet ? vaultSheet() : ''}${S.cut ? cutSheet() : ''}${S.recSheet ? recSheet() : ''}${S.kc ? kcSheet() : ''}${S.share ? shareSheet() : ''}${S.mv ? mvSheet() : ''}${S.ps ? psHtml() : ''}${S.toast ? `<div class="toast" role="status">${esc(S.toast)}</div>` : ''}
       ${canSave ? '' : '<div class="toast" role="alert">이 브라우저에서는 저장할 수 없어요. 개인 정보 보호 모드를 끄고 열어 주세요.</div>'}`;
-    document.documentElement.style.overflow = S.ps || S.done || S.vsheet || S.cut || S.recSheet || S.share || S.tour != null || S.a2hs || S.gbig || S.wopen != null ? 'hidden' : '';
+    document.documentElement.style.overflow = S.ps || S.done || S.vsheet || S.cut || S.recSheet || S.kc || S.share || S.tour != null || S.a2hs || S.gbig || S.wopen != null ? 'hidden' : '';
     document.querySelectorAll('textarea.field').forEach(autosize);
     if (S.cordNew) { document.querySelectorAll('.cord-seg.pull animate').forEach(a => { try { a.beginElement(); } catch (e) { /* 무시 */ } }); S.cordNew = null; }
     mount3d();
@@ -1672,6 +1753,10 @@ button.knot { cursor: pointer; }
       case 'vrecmode': S.vsheet.rec = true; S.vsheet.err = ''; return render();
       case 'vrecback': S.vsheet.rec = false; S.vsheet.err = ''; return render();
       case 'vrec': return recMake();
+      case 'kcchange': return kcOpen('change');
+      case 'kcforgot': return kcOpen('forgot');
+      case 'kcclose': S.kc = null; return render();
+      case 'kcmake': S.kc = null; render(); return recMake();
       case 'recshare': { const t = S.recSheet.words.join(' '); try { navigator.share({ text: `코이데 기도 노트 복구용 낱말\n${t}` }).catch(() => {}); } catch (e) { /* 취소 */ } return; }
       case 'reccopy': { const t = S.recSheet.words.join(' '); (navigator.clipboard && navigator.clipboard.writeText ? navigator.clipboard.writeText(t) : Promise.reject()).then(() => toast('복사했어요'), () => toast('복사하지 못했어요. 낱말을 길게 눌러 복사해 주세요')); return; }
       case 'recdone': S.recSheet = null; return render();
@@ -1790,6 +1875,7 @@ button.knot { cursor: pointer; }
       })();
       return;
     }
+    if (f.dataset.f === 'kckeys') return kcSubmit();
     if (f.dataset.f === 'thanks') {
       const t = $('#th-in').value.trim(); if (!t) return;
       S.thDraft = ''; D.thanks.push({ id: uid(), date: TODAY(), text: t.slice(0, 200), kind: 'thanks', up: now() }); save(); return toast('감사를 남겼어요');
@@ -1816,7 +1902,7 @@ button.knot { cursor: pointer; }
   document.addEventListener('keydown', e => {
     if ((e.key === 'Enter' || e.key === ' ') && e.target.id === 'keep3d' && e.target.getAttribute('role') === 'button') { e.preventDefault(); S.gbig = true; render(); return; }
     if (e.key !== 'Escape') return;
-    if (S.wopen != null) { S.wopen = null; render(); } else if (S.gbig) { if (G3.garden) G3.garden.leave(); S.gbig = false; S.gEdit = false; render(); } else if (S.ps) { psStop(); render(); } else if (S.done) { S.done = null; render(); } else if (S.cut) { S.cut = null; render(); } else if (S.vsheet) { S.vsheet = null; render(); } else if (S.share) { S.share = null; render(); } else if (S.mv) { S.mv = null; render(); }
+    if (S.wopen != null) { S.wopen = null; render(); } else if (S.gbig) { if (G3.garden) G3.garden.leave(); S.gbig = false; S.gEdit = false; render(); } else if (S.ps) { psStop(); render(); } else if (S.done) { S.done = null; render(); } else if (S.kc) { S.kc = null; render(); } else if (S.cut) { S.cut = null; render(); } else if (S.vsheet) { S.vsheet = null; render(); } else if (S.share) { S.share = null; render(); } else if (S.mv) { S.mv = null; render(); }
   });
   // 모임 화면의 '그물 담기'로 오면(?weave=모임ID) 모임 화면이 건네준 그물(sessionStorage)을 노트에 담고 '함께 짠 그물' 탭을 연다
   { const q = new URLSearchParams(location.search), wid = q.get('weave'); if (wid) {
@@ -1842,7 +1928,7 @@ button.knot { cursor: pointer; }
       catch (e) { if (e && e.code === 'login') { if (window.koideSpace) window.koideSpace.going('community'); return location.replace('index.html' + QS); } }
     }
     let resume = null; try { resume = localStorage.getItem('koide-note-resume'); localStorage.removeItem('koide-note-resume'); } catch (e) { /* 무시 */ }
-    if (resume === 'vault' && getToken()) { if (D.started) S.tab = 'more'; vaultStart(); }
+    if (resume === 'vault' && getToken()) { if (D.started) S.tab = 'sync'; vaultStart(); }
     else if (D.vault && D.vault.on && !D.vault.paused) sync();
     loadMe();
   })();
