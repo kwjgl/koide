@@ -14,8 +14,10 @@
 //     nextLabel?                          [다음] 단추의 글(마지막 단계는 [시작하기])
 //     then?: () => 참/거짓                 next 단계에서 단추를 누르면 안내를 잠시 접어 두고, 이 조건이 참이 될 때까지 기다렸다 이어 간다
 //     timeout?: ms                        비출 곳이 이만큼 안 나타나면 말풍선과 [다음]만 보여 준다(기본 8초)
-//     typing?: 선택자 | () => 요소          글 칸. 이 칸에 커서가 있는 동안은 "쓰는 중 모드": 어둡게 하는 막과 테두리를 걷고, 말풍선을 보이는 화면 맨 위 얇은 띠로 줄인다
-//       typingAlso?: () => 요소들          쓰는 중에도 눌리게 둘 곳(예시 넣어 보기 등. 비춘 곳에 더해진다)
+//     typing?: 선택자 | () => 요소          글 칸. 이 칸에 커서가 있는 동안은 "쓰는 중 모드": 어둡게 하는 막·테두리·마름모·눌림 막는 판을 모두 걷고, 보이는 화면 맨 위 얇은 알약만 남긴다.
+//                                        쓰는 동안 안내는 화면을 전혀 움직이지 않는다(스크롤·칸 높이·빈 공간 없음). 아이폰은 키보드가 올라올 때 커서를 따라 스스로 화면을 움직이는데,
+//                                        안내까지 매 순간 움직이면 서로 부딪혀 화면이 떨리고 글이 안 써진다. 알약 자리는 보이는 화면이 움직일 때(visualViewport 이벤트)만 맞춘다
+//       typingAlso?: () => 요소들          (쓰는 중에는 막는 판이 없어 어디든 눌린다. 예전 호환용으로만 남겨 둔다)
 //       typingText?, typingReady?          띠의 글(typingReady는 ready가 참일 때). 띠에는 readyLabel 단추가 붙는다
 //       쓰기 단계는 [넘어가기]와 "비출 곳 없음" 안전장치가 없다(빈 칸으로 넘어가 갇히지 않게)
 //     nudge?: { ms, when, text }          ms 동안 아무것도 안 했고 when()이 참이면 말풍선 글을 text로 바꾼다(넘어가기 대신 길을 알려 줌)
@@ -66,7 +68,7 @@ window.KoideGuide = (() => {
     document.addEventListener('keydown', onKey, true);
     ['pointerdown', 'keydown', 'input', 'focusin'].forEach(t => document.addEventListener(t, onAct, true));
     document.addEventListener('focusout', onOut, true);
-    // 키보드가 올라오거나 화면이 밀려도 막과 말풍선이 바로 따라가게(매 프레임 맞추는 것에 더해 바로 한 번 더)
+    // 키보드가 올라오거나 화면이 밀려도 막과 말풍선이 바로 따라가게(쓰는 중에는 알약 자리만 맞춘다)
     if (window.visualViewport) ['resize', 'scroll'].forEach(t => visualViewport.addEventListener(t, onView));
     root.addEventListener('click', onBubble);
     // 띠의 단추를 누를 때 글 칸에서 커서가 빠지지 않게(빠지면 키보드가 접히며 화면이 움직여 눌림이 빗나간다)
@@ -82,11 +84,11 @@ window.KoideGuide = (() => {
     while (G && n >= 0 && n < G.steps.length && G.steps[n].skip && safe(G.steps[n].skip)) n += dir;
     if (!G) return;
     if (n < 0) n = 0;
-    unfit();
     if (G.s && G.s.typing && document.activeElement && document.activeElement.matches('textarea, input')) document.activeElement.blur(); // 쓰기를 마치면 키보드를 접는다
     if (n >= G.steps.length) return finish(false);
     const s = G.steps[n];
-    Object.assign(G, { i: n, s, paused: false, clicked: false, born: Date.now(), act: Date.now(), miss: 0, seen: false, focused: false, els: [], hole: null, bsig: '', lastState: null, peek: false, notice: '', typing: false, keepT: 0, psig: '' });
+    Object.assign(G, { i: n, s, paused: false, clicked: false, born: Date.now(), act: Date.now(), miss: 0, seen: false, focused: false, els: [], hole: null, bsig: '', lastState: null, peek: false, notice: '', typing: false, te: null, keepT: 0, psig: '', rsig: '', vis: '', pt: '' });
+    G.root.classList.remove('kg-typing'); G.bubble.classList.remove('kg-bar'); G.bubble.style.transform = ''; G.bubble.style.left = ''; G.bubble.style.top = '';
     G.root.hidden = false;
     G.root.classList.toggle('kg-anim', !calm());
     clearTimeout(G.animOff); G.animOff = setTimeout(() => G && G.root.classList.remove('kg-anim'), 400);
@@ -104,7 +106,6 @@ window.KoideGuide = (() => {
     ['pointerdown', 'keydown', 'input', 'focusin'].forEach(t => document.removeEventListener(t, onAct, true));
     document.removeEventListener('focusout', onOut, true);
     if (window.visualViewport) ['resize', 'scroll'].forEach(t => visualViewport.removeEventListener(t, onView));
-    unfit(g);
     g.root.remove();
     document.documentElement.classList.remove('kg-on');
     if (skipped === null) return; // stop(): 앱이 직접 접은 것이라 마침으로 치지 않는다
@@ -123,8 +124,11 @@ window.KoideGuide = (() => {
   // 사람이 한 일(누름·입력·글 칸에 들어감)을 적어 둔다: 한참 가만히 있었는지 가늠하는 데 쓴다. 글자를 입력하면 되돌림 안내는 사라진다
   function onAct(e) { if (!G) return; G.act = Date.now(); if (e.type === 'input') G.notice = ''; }
   // 글 칸에서 커서가 빠져도 잠깐은 쓰는 중으로 친다(띠의 단추를 누르는 사이에 띠가 풀리지 않게)
-  function onOut(e) { if (G && G.s && G.s.typing && e.target === typingEl()) G.keepT = Date.now() + 300; }
-  function onView() { if (G) { G.psig = ''; G.sig = ''; update(); } }
+  function onOut(e) { if (G && G.s && G.s.typing && e.target === (G.te || typingEl())) G.keepT = Date.now() + 600; }
+  // 보이는 화면이 움직였을 때: 쓰는 중이면 알약 자리만, 아니면 구멍·말풍선을 다시 맞춘다(둘 다 값이 바뀔 때만 쓴다)
+  function onView() { if (!G) return; if (G.typing) pillPos(); else update(); }
+  // 되돌아왔을 때(앞 설명 보기에서 돌아가기, 쓰기를 마치고 막이 돌아올 때 등) 기억해 둔 것을 모두 비워 구멍·막·말풍선을 처음부터 다시 그린다
+  const refresh = () => { G.sig = ''; G.psig = ''; G.bsig = ''; G.vis = ''; G.rsig = ''; G.focused = false; };
   const lookOnly = s => !!s && s.mode === 'next' && !s.then;
   const typingEl = () => { if (!G || !G.s || !G.s.typing) return null; const t = G.s.typing; return elsOf(typeof t === 'string' ? () => t : t)[0] || null; };
 
@@ -135,9 +139,9 @@ window.KoideGuide = (() => {
     // 둘러보기: 앞 둘러보기 단계로. 누르는 단계: 앞 단계 설명만 읽어 본다(한 일은 그대로)
     if (b.classList.contains('kg-prev')) {
       if (s.mode === 'next') return go(G.i - 1, -1);
-      G.peek = true; G.bsig = ''; G.focused = false; return;
+      G.peek = true; refresh(); return update();
     }
-    if (b.classList.contains('kg-ret')) { G.peek = false; G.bsig = ''; G.focused = false; return; }
+    if (b.classList.contains('kg-ret')) { G.peek = false; refresh(); return update(); }
     if (b.classList.contains('kg-go')) {
       // then: 단추를 누르면 안내를 접어 두고 조건이 될 때까지 기다렸다 이어 간다
       if (s.then && !G.paused) { G.paused = true; G.root.hidden = true; document.documentElement.classList.remove('kg-on'); return; }
@@ -149,7 +153,7 @@ window.KoideGuide = (() => {
     if (!G) return;
     // 강제 안내: Esc로 닫히지 않는다(앱의 다른 Esc 처리도 막는다)
     if (e.key === 'Escape') { e.preventDefault(); e.stopPropagation(); return; }
-    if (e.key !== 'Tab' || G.paused) return;
+    if (e.key !== 'Tab' || G.paused || G.typing) return;
     // Tab은 비춘 곳 안과 말풍선 단추 사이에서만 돈다
     const inHole = el => { if (!G.hole || G.s.mode === 'next') return false; const q = el.getBoundingClientRect(), V = view(), h = G.hole;
       return q.left - V.x >= h.left - 4 && q.right - V.x <= h.right + 4 && q.top - V.y >= h.top - 4 && q.bottom - V.y <= h.bottom + 4; };
@@ -177,25 +181,31 @@ window.KoideGuide = (() => {
       // 앞 단계로 되돌아가야 할 때(미리보기를 다시 쓰기로 닫았을 때 등)
       if (s.back && G.seen && G.i > 0 && safe(s.back)) return go(G.i - 1, -1);
     }
-    const V = view();
-    // 화면 크기가 바뀌면(키보드, 가로 세로) 비출 곳이 보이게 다시 끌어온다
-    const vs = V.w + 'x' + V.h; if (vs !== G.vs) { G.vs = vs; G.seen = false; }
-    Object.assign(G.root.style, { left: V.x + 'px', top: V.y + 'px', width: V.w + 'px', height: V.h + 'px' });
+    // 쓰는 중에는 화면에 아무것도 쓰지 않는다(읽기만): 글 칸에 커서가 있는 동안, 알약의 [다 썼어요] 상태만 바뀔 때 고친다
+    if (G.typing && !G.peek) {
+      const te = G.te && G.te.isConnected ? G.te : typingEl();
+      if (te && (document.activeElement === te || now < G.keepT)) { G.te = te; paintBubble('on', false, true); return; }
+    }
     const ok = !s.wait || safe(s.wait);
     // 이 단계에 꼭 필요한 것이 비었으면 앞 단계로 되돌리고 이유를 알려 준다(빈 칸으로 정리하기를 누르려는 때 등)
     if (!G.peek && s.bounce && ok && G.i > 0) {
       const m = safe(s.bounce);
       if (m) { const to = G.i - 1; go(to, -1); if (G && G.i === to) G.notice = m; return; }
     }
-    let els = ok && s.target ? elsOf(s.target) : [];
+    const els = ok && s.target ? elsOf(s.target) : [];
     // 쓰는 중 모드: 글 칸에 커서가 있는 동안(단계가 정한 칸일 때만)
-    const te = !G.peek && els.length ? typingEl() : null;
-    const typing = !!te && (document.activeElement === te || now < G.keepT);
-    if (typing && s.typingAlso) els = els.concat(elsOf(s.typingAlso).filter(x => !els.includes(x)));
-    G.els = els; G.typing = typing;
+    const te = !G.peek && els.length && s.typing ? typingEl() : null;
+    if (te && (document.activeElement === te || now < G.keepT)) return enterTyping(te, els);
+    const V = view();
+    if (G.typing) leaveTyping(els, V);
+    // 보이는 화면 틀: 값이 바뀔 때만 쓴다(매 프레임 쓰면 휴대폰이 버벅인다)
+    const rs = [V.x, V.y, V.w, V.h].map(Math.round).join();
+    if (rs !== G.rsig) { G.rsig = rs; Object.assign(G.root.style, { left: V.x + 'px', top: V.y + 'px', width: V.w + 'px', height: V.h + 'px' }); }
+    G.els = els;
     let state;
     if (!s.target) state = 'center';
-    else if (els.length) { state = 'on'; G.miss = 0; if (!G.seen) { G.seen = true; if (!typing) reveal(els); } }
+    // 비출 곳을 보이게 끌어오는 것은 단계에 들어올 때 한 번뿐이다(키보드로 화면 크기가 바뀔 때마다 끌어오면 화면이 흔들린다)
+    else if (els.length) { state = 'on'; G.miss = 0; if (!G.seen) { G.seen = true; if (!G.peek) reveal(els); } }
     else {
       G.miss = G.miss || now;
       // 화면을 다시 그리는 사이에 잠깐 없는 것은 기다린다(깜빡이지 않게)
@@ -205,31 +215,32 @@ window.KoideGuide = (() => {
     }
     if (G.peek) state = 'center';
     // 안전장치: 눌러도 안 넘어가는 채로 오래 걸리면 [넘어가기]를 보여 준다(글을 쓰는 단계는 쓰는 동안 시간이 가니 제외)
-    paintBubble(state, now - G.born > STUCK && !s.typing, typing);
-    layout(state, els, V, typing);
-    if (typing) fit(te, V); else unfit();
+    paintBubble(state, now - G.born > STUCK && !s.typing, false);
+    layout(state, els, V);
     if (!G.focused && (state === 'on' || state === 'center' || state === 'lost')) { G.focused = true; focusStart(state, els); }
   }
 
-  // 쓰는 중: 글 칸이 위 띠 바로 아래, 키보드 위에 오게 화면을 맞추고, 칸이 너무 길면 키보드 위에 들어오도록 줄인다(안에서 스크롤)
-  function fit(el, V) {
-    const want = G.bubble.offsetHeight + 16, top = el.getBoundingClientRect().top - V.y;
-    if (G.capEl !== el) { unfit(); G.capEl = el; G.capOld = [el.style.maxHeight, el.style.overflowY]; }
-    el.style.maxHeight = Math.max(80, Math.round(V.h - want - 16)) + 'px'; el.style.overflowY = 'auto';
-    const d = top - want;
-    if (Math.abs(d) <= 3) return;
-    // 페이지가 짧아 더 못 올라가면 아래에 잠깐 빈 자리를 깔아서 올라갈 수 있게 한다(쓰기를 마치면 걷는다)
-    if (d > 0) {
-      const room = document.documentElement.scrollHeight - innerHeight - scrollY;
-      if (d > room + 1) { const sp = G.spacer || (G.spacer = Object.assign(document.createElement('div'), { ariaHidden: 'true' })); sp.style.height = Math.round((parseFloat(sp.style.height) || 0) + d - room) + 'px'; if (!sp.isConnected) document.body.appendChild(sp); }
-    }
-    window.scrollBy({ top: d, behavior: 'instant' });
+  // 쓰는 중으로 들어간다(한 번만): 막·테두리·마름모·눌림 막는 판을 모두 걷어 아무것도 눌림을 가로채지 않게 하고, 알약만 남긴다.
+  //  스크롤·칸 높이·빈 공간은 건드리지 않는다. 알약은 위(보이는 화면 맨 위)에 transform으로만 놓고, 이후엔 visualViewport 이벤트가 자리를 맞춘다
+  function enterTyping(te, els) {
+    if (G.typing) return;
+    G.typing = true; G.te = te; G.els = els; G.hole = null; G.seen = true; G.vis = 'typing'; G.sig = ''; G.pt = '';
+    G.full.hidden = true; G.ring.hidden = true; G.shield.hidden = true; G.arrow.hidden = true; G.blocks.forEach(b => { b.hidden = true; });
+    G.root.classList.add('kg-typing');
+    G.bubble.classList.add('kg-bar'); G.bubble.classList.remove('kg-tight'); G.bubble.style.left = ''; G.bubble.style.top = '';
+    G.bsig = ''; paintBubble('on', false, true); pillPos();
   }
-  function unfit(g = G) {
-    if (!g) return;
-    if (g.spacer) { g.spacer.remove(); g.spacer = null; }
-    if (!g.capEl) return;
-    g.capEl.style.maxHeight = g.capOld[0]; g.capEl.style.overflowY = g.capOld[1]; g.capEl = null;
+  // 쓰기를 마치거나 커서가 빠졌을 때: 스크롤 없이 평소 막으로 돌아간다. 비출 곳이 아예 화면 밖일 때만 한 번 끌어온다
+  function leaveTyping(els, V) {
+    G.typing = false; G.te = null;
+    G.root.classList.remove('kg-typing'); G.bubble.classList.remove('kg-bar'); G.bubble.style.transform = ''; G.pt = '';
+    refresh(); G.focused = true;
+    if (els.length) { const r = els[0].getBoundingClientRect(); if (r.bottom < 0 || r.top > V.h) G.seen = false; }
+  }
+  // 알약 자리: 보이는 화면의 위(키보드로 화면이 밀려도 그 위)로. 쓰는 중에 하는 유일한 화면 쓰기이고, 값이 바뀔 때만 쓴다
+  function pillPos() {
+    const v = window.visualViewport, t = 'translate(' + Math.round(v ? v.offsetLeft : 0) + 'px,' + Math.round(v ? v.offsetTop : 0) + 'px)';
+    if (t !== G.pt) { G.pt = t; G.bubble.style.transform = t; }
   }
 
   // 비출 곳이 화면 밖이면 보이게 끌어온다(이미 다 보이는 위·아래 막대 안의 것은 그대로)
@@ -247,10 +258,15 @@ window.KoideGuide = (() => {
     (t || go || G.bubble).focus({ preventScroll: true });
   }
 
-  function layout(state, els, V, typing) {
+  function layout(state, els, V) {
     const full = state !== 'on', s = G.s;
-    // 쓰는 중에는 어둡게 하는 막(full)도 테두리(ring: 그림자가 어둠을 맡는다)도 걷는다. 눌림을 막는 투명 판들은 그대로
-    G.full.hidden = !full; G.ring.hidden = full || typing; G.shield.hidden = full || s.mode !== 'next';
+    // 켜고 끄는 것은 바뀔 때만(어두운 막 full / 테두리 ring: 그림자가 어둠을 맡는다 / 눌림을 막는 판들)
+    const vis = (full ? 1 : 0) + ',' + (s.mode === 'next' ? 1 : 0);
+    if (vis !== G.vis) {
+      G.vis = vis;
+      G.full.hidden = !full; G.ring.hidden = full; G.shield.hidden = full || s.mode !== 'next';
+      G.blocks.forEach(b => { b.hidden = full; });
+    }
     let h = null;
     if (!full) {
       h = unionRect(els, V);
@@ -264,19 +280,15 @@ window.KoideGuide = (() => {
       }
     } else G.sig = '';
     G.hole = h;
-    G.blocks.forEach(b => { b.hidden = full; });
-    place(h, V, typing);
+    place(h, V);
   }
 
   // 말풍선: 구멍 아래에 들어가면 아래, 아니면 위. 화면 밖으로 나가지 않게 가둔다
-  function place(h, V, typing) {
+  function place(h, V) {
     const psig = [h ? [h.left, h.top, h.width, h.height].map(Math.round).join() : '-', Math.round(V.w), Math.round(V.h), G.bsig].join('|');
     if (psig === G.psig) return;
     G.psig = psig;
     const b = G.bubble, a = G.arrow, M = 12, gap = 14;
-    // 쓰는 중: 보이는 화면 맨 위(막 전체가 보이는 화면에 맞춰 있으므로 top 8px이 곧 보이는 화면의 위)에 얇은 띠로
-    b.classList.toggle('kg-bar', !!typing);
-    if (typing) { b.style.left = '8px'; b.style.top = '8px'; a.hidden = true; return; }
     // 위·아래 어느 쪽에도 안 들어가면(키보드가 올라온 작은 화면) 말풍선을 작게 줄여서 구멍을 덜 가린다
     b.classList.remove('kg-tight');
     let bw = b.offsetWidth, bh = b.offsetHeight;
