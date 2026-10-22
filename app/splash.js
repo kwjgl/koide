@@ -3,6 +3,7 @@
 //  ② 공동체 ↔ 기도 노트를 오갈 때: 가는 곳의 전환 화면(기도 노트 / 공동체). 짧게 보여 준다
 //  ③ 같은 곳을 다시 열 때(새로고침, 카카오 로그인을 다녀옴 등): 시작 화면 없이
 //  ④ 자율 모임으로 들어갈 때(기도 노트의 '내 모임', 함께하는 곳 메뉴): 모임 전환 화면(수틀에 실이 걸림 · 모임 이름). 모임 자료가 올 때까지 계속 보인다
+//  ⑤ 관리 화면(교회 전체 · 부서 관리)으로 들어갈 때: 관리 전환 화면(끈 위의 매듭 셋 · 화면 이름 · 불러오는 중이에요). 자료가 올 때까지 계속 보인다
 //  마지막에 쓴 곳은 기기에(localStorage), 이번 창에서 보던 곳은 창에만(sessionStorage) 둔다. 기도제목은 담지 않는다
 (() => {
   const me = document.currentScript, q = new URLSearchParams(location.search), demo = q.has('demo');
@@ -78,9 +79,19 @@
 .sw-hoop .kn { fill: var(--accent); stroke: none; transform-box: fill-box; transform-origin: center; animation: sw-pop .3s ease-out both; }
 .sw-hoop .kn.k2 { animation-delay: 1.15s; }
 @keyframes sw-pop { from { opacity: 0; transform: scale(.3); } to { opacity: 1; transform: none; } }
-@media (prefers-reduced-motion: reduce) { .splash { transition: none; } .splash-mark path, .sw-in, .sw-cord .c, .sw-cord .k, .sw-hoop .t, .sw-hoop .kn { animation: none; } }`;
+/* 관리 전환 화면: 불러오는 동안 매듭이 지어지고(길이 1→0), 가만히 있다가, 계속 같은 쪽으로 풀려 사라진 뒤 다시 지어진다 */
+.sw-cord.loop .k { animation: sw-loop 2.4s ease-in-out infinite both; }
+@keyframes sw-loop { 0% { stroke-dashoffset: 1; opacity: 0; } 1% { opacity: 1; } 30% { stroke-dashoffset: 0; opacity: 1; } 70% { stroke-dashoffset: 0; opacity: 1; } 96% { stroke-dashoffset: -1; opacity: 0; } 100% { stroke-dashoffset: -1; opacity: 0; } }
+@media (prefers-reduced-motion: reduce) { .splash { transition: none; } .splash-mark path, .sw-in, .sw-cord .c, .sw-cord .k, .sw-cord.loop .k, .sw-hoop .t, .sw-hoop .kn { animation: none; } }`;
   const KNOT = 'M.5 8.5h3.8c1.2 0 1.7-1.5 1.7-2.8C6 3.7 7.3 2.5 9 2.5s3 1.2 3 3.1-1.8 3.1-4 3.3', KNOT2 = 'M5.6 10.1C7.6 9 9.6 8.5 15.5 8.5';
   const esc = s => String(s || '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]);
+  // 끈 위의 매듭 셋(공동체 전환 화면, 관리 전환 화면). 매듭은 공동체 화면의 매듭과 같은 꼴(16×12)을 2.4배로, 끈이 먼저 그어지고 매듭이 차례로 지어진다
+  const cordInner = (name, sub, loop) => {
+    const k = (x, t) => `<g transform="translate(${x - 19.2} 6.2) scale(2.4)" style="stroke-width:1"><path class="k" pathLength="1" style="animation-delay:${t}s" d="${KNOT}"/><path class="k" pathLength="1" style="animation-delay:${t + .2}s" d="${KNOT2}"/></g>`;
+    // loop(관리 전환 화면): 매듭이 하나씩 지어지고 천천히 풀렸다가 다시 지어진다(한 바퀴 2.4초). 기다리는 동안 계속 움직인다
+    return `<span class="sw-cord${loop ? ' loop' : ''}"><svg viewBox="0 0 220 48"><path class="c" pathLength="1" d="M4 26.6H216"/>${loop ? `${k(48, 0)}${k(110, .45)}${k(172, .9)}` : `${k(48, .25)}${k(110, .4)}${k(172, .55)}`}</svg></span>
+  <p class="splash-name sw-in d1">${esc(name)}</p><p class="splash-sub sw-in d2">${esc(sub)}</p><p class="loading"></p>`;
+  };
   let inner = '';
   if (mode === 'main') {
     inner = `<span class="splash-mark"><svg viewBox="0 0 16 12"><path pathLength="1" d="${KNOT}"/><path pathLength="1" d="${KNOT2}"/></svg></span>
@@ -91,10 +102,7 @@
   } else if (mode === 'switch') {
     // 공동체: 이 기기에 남은 지난번 화면에서 사랑방 이름을 가져온다(없으면 '코이데 공동체')
     let room = ''; try { const c = JSON.parse(localStorage.getItem(demo ? 'koide-demo-cache' : 'koide-cache') || 'null'); room = c && c.month && c.month.room ? c.month.room.name : ''; } catch (e) { /* 없음 */ }
-    // 매듭은 공동체 화면의 매듭과 같은 꼴(16×12)을 2.4배로, 끈 위에 셋. 끈이 먼저 그어지고 매듭이 차례로 지어진다
-    const k = (x, t) => `<g transform="translate(${x - 19.2} 6.2) scale(2.4)" style="stroke-width:1"><path class="k" pathLength="1" style="animation-delay:${t}s" d="${KNOT}"/><path class="k" pathLength="1" style="animation-delay:${t + .2}s" d="${KNOT2}"/></g>`;
-    inner = `<span class="sw-cord"><svg viewBox="0 0 220 48"><path class="c" pathLength="1" d="M4 26.6H216"/>${k(48, .25)}${k(110, .4)}${k(172, .55)}</svg></span>
-  <p class="splash-name sw-in d1">${esc(room || '코이데 공동체')}</p><p class="splash-sub sw-in d2">함께 기도하는 공동체</p><p class="loading"></p>`;
+    inner = cordInner(room || '코이데 공동체', '함께 기도하는 공동체');
   }
   // 모임 전환 화면의 속: 수틀(바깥 고리와 속천), 그물 눈금, 걸리는 실 둘, 실이 만나는 매듭 둘
   const groupInner = (name, left) => `<span class="sw-hoop"><svg viewBox="0 0 156 156"><defs><clipPath id="sw-clip"><circle cx="78" cy="78" r="70"/></clipPath></defs>
@@ -111,7 +119,7 @@
   if (!inner) unboot();
   if (inner) me.insertAdjacentHTML('afterend', `<div id="splash" class="splash" aria-hidden="true">${inner}</div>`);
   window.SPLASH_AT = performance.now();
-  // 시작 화면 닫기: 처음 켤 때도 전환 화면도 1.5초 머문다(움직임 줄이기는 0.6초)
+  // 시작 화면 닫기: 처음 켤 때도 전환 화면도 1.5초 머문다(움직임 줄이기는 0.6초). 관리 전환 화면만 2.5초(dataset.min)
   window.koideSplash = {
     mode,
     // 모임 전환 화면을 (앱 안에서 모임을 바꿀 때) 띄우거나, 이미 떠 있으면 이름·남은 날만 새로 쓴다. 닫는 것은 hide()
@@ -127,10 +135,18 @@
       if (n && name) n.textContent = name;
       if (b && left != null) b.textContent = groupSub(left);
     },
+    // 관리 전환 화면(교회 전체 · 부서 관리)을 띄운다. 누른 바로 그때 띄우고, 자료가 올 때까지 두었다가 hide()로 닫는다(머무는 시간은 아래와 같다)
+    admin(name) {
+      const s = document.getElementById('splash'); if (s) s.remove();
+      document.body.insertAdjacentHTML('beforeend', `<div id="splash" class="splash" aria-hidden="true">${cordInner(name, '불러오는 중이에요', true)}</div>`);
+      // 관리 전환 화면만 2.5초(불러오는 데 보통 2~3초 걸려서). 다른 전환 화면은 1.5초 그대로
+      document.getElementById('splash').dataset.min = '2500';
+      window.SPLASH_AT = performance.now();
+    },
     hide() {
       const s = document.getElementById('splash'); if (!s || s.classList.contains('out')) return unboot();
       const calm = matchMedia('(prefers-reduced-motion: reduce)').matches, shown = performance.now() - window.SPLASH_AT;
-      const stay = calm ? 600 : 1500;
+      const stay = calm ? 600 : +s.dataset.min || 1500;
       setTimeout(() => { s.classList.add('out'); unboot(); setTimeout(() => s.remove(), calm ? 0 : 300); }, Math.max(0, stay - shown));
     }
   };

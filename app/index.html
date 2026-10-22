@@ -3467,11 +3467,14 @@ try { const p = JSON.parse(localStorage.getItem('koide-pref') || '{}'), d = docu
     if (!first) return;
     if (S.grp) { S.month = S.home || S.month; S.grp = null; S.home = null; }
     if (!S.op) S.home = S.month;
+    // 누른 바로 관리 전환 화면을 띄우고, 부서 목록과 교회 전체 자료가 다 올 때까지 둔다(이미 교회 전체를 보는 중이면 띄우지 않는다)
+    adminWait(!(S.op && S.tab === 'church'), '교회 전체');
     S.op = first; try { localStorage.setItem(OP_KEY, '*'); } catch (e) { /* 이번만 */ }
     Object.assign(S, { pending: null, ops: null, rost: null, an: null, rgData: null, menu: null, church: null, tab: 'church' });
     try { S.month = await api('opsCtx'); }
-    catch (e) { S.op = null; S.month = S.home; S.home = null; if (S.month) { S.tab = 'more'; toast(e.code === 'bad' ? '서버를 새 버전으로 배포하면 열 수 있어요.' : e.message); } else { S.view = 'error'; S.err = e; } return render(); }
-    S.view = 'app'; render(); window.scrollTo(0, 0); loadChurch(); if (S.churchTab === 'analysis') loadChurchAnalysis();
+    catch (e) { adminDone(); S.op = null; S.month = S.home; S.home = null; if (S.month) { S.tab = 'more'; toast(e.code === 'bad' ? '서버를 새 버전으로 배포하면 열 수 있어요.' : e.message); } else { S.view = 'error'; S.err = e; } return render(); }
+    S.view = 'app'; render(); window.scrollTo(0, 0); if (S.churchTab === 'analysis') loadChurchAnalysis();
+    await loadChurch(); adminDone();
   }
   async function loadChurch() { try { S.church = await api('church'); } catch (e) { S.church = { err: e.code === 'bad' ? '서버를 새 버전으로 배포하면 볼 수 있어요.' : e.message }; } render(); }
   // ── 교회 전체 › 의견과 설문: 몇째 날별 답 개수(합계만, 사람별 보기 없음), 글 답, 부서 없는 것까지 모든 의견. 표(CSV)로 내려받기 ──
@@ -3770,31 +3773,45 @@ try { const p = JSON.parse(localStorage.getItem('koide-pref') || '{}'), d = docu
   const opsDepts = () => (S.me && S.me.ops && S.me.ops.depts) || [];
   const isOpsMode = () => !!S.op;
   async function enterOps(id) {
+    // 누른 바로 관리 전환 화면을 띄우고, 부서 자료가 다 올 때까지 둔다(이미 그 부서 관리를 보는 중이면 띄우지 않는다)
+    adminWait(!(S.op === id && S.tab === 'admin'), ((opsDepts().find(d => d.id === id) || {}).name || '부서') + ' 관리');
     if (S.grp) { S.month = S.home || S.month; S.grp = null; S.home = null; }
     if (!S.op) S.home = S.month;
     S.op = id; try { localStorage.setItem(OP_KEY, id); } catch (e) { /* 이번만 */ }
     Object.assign(S, { pending: null, ops: null, opsErr: null, rost: null, an: null, rgData: null, menu: null, rostSel: null, rostOpen: null, eraseAsk: null, qrOpen: null, tog: null, togEdit: null, adminTab: 'manage', tab: 'admin' });
     try { S.month = await api('opsCtx'); }
     catch (e) {
-      S.op = null; try { localStorage.removeItem(OP_KEY); } catch (er) { /* 무시 */ }
+      adminDone(); S.op = null; try { localStorage.removeItem(OP_KEY); } catch (er) { /* 무시 */ }
       S.month = S.home; S.home = null;
       if (S.month) { S.tab = 'more'; toast(e.code === 'bad' ? '서버를 새 버전으로 배포하면 운영 화면을 열 수 있어요.' : e.message); } else { S.view = 'error'; S.err = e; }
       return render();
     }
-    S.view = 'app'; render(); window.scrollTo(0, 0); loadAdmin();
+    S.view = 'app'; render(); window.scrollTo(0, 0); await loadAdmin(); adminDone();
   }
+  // 관리 전환 화면(splash.js): 보이는 동안 render()가 닫지 않게 GWAIT를 켜 두고, 자료가 다 오면 adminDone()으로 닫는다.
+  //  처음 켜는 중(S.view가 loading)이나 화면 지도 장면에서는 시작 화면을 그대로 두고, 자료가 이미 있어 기다릴 일이 없는 곳에서는 띄우지 않는다
+  function adminWait(on, name) {
+    const sp = window.koideSplash;
+    if (!on || SC || S.view === 'loading' || !sp || !sp.admin) return;
+    sp.admin(name); GWAIT = true;
+  }
+  function adminDone() { if (GWAIT) { GWAIT = false; hideSplash(); } }
   async function leaveOps(to) {
+    // 내 이번 달을 비켜 두지 않았으면 서버에서 다시 받아야 해서 기다린다. 비켜 둔 것이 있으면 바로 돌아가니 전환 화면은 없다
+    if (!S.home && S.me && S.me.link && S.me.link.status === '연결') adminWait(true, '이번 달');
     S.op = null; try { localStorage.removeItem(OP_KEY); } catch (e) { /* 무시 */ }
     Object.assign(S, { pending: null, ops: null, rost: null, an: null, rgData: null, menu: null, tog: null, togEdit: null });
     if (!(S.me && S.me.link && S.me.link.status === '연결')) { S.view = 'login'; return render(); }
-    S.month = S.home || await api('month'); S.home = null; S.tab = to || 'more'; render(); window.scrollTo(0, 0);
+    try { S.month = S.home || await api('month'); } catch (e) { adminDone(); throw e; }
+    S.home = null; S.tab = to || 'more'; render(); window.scrollTo(0, 0); adminDone();
     if (S.tab === 'history') loadHist(S.hist && S.hist.month);
   }
   // 관리 화면을 열 때 함께 불러오는 것
+  //  전환 화면이 닫히는 때를 알 수 있게, 처음 오는 자료가 다 오면 끝나는 약속을 돌려준다
   function loadAdmin() {
-    api('pending').then(r => { S.pending = r; render(); }, oops);
-    loadReorg(); loadOps(); loadRoster();
-    if (S.adminTab === 'analysis') loadAnalysis();
+    const all = [api('pending').then(r => { S.pending = r; render(); }, oops), loadReorg(), loadOps(), loadRoster()];
+    if (S.adminTab === 'analysis') all.push(loadAnalysis());
+    return Promise.allSettled(all);
   }
   const opsInviteUrl = t => (CFG.REDIRECT_URI || location.origin + location.pathname) + (DEMO_LINK ? '?demo&' : '?') + 'opsjoin=' + t;
   // 운영 관리자 카드: 이 부서를 맡은 사람, 아직 쓰지 않은 초대, 초대 링크 만들기
@@ -4820,12 +4837,14 @@ try { const p = JSON.parse(localStorage.getItem('koide-pref') || '{}'), d = docu
         if (v === 'ops') return enterOps((opsDepts()[0] || {}).id);
         // 관리(교회 전체·운영) 화면에서 내 화면의 탭을 누르면 관리 화면에서 나와 그 탭으로 간다
         if (S.op && ['home', 'mine', 'pray', 'history', 'more'].includes(v)) return leaveOps(v);
+        // 부서 관리자가 우리 부서 관리를 처음 열 때도 같은 전환 화면
+        if (v === 'admin' && S.tab !== 'admin' && !S.op) adminWait(true, (S.month.dept && S.month.dept.name ? S.month.dept.name : '부서') + ' 관리');
         if (v === 'about') track('화면 보기', { screen: '코이데 소개' });
         if (v === 'home' && S.tab === 'home') S.openRoom = null;
         S.tab = v; S.copied = null; render(); window.scrollTo(0, 0);
         if (v === 'history') { loadHist(S.hist && S.hist.month); track('화면 보기', { screen: '지난 기록' }); }
         if (v === 'status') { try { S.pending = await api('pending'); render(); } catch (err) { oops(err); } }
-        if (v === 'admin') loadAdmin();
+        if (v === 'admin') { await loadAdmin(); adminDone(); }
         return;
       case 'confirm': return save(() => api('confirmSame'), ok => ok && toast(staffMe() ? '이번 달도 그대로라고 표시했어요.' : '이번 달도 그대로라고 리더에게 알렸어요.'));
       case 'pray': {
