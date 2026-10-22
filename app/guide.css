@@ -25,3 +25,12 @@
 .kg-arrow.up { border-right: 0; border-bottom: 0; }
 .kg-arrow.down { border-left: 0; border-top: 0; }
 @media (prefers-reduced-motion: reduce) { .kg-anim .kg-ring, .kg-anim .kg-bubble { transition: none; } }
+/* 쓰는 중 띠: 글 칸에 커서가 있는 동안 말풍선이 보이는 화면 맨 위의 얇은 띠로 줄어든다(위치는 guide.js가 맞춘다) */
+.kg-bar { min-height: 54px; width: calc(100% - 16px); flex-direction: row; align-items: center; gap: 10px; padding: 6px 8px 6px 14px; border-radius: 14px; max-height: none; overflow: visible; }
+.kg-bar .kg-text { flex: 1; min-width: 0; margin: 0; font-size: .95em; line-height: 1.4; }
+.kg-bar .kg-act { flex: none; }
+.kg-bar .kg-act .btn { min-height: 40px; padding: 0 1.1em; white-space: nowrap; }
+/* 이전·다음: 둘러보기에서는 [이전]이 왼쪽 끝, 누르는 단계에서는 머리 줄 오른쪽의 작은 글자 단추 */
+.kg-act .kg-prev { margin-right: auto; }
+.kg-act .btn.ghost { min-height: 48px; }
+.kg-head .kg-prev { margin-left: auto; min-height: 28px; padding: 0 .2em; }

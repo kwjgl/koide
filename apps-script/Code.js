@@ -97,7 +97,7 @@ const FIRST_DEPT = { id: 'D1', name: '청장년부', group: '사랑방', unit: '
 // ── 요청 받기 ─────────────────────────────────────────────
 
 // 서버 코드를 고칠 때마다 바꾼다. 웹 앱 주소를 열면 보여서, 새 버전으로 배포됐는지 확인할 수 있다
-const VERSION = '2026-11-09 처음 온 회원 따라 하기';
+const VERSION = '2026-11-10 여러 기도제목 한 번에 저장';
 function doGet() {
   return ContentService.createTextOutput('코이데 서버가 켜져 있어요. (버전: ' + VERSION + ')');
 }
@@ -144,6 +144,7 @@ const ACTIONS = {
   history: body => historyView_(member_(body), String(body.month || ''), String(body.roomId || '')),
   famTimeline: body => famTimeline_(member_(body), String(body.familyId || '')),
   saveItem: saveItem_,
+  saveItems: saveItems_,
   endItem: body => setItemState_(body, '마침'),
   reopenItem: body => setItemState_(body, '이어짐'),
   saveFamily: saveFamily_,
@@ -869,11 +870,17 @@ function ensureFamilies_(famIds, m, roomOf) {
   });
 }
 
+// 기도제목 한 개의 입력을 다듬는다: 글은 앞뒤 공백을 떼고, 대상은 10자까지(없으면 기본값), 공개 범위는 이 회원이 쓸 수 있는 것만
+//  교역자는 부서 공개 / 우리 가정만, 회원은 사랑방 공개 / 리더·목사님 / 우리 가정만
+function itemInput_(c, o) {
+  const text = String(o.text || '').trim(), target = String(o.target || (c.staff ? '함께' : c.dept.unit === '개인' ? '나' : '우리 가정')).trim().slice(0, 10);
+  const allowed = c.staff ? STAFF_SCOPES : c.grp ? GROUP_SCOPES : SCOPES, scope = allowed.indexOf(o.scope) >= 0 ? o.scope : allowed[0];
+  return { text, target, scope };
+}
+
 function saveItem_(body) {
   const c = member_(body), m = month_();
-  const text = String(body.text || '').trim(), target = String(body.target || (c.staff ? '함께' : c.dept.unit === '개인' ? '나' : '우리 가정')).trim().slice(0, 10);
-  // 교역자는 부서 공개 / 우리 가정만, 회원은 사랑방 공개 / 리더·목사님 / 우리 가정만
-  const allowed = c.staff ? STAFF_SCOPES : c.grp ? GROUP_SCOPES : SCOPES, scope = allowed.indexOf(body.scope) >= 0 ? body.scope : allowed[0];
+  const { text, target, scope } = itemInput_(c, body);
   if (!text) throw fail_('bad', '내용을 적어 주세요.');
   return withLock_(() => {
     if (body.id) {
@@ -885,6 +892,27 @@ function saveItem_(body) {
       const order = read_('items').filter(x => x.familyId === c.familyId && x.month === m).reduce((a, x) => Math.max(a, Number(x.order) || 0), 0) + 1;
       append_('items', { id: newId_(), month: m, familyId: c.familyId, roomId: c.roomId, target, text, scope, state: '이어짐', prevId: '', same: '아니오', order, editedAt: new Date(), editedBy: c.person });
     }
+    setMonthly_(c.familyId, m, 'edited');
+    return monthView_(c);
+  });
+}
+
+// 여러 기도제목을 한 번에 더한다(대상별로 정리하기 › 추가하기). 한 번 잠그고, 한 번에 적고, 이번 달 화면도 한 번만 만든다.
+//  하나라도 잘못되면 아무것도 적지 않고 모두 돌려보낸다
+const SAVE_ITEMS_MAX_ = 20;
+function saveItems_(body) {
+  const c = member_(body), m = month_(), list = Array.isArray(body.items) ? body.items : [];
+  if (!list.length) throw fail_('bad', '더할 기도제목이 없어요.');
+  if (list.length > SAVE_ITEMS_MAX_) throw fail_('bad', '한 번에 ' + SAVE_ITEMS_MAX_ + '개까지 더할 수 있어요.');
+  const inputs = list.map((o, k) => {
+    const x = itemInput_(c, o || {});
+    if (!x.text) throw fail_('bad', (k + 1) + '번째 기도제목의 내용을 적어 주세요.');
+    return x;
+  });
+  return withLock_(() => {
+    let order = read_('items').filter(x => x.familyId === c.familyId && x.month === m).reduce((a, x) => Math.max(a, Number(x.order) || 0), 0);
+    const at = new Date();
+    appendMany_('items', inputs.map(x => ({ id: newId_(), month: m, familyId: c.familyId, roomId: c.roomId, target: x.target, text: x.text, scope: x.scope, state: '이어짐', prevId: '', same: '아니오', order: ++order, editedAt: at, editedBy: c.person })));
     setMonthly_(c.familyId, m, 'edited');
     return monthView_(c);
   });

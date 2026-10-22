@@ -1613,13 +1613,19 @@ try { const p = JSON.parse(localStorage.getItem('koide-pref') || '{}'), d = docu
     const homeSpot = () => { const c = $('.card.today'), k = c && c.querySelector('.cord'); return c && (!k || c.offsetHeight <= innerHeight * .6) ? c : k || $('#main .page-top'); };
     const steps = () => {
       const w = words(), onMine = () => S.tab === 'mine' && $('#add-t');
+      // 쓴 글이 정리할 만한지(빈 칸이거나 'ㅡ'만 있으면 아니다)
+      const canSplit = () => { const t = $('#add-t'); return !!t && splitDraft(t.value).length > 0; };
       return [
         // ① 써 보기
         { mode: 'tap', target: () => tabBtn('mine'), text: '기도제목은 여기서 써요. 내 기도를 눌러요.' },
-        { mode: 'tap', target: () => [$('#add-t'), $('[data-act=sample]')], wait: onMine, done: () => ev.sample || !!S.preview,
-          ready: () => !!($('#add-t') && $('#add-t').value.trim()), readyLabel: '다 썼어요',
+        { mode: 'tap', target: () => [$('#add-t'), $('[data-act=sample]')], wait: onMine, done: () => (ev.sample && canSplit()) || !!S.preview,
+          ready: canSplit, readyLabel: '다 썼어요',
+          // 글 칸에 커서가 있으면 막을 걷고 위쪽 띠로(키보드에 글이 가리지 않게). 빈 채로 한참이면 넘어가기 대신 예시를 알려 준다
+          typing: '#add-t', typingAlso: () => $('[data-act=split]'), typingText: '한 줄에 하나씩 써요.', typingReady: "다 썼으면 '다 썼어요'를 눌러요.",
+          nudge: { ms: 20000, when: () => !canSplit(), text: "아직 비어 있어요. 무엇을 쓸지 막막하면 '예시 넣어 보기'를 눌러 봐요." },
           text: "한 줄에 하나씩 써요. 'ㅡ' 앞에 이름을 쓰면 그 사람의 기도제목이 돼요. 예시로 해 보고 싶으면 '예시 넣어 보기'를 눌러요." },
-        { mode: 'tap', target: () => $('[data-act=split]'), wait: onMine, skip: () => !!S.preview, done: () => !!S.preview, text: '다 썼으면 대상별로 정리하기를 눌러요.' },
+        { mode: 'tap', target: () => $('[data-act=split]'), wait: onMine, skip: () => !!S.preview, done: () => !!S.preview, text: '다 썼으면 대상별로 정리하기를 눌러요.',
+          bounce: () => S.preview || canSplit() ? '' : '먼저 기도제목을 써 주세요. 예시 넣어 보기를 눌러도 돼요.' },
         { mode: 'tap', target: () => $('.preview'), wait: () => S.tab === 'mine' && S.preview, done: () => ev.added, back: () => !S.preview && !ev.added,
           text: '정리된 목록이에요. 빼야 할 줄은 ×를 눌러요. 괜찮으면 추가하기를 눌러요.' },
         { mode: 'tap', target: scopeBtn, wait: () => S.tab === 'mine', done: () => ev.scoped, timeout: 40000, waitText: '저장하는 중이에요. 잠시만 기다려요…',
@@ -5163,11 +5169,19 @@ try { const p = JSON.parse(localStorage.getItem('koide-pref') || '{}'), d = docu
       case 'unsplit': S.preview = null; return render();
       case 'prevrm': S.preview.splice(Number(v), 1); if (!S.preview.length) S.preview = null; return render();
       case 'addparts': {
-        // 목록에 바로 넣고(서버의 답이 오기 전까지는 잠가 둠), 서버에는 하나씩 차례대로 저장한다
+        // 목록에 바로 넣고(서버의 답이 오기 전까지는 잠가 둠), 서버에는 한 번에 보낸다(이번 달 화면을 한 번만 만들게)
         const parts = S.preview, f = mineFam(); TourC.add(parts); S.preview = null; S.draft = ''; const at = $('#add-t'); if (at) at.value = '';
         track('기도제목 저장', { items: parts.length, split: true });
-        parts.forEach((x, k) => { f.items.push({ id: 'new' + Date.now() + k, target: x.target, text: x.text, scope: staffMe() ? 'dept' : 'room', isNew: true, editedBy: S.me.person, pending: true });
-          save(() => api('saveItem', { target: x.target, text: x.text, scope: staffMe() ? 'dept' : 'room' })); });
+        const items = parts.map(x => ({ target: x.target, text: x.text, scope: staffMe() ? 'dept' : 'room' }));
+        items.forEach((x, k) => f.items.push({ id: 'new' + Date.now() + k, target: x.target, text: x.text, scope: x.scope, isNew: true, editedBy: S.me.person, pending: true }));
+        save(async () => {
+          try { let m; for (let i = 0; i < items.length; i += 20) m = await api('saveItems', { items: items.slice(i, i + 20) }); return m; } // 서버는 한 번에 20개까지
+          catch (err) {
+            // 옛 서버는 모르는 요청이라 bad로 답한다(아직 아무것도 적지 않았다). 예전처럼 하나씩 차례대로 저장한다
+            if (!(err && err.code === 'bad' && /모르는 요청/.test(err.message || ''))) throw err;
+            let m; for (const x of items) m = await api('saveItem', x); return m;
+          }
+        });
         render(); return toast(parts.length + '개를 더했어요.');
       }
       case 'homeview': S.homeView = v; if (v === 'table') { track('화면 보기', { screen: '표' }); if (!S.hist) loadHist(); } return render();
