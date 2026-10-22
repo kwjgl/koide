@@ -1132,13 +1132,28 @@ body.pop-open { overflow: hidden; }
 .rs-head b { flex: 1; }
 .rs-head small, .rs-p small { color: var(--ink-2); font-size: .85em; }
 .rs-head[aria-expanded="true"] .ops-chev { transform: rotate(180deg); }
-.rs-people { margin: 0 0 .6em; padding-left: .8em; border-left: 2px solid var(--accent-soft); }
-.rs-p { padding: .5em 0; flex-wrap: wrap; }
-.rs-p > span:first-child { font-weight: 500; }
-.rs-p small { margin-left: auto; }
-.rs-people li.on { background: var(--surface-2); border-radius: 10px; padding: 0 .6em .6em; margin: .2em 0; }
-.rs-acts { display: flex; flex-direction: column; gap: .6em; padding-top: .2em; }
-.rs-acts .label { margin: 0; }
+.rs-people { margin: 0 0 .6em; }
+.rs-p { padding: .65em 0; }
+.rs-p .nm { font-weight: 500; }
+.rs-p small { margin-left: auto; display: inline-flex; align-items: center; gap: .4em; }
+.rs-p .ops-chev { margin-left: auto; color: var(--ink-2); flex: none; }
+.rs-people li.on { border: 1px solid var(--line); background: var(--surface-2); border-radius: 14px; padding: 0 14px 14px; margin: .3em 0 .6em; }
+.rs-people li.on > .rs-p { padding: .85em 0 .3em; flex-wrap: nowrap; }
+.rs-people li.on > .rs-p .nm { font-size: 1.15em; font-weight: 700; }
+/* 사람 패널·교역자 줄 펼침: 구역은 가는 줄로 나누고, 되돌리기 어려운 일은 맨 아래 따로 */
+.dot { display: inline-block; width: 8px; height: 8px; border-radius: 50%; background: var(--line-strong); flex: none; }
+.dot.on { background: var(--accent); }
+.pn-st { display: flex; align-items: center; gap: .5em; margin: 0 0 .2em; font-size: .86em; color: var(--ink-2); }
+.pn-sec { border-top: 1px solid var(--line); padding: .9em 0 0; margin-top: .9em; }
+.pn-st + .pn-sec { margin-top: .7em; }
+.pn-sec .label { margin: 0 0 .35em; }
+.pn-sec > .hint { margin: 0; }
+.pn-sec .kid-form { align-items: center; }
+.pn-sec .kid-form .field { flex: 1; }
+.mv-l { font-size: .86em; color: var(--ink-2); white-space: nowrap; }
+.pn-rows .mrow { padding: .65em 0; }
+.pn-rows .mrow:first-child { border-top: 0; padding-top: .1em; }
+.pn-end { margin-top: 1.1em; display: flex; flex-direction: column; align-items: flex-start; gap: .1em; }
 .rs-pilot { padding: .2em 0 .8em; }
 .rs-foot { flex-wrap: wrap; padding: .2em 0 .8em; }
 .rs-form { margin: .3em 0 .8em; }
@@ -1161,7 +1176,24 @@ body.pop-open { overflow: hidden; }
 .bk-list .link { font-size: 1.2em; padding: .1em .5em; }
 .apall { margin: 0 0 .6em; }
 .fam-rec { display: flex; flex-wrap: wrap; align-items: center; gap: .3em 1em; margin: .9em 0 0; padding-top: .7em; border-top: 1px solid var(--line); font-size: .9em; color: var(--ink-2); }
-.staff-form { display: flex; flex-direction: column; gap: .5em; border-top: 1px solid var(--line); padding-top: .8em; }
+.staff-form { display: flex; flex-direction: column; gap: 0; }
+.staff-form .actions { margin-top: 1.1em; }
+.staff-form .pn-sec:first-child { margin-top: .5em; }
+.fld { display: flex; flex-direction: column; gap: .25em; margin-top: .5em; }
+.fld:first-of-type { margin-top: 0; }
+.staff-rows { list-style: none; margin: 0; padding: 0; }
+.staff-rows > li { border-top: 1px solid var(--line); }
+.staff-rows > li:first-child { border-top: 0; }
+.st-row { display: flex; align-items: center; gap: .6em; width: 100%; background: none; border: 0; padding: .75em 0; color: inherit; font: inherit; text-align: left; cursor: pointer; }
+.st-main { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: .2em; }
+.st-l1 { display: flex; align-items: center; flex-wrap: wrap; gap: .3em .5em; }
+.st-l2 { display: flex; align-items: center; gap: .5em; font-size: .85em; color: var(--ink-2); }
+.st-names { font-size: .85em; color: var(--ink-2); padding-left: 1.1em; }
+.st-go { display: inline-flex; align-items: center; gap: .15em; color: var(--accent); font-weight: 600; font-size: .86em; flex: none; white-space: nowrap; }
+.st-go .ic { width: 16px; height: 16px; }
+.st-go .up { transform: rotate(180deg); display: inline-flex; }
+.staff-rows > li.open { border: 1px solid var(--line); background: var(--surface-2); border-radius: 14px; padding: 0 14px 14px; margin: .4em 0; }
+.staff-rows > li.open > .st-row { padding-bottom: .6em; }
 .serve-who { margin: .4em 0 0; }
 .choice-sub { display: block; font-size: .8em; color: var(--ink-2); margin-top: .15em; }
 /* 작은 글씨 안에 또 작은 글씨가 들어가 겹쳐 작아지는 곳 */
@@ -3270,20 +3302,31 @@ try { const p = JSON.parse(localStorage.getItem('koide-pref') || '{}'), d = docu
   function staffCard() {
     const P = S.pending, E = S.staffEdit;
     if (!P || !P.staff) return '';
-    const form = E ? `<form class="plain-form staff-form" data-form="staffsave">
-        <label class="label" for="st-a">이름</label><input id="st-a" class="field" value="${esc(E.a || '')}" required maxlength="10" autocomplete="off" placeholder="예) 한기쁨">
-        <label class="label" for="st-b">배우자 이름 · 혼자면 비워 두세요</label><input id="st-b" class="field" value="${esc(E.b || '')}" maxlength="10" autocomplete="off">
-        <p class="label">직분</p><div class="seg" style="--n:3" role="radiogroup" aria-label="직분">${STAFF_TITLES.map(t => `<button type="button" class="${(E.title || STAFF_TITLES[0]) === t ? 'on' : ''}" role="radio" aria-checked="${(E.title || STAFF_TITLES[0]) === t}" data-act="sttitle" data-v="${t}">${t}</button>`).join('')}</div>
-        <label class="label" for="st-l">카드 이름 · 비우면 "목사님 부부", "○○○ 장로님"처럼 붙어요</label><input id="st-l" class="field" value="${esc(E.label || '')}" maxlength="20" autocomplete="off">
-        <div class="set-row"><div><p class="label" style="margin:0">섬기는 분들에 나오기</p><p class="hint" style="margin:.2em 0 0">켜면 회원의 이번 달 화면 맨 아래와 기도하기 마지막 장에 나와요.</p></div>
-          <button type="button" class="switch${E.serve !== false ? ' on' : ''}" role="switch" aria-checked="${E.serve !== false}" aria-label="섬기는 분들에 나오기" data-act="stserve"><span></span></button></div>
-        <div class="actions"><button class="btn" type="submit" ${S.busy ? 'disabled' : ''}>${S.busy ? '저장 중…' : '저장'}</button><button class="btn ghost" type="button" data-act="stcancel">취소</button></div></form>` : '';
+    // 고치는 칸 하나(E.familyId)는 그 줄 안에서 펼치고, 새로 더하기(familyId 없음)는 카드 맨 아래에 둔다. 섬김 마침은 고치기 안, 맨 아래에 따로
+    const form = (s) => `<form class="plain-form staff-form" data-form="staffsave">
+        <div class="pn-sec"><p class="label">이름</p>
+          <div class="fld"><label class="hint" for="st-a">본인 이름</label><input id="st-a" class="field" value="${esc(E.a || '')}" required maxlength="10" autocomplete="off" placeholder="예) 한기쁨"></div>
+          <div class="fld"><label class="hint" for="st-b">배우자 이름 · 혼자면 비워 두세요</label><input id="st-b" class="field" value="${esc(E.b || '')}" maxlength="10" autocomplete="off"></div></div>
+        <div class="pn-sec"><p class="label">직분</p><div class="seg" style="--n:3" role="radiogroup" aria-label="직분">${STAFF_TITLES.map(t => `<button type="button" class="${(E.title || STAFF_TITLES[0]) === t ? 'on' : ''}" role="radio" aria-checked="${(E.title || STAFF_TITLES[0]) === t}" data-act="sttitle" data-v="${t}">${t}</button>`).join('')}</div></div>
+        <div class="pn-sec"><label class="label" for="st-l">카드 이름</label><input id="st-l" class="field" value="${esc(E.label || '')}" maxlength="20" autocomplete="off">
+          <p class="hint" style="margin-top:.4em">비우면 "목사님 부부", "○○○ 장로님"처럼 붙어요.</p></div>
+        <div class="pn-sec"><div class="set-row"><div><p class="label" style="margin:0">섬기는 분들에 나오기</p><p class="hint" style="margin:.2em 0 0">켜면 회원의 이번 달 화면 맨 아래와 기도하기 마지막 장에 나와요.</p></div>
+          <button type="button" class="switch${E.serve !== false ? ' on' : ''}" role="switch" aria-checked="${E.serve !== false}" aria-label="섬기는 분들에 나오기" data-act="stserve"><span></span></button></div></div>
+        <div class="actions"><button class="btn" type="submit" ${S.busy ? 'disabled' : ''}>${S.busy ? '저장 중…' : '저장'}</button><button class="btn ghost" type="button" data-act="stcancel">취소</button></div>
+        ${s && s.familyId !== S.month.me.familyId ? `<div class="pn-sec pn-end"><button type="button" class="link danger" data-act="stend" data-v="${esc(s.familyId)}">부서 섬김 마침</button><p class="hint">부서를 떠나면 눌러요. 연결은 풀리고 기도제목 기록은 남아요.</p></div>` : ''}</form>`;
+    const row = s => {
+      const on = !!(E && E.familyId === s.familyId), names = s.linked.map(l => esc(l.person)).join(', ');
+      return `<li class="${on ? 'open' : ''}"><button type="button" class="st-row" data-act="${on ? 'stcancel' : 'stedit'}"${on ? '' : ` data-v="${esc(s.familyId)}"`} aria-expanded="${on}"><span class="st-main">
+          <span class="st-l1"><b>${esc(s.label)}</b><span class="role-tag">${esc(s.title)}</span>${s.serve ? '<span class="own-tag">섬기는 분들</span>' : ''}</span>
+          <span class="st-l2"><i class="dot${s.linked.length ? ' on' : ''}" aria-hidden="true"></i>${s.linked.length ? '카카오 연결: ' + names : '아직 카카오 연결 없음'}</span>
+          <span class="st-names">${esc(s.name)}</span></span>
+          <span class="st-go">${on ? `접기 <span class="ops-chev up" aria-hidden="true">${ICON.chev}</span>` : `고치기 ${ICON.chevR}`}</span></button>${on ? form(s) : ''}</li>`;
+    };
     return `<section class="card"><div class="row"><h2>교역자</h2>${E ? '' : '<button class="btn small ghost" data-act="stadd">더하기</button>'}</div>
-      ${P.staff.length ? `<ul class="staff-list">${P.staff.map(s => `<li><div><b>${esc(s.label)}</b>${s.serve ? '<span class="own-tag">섬기는 분들</span>' : ''}<small>${esc(s.name)} · ${esc(s.title)} · ${s.linked.length ? '연결: ' + s.linked.map(l => esc(l.person)).join(', ') : '아직 연결 없음'}</small></div>
-        <span class="foot-acts"><button class="link" data-act="stedit" data-v="${esc(s.familyId)}">고치기</button>${s.familyId !== S.month.me.familyId ? `<button class="link quiet" data-act="stend" data-v="${esc(s.familyId)}">마침</button>` : ''}</span></li>`).join('')}</ul>`
+      ${P.staff.length ? `<ul class="staff-rows">${P.staff.map(row).join('')}</ul>`
         : '<p class="hint">아직 교역자가 없어요. 목사님 부부, 담당 장로님을 더해 주세요.</p>'}
-      ${form}
-      <p class="hint">교역자는 첫 접속에서 "목사님·장로님으로 들어가기"로 이름을 골라요. 연결 신청은 위 관리 카드에서 승인해요. 부서를 떠나면 "마침"을 눌러요(기록은 남아요).</p></section>`;
+      ${E && !E.familyId ? form(null) : ''}
+      <p class="hint">교역자는 첫 접속에서 "목사님·장로님으로 들어가기"로 이름을 골라요. 연결 신청은 위 관리 카드에서 승인해요.</p></section>`;
   }
   // 관리(관리자): 우리 부서의 연결 승인·해제, 교역자, 기존 시트 가져오기, 데모로 둘러보기
   // ── 연도 개편 마법사 (설계서 6장) ──
@@ -3958,14 +4001,20 @@ try { const p = JSON.parse(localStorage.getItem('koide-pref') || '{}'), d = docu
     if (!R || R.err) return `<section class="card"><h2>${title}</h2><p class="hint">${R ? esc(R.err) : '불러오는 중…'}</p></section>`;
     const open = S.rostOpen || {}, sel = S.rostSel, me = S.month.me;
     const tag = p => (p.role !== '회원' ? `<span class="role-tag leader">${esc(p.role)}</span>` : '') + (p.admin ? '<span class="role-tag admin">관리자</span>' : '');
+    // 펼친 사람: 이름 옆에 역할 표, 아래로 역할·소속·카카오 연결·가끔 하는 일, 되돌리기 어려운 '편성에서 빼기'는 맨 아래 따로
+    const dot = n => `<i class="dot${n ? ' on' : ''}" aria-hidden="true"></i>`;
     const acts = (p, r) => `<div class="rs-acts">
-        <p class="label">역할</p><div class="seg" style="--n:3" role="radiogroup" aria-label="역할">${['회원', '코리더', '리더'].map(k => `<button class="${p.role === k ? 'on' : ''}" role="radio" aria-checked="${p.role === k}" data-act="rsrole" data-v="${k}" ${S.busy ? 'disabled' : ''}${rsIs('role') && S.rbusy.v === k ? ' aria-busy="true"' : ''}>${k}</button>`).join('')}</div>
-        <div class="set-row"><div><p class="label" style="margin:0">부서 관리자</p><p class="hint" style="margin:.2em 0 0">이 관리 화면을 함께 열어요.</p></div>
-          <button type="button" class="switch${p.admin ? ' on' : ''}" role="switch" aria-checked="${p.admin}" aria-label="부서 관리자" data-act="rsadmin" ${S.busy || (p.admin && p.id === me.familyId) ? 'disabled' : ''}><span></span></button></div>
-        ${R.rooms.length > 1 ? `<div class="kid-form"><select id="rs-move" class="field" aria-label="옮길 ${esc(grp())}">${R.rooms.filter(x => x.id !== r.id).map(x => `<option value="${esc(x.id)}">${esc(x.name)}</option>`).join('')}</select><button class="btn small ghost" data-act="rsmove" ${S.busy ? 'disabled' : ''}${rsIs('move') ? ' aria-busy="true"' : ''}>${rsBz('move', '옮기기')}</button></div>` : ''}
-        <p class="label">연결된 카카오</p>${p.links && p.links.length ? `<ul class="rs-links">${p.links.map(l => `<li><span>${esc(l.person)} <small>카카오 "${esc(l.nick)}" · ${esc(l.since)}</small></span>${l.me ? '<small>나</small>' : `<button class="link danger" data-act="rsunlink" data-v="${esc(l.kakaoId)}" data-n="${esc(l.person)}" ${S.busy ? 'disabled' : ''}${rsIs('unlink') ? ' aria-busy="true"' : ''}>${rsBz('unlink', '해제')}</button>`}</li>`).join('')}</ul>` : '<p class="hint" style="margin:0">아직 연결 없음</p>'}
-        <p class="label">결혼·부서 옮기기</p><span class="foot-acts"><button class="link" data-act="mvstart" data-v="marry" data-fam="${esc(p.id)}">결혼해서 ${solo() ? '청장년부로 가기' : '가정 합치기'}</button>${p.id === me.familyId ? '' : `<button class="link" data-act="mvstart" data-v="move" data-fam="${esc(p.id)}">다른 부서로 옮기기</button>`}</span>
-        ${p.id === me.familyId ? '' : `<button class="link danger" data-act="rsleave" data-n="${esc(p.name)}" ${S.busy ? 'disabled' : ''}${rsIs('leave') ? ' aria-busy="true"' : ''}>${rsBz('leave', esc(R.term) + '년 편성에서 빼기 (떠남)')}</button>`}</div>`;
+        <p class="pn-st">${dot(p.linked)}${p.linked ? '카카오 연결 ' + p.linked + '명' : '아직 카카오 연결 없음'}</p>
+        <div class="pn-sec"><p class="label">역할</p><div class="seg" style="--n:3" role="radiogroup" aria-label="역할">${['회원', '코리더', '리더'].map(k => `<button class="${p.role === k ? 'on' : ''}" role="radio" aria-checked="${p.role === k}" data-act="rsrole" data-v="${k}" ${S.busy ? 'disabled' : ''}${rsIs('role') && S.rbusy.v === k ? ' aria-busy="true"' : ''}>${k}</button>`).join('')}</div>
+        <div class="set-row" style="margin-top:.7em"><div><p class="label" style="margin:0">부서 관리자</p><p class="hint" style="margin:.2em 0 0">이 관리 화면을 함께 열어요.</p></div>
+          <button type="button" class="switch${p.admin ? ' on' : ''}" role="switch" aria-checked="${p.admin}" aria-label="부서 관리자" data-act="rsadmin" ${S.busy || (p.admin && p.id === me.familyId) ? 'disabled' : ''}><span></span></button></div></div>
+        <div class="pn-sec"><p class="label">소속</p><p style="margin:0${R.rooms.length > 1 ? ' 0 .5em' : ''}">지금 <b>${esc(r.name)}</b></p>
+        ${R.rooms.length > 1 ? `<div class="kid-form"><label class="mv-l" for="rs-move">다른 ${esc(josa(grp(), '으로/로'))}</label><select id="rs-move" class="field" aria-label="옮길 ${esc(grp())}">${R.rooms.filter(x => x.id !== r.id).map(x => `<option value="${esc(x.id)}">${esc(x.name)}</option>`).join('')}</select><button class="btn small ghost" data-act="rsmove" ${S.busy ? 'disabled' : ''}${rsIs('move') ? ' aria-busy="true"' : ''}>${rsBz('move', '옮기기')}</button></div>` : ''}</div>
+        <div class="pn-sec"><p class="label">카카오 연결</p>${p.links && p.links.length ? `<ul class="rs-links">${p.links.map(l => `<li><span>${esc(l.person)} <small>카카오 "${esc(l.nick)}" · ${esc(l.since)}</small></span>${l.me ? '<small>나</small>' : `<button class="link danger" data-act="rsunlink" data-v="${esc(l.kakaoId)}" data-n="${esc(l.person)}" ${S.busy ? 'disabled' : ''}${rsIs('unlink') ? ' aria-busy="true"' : ''}>${rsBz('unlink', '해제')}</button>`}</li>`).join('')}</ul>` : '<p class="hint">아직 연결된 분이 없어요. 초대 링크로 들어와 연결을 신청하면 여기에 보여요.</p>'}</div>
+        <div class="pn-sec"><p class="label">가끔 하는 일</p><div class="pn-rows">
+          <button class="mrow" data-act="mvstart" data-v="marry" data-fam="${esc(p.id)}"><span><b>결혼해서 ${solo() ? '청장년부로 가기' : '가정 합치기'}</b><small>새 가정 하나로 합쳐요. 지난 기록은 그대로 남아요.</small></span>${ICON.chevR}</button>
+          ${p.id === me.familyId ? '' : `<button class="mrow" data-act="mvstart" data-v="move" data-fam="${esc(p.id)}"><span><b>다른 부서로 옮기기</b><small>받는 부서 관리자가 처리해요.</small></span>${ICON.chevR}</button>`}</div></div>
+        ${p.id === me.familyId ? '' : `<div class="pn-sec pn-end"><button class="link danger" data-act="rsleave" data-n="${esc(p.name)}" ${S.busy ? 'disabled' : ''}${rsIs('leave') ? ' aria-busy="true"' : ''}>${rsBz('leave', esc(R.term) + '년 편성에서 빼기 (떠남)')}</button><p class="hint">지난 기록은 남아요. 누르면 한 번 더 확인해요.</p></div>`}</div>`;
     const bulkForm = (r, E) => {
       if (!E.res) return `<div class="rs-form rs-bulk"><label class="label" for="bk-text">여러 명 더하기 · ${esc(r.name)}</label>
           <p class="hint">한 줄에 한 명씩 붙여 넣어요. 카톡이나 엑셀에서 복사해도 돼요.${solo() ? '' : ' 부부는 한 줄에 "남편 · 아내"처럼 두 분을 적으면 한 가정이 돼요.'}</p>
@@ -3982,7 +4031,7 @@ try { const p = JSON.parse(localStorage.getItem('koide-pref') || '{}'), d = docu
       return `<li class="rs-room${on ? ' open' : ''}" data-hl="${esc(r.id)}"><button class="rs-head" data-act="rsopen" data-v="${esc(r.id)}" aria-expanded="${on}"><b>${esc(r.name)}</b><small>${r.people.length}${words().count}</small><span class="ops-chev" aria-hidden="true">${ICON.chev}</span></button>
         ${!on ? '' : `<div class="set-row rs-pilot"><div><p class="label" style="margin:0">시범 중</p><p class="hint" style="margin:.2em 0 0">켜면 이 ${esc(grp())} 사람들에게 '해 볼 일' 띠가 보여요(어느 기기에서든)</p></div>
           <button type="button" class="switch${r.pilot ? ' on' : ''}" role="switch" aria-checked="${!!r.pilot}" aria-label="${esc(r.name)} 시범 중" data-act="rspilot" data-v="${esc(r.id)}" ${S.busy ? 'disabled' : ''}><span></span></button></div>
-        <ul class="rs-people">${r.people.map(p => `<li class="${sel === p.id ? 'on' : ''}" data-hl="${esc(p.id)}"><button class="rs-p" data-act="rssel" data-v="${esc(p.id)}" aria-expanded="${sel === p.id}"><span>${esc(p.name)}</span>${tag(p)}<small>${p.linked ? '연결 ' + p.linked : '아직 연결 없음'}</small></button>${sel === p.id ? acts(p, r) : ''}</li>`).join('') || `<li class="hint">아직 ${solo() ? '사람' : '가정'}이 없어요.</li>`}</ul>
+        <ul class="rs-people">${r.people.map(p => `<li class="${sel === p.id ? 'on' : ''}" data-hl="${esc(p.id)}"><button class="rs-p" data-act="rssel" data-v="${esc(p.id)}" aria-expanded="${sel === p.id}"><span class="nm">${esc(p.name)}</span>${tag(p)}${sel === p.id ? `<span class="ops-chev" aria-hidden="true">${ICON.chev}</span>` : `<small>${dot(p.linked)}${p.linked ? '연결 ' + p.linked : '아직 연결 없음'}</small>`}</button>${sel === p.id ? acts(p, r) : ''}</li>`).join('') || `<li class="hint">아직 ${solo() ? '사람' : '가정'}이 없어요.</li>`}</ul>
           ${E && E.kind === 'person' ? `<form class="plain-form rs-form" data-form="rsadd" data-v="${esc(r.id)}">
               <input class="field" name="a" maxlength="10" required placeholder="${solo() ? '이름' : '남편 또는 본인 이름'}" aria-label="${solo() ? '이름' : '남편 또는 본인 이름'}" autocomplete="off" value="${esc(E.a || '')}">
               ${solo() ? '' : `<input class="field" name="b" maxlength="10" placeholder="아내 이름 · 1인 가정이면 비워 두세요" aria-label="아내 이름" autocomplete="off" value="${esc(E.b || '')}">`}
