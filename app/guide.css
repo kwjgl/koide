@@ -1,0 +1,27 @@
+/* 따라 하기(guide.js): 눌러야 할 곳만 밝고 나머지는 어둡게 눌리지 않는 안내. 공동체 앱과 기도 노트가 함께 쓴다 */
+.kg { position: fixed; z-index: 100; pointer-events: none; overflow: hidden; }
+/* 구멍 둘레: 어둡게 하는 일은 구멍의 그림자가 맡고(모서리가 둥글게 뚫린다), 아래 막이 판들이 눌림만 막는다 */
+.kg-ring { position: absolute; border-radius: 14px; pointer-events: none; box-shadow: 0 0 0 2.5px var(--accent), 0 0 0 9999px rgb(0 0 0 / .6); }
+.kg-ring[hidden] { display: none; }
+.kg-anim .kg-ring { transition: left .28s ease, top .28s ease, width .28s ease, height .28s ease; }
+.kg-b, .kg-shield, .kg-full { position: absolute; pointer-events: auto; touch-action: none; }
+.kg-full { inset: 0; background: rgb(0 0 0 / .6); }
+.kg-full[hidden], .kg-shield[hidden] { display: none; }
+.kg-bubble { position: absolute; pointer-events: auto; box-sizing: border-box; width: min(380px, calc(100% - 32px)); max-height: calc(100% - 24px); overflow-y: auto; background: var(--surface); color: var(--ink); border: 1px solid var(--line-strong); border-radius: 18px; padding: 14px 16px 16px; display: flex; flex-direction: column; gap: 8px; box-shadow: 0 10px 34px var(--shadow); outline: none; }
+.kg-anim .kg-bubble { transition: left .28s ease, top .28s ease; }
+.kg-tight { padding: 8px 12px 10px; gap: 4px; }
+.kg-tight .kg-text { font-size: .95em; line-height: 1.45; }
+.kg-tight .kg-head { min-height: 0; }
+.kg-tight .kg-act .btn { min-height: 40px; }
+.kg-head { display: flex; justify-content: space-between; align-items: center; min-height: 28px; gap: 8px; }
+.kg-count { font-size: .8em; font-weight: 600; color: var(--ink-2); }
+.kg-title { font-family: var(--f-display); font-size: 1.15em; line-height: 1.35; margin: 0; word-break: keep-all; }
+.kg-text { margin: 0; font-size: 1.08em; line-height: 1.6; word-break: keep-all; }
+.kg-act { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; justify-content: flex-end; }
+.kg-act .btn { min-height: 48px; padding: 0 1.4em; }
+/* 말풍선이 구멍을 가리키는 작은 마름모(말풍선 바깥에 따로 둔다: 말풍선이 길면 안에서 스크롤되어 잘리므로). 구멍과 겹치면 감춘다 */
+.kg-arrow { position: absolute; pointer-events: none; width: 14px; height: 14px; background: var(--surface); border: 1px solid var(--line-strong); transform: rotate(45deg); }
+.kg-arrow[hidden] { display: none; }
+.kg-arrow.up { border-right: 0; border-bottom: 0; }
+.kg-arrow.down { border-left: 0; border-top: 0; }
+@media (prefers-reduced-motion: reduce) { .kg-anim .kg-ring, .kg-anim .kg-bubble { transition: none; } }

@@ -34,7 +34,7 @@ const SCHEMA = {
   //  떠남·보류: 새 편성에 넣지 않은 가정(적용 날짜부터 그 안내가 나온다). 새 사랑방·새 가정: 예약할 때 만든 것(고치거나 취소하면 지운다)
   terms: ['편성 일정', [['deptId', '부서ID'], ['year', '편성 연도'], ['start', '적용 시작 달'], ['leaderFrom', '리더 미리 보기 시작일'], ['memberFrom', '회원 안내 시작일'], ['status', '상태'], ['by', '만든 사람'], ['at', '만든 날'],
     ['leave', '떠남 가정ID'], ['hold', '보류 가정ID'], ['newRooms', '새 사랑방ID'], ['newFams', '새 가정ID']]],
-  links: ['연결', [['kakaoId', '카카오ID'], ['nick', '닉네임'], ['familyId', '가정ID'], ['person', '사람'], ['status', '상태'], ['requestedAt', '요청일'], ['approvedBy', '승인한 사람'], ['lastSeen', '마지막 접속']]],
+  links: ['연결', [['kakaoId', '카카오ID'], ['nick', '닉네임'], ['familyId', '가정ID'], ['person', '사람'], ['status', '상태'], ['requestedAt', '요청일'], ['approvedBy', '승인한 사람'], ['lastSeen', '마지막 접속'], ['tourDone', '따라 하기 마침']]],
   sessions: ['로그인', [['hash', '로그인 표시'], ['kakaoId', '카카오ID'], ['nick', '닉네임'], ['expires', '만료']]],
   items: ['기도제목', [['id', '항목ID'], ['month', '월'], ['familyId', '가정ID'], ['roomId', '당시 사랑방'], ['target', '대상'], ['text', '내용'], ['scope', '공개범위'], ['state', '상태'], ['prevId', '이전 항목ID'], ['same', '지난달과 같음'], ['order', '순서'], ['editedAt', '수정일'], ['editedBy', '고친 사람']]],
   monthly: ['월별 상태', [['month', '월'], ['familyId', '가정ID'], ['status', '상태']]],
@@ -97,7 +97,7 @@ const FIRST_DEPT = { id: 'D1', name: '청장년부', group: '사랑방', unit: '
 // ── 요청 받기 ─────────────────────────────────────────────
 
 // 서버 코드를 고칠 때마다 바꾼다. 웹 앱 주소를 열면 보여서, 새 버전으로 배포됐는지 확인할 수 있다
-const VERSION = '2026-11-08 여러 명 더하기·모두 승인';
+const VERSION = '2026-11-09 처음 온 회원 따라 하기';
 function doGet() {
   return ContentService.createTextOutput('코이데 서버가 켜져 있어요. (버전: ' + VERSION + ')');
 }
@@ -148,6 +148,13 @@ const ACTIONS = {
   reopenItem: body => setItemState_(body, '이어짐'),
   saveFamily: saveFamily_,
   deleteItem: deleteItem_,
+  // 따라 하기(처음 쓰는 회원 안내)를 마쳤다고 이 사람의 연결 줄에 적는다. 부른 사람 자신만 바꾼다
+  tourDone: body => {
+    const w = who_(body);
+    if (!w.link || w.link.status !== '연결') throw fail_('notLinked', '아직 리더의 승인을 기다리고 있어요.');
+    if (!yes_(w.link.tourDone)) { w.link.tourDone = '예'; update_('links', w.link); }
+    return { tourDone: true };
+  },
   confirmSame: body => { const c = member_(body); setMonthly_(c.familyId, month_(), 'confirmed'); return monthView_(c); },
   pray: pray_,
   pending: body => pendingView_(leaderOrAdmin_(body)),
@@ -305,7 +312,7 @@ function memberFrom_(w) {
     return { kakaoId: w.kakaoId, person: w.link.person, familyId: fam.id, family: fam, roomId: '', deptId: d.id, dept: deptInfo_(d), role: st.title, admin: yes_(fam.admin), staff: true, label: st.label };
   }
   const dept = deptOfRoom_(r.roomId); shut(dept);
-  return { kakaoId: w.kakaoId, person: w.link.person, familyId: fam.id, family: fam, roomId: r.roomId, deptId: dept.id, dept: deptInfo_(dept), role: r.role, admin: yes_(fam.admin) };
+  return { kakaoId: w.kakaoId, person: w.link.person, familyId: fam.id, family: fam, roomId: r.roomId, deptId: dept.id, dept: deptInfo_(dept), role: r.role, admin: yes_(fam.admin), tourDone: yes_(w.link.tourDone) };
 }
 
 function leaderOrAdmin_(body) {
@@ -774,7 +781,7 @@ function monthView_(c) {
   // 이번 달 사랑방의 다른 가정 중 몇 가정이 우리 가정을 위해 기도했는지(누가 했는지는 알리지 않는다)
   const by = {}; read_('prayers').forEach(p => { if (p.familyId === c.familyId && p.by !== c.familyId && fmtMonth_(p.at) === m) by[p.by] = true; });
   const received = { n: Object.keys(by).length, of: Math.max(0, families.length - 1) };
-  return { month: m, term: termNow_(c.deptId), shift: shift_(c), dept: c.dept, room: { id: room.id, name: room.name, pilot: yes_(room.pilot) }, me: { person: c.person, familyId: c.familyId, role: c.role, admin: c.admin }, families, received, serve: serveView_(c.deptId),
+  return { month: m, term: termNow_(c.deptId), shift: shift_(c), dept: c.dept, room: { id: room.id, name: room.name, pilot: yes_(room.pilot) }, me: { person: c.person, familyId: c.familyId, role: c.role, admin: c.admin, tourDone: c.tourDone }, families, received, serve: serveView_(c.deptId),
     art: artNums_(c, [m])[0], eraseReq: eraseAsked_(c.familyId), together: togetherItems_(c.deptId), news: newsOfFamily_(c.familyId) };
 }
 
@@ -1951,7 +1958,7 @@ function marrySave_(body) {
     let moved = 0, dropped = 0;
     plan.forEach(p => {
       if (p.to) {
-        append_('links', { kakaoId: p.l.kakaoId, nick: p.l.nick, familyId: id, person: p.to, status: '연결', requestedAt: today_(), approvedBy: '결혼 처리 · ' + c.person, lastSeen: p.l.lastSeen });
+        append_('links', { kakaoId: p.l.kakaoId, nick: p.l.nick, familyId: id, person: p.to, status: '연결', requestedAt: today_(), approvedBy: '결혼 처리 · ' + c.person, lastSeen: p.l.lastSeen, tourDone: p.l.tourDone });
         p.l.status = '합침'; update_('links', p.l); moved++;
       } else {
         p.l.status = '해제'; p.l.approvedBy = c.person; update_('links', p.l);

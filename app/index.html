@@ -107,6 +107,8 @@ button, a, label, summary, select, input, [role="button"], [data-act], .brand { 
 /* 스크롤을 내리면 상단 바와 하단 바가 함께 숨고, 조금이라도 올리면 다시 보인다 */
 body.hide-bars .topbar { transform: translateY(-100%); }
 body.hide-bars .tabs { transform: translateY(100%); }
+/* 따라 하기(guide.js) 중에는 위·아래 막대를 늘 보이게: 안내가 가리키는 탭이 스크롤로 숨지 않게 */
+html.kg-on body.hide-bars .topbar, html.kg-on body.hide-bars .tabs { transform: none; }
 @media (prefers-reduced-motion: reduce) { .topbar, .tabs { transition: none; } }
 main.wrap { padding-top: 14px; padding-bottom: calc(110px + env(safe-area-inset-bottom)); }
 /* 화면 제목 줄: 왼쪽 사랑방·제목, 오른쪽 날짜와 버튼 */
@@ -1001,7 +1003,7 @@ details[open] > :not(summary) { animation: reveal .22s ease-out; }
 @media (prefers-reduced-motion: reduce) { .pop-scrim, .pop-sheet { animation: none; } }
 body.pop-open { overflow: hidden; }
 .a2hs { border: 1px dashed color-mix(in srgb, var(--accent) 45%, var(--line)); }
-.a2hs.pop-sheet { border: 0; background: var(--surface); }
+.a2hs.pop-sheet, .tour-ask.pop-sheet { border: 0; background: var(--surface); }
 .a2hs .row { justify-content: space-between; align-items: center; }
 .a2hs p { margin: 0; word-break: keep-all; }
 .a2hs-steps { margin: 0; padding-left: 1.3em; display: flex; flex-direction: column; gap: .25em; font-size: .92em; }
@@ -1207,6 +1209,7 @@ body.pop-open { overflow: hidden; }
 <link rel="stylesheet" href="pray-open.css">
 <link rel="stylesheet" href="beatitudes.css">
 <link rel="stylesheet" href="design-styles.css">
+<link rel="stylesheet" href="guide.css">
 <script>
 /* 화면 모드·색 테마·큰 글씨는 이 기기에만 기억한다. 화면이 그려지기 전에 먼저 입힌다 */
 try { const p = JSON.parse(localStorage.getItem('koide-pref') || '{}'), d = document.documentElement;
@@ -1238,6 +1241,7 @@ try { const p = JSON.parse(localStorage.getItem('koide-pref') || '{}'), d = docu
 <script src="art-data.js"></script>
 <script src="intro-video.js"></script>
 <script src="pray-open.js"></script>
+<script src="guide.js"></script>
 <script src="beatitudes.js"></script>
 <script>
 (function () {
@@ -1361,7 +1365,7 @@ try { const p = JSON.parse(localStorage.getItem('koide-pref') || '{}'), d = docu
     if (!getToken()) { S.view = 'login'; return render(); }
     // 지난번 화면이 기억돼 있으면 먼저 보여 주고, 서버에서 새로 받아 조용히 바꾼다
     const c = readCache();
-    if (c && c.me && c.month && !GOPEN && !shareGroup()) { S.me = c.me; S.month = c.month; S.view = 'app'; render(); return refreshMe(true); }
+    if (c && c.me && c.month && !GOPEN && !shareGroup()) { S.me = c.me; S.month = c.month; S.view = 'app'; S.stale = true; render(); return refreshMe(true).then(() => { S.stale = false; paint(); }); }
     await refreshMe();
   }
   // 데모 위쪽 띠의 '사람 바꾸기': 로그아웃 없이 다른 데모 사람으로 바로 바꾼다. 보던 탭이 그 사람에게도 있으면 그대로 둔다
@@ -1576,6 +1580,111 @@ try { const p = JSON.parse(localStorage.getItem('koide-pref') || '{}'), d = docu
     }
     return { open, isOpen: () => !!el };
   })();
+  // 따라 하기(처음 쓰는 회원, 결정 기록 2026-10-22): 이번 달 기도제목이 하나도 없는 회원이 처음 열면 이번 달 화면에서 저절로 시작한다.
+  //  ① 써 보기(내 기도 › 대상별로 정리하기 › 추가하기 › 공개 범위) ② 기도해 보기(기도하기 › 기도했어요) ③ 둘러보기. 모양과 움직임은 guide.js
+  //  마쳤는지는 서버가 사람마다 기억하고(me.tourDone), 서버가 옛 버전이면 이 기기에만 적어 둔다(GUIDE_KEY). 교역자는 이번에는 안 나온다.
+  //  더보기 › 따라 하기 다시 하기는 기도제목이 있어도, 마쳤어도 연다(마침은 다시 적지 않아도 같다)
+  const GUIDE_KEY = () => TOUR_KEY().replace('koide-tour', 'koide-guide');
+  const TourC = (() => {
+    let ev = null, timer = 0;
+    // 둘러볼 수 있는 회원인지: 가정에 연결된 회원 화면(교역자·운영·모임 화면은 아니다)
+    const can = () => !SC && S.view === 'app' && !S.op && !S.grp && !!S.month && !!S.month.me && !S.month.me.staff && !!S.month.me.familyId && !!mineFam();
+    const done = () => {
+      if (S.month.me.tourDone === true) return true;
+      try { return !!localStorage.getItem(GUIDE_KEY()); } catch (e) { return true; }
+    };
+    function markDone() {
+      try { localStorage.setItem(GUIDE_KEY(), new Date().toISOString().slice(0, 10)); ['scope', 'write'].forEach(k => localStorage.setItem('koide-tip-' + k, '1')); } catch (e) { /* 이번만 */ }
+      ['home', 'pray', 'history'].forEach(tipDone); // 화면마다 처음 한 번 나오는 도움말도 이미 짚었으니 겹치지 않게
+      if (S.month && S.month.me && typeof S.month.me.tourDone === 'boolean') S.month.me.tourDone = true;
+      // 옛 서버는 모르는 요청이라 bad로 답한다. 그래도 기기에는 적어 뒀으니 조용히 넘어간다
+      api('tourDone').catch(() => { /* 서버가 옛 버전이거나 잠깐 안 됨: 이 기기에서는 다시 안 나온다 */ });
+    }
+    // 누를 탭: 휴대폰은 아래 탭, 넓은 화면은 위 메뉴
+    const tabBtn = k => [...document.querySelectorAll(`#tabs [data-v="${k}"], .topnav [data-v="${k}"]`)].find(b => b.offsetWidth > 0);
+    const goTab = k => { const b = document.createElement('button'); b.dataset.act = 'tab'; b.dataset.v = k; document.body.appendChild(b); b.click(); b.remove(); };
+    // 이번 안내에서 새로 더한 첫 기도제목의 공개 범위 단추(저장이 끝나 눌 수 있을 때만)
+    const scopeBtn = () => {
+      const it = mineFam().items.find(i => !ev.pre.has(i.id)); if (!it) return null;
+      const b = document.querySelector(`.edit-list [data-act="scope"][data-id="${CSS.escape(it.id)}"]`);
+      return b && !b.closest('fieldset').disabled ? b : null;
+    };
+    // 홈에서 비출 곳: 카드가 화면에 들어올 만큼 작으면 카드째, 길면(휴대폰) 기도의 끈만. 둘 다 없으면 화면 제목
+    const homeSpot = () => { const c = $('.card.today'), k = c && c.querySelector('.cord'); return c && (!k || c.offsetHeight <= innerHeight * .6) ? c : k || $('#main .page-top'); };
+    const steps = () => {
+      const w = words(), onMine = () => S.tab === 'mine' && $('#add-t');
+      return [
+        // ① 써 보기
+        { mode: 'tap', target: () => tabBtn('mine'), text: '기도제목은 여기서 써요. 내 기도를 눌러요.' },
+        { mode: 'tap', target: () => [$('#add-t'), $('[data-act=sample]')], wait: onMine, done: () => ev.sample || !!S.preview,
+          ready: () => !!($('#add-t') && $('#add-t').value.trim()), readyLabel: '다 썼어요',
+          text: "한 줄에 하나씩 써요. 'ㅡ' 앞에 이름을 쓰면 그 사람의 기도제목이 돼요. 예시로 해 보고 싶으면 '예시 넣어 보기'를 눌러요." },
+        { mode: 'tap', target: () => $('[data-act=split]'), wait: onMine, skip: () => !!S.preview, done: () => !!S.preview, text: '다 썼으면 대상별로 정리하기를 눌러요.' },
+        { mode: 'tap', target: () => $('.preview'), wait: () => S.tab === 'mine' && S.preview, done: () => ev.added, back: () => !S.preview && !ev.added,
+          text: '정리된 목록이에요. 빼야 할 줄은 ×를 눌러요. 괜찮으면 추가하기를 눌러요.' },
+        { mode: 'tap', target: scopeBtn, wait: () => S.tab === 'mine', done: () => ev.scoped, timeout: 40000, waitText: '저장하는 중이에요. 잠시만 기다려요…',
+          text: `누가 볼지 여기서 바꿔요. 누를 때마다 ${scopeName('room')} → ${scopeName('leader')} → ${w.only} 순서로 바뀌어요. 한 번 눌러 봐요. 나중에 언제든 다시 바꿀 수 있어요.` },
+        // ② 기도해 보기
+        { mode: 'tap', target: () => tabBtn('pray'), text: '이제 함께 기도해 봐요. 기도하기를 눌러요.' },
+        { mode: 'tap', target: () => $('[data-act=psstart]'), wait: () => S.tab === 'pray' && !S.ps, skip: () => !!S.ps, done: () => !!S.ps,
+          text: '기도 시작을 눌러요. 시간이나 음악은 나중에 마음대로 골라도 돼요.' },
+        { mode: 'tap', target: () => $('.pss-pray:not([disabled])'), wait: () => S.ps && !S.ps.open && !S.ps.done, timeout: 20000, waitText: '기도를 여는 중이에요. 잠시만 기다려요…',
+          done: () => !!S.ps && (S.ps.prayed.length > 0 || S.ps.extra.length > 0), text: '기도하고 나서 기도했어요를 눌러요.' },
+        // 계속을 누르면 안내를 접어 두고, 기도하기를 마칠 때까지 기다렸다 이어 간다
+        { mode: 'next', nextLabel: '계속', then: () => !S.ps, text: '이렇게 한 장씩 넘기며 기도해요. 이제 끝까지 마음껏 해 보세요.' },
+        // ③ 둘러보기
+        { mode: 'next', target: homeSpot, before: () => { if (S.tab !== 'home') goTab('home'); }, wait: () => S.tab === 'home' && !S.ps,
+          text: `이번 달 화면이에요. 이번 주에 기도한 ${w.one}마다 끈에 매듭이 지어져요.` },
+        { mode: 'next', target: () => tabBtn('history'), text: '지난달 기도제목과 응답을 다시 볼 수 있어요.' },
+        { mode: 'next', target: () => tabBtn('more'), text: '화면 설정, 사용법, 홈 화면에 두기가 여기 있어요.' }
+      ];
+    };
+    function start(again) {
+      if (KoideGuide.running() || !can()) return;
+      ev = { sample: false, draft: '', added: false, scoped: false, pre: new Set(), sampleTexts: [], again: !!again };
+      track('따라 하기 시작', { again: !!again });
+      KoideGuide.run(steps(), {
+        onStep: n => track('따라 하기 단계', { step: n + 1 }),
+        onSkipFirst: () => { markDone(); track('따라 하기 마침', { how: 'skip' }); render(); },
+        onDone: () => { markDone(); track('따라 하기 마침', { how: 'done' }); render(); if (ev.sampleTexts.length) { S.tourAsk = true; render(); } }
+      });
+      render();
+    }
+    // 화면을 그릴 때마다: 조건이 맞는 처음 한 번만 시작한다. 화면이 자리 잡도록 잠깐 뒤에
+    function maybe() {
+      // 기억해 둔 화면을 보여 주는 중(서버의 최신을 받기 전)에는 시작하지 않는다: 다른 기기에서 이미 마쳤을 수 있다
+      if (timer || S.stale || KoideGuide.running() || S.tourAsk || !can()) return;
+      if (S.tab !== 'home' || S.ps || S.meet != null || Tour.isOpen() || S.a2hs || document.documentElement.classList.contains('booting')) return;
+      if (waiting || done() || mineFam().items.length) return;
+      timer = setTimeout(() => { timer = 0; if (S.tab === 'home' && !S.ps && !S.a2hs && can() && !done() && !mineFam().items.length && !Tour.isOpen()) start(false); }, 700);
+    }
+    return {
+      start, maybe,
+      // 눌러 보며 한 일을 기억한다(앱의 누름 처리가 부른다)
+      sample() { if (ev && KoideGuide.running()) { ev.sample = true; ev.draft = S.draft; } },
+      add(parts) { if (ev && KoideGuide.running()) { ev.pre = new Set(mineFam().items.map(i => i.id)); ev.sampleTexts = ev.sample ? parts.map(x => x.text).filter(t => ev.draft.includes(t)) : []; ev.added = true; } },
+      scope() { if (ev && KoideGuide.running()) ev.scoped = true; },
+      // 끝에서 "지우기": 이번에 예시로 더한 기도제목만 지운다(원래 있던 것, 직접 고쳐 쓴 줄은 그대로)
+      async drop() {
+        S.tourAsk = false; render();
+        await queue;
+        const f = mineFam(), T = new Set(ev.sampleTexts), gone = f.items.filter(i => !i.pending && !ev.pre.has(i.id) && T.has(i.text)).map(i => i.id);
+        if (!gone.length) return;
+        f.items = f.items.filter(i => !gone.includes(i.id)); S.tgtOpen = null; S.delAsk = null; render();
+        gone.forEach(id => save(() => api('deleteItem', { id })));
+        toast('예시 기도제목을 지웠어요.');
+      },
+      keep() { S.tourAsk = false; render(); },
+      askCard() {
+        return `<div class="pop-scrim" data-act="tourkeep"></div>
+          <section class="card tour-ask pop-sheet" role="dialog" aria-modal="true" aria-labelledby="tka-t">
+            <p class="label" id="tka-t">예시 기도제목은 지울까요?</p>
+            <p>사랑방 사람들에게도 보여요.</p>
+            <div class="actions"><button class="btn danger" data-act="tourdel">지우기</button><button class="btn ghost" data-act="tourkeep">그대로 두기</button></div>
+          </section>`;
+      }
+    };
+  })();
   // 화면을 처음 열 때 한 번 나오는 도움말: 화면 제목 바로 아래에 한 장. 내 기도는 버튼 옆 말풍선(tipOn)이 이미 있어서 여기서는 빼고, 다시 보기 때 함께 되살린다
   function tipFor() {
     const me = S.month && S.month.me; if (!me) return null;
@@ -1608,7 +1717,7 @@ try { const p = JSON.parse(localStorage.getItem('koide-pref') || '{}'), d = docu
     return t;
   }
   function placeTip() {
-    if (S.view !== 'app' || Tour.isOpen() || S.ps || S.meet != null || (SC && !SC.fresh)) return;
+    if (S.view !== 'app' || Tour.isOpen() || KoideGuide.running() || S.ps || S.meet != null || (SC && !SC.fresh)) return;
     const t = tipFor(); if (!t || tipsSeen()[t[0]]) return;
     const main = $('#main'), at = main.querySelector('.page-top');
     const html = `<aside class="tg-tip" role="note"><p><b>처음이세요?</b>${t[1]}</p><button class="btn small ghost" data-act="tipok" data-v="${t[0]}">알겠어요</button></aside>`;
@@ -1994,11 +2103,11 @@ try { const p = JSON.parse(localStorage.getItem('koide-pref') || '{}'), d = docu
 
 
   // 내 기도(시안과 같게): 왼쪽은 이번 달 내 기도제목(대상은 칩을 눌러 고르고, 공개 범위는 누를 때마다 바뀌고, 칸을 벗어나면 저장),
-  //  오른쪽(휴대폰은 아래)은 새 기도제목 쓰기: 큰 칸에 쭉 써서 '항목으로 나누기' → 미리보기에서 빼기 → 추가하기
+  //  오른쪽(휴대폰은 아래)은 새 기도제목 쓰기: 큰 칸에 쭉 써서 '대상별로 정리하기' → 미리보기에서 빼기 → 추가하기
   // 처음 한 번만 보여 주는 안내: '알겠어요'를 누르면 이 기기에서는 다시 안 보여요
   // '이준건 · 정서연 가정 | 이준건': 가정 이름 안의 가운뎃점과 헷갈리지 않게 세로줄로 나눠요
   const famWho = (fam, person) => `${esc(fam)} 가정<span class="who-sep" aria-hidden="true"></span>${esc(person)}`;
-  const tipOn = (k = 'scope') => { if (SC && !SC.fresh) return false; try { return !localStorage.getItem('koide-tip-' + k); } catch (e) { return false; } };
+  const tipOn = (k = 'scope') => { if (SC && !SC.fresh) return false; if (KoideGuide.running()) return false; try { return !localStorage.getItem('koide-tip-' + k); } catch (e) { return false; } };
   function editLi(i, first) {
     const open = S.tgtOpen === i.id, targets = [...new Set([...targetsFor(mineFam().kids), i.target])];
     return `<li class="edit s-${i.scope}"><fieldset ${i.pending ? 'disabled' : ''}>
@@ -2020,7 +2129,7 @@ try { const p = JSON.parse(localStorage.getItem('koide-pref') || '{}'), d = docu
       <div class="two-col"><div class="col">
         ${carried ? `<p class="notice">${mm === 1 ? 12 : mm - 1}월 기도제목 ${carried}개가 그대로 넘어와 있어요. 바뀐 것만 고치면 돼요.</p>` : ''}
         ${mine.items.length ? `<ul class="edit-list">${mine.items.map((i, k) => editLi(i, k === 0)).join('')}</ul>
-          ${!tipOn() && tipOn('end') ? `<div class="coach" role="note"><p>이뤄졌거나 그만 올릴 기도제목은 <b>마치기</b>(지난 기록에 남아요), 잘못 쓴 것은 <b>지우기</b>를 눌러요.</p><button data-act="tip" data-v="end">알겠어요</button></div>` : ''}` : '<p class="notice">이번 달 기도제목이 아직 없어요. 새 기도제목을 써 주세요.</p>'}
+          ${!KoideGuide.running() && !tipOn() && tipOn('end') ? `<div class="coach" role="note"><p>이뤄졌거나 그만 올릴 기도제목은 <b>마치기</b>(지난 기록에 남아요), 잘못 쓴 것은 <b>지우기</b>를 눌러요.</p><button data-act="tip" data-v="end">알겠어요</button></div>` : ''}` : '<p class="notice">이번 달 기도제목이 아직 없어요. 새 기도제목을 써 주세요.</p>'}
         ${ended.length ? `<div class="dropped"><p class="label">이번 달에 마친 기도제목</p>${ended.map(d => `<div class="drop-row"><span class="tgt">${esc(d.target)}</span><p class="drop-txt">${esc(d.text)}</p><button class="undo" data-act="reopen" data-id="${esc(d.id)}">되돌리기</button></div>`).join('')}</div>` : ''}
         ${mine.status === 'same' ? '<button class="btn wide ghost" data-act="confirm">이번 달도 그대로예요</button>' : `<p class="hint">${mine.status === 'confirmed' ? (staffMe() ? '이번 달도 그대로라고 표시했어요.' : '이번 달도 그대로라고 리더에게 알렸어요.') : '이번 달 기도제목을 손봤어요. 따로 제출할 필요 없어요.'}</p>`}
       </div>
@@ -2028,8 +2137,8 @@ try { const p = JSON.parse(localStorage.getItem('koide-pref') || '{}'), d = docu
         <label class="label" for="add-t">새 기도제목 쓰기</label>
         <textarea id="add-t" class="field" rows="4" placeholder="${solo() ? '예)&#10;졸업 논문을 잘 마무리하도록&#10;가족ㅡ할머니 수술이 잘 끝나도록' : '예)&#10;남편ㅡ회사 일이 바빠도 지치지 않도록&#10;' + esc(mine.kids[0] || '아이') + 'ㅡ새 반에 잘 적응하도록'}">${esc(S.draft || '')}</textarea>
         ${tipOn('write') ? `<div class="coach" role="note"><p>한 줄에 하나씩 쓰면 나뉘어요. 카톡에 쓰던 글을 그대로 붙여 넣어도 돼요.</p><button data-act="tip" data-v="write">알겠어요</button></div>` : ''}
-        <div class="actions"><button class="btn" data-act="split">항목으로 나누기</button><button class="link" data-act="sample">예시 넣어 보기</button></div>
-        ${P ? `<div class="preview"><p class="hint">${P.length}개 항목으로 나눴어요. 앞에 쓴 이름표로 대상을 붙였어요. 빼야 할 줄은 ×를 눌러요.</p>
+        <div class="actions"><button class="btn" data-act="split">대상별로 정리하기</button><button class="link" data-act="sample">예시 넣어 보기</button></div>
+        ${P ? `<div class="preview"><p class="hint">${P.length}개로 정리했어요. 앞에 쓴 이름표로 대상을 붙였어요. 빼야 할 줄은 ×를 눌러요.</p>
           <ul class="items">${P.map((x, k) => `<li class="item s-room"><span class="tgt">${esc(x.target)}</span><div class="item-body"><p class="txt">${esc(x.text)}</p></div><button class="rm-x" data-act="prevrm" data-v="${k}" aria-label="이 항목 빼기" title="빼기">${ICON.x}</button></li>`).join('')}</ul>
           <div class="actions"><button class="btn" data-act="addparts">추가하기</button><button class="btn ghost" data-act="unsplit">다시 쓰기</button></div></div>` : ''}
       </section></div></div>`;
@@ -3211,7 +3320,7 @@ try { const p = JSON.parse(localStorage.getItem('koide-pref') || '{}'), d = docu
             ${KoidePilot.moreRows()}
           </section>
           ${S.grp ? '' : `<p class="more-h">코이데</p>
-          <section class="card mrows">${row('tab', 'about', '코이데 소개', '이름의 뜻과 코이데가 지키는 것')}${row('tourre', '', '사용법 보기', '사용법 카드를 보고, 화면마다 도움말을 다시 띄워요')}${row('tab', 'feedback', '의견 보내기', '불편한 점, 바라는 점, 고마운 점')}</section>`}
+          <section class="card mrows">${row('tab', 'about', '코이데 소개', '이름의 뜻과 코이데가 지키는 것')}${row('tourre', '', '사용법 보기', '사용법 카드를 보고, 화면마다 도움말을 다시 띄워요')}${staffMe() || !S.month.me.familyId ? '' : row('guidere', '', '따라 하기 다시 하기', '쓰기와 기도하기를 직접 눌러 보며 한 걸음씩 익혀요')}${row('tab', 'feedback', '의견 보내기', '불편한 점, 바라는 점, 고마운 점')}</section>`}
           <button class="link quiet more-out" data-act="logout">이 기기에서 로그아웃</button>
         </div></div>`;
   }
@@ -4514,7 +4623,7 @@ try { const p = JSON.parse(localStorage.getItem('koide-pref') || '{}'), d = docu
   function takeShare() {
     let x = null; try { x = JSON.parse(localStorage.getItem('koide-share') || 'null'); localStorage.removeItem('koide-share'); } catch (e) { return; }
     if (!x || !x.text || Date.now() - (x.at || 0) > 864e5) return;
-    const say = () => setTimeout(() => toast('기도 노트에서 옮겨 적었어요. 항목으로 나누기 → 공개 범위를 고르고 추가해 주세요.'), 300);
+    const say = () => setTimeout(() => toast('기도 노트에서 옮겨 적었어요. 대상별로 정리하기 → 공개 범위를 고르고 추가해 주세요.'), 300);
     // 모임을 골랐으면 그 모임을 연 뒤 그 모임의 내 기도에(모임을 열면 쓰던 칸이 비워지므로 연 다음에 넣는다)
     if (x.grp && myGroups().some(g => g.id === x.grp && !g.wait)) {
       setTimeout(() => (S.grp === x.grp ? Promise.resolve() : enterGroup(x.grp)).then(() => { if (S.grp !== x.grp) return; S.tab = 'mine'; S.draft = x.text; render(); window.scrollTo(0, 0); say(); }), 0);
@@ -4625,15 +4734,16 @@ try { const p = JSON.parse(localStorage.getItem('koide-pref') || '{}'), d = docu
     P.classList.toggle('meet', meeting);
     document.body.classList.toggle('praying', praying);
     // 홈 화면에 두기 창: 앱 화면에서만, 기도하기·모임 모드·내 기도 쓰는 중에는 띄우지 않는다
-    if (S.a2hsDue && app && !praying && S.tab !== 'mine' && !S.op && !Tour.isOpen()) { S.a2hsDue = false; S.a2hs = true; }
-    const pop = $('#pop'), popOn = app && !praying && S.a2hs && !STANDALONE && !Tour.isOpen();
-    pop.hidden = !popOn; pop.innerHTML = popOn ? a2hsCard() : ''; document.body.classList.toggle('pop-open', popOn);
+    if (S.a2hsDue && app && !praying && S.tab !== 'mine' && !S.op && !Tour.isOpen() && !KoideGuide.running() && !S.tourAsk) { S.a2hsDue = false; S.a2hs = true; }
+    const pop = $('#pop'), ask = app && !praying && S.tourAsk, popOn = ask || (app && !praying && S.a2hs && !STANDALONE && !Tour.isOpen() && !KoideGuide.running());
+    pop.hidden = !popOn; pop.innerHTML = ask ? TourC.askCard() : popOn ? a2hsCard() : ''; document.body.classList.toggle('pop-open', popOn);
     // 쓰던 칸이 다시 그려져 사라지면 칸을 벗어났다는 신호(focusout)가 오지 않는다. 그래도 아래 메뉴가 다시 보이게
     if (!document.activeElement || !document.activeElement.matches('textarea, input, select')) hideTypingSoon();
     // 기도했어요 줄은 아래 탭 바로 위에 붙는다: 탭 높이를 알려 주고, 지금 붙어 있는지 다시 본다
     document.body.style.setProperty('--tabs-h', (app && !S.op ? $('#tabs').offsetHeight : 0) + 'px');
     stickSide();
     stickToday();
+    TourC.maybe();
   }
   // PC 오른쪽 칸: 화면보다 짧으면 위에 붙고, 길면 화면과 함께 내려가다 칸의 끝에서 붙는다(스크롤이 하나만 있게).
   //  그림이 늦게 불러와져 칸 높이가 바뀌어도 다시 맞춘다
@@ -5015,6 +5125,7 @@ try { const p = JSON.parse(localStorage.getItem('koide-pref') || '{}'), d = docu
         return prayFor(f, b.classList.contains('hero'));
       }
       case 'scope': {
+        TourC.scope();
         const i = itemOf(id); i.scope = nextScope(i.scope); render();
         const body = { id, target: i.target, text: i.text, scope: i.scope };
         return save(() => api('saveItem', body));
@@ -5042,15 +5153,18 @@ try { const p = JSON.parse(localStorage.getItem('koide-pref') || '{}'), d = docu
       case 'big': setPref('big', !PREF.big); return render();
       case 'tipscope': try { localStorage.setItem('koide-tip-scope', '1'); } catch (err) { /* 무시 */ } return render();
       case 'tip': try { localStorage.setItem('koide-tip-' + b.dataset.v, '1'); } catch (err) { /* 무시 */ } return render();
+      case 'tourdel': return TourC.drop();
+      case 'tourkeep': return TourC.keep();
+      case 'guidere': return TourC.start(true);
       case 'sample': S.draft = solo() ? '나ㅡ졸업 논문 마감이 다가와요. 지치지 않고 끝까지 잘 마무리하도록\n\n가족ㅡ할머니가 다음 주에 수술을 받으세요. 수술이 잘 끝나고 회복이 빠르도록\n\n친구ㅡ교회에 처음 나온 친구가 공동체에 잘 적응하도록'
           : '형제ㅡ연말이라 회사 일이 몰려서 마음에 여유가 없어요. 지치지 않고 지혜롭게 마무리할 수 있도록 기도해 주세요.\n\n자매ㅡ다음 주에 복직 준비 교육을 마쳐요. 끝까지 건강하게 마치고, 복직 전까지 쉼이 있는 시간을 보낼 수 있도록\n\n' + (mineFam().kids[0] || '아이') + 'ㅡ감기가 2주째 이어지고 있어요. 빨리 낫고 다시 즐겁게 지내도록\n\n함께- 시댁 식구들이 하나님을 믿을 수 있도록';
-        S.preview = null; { const at = $('#add-t'); if (at) at.value = S.draft; } return render();
+        S.preview = null; { const at = $('#add-t'); if (at) at.value = S.draft; } TourC.sample(); return render();
       case 'split': { S.draft = $('#add-t').value; const parts = splitDraft(S.draft); if (!parts.length) return toast('내용을 적어 주세요.'); S.preview = parts; return render(); }
       case 'unsplit': S.preview = null; return render();
       case 'prevrm': S.preview.splice(Number(v), 1); if (!S.preview.length) S.preview = null; return render();
       case 'addparts': {
         // 목록에 바로 넣고(서버의 답이 오기 전까지는 잠가 둠), 서버에는 하나씩 차례대로 저장한다
-        const parts = S.preview, f = mineFam(); S.preview = null; S.draft = ''; const at = $('#add-t'); if (at) at.value = '';
+        const parts = S.preview, f = mineFam(); TourC.add(parts); S.preview = null; S.draft = ''; const at = $('#add-t'); if (at) at.value = '';
         track('기도제목 저장', { items: parts.length, split: true });
         parts.forEach((x, k) => { f.items.push({ id: 'new' + Date.now() + k, target: x.target, text: x.text, scope: staffMe() ? 'dept' : 'room', isNew: true, editedBy: S.me.person, pending: true });
           save(() => api('saveItem', { target: x.target, text: x.text, scope: staffMe() ? 'dept' : 'room' })); });
