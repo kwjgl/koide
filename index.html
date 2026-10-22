@@ -1,0 +1,24 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta http-equiv="refresh" content="0; url=./app/">
+<title>코이데</title>
+<style>
+  /* 앱과 같은 바탕색. 어두운 화면에서는 앱의 어두운 바탕색을 쓴다 */
+  :root { --page: #F3F5F2; --ink: #1F2926; }
+  @media (prefers-color-scheme: dark) { :root { --page: #141B19; --ink: #E6ECE9; } }
+  body { margin: 0; min-height: 100vh; display: flex; align-items: center; justify-content: center;
+         background: var(--page); color: var(--ink); font-family: system-ui, sans-serif; text-align: center; }
+  a { color: inherit; }
+</style>
+</head>
+<body>
+<p>코이데로 가는 중이에요… <a href="./app/">바로 가기</a></p>
+<script>
+  // ?join=... 같은 주소 뒤의 값을 그대로 들고 app/으로 간다
+  location.replace('./app/' + location.search + location.hash);
+</script>
+</body>
+</html>
