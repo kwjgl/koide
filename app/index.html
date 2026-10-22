@@ -1142,6 +1142,17 @@ body.pop-open { overflow: hidden; }
 .rs-pilot { padding: .2em 0 .8em; }
 .rs-foot { flex-wrap: wrap; padding: .2em 0 .8em; }
 .rs-form { margin: .3em 0 .8em; }
+/* 저장하는 동안: 누른 단추에 돌림 표시, 카드는 살짝 흐리게 + 위에 가는 진행선. 저장한 것은 잠깐 밝게 */
+.spin { display: inline-block; width: .85em; height: .85em; margin-right: .4em; vertical-align: -.1em; border: 2px solid currentColor; border-right-color: transparent; border-radius: 50%; animation: rs-spin .8s linear infinite; }
+@keyframes rs-spin { to { transform: rotate(360deg); } }
+.btn[aria-busy="true"]:disabled, .link[aria-busy="true"]:disabled { opacity: 1; }
+.card.rs-busy { position: relative; overflow: hidden; }
+.card.rs-busy > :not(h2) { opacity: .72; }
+.card.rs-busy::before { content: ''; position: absolute; left: 0; right: 0; top: 0; height: 3px; background: linear-gradient(90deg, transparent, var(--accent), transparent) no-repeat; background-size: 40% 100%; animation: rs-bar 1.2s ease-in-out infinite; }
+@keyframes rs-bar { from { background-position: -50% 0; } to { background-position: 150% 0; } }
+.rs-hl { animation: rs-hl 1.5s ease-out; border-radius: 10px; }
+@keyframes rs-hl { 0%, 35% { background: var(--accent-soft); box-shadow: 0 0 0 4px var(--accent-soft); } 100% { background: transparent; box-shadow: 0 0 0 4px transparent; } }
+@media (prefers-reduced-motion: reduce) { .spin { display: none; } .card.rs-busy::before { animation: none; background: var(--accent); } .rs-hl { animation: none; background: var(--accent-soft); box-shadow: 0 0 0 4px var(--accent-soft); } }
 .bk-list { list-style: none; margin: .4em 0; padding: 0; }
 .bk-list li { display: flex; align-items: center; gap: .5em; padding: .45em 0; border-top: 1px solid var(--line); }
 .bk-list li > span { flex: 1; min-width: 0; overflow-wrap: anywhere; }
@@ -3452,7 +3463,7 @@ try { const p = JSON.parse(localStorage.getItem('koide-pref') || '{}'), d = docu
   // 모두 승인: 신청이 둘 이상일 때. 누르면 그 자리에서 한 번 더 물어보고, 지금 화면에 보이는 신청만 승인한다
   function approveAllBar(P) {
     if (!P || P.requests.length < 2) return '';
-    return S.apAsk ? `<div class="apall"><p class="plain"><b>보이는 신청 ${P.requests.length}건</b>을 모두 승인할까요?</p><div class="actions"><button class="btn small" data-act="apalldo" ${S.busy ? 'disabled' : ''}>네, 모두 승인</button><button class="btn small ghost" data-act="apallno">아니요</button></div></div>`
+    return S.apAsk ? `<div class="apall"><p class="plain"><b>보이는 신청 ${P.requests.length}건</b>을 모두 승인할까요?</p><div class="actions"><button class="btn small" data-act="apalldo" ${S.busy ? 'disabled' : ''}${rsIs('approveAll') ? ' aria-busy="true"' : ''}>${rsBz('approveAll', '네, 모두 승인')}</button><button class="btn small ghost" data-act="apallno">아니요</button></div></div>`
       : `<div class="apall"><button class="btn small" data-act="apall">모두 승인 (${P.requests.length})</button></div>`;
   }
   function reqCard() {
@@ -3862,17 +3873,60 @@ try { const p = JSON.parse(localStorage.getItem('koide-pref') || '{}'), d = docu
 
   // ── 소그룹과 사람 (관리자·운영 관리자): 지금 편성의 소그룹마다 사람과 역할. 더하기·옮기기·역할·부서 관리자·떠남 ──
   async function loadRoster() { try { S.rost = await api('roster'); } catch (e) { S.rost = { err: e.code === 'bad' ? '서버를 새 버전으로 배포하면 볼 수 있어요.' : e.message }; } render(); }
-  async function rosterDo(payload, msg) {
-    S.busy = true; render();
+  // 저장하는 동안(서버가 느리면 몇 초 걸린다) 누른 단추와 카드에 표시하고, 저장한 것은 잠깐 밝혀 보여 준다(설계서 7장).
+  //  S.rbusy: 지금 저장 중인 일 { op, label }. S.rostHl: 저장 뒤 밝혀 보일 소그룹·사람 id
+  const RS_BUSY = { addRoom: '만드는 중…', renameRoom: '저장 중…', dropRoom: '지우는 중…', addPerson: '더하는 중…', addPeople: '더하는 중…', move: '옮기는 중…', leave: '빼는 중…', unlink: '해제하는 중…', approveAll: '승인하는 중…' };
+  const RS_QUICK = ['addRoom', 'renameRoom', 'dropRoom', 'pilotRoom', 'addPerson', 'addPeople']; // 신청 목록·이번 달 화면에 바로 영향이 없는 일 → 그 새로고침은 뒤에서
+  const rsIs = ops => !!(S.busy && S.rbusy && ops.split(' ').includes(S.rbusy.op));
+  const rsBz = (ops, idle) => rsIs(ops) ? `<span class="spin" aria-hidden="true"></span>${S.rbusy.label}` : idle; // 누른 단추: 작은 돌림 표시 + "…하는 중…"
+  function rsHlIds(old, now, p) {
+    if (p.op === 'renameRoom' || p.op === 'pilotRoom') return [p.roomId];
+    if (['role', 'admin', 'move', 'unlink'].includes(p.op)) return [p.familyId];
+    const had = new Set(); ((old && old.rooms) || []).forEach(r => { had.add(r.id); r.people.forEach(x => had.add(x.id)); });
+    const out = []; ((now && now.rooms) || []).forEach(r => { if (!had.has(r.id)) out.push(r.id); r.people.forEach(x => { if (!had.has(x.id)) out.push(x.id); }); });
+    return out;
+  }
+  function rsShowHl() {
+    const ids = S.rostHl || []; if (!ids.length) return;
+    const els = ids.map(id => document.querySelector('[data-hl="' + id.replace(/["\\]/g, '') + '"]')).filter(Boolean);
+    els.forEach(el => el.classList.add('rs-hl'));
+    if (els[0]) els[0].scrollIntoView({ block: 'nearest', behavior: calm() ? 'auto' : 'smooth' });
+    clearTimeout(rsShowHl.t);
+    rsShowHl.t = setTimeout(() => { els.forEach(el => el.classList.remove('rs-hl')); S.rostHl = null; if (S.rbgDirty) { S.rbgDirty = false; rsLate(); } }, 1700);
+  }
+  // 뒤에서 가져온 새 자료를 화면에 반영한다. 글을 쓰는 중이거나 밝히는 중이면 건드리지 않는다
+  function rsLate() {
+    const a = document.activeElement;
+    if (S.busy || S.view !== 'app') return;
+    if (S.rostHl) { S.rbgDirty = true; return; }
+    if (a && a.closest && a.closest('.rs-form')) return;
+    render();
+  }
+  function rsBackground(op, seq) {
+    const jobs = [];
+    if (/Room$/.test(op)) { if (S.op) jobs.push(api('opsCtx').then(m => { S.month = m; })); else if (op === 'pilotRoom') jobs.push(api('month').then(m => { S.month = m; })); }
+    jobs.push(api('pending').then(r => { S.pending = r; }));
+    Promise.all(jobs).then(() => { if (seq === rsBackground.seq) rsLate(); }, () => { /* 다음에 다시 불러올 때 맞춰진다 */ });
+  }
+  rsBackground.seq = 0;
+  async function rosterDo(payload, msg, opts) {
+    opts = opts || {};
+    const old = S.rost, op = payload.op, seq = ++rsBackground.seq;
+    S.busy = true; S.rbusy = { op, label: RS_BUSY[op] || '저장 중…', v: payload.role }; S.rostHl = null; render();
+    let ok = false;
     try {
-      S.rost = await api('rosterSave', payload); toast(typeof msg === 'function' ? msg(S.rost) : msg);
-      if (/Room$/.test(payload.op)) { if (S.op) S.month = await api('opsCtx'); else if (payload.op === 'pilotRoom') S.month = await api('month'); }
-      S.pending = await api('pending');
+      S.rost = await api('rosterSave', payload); ok = true;
+      if (opts.done) opts.done();
+      toast(typeof msg === 'function' ? msg(S.rost) : msg);
+      // 저장 결과에 편성이 다 들어 있어서 바로 그린다. 이번 달 화면·신청 목록은 뒤에서 새로 가져온다
+      if (RS_QUICK.includes(op)) rsBackground(op, seq);
+      else S.pending = await api('pending');
     } catch (e) {
-      if (e.code === 'same' && confirm(e.message)) { S.busy = false; return rosterDo(Object.assign({}, payload, { force: true }), msg); }
+      if (e.code === 'same' && confirm(e.message)) { S.busy = false; S.rbusy = null; return rosterDo(Object.assign({}, payload, { force: true }), msg, opts); }
       oops(e);
     }
-    S.busy = false; render();
+    S.busy = false; S.rbusy = null; S.rostHl = ok ? rsHlIds(old, S.rost, payload) : null; render(); rsShowHl();
+    return ok;
   }
   // 여러 명 한꺼번에 더하기: 붙여 넣은 글을 사람(가정) 목록으로 바꾼다. 한 줄에 한 명, 줄 안에 이름이 여럿이면 탭·쉼표·가운뎃점·/·띄어쓰기로 나눈다.
   //  번호(1. 1) ①)와 글머리(- · •), '가정'·'님'은 떼고, 이름 같지 않은 줄(숫자·기호·긴 글)은 빼서 알려 준다.
@@ -3905,13 +3959,13 @@ try { const p = JSON.parse(localStorage.getItem('koide-pref') || '{}'), d = docu
     const open = S.rostOpen || {}, sel = S.rostSel, me = S.month.me;
     const tag = p => (p.role !== '회원' ? `<span class="role-tag leader">${esc(p.role)}</span>` : '') + (p.admin ? '<span class="role-tag admin">관리자</span>' : '');
     const acts = (p, r) => `<div class="rs-acts">
-        <p class="label">역할</p><div class="seg" style="--n:3" role="radiogroup" aria-label="역할">${['회원', '코리더', '리더'].map(k => `<button class="${p.role === k ? 'on' : ''}" role="radio" aria-checked="${p.role === k}" data-act="rsrole" data-v="${k}" ${S.busy ? 'disabled' : ''}>${k}</button>`).join('')}</div>
+        <p class="label">역할</p><div class="seg" style="--n:3" role="radiogroup" aria-label="역할">${['회원', '코리더', '리더'].map(k => `<button class="${p.role === k ? 'on' : ''}" role="radio" aria-checked="${p.role === k}" data-act="rsrole" data-v="${k}" ${S.busy ? 'disabled' : ''}${rsIs('role') && S.rbusy.v === k ? ' aria-busy="true"' : ''}>${k}</button>`).join('')}</div>
         <div class="set-row"><div><p class="label" style="margin:0">부서 관리자</p><p class="hint" style="margin:.2em 0 0">이 관리 화면을 함께 열어요.</p></div>
           <button type="button" class="switch${p.admin ? ' on' : ''}" role="switch" aria-checked="${p.admin}" aria-label="부서 관리자" data-act="rsadmin" ${S.busy || (p.admin && p.id === me.familyId) ? 'disabled' : ''}><span></span></button></div>
-        ${R.rooms.length > 1 ? `<div class="kid-form"><select id="rs-move" class="field" aria-label="옮길 ${esc(grp())}">${R.rooms.filter(x => x.id !== r.id).map(x => `<option value="${esc(x.id)}">${esc(x.name)}</option>`).join('')}</select><button class="btn small ghost" data-act="rsmove" ${S.busy ? 'disabled' : ''}>옮기기</button></div>` : ''}
-        <p class="label">연결된 카카오</p>${p.links && p.links.length ? `<ul class="rs-links">${p.links.map(l => `<li><span>${esc(l.person)} <small>카카오 "${esc(l.nick)}" · ${esc(l.since)}</small></span>${l.me ? '<small>나</small>' : `<button class="link danger" data-act="rsunlink" data-v="${esc(l.kakaoId)}" data-n="${esc(l.person)}">해제</button>`}</li>`).join('')}</ul>` : '<p class="hint" style="margin:0">아직 연결 없음</p>'}
+        ${R.rooms.length > 1 ? `<div class="kid-form"><select id="rs-move" class="field" aria-label="옮길 ${esc(grp())}">${R.rooms.filter(x => x.id !== r.id).map(x => `<option value="${esc(x.id)}">${esc(x.name)}</option>`).join('')}</select><button class="btn small ghost" data-act="rsmove" ${S.busy ? 'disabled' : ''}${rsIs('move') ? ' aria-busy="true"' : ''}>${rsBz('move', '옮기기')}</button></div>` : ''}
+        <p class="label">연결된 카카오</p>${p.links && p.links.length ? `<ul class="rs-links">${p.links.map(l => `<li><span>${esc(l.person)} <small>카카오 "${esc(l.nick)}" · ${esc(l.since)}</small></span>${l.me ? '<small>나</small>' : `<button class="link danger" data-act="rsunlink" data-v="${esc(l.kakaoId)}" data-n="${esc(l.person)}" ${S.busy ? 'disabled' : ''}${rsIs('unlink') ? ' aria-busy="true"' : ''}>${rsBz('unlink', '해제')}</button>`}</li>`).join('')}</ul>` : '<p class="hint" style="margin:0">아직 연결 없음</p>'}
         <p class="label">결혼·부서 옮기기</p><span class="foot-acts"><button class="link" data-act="mvstart" data-v="marry" data-fam="${esc(p.id)}">결혼해서 ${solo() ? '청장년부로 가기' : '가정 합치기'}</button>${p.id === me.familyId ? '' : `<button class="link" data-act="mvstart" data-v="move" data-fam="${esc(p.id)}">다른 부서로 옮기기</button>`}</span>
-        ${p.id === me.familyId ? '' : `<button class="link danger" data-act="rsleave" data-n="${esc(p.name)}">${esc(R.term)}년 편성에서 빼기 (떠남)</button>`}</div>`;
+        ${p.id === me.familyId ? '' : `<button class="link danger" data-act="rsleave" data-n="${esc(p.name)}" ${S.busy ? 'disabled' : ''}${rsIs('leave') ? ' aria-busy="true"' : ''}>${rsBz('leave', esc(R.term) + '년 편성에서 빼기 (떠남)')}</button>`}</div>`;
     const bulkForm = (r, E) => {
       if (!E.res) return `<div class="rs-form rs-bulk"><label class="label" for="bk-text">여러 명 더하기 · ${esc(r.name)}</label>
           <p class="hint">한 줄에 한 명씩 붙여 넣어요. 카톡이나 엑셀에서 복사해도 돼요.${solo() ? '' : ' 부부는 한 줄에 "남편 · 아내"처럼 두 분을 적으면 한 가정이 돼요.'}</p>
@@ -3921,26 +3975,26 @@ try { const p = JSON.parse(localStorage.getItem('koide-pref') || '{}'), d = docu
       return `<div class="rs-form rs-bulk"><p class="label">이렇게 더할까요? · ${esc(r.name)}</p>
           <ul class="bk-list">${E.res.rows.map((x, i) => `<li class="${x.ex || x.bad ? 'ex' : ''}"><span>${esc(x.label)}</span>${x.ex ? `<small>이미 있어요${x.ex.room !== r.name ? ' · ' + esc(x.ex.room) : ''}</small>` : x.bad ? `<small>${esc(x.bad)}</small>` : x.near ? `<small>비슷한 이름: ${esc(x.near.name)}</small>` : ''}<button class="link quiet" data-act="rsbulkx" data-v="${i}" aria-label="${esc(x.label)} 빼기">×</button></li>`).join('') || '<li class="hint">더할 이름을 찾지 못했어요.</li>'}</ul>
           ${E.res.noise.length ? `<p class="hint">이름이 아닌 것 같아서 뺀 줄이 ${E.res.noise.length}개 있어요: ${esc(E.res.noise.slice(0, 3).join(' / '))}${E.res.noise.length > 3 ? ' …' : ''}</p>` : ''}
-          <div class="actions"><button class="btn small" data-act="rsbulkgo" ${S.busy || !n ? 'disabled' : ''}>${n}${unit} 더하기</button><button class="btn small ghost" data-act="rsbulkback">다시 붙여 넣기</button><button class="btn small ghost" data-act="rsedit" data-v="">취소</button></div></div>`;
+          <div class="actions"><button class="btn small" data-act="rsbulkgo" ${S.busy || !n ? 'disabled' : ''}${rsIs('addPeople') ? ' aria-busy="true"' : ''}>${rsBz('addPeople', n + unit + ' 더하기')}</button><button class="btn small ghost" data-act="rsbulkback">다시 붙여 넣기</button><button class="btn small ghost" data-act="rsedit" data-v="">취소</button></div></div>`;
     };
     const room = r => {
       const on = !!open[r.id], E = S.rostEdit && S.rostEdit.roomId === r.id ? S.rostEdit : null;
-      return `<li class="rs-room${on ? ' open' : ''}"><button class="rs-head" data-act="rsopen" data-v="${esc(r.id)}" aria-expanded="${on}"><b>${esc(r.name)}</b><small>${r.people.length}${words().count}</small><span class="ops-chev" aria-hidden="true">${ICON.chev}</span></button>
+      return `<li class="rs-room${on ? ' open' : ''}" data-hl="${esc(r.id)}"><button class="rs-head" data-act="rsopen" data-v="${esc(r.id)}" aria-expanded="${on}"><b>${esc(r.name)}</b><small>${r.people.length}${words().count}</small><span class="ops-chev" aria-hidden="true">${ICON.chev}</span></button>
         ${!on ? '' : `<div class="set-row rs-pilot"><div><p class="label" style="margin:0">시범 중</p><p class="hint" style="margin:.2em 0 0">켜면 이 ${esc(grp())} 사람들에게 '해 볼 일' 띠가 보여요(어느 기기에서든)</p></div>
           <button type="button" class="switch${r.pilot ? ' on' : ''}" role="switch" aria-checked="${!!r.pilot}" aria-label="${esc(r.name)} 시범 중" data-act="rspilot" data-v="${esc(r.id)}" ${S.busy ? 'disabled' : ''}><span></span></button></div>
-        <ul class="rs-people">${r.people.map(p => `<li class="${sel === p.id ? 'on' : ''}"><button class="rs-p" data-act="rssel" data-v="${esc(p.id)}" aria-expanded="${sel === p.id}"><span>${esc(p.name)}</span>${tag(p)}<small>${p.linked ? '연결 ' + p.linked : '아직 연결 없음'}</small></button>${sel === p.id ? acts(p, r) : ''}</li>`).join('') || `<li class="hint">아직 ${solo() ? '사람' : '가정'}이 없어요.</li>`}</ul>
+        <ul class="rs-people">${r.people.map(p => `<li class="${sel === p.id ? 'on' : ''}" data-hl="${esc(p.id)}"><button class="rs-p" data-act="rssel" data-v="${esc(p.id)}" aria-expanded="${sel === p.id}"><span>${esc(p.name)}</span>${tag(p)}<small>${p.linked ? '연결 ' + p.linked : '아직 연결 없음'}</small></button>${sel === p.id ? acts(p, r) : ''}</li>`).join('') || `<li class="hint">아직 ${solo() ? '사람' : '가정'}이 없어요.</li>`}</ul>
           ${E && E.kind === 'person' ? `<form class="plain-form rs-form" data-form="rsadd" data-v="${esc(r.id)}">
-              <input class="field" name="a" maxlength="10" required placeholder="${solo() ? '이름' : '남편 또는 본인 이름'}" aria-label="${solo() ? '이름' : '남편 또는 본인 이름'}" autocomplete="off">
-              ${solo() ? '' : '<input class="field" name="b" maxlength="10" placeholder="아내 이름 · 1인 가정이면 비워 두세요" aria-label="아내 이름" autocomplete="off">'}
-              <div class="actions"><button class="btn small" type="submit" ${S.busy ? 'disabled' : ''}>더하기</button><button class="btn small ghost" type="button" data-act="rsedit" data-v="">취소</button></div></form>`
+              <input class="field" name="a" maxlength="10" required placeholder="${solo() ? '이름' : '남편 또는 본인 이름'}" aria-label="${solo() ? '이름' : '남편 또는 본인 이름'}" autocomplete="off" value="${esc(E.a || '')}">
+              ${solo() ? '' : `<input class="field" name="b" maxlength="10" placeholder="아내 이름 · 1인 가정이면 비워 두세요" aria-label="아내 이름" autocomplete="off" value="${esc(E.b || '')}">`}
+              <div class="actions"><button class="btn small" type="submit" ${S.busy ? 'disabled' : ''}${rsIs('addPerson') ? ' aria-busy="true"' : ''}>${rsBz('addPerson', '더하기')}</button><button class="btn small ghost" type="button" data-act="rsedit" data-v="" ${S.busy ? 'disabled' : ''}>취소</button></div></form>`
           : E && E.kind === 'bulk' ? bulkForm(r, E)
-          : E && E.kind === 'rename' ? `<form class="kid-form rs-form" data-form="rsrename" data-v="${esc(r.id)}"><input class="field" name="n" maxlength="20" value="${esc(r.name)}" aria-label="새 이름" autocomplete="off"><button class="btn small" type="submit">바꾸기</button></form>`
-          : `<span class="foot-acts rs-foot"><button class="link" data-act="rsedit" data-v="person|${esc(r.id)}">+ ${solo() ? '사람' : '가정'} 더하기</button><button class="link" data-act="rsedit" data-v="bulk|${esc(r.id)}">+ 여러 명 더하기</button><button class="link quiet" data-act="rsedit" data-v="rename|${esc(r.id)}">이름 바꾸기</button>${r.people.length ? '' : `<button class="link quiet" data-act="rsdrop" data-v="${esc(r.id)}" data-n="${esc(r.name)}">지우기</button>`}</span>`}`}</li>`;
+          : E && E.kind === 'rename' ? `<form class="kid-form rs-form" data-form="rsrename" data-v="${esc(r.id)}"><input class="field" name="n" maxlength="20" value="${esc(E.n != null ? E.n : r.name)}" aria-label="새 이름" autocomplete="off"><button class="btn small" type="submit" ${S.busy ? 'disabled' : ''}${rsIs('renameRoom') ? ' aria-busy="true"' : ''}>${rsBz('renameRoom', '바꾸기')}</button></form>`
+          : `<span class="foot-acts rs-foot"><button class="link" data-act="rsedit" data-v="person|${esc(r.id)}">+ ${solo() ? '사람' : '가정'} 더하기</button><button class="link" data-act="rsedit" data-v="bulk|${esc(r.id)}">+ 여러 명 더하기</button><button class="link quiet" data-act="rsedit" data-v="rename|${esc(r.id)}">이름 바꾸기</button>${r.people.length ? '' : `<button class="link quiet" data-act="rsdrop" data-v="${esc(r.id)}" data-n="${esc(r.name)}" ${S.busy ? 'disabled' : ''}${rsIs('dropRoom') ? ' aria-busy="true"' : ''}>${rsBz('dropRoom', '지우기')}</button>`}</span>`}`}</li>`;
     };
     const addRoom = S.rostEdit && S.rostEdit.kind === 'room';
-    return `<section class="card"><h2>${title}</h2>
+    return `<section class="card${S.busy && S.rbusy ? ' rs-busy' : ''}"${S.busy && S.rbusy ? ' aria-busy="true"' : ''}><h2>${title}</h2>
       <ul class="rs-rooms">${R.rooms.map(room).join('') || `<li class="hint">아직 ${esc(grp())}이 없어요.</li>`}</ul>
-      ${addRoom ? `<form class="kid-form rs-form" data-form="rsroom"><input class="field" name="n" maxlength="20" placeholder="예) 1${esc(grp())}" aria-label="새 ${esc(grp())} 이름" autocomplete="off"><button class="btn small" type="submit" ${S.busy ? 'disabled' : ''}>만들기</button></form>`
+      ${addRoom ? `<form class="kid-form rs-form" data-form="rsroom"><input class="field" name="n" maxlength="20" placeholder="예) 1${esc(grp())}" aria-label="새 ${esc(grp())} 이름" autocomplete="off" value="${esc(S.rostEdit.n || '')}"><button class="btn small" type="submit" ${S.busy ? 'disabled' : ''}${rsIs('addRoom') ? ' aria-busy="true"' : ''}>${rsBz('addRoom', '만들기')}</button></form>`
         : `<span class="foot-acts rs-foot"><button class="btn small ghost" data-act="rsedit" data-v="room|">+ ${esc(grp())} 만들기</button><button class="btn small ghost" data-act="mvstart" data-v="marry">결혼해서 가정 합치기</button><button class="btn small ghost" data-act="mvstart" data-v="move">다른 부서에서 옮겨 오기</button></span>`}
       <p class="hint">${R.term}년 편성이에요. 새로 온 ${words().one}은 첫 접속에서 "새로 왔어요"로 신청해도 되고, 여기서 미리 더해 두면 그 이름을 골라 연결을 요청해요. 떠남으로 빼도 지난 기록은 남아요. 해마다 새로 짤 때는 연도 개편을 써요.</p></section>`;
   }
@@ -4827,10 +4881,8 @@ try { const p = JSON.parse(localStorage.getItem('koide-pref') || '{}'), d = docu
       case 'rsbulkgo': {
         const E = S.rostEdit; if (!E || !E.res) return;
         const add = E.res.rows.filter(x => !x.bad && !x.ex).map(x => ({ a: x.a, b: x.b })); if (!add.length) return;
-        S.rostEdit = null; if (S.rost) delete S.rost.bulk;
-        await rosterDo({ op: 'addPeople', roomId: E.roomId, people: add }, R => { const B = R.bulk || {}; return (B.added || add.length) + (solo() ? '명' : '가정') + ' 더했어요.' + (B.skipped ? ' ' + B.skipped + '건은 이미 있어서 건너뛰었어요.' : ''); });
-        if (!(S.rost && S.rost.bulk)) { S.rostEdit = E; render(); }
-        return;
+        if (S.rost) delete S.rost.bulk;
+        return rosterDo({ op: 'addPeople', roomId: E.roomId, people: add }, R => { const B = R.bulk || {}; return (B.added || add.length) + (solo() ? '명' : '가정') + ' 더했어요.' + (B.skipped ? ' ' + B.skipped + '건은 이미 있어서 건너뛰었어요.' : ''); }, { done: () => { S.rostEdit = null; } });
       }
       case 'rspilot': { const on = !b.classList.contains('on'); return rosterDo({ op: 'pilotRoom', roomId: v, on }, on ? '시범 중을 켰어요.' : '시범 중을 껐어요.'); }
       case 'rsrole': return rosterDo({ op: 'role', familyId: S.rostSel, role: v }, euro(v) + ' 정했어요.');
@@ -4855,7 +4907,7 @@ try { const p = JSON.parse(localStorage.getItem('koide-pref') || '{}'), d = docu
       case 'mvgo': return mvGo();
       case 'mvundo': return mvUndo(v, b.dataset.n || '');
       case 'rsmove': { const to = ($('#rs-move') || {}).value; if (!to) return; S.rostOpen = Object.assign({}, S.rostOpen, { [to]: true }); return rosterDo({ op: 'move', familyId: S.rostSel, roomId: to }, '옮겼어요.'); }
-      case 'rsleave': if (!confirm(josa(b.dataset.n, '을/를') + ' 지금 편성에서 뺄까요? 지난 기록은 남고, 1년이 지나면 개인정보 요청에 올라와요.')) return; { const id = S.rostSel; S.rostSel = null; return rosterDo({ op: 'leave', familyId: id }, '편성에서 뺐어요.'); }
+      case 'rsleave': if (!confirm(josa(b.dataset.n, '을/를') + ' 지금 편성에서 뺄까요? 지난 기록은 남고, 1년이 지나면 개인정보 요청에 올라와요.')) return; return rosterDo({ op: 'leave', familyId: S.rostSel }, '편성에서 뺐어요.', { done: () => { S.rostSel = null; } });
       case 'rsdrop': if (!confirm(josa(b.dataset.n, '을/를') + ' 지울까요?')) return; return rosterDo({ op: 'dropRoom', roomId: v }, '지웠어요.');
       case 'invcopy': {
         const url = inviteUrl(v);
@@ -5104,10 +5156,10 @@ try { const p = JSON.parse(localStorage.getItem('koide-pref') || '{}'), d = docu
       case 'apall': S.apAsk = true; return render();
       case 'apallno': S.apAsk = false; return render();
       case 'apalldo': {
-        const ids = (S.pending ? S.pending.requests : []).map(q => q.kakaoId); S.apAsk = false; if (!ids.length) return render();
-        S.busy = true; render();
+        const ids = (S.pending ? S.pending.requests : []).map(q => q.kakaoId); if (!ids.length) { S.apAsk = false; return render(); }
+        S.busy = true; S.rbusy = { op: 'approveAll', label: RS_BUSY.approveAll }; render();
         try { S.pending = await api('approveAll', { kakaoIds: ids }); const B = S.pending.bulk || {}; toast((B.done || 0) + '건 승인했어요.' + (B.skipped ? ' ' + B.skipped + '건은 하나씩 확인해 주세요.' : '')); } catch (err) { oops(err); }
-        S.busy = false; return render();
+        S.apAsk = false; S.busy = false; S.rbusy = null; return render();
       }
       case 'approve': case 'reject': case 'unlink':
         try { S.pending = await api(b.dataset.act, { kakaoId: v }); render(); toast(b.dataset.act === 'approve' ? '승인했어요.' : b.dataset.act === 'reject' ? '거절했어요.' : '연결을 해제했어요.'); } catch (err) { oops(err); }
@@ -5192,13 +5244,13 @@ try { const p = JSON.parse(localStorage.getItem('koide-pref') || '{}'), d = docu
     }
     if (f.dataset.form === 'rsroom' || f.dataset.form === 'rsrename') {
       const n = f.elements.n.value.trim(); if (!n) return;
-      S.rostEdit = null;
-      return rosterDo(f.dataset.form === 'rsroom' ? { op: 'addRoom', name: n } : { op: 'renameRoom', roomId: f.dataset.v, name: n }, f.dataset.form === 'rsroom' ? josa(n, '을/를') + ' 만들었어요.' : '이름을 바꿨어요.');
+      if (S.rostEdit) S.rostEdit.n = n; // 저장하는 동안 폼이 다시 그려져도 쓴 글이 남도록
+      return rosterDo(f.dataset.form === 'rsroom' ? { op: 'addRoom', name: n } : { op: 'renameRoom', roomId: f.dataset.v, name: n }, f.dataset.form === 'rsroom' ? josa(n, '을/를') + ' 만들었어요.' : '이름을 바꿨어요.', { done: () => { S.rostEdit = null; } });
     }
     if (f.dataset.form === 'rsadd') {
       const a = f.elements.a.value.trim(), bb = f.elements.b ? f.elements.b.value.trim() : ''; if (!a) return;
-      S.rostEdit = null;
-      return rosterDo({ op: 'addPerson', roomId: f.dataset.v, a, b: bb }, '더했어요.');
+      if (S.rostEdit) { S.rostEdit.a = a; S.rostEdit.b = bb; }
+      return rosterDo({ op: 'addPerson', roomId: f.dataset.v, a, b: bb }, '더했어요.', { done: () => { S.rostEdit = null; } });
     }
     if (f.dataset.form === 'deptsave') {
       const E = S.deptNew || { group: '순', unit: '개인' }, name = ($('#dp-n') || {}).value.trim();
