@@ -1142,6 +1142,13 @@ body.pop-open { overflow: hidden; }
 .rs-pilot { padding: .2em 0 .8em; }
 .rs-foot { flex-wrap: wrap; padding: .2em 0 .8em; }
 .rs-form { margin: .3em 0 .8em; }
+.bk-list { list-style: none; margin: .4em 0; padding: 0; }
+.bk-list li { display: flex; align-items: center; gap: .5em; padding: .45em 0; border-top: 1px solid var(--line); }
+.bk-list li > span { flex: 1; min-width: 0; overflow-wrap: anywhere; }
+.bk-list li.ex > span { color: var(--ink-2); text-decoration: line-through; }
+.bk-list li small { color: var(--ink-2); }
+.bk-list .link { font-size: 1.2em; padding: .1em .5em; }
+.apall { margin: 0 0 .6em; }
 .fam-rec { display: flex; flex-wrap: wrap; align-items: center; gap: .3em 1em; margin: .9em 0 0; padding-top: .7em; border-top: 1px solid var(--line); font-size: .9em; color: var(--ink-2); }
 .staff-form { display: flex; flex-direction: column; gap: .5em; border-top: 1px solid var(--line); padding-top: .8em; }
 .serve-who { margin: .4em 0 0; }
@@ -3079,7 +3086,7 @@ try { const p = JSON.parse(localStorage.getItem('koide-pref') || '{}'), d = docu
     const P = S.pending, me = S.month.me;
     return `<section class="card"><h2>${esc(grp())} ${words().members} 관리</h2>
         ${!P ? '<p class="hint">불러오는 중…</p>' : `
-        ${P.requests.length ? P.requests.map(q => `<div class="req"><b>${q.newFamily ? '새로 온 ' + words().one + ' · ' : ''}${esc(q.person)} 님${q.familyName !== q.person ? ' → ' + esc(q.familyName) : ''}</b>
+        ${approveAllBar(P)}${P.requests.length ? P.requests.map(q => `<div class="req"><b>${q.newFamily ? '새로 온 ' + words().one + ' · ' : ''}${esc(q.person)} 님${q.familyName !== q.person ? ' → ' + esc(q.familyName) : ''}</b>
             <small>${q.kids ? '자녀 ' + esc(q.kids) + ' · ' : ''}카카오 "${esc(q.nick)}" · ${esc(q.requestedAt)} 요청</small>
             <div class="actions" style="margin-top:8px"><button class="btn small" data-act="approve" data-v="${esc(q.kakaoId)}">승인</button><button class="btn small ghost" data-act="reject" data-v="${esc(q.kakaoId)}">거절</button></div></div>`).join('')
           : '<p class="hint">확인할 신청이 없어요.</p>'}
@@ -3442,9 +3449,16 @@ try { const p = JSON.parse(localStorage.getItem('koide-pref') || '{}'), d = docu
       ${open ? `<div class="fold-body">${foldInner(html) || '<p class="hint">불러오는 중…</p>'}</div>` : ''}</div>`;
   }
   // 연결 신청(관리 탭의 할 일): 승인을 기다리는 요청만. 사랑방 가정의 연결 해제는 사랑방 현황에서
+  // 모두 승인: 신청이 둘 이상일 때. 누르면 그 자리에서 한 번 더 물어보고, 지금 화면에 보이는 신청만 승인한다
+  function approveAllBar(P) {
+    if (!P || P.requests.length < 2) return '';
+    return S.apAsk ? `<div class="apall"><p class="plain"><b>보이는 신청 ${P.requests.length}건</b>을 모두 승인할까요?</p><div class="actions"><button class="btn small" data-act="apalldo" ${S.busy ? 'disabled' : ''}>네, 모두 승인</button><button class="btn small ghost" data-act="apallno">아니요</button></div></div>`
+      : `<div class="apall"><button class="btn small" data-act="apall">모두 승인 (${P.requests.length})</button></div>`;
+  }
   function reqCard() {
     const P = S.pending;
     return `<section class="card"><h2>연결 신청 <span class="ops-n">${P.requests.length}</span></h2>
+      ${approveAllBar(P)}
       ${P.requests.map(q => `<div class="req"><b>${q.newFamily ? '새로 온 ' + words().one + ' · ' : ''}${esc(q.person)} 님${q.familyName !== q.person ? ' → ' + esc(q.familyName) : ''}</b>
         <small>${q.kids ? '자녀 ' + esc(q.kids) + ' · ' : ''}카카오 "${esc(q.nick)}" · ${esc(q.requestedAt)} 요청</small>
         <div class="actions" style="margin-top:8px"><button class="btn small" data-act="approve" data-v="${esc(q.kakaoId)}">승인</button><button class="btn small ghost" data-act="reject" data-v="${esc(q.kakaoId)}">거절</button></div></div>`).join('')}</section>`;
@@ -3490,12 +3504,12 @@ try { const p = JSON.parse(localStorage.getItem('koide-pref') || '{}'), d = docu
       <p class="hint">−3(가장 부정)~+3(가장 긍정). 보통 −0.8~+0.8은 중간, 0.8보다 크면 긍정이에요. 아래는 문항별 평균이에요.</p>
       ${KOIDE_SURVEY.UEQS.map(([l, r], i) => `<div class="svb-row svb-u"><span>${i + 1}. ${esc(l)} ↔ ${esc(r)}</span>${bar(U.items[i])}<b>${fmt(U.items[i])}</b></div>`).join('')}</div>`;
   }
-  // 시범 · 해 본 일: '숫자도 함께 보내기'를 켠 사람이 보낸 해 본 항목을 항목마다 센다(n명). 누가 보냈는지는 없다. 설문에 보낸 사람 표시가 없어서 몇째 날별로 따로 보여 준다
+  // 시범에서 해 본 일: '숫자도 함께 보내기'를 켠 사람이 보낸 해 본 항목을 항목마다 센다(n명). 누가 보냈는지는 없다. 설문에 보낸 사람 표시가 없어서 몇째 날별로 따로 보여 준다
   function pilotAdminCard(V) {
     const days = [3, 7, 14], has = n => V.byDay[n] && V.byDay[n].pilot && V.byDay[n].pilot.n;
-    if (!days.some(has)) return `<section class="card"><h2>시범 · 해 본 일</h2><p class="hint">아직 온 답이 없어요. 시범 링크로 연 사람이 설문에서 "숫자도 함께 보내기"를 켜면 여기에 모여요.</p></section>`;
+    if (!days.some(has)) return `<section class="card"><h2>시범에서 해 본 일</h2><p class="hint">아직 온 답이 없어요. 시범 링크로 연 사람이 설문에서 "숫자도 함께 보내기"를 켜면 여기에 모여요.</p></section>`;
     const d = has(S.svPl) ? S.svPl : [...days].reverse().find(has), P = V.byDay[d].pilot, L = KoidePilot.LISTS;
-    return `<section class="card"><div class="row"><h2>시범 · 해 본 일</h2><small class="hint">${P.n}명</small></div>
+    return `<section class="card"><div class="row"><h2>시범에서 해 본 일</h2><small class="hint">${P.n}명</small></div>
       <p class="hint">설문에서 숫자도 함께 보내기를 켠 사람만 세요. 이름은 없고, 항목마다 해 봤다고 한 사람 수예요. 같은 사람이 3·7·14일째에 또 보낼 수 있어서 몇째 날별로 따로 봐요.</p>
       <div class="mchips" role="radiogroup" aria-label="몇째 날">${days.filter(has).map(n => `<button class="mchip${d === n ? ' on' : ''}" role="radio" aria-checked="${d === n}" data-act="svpl" data-v="${n}">${n}일째 · ${V.byDay[n].pilot.n}명</button>`).join('')}</div>
       ${['community', 'note', 'all'].map(g => `<div class="svb"><p class="svb-q">${esc(L[g][0])}</p>${L[g][1].map(([k, t]) => { const c = P.items[k] || 0; return `<div class="svb-row svb-p"><span>${esc(t)}</span><b>${c}명</b><div class="svb-bar" aria-hidden="true"><i style="width:${Math.round(c / P.n * 100)}%"></i></div></div>`; }).join('')}</div>`).join('')}</section>`;
@@ -3851,7 +3865,7 @@ try { const p = JSON.parse(localStorage.getItem('koide-pref') || '{}'), d = docu
   async function rosterDo(payload, msg) {
     S.busy = true; render();
     try {
-      S.rost = await api('rosterSave', payload); toast(msg);
+      S.rost = await api('rosterSave', payload); toast(typeof msg === 'function' ? msg(S.rost) : msg);
       if (/Room$/.test(payload.op)) { if (S.op) S.month = await api('opsCtx'); else if (payload.op === 'pilotRoom') S.month = await api('month'); }
       S.pending = await api('pending');
     } catch (e) {
@@ -3859,6 +3873,30 @@ try { const p = JSON.parse(localStorage.getItem('koide-pref') || '{}'), d = docu
       oops(e);
     }
     S.busy = false; render();
+  }
+  // 여러 명 한꺼번에 더하기: 붙여 넣은 글을 사람(가정) 목록으로 바꾼다. 한 줄에 한 명, 줄 안에 이름이 여럿이면 탭·쉼표·가운뎃점·/·띄어쓰기로 나눈다.
+  //  번호(1. 1) ①)와 글머리(- · •), '가정'·'님'은 떼고, 이름 같지 않은 줄(숫자·기호·긴 글)은 빼서 알려 준다.
+  //  가정 단위: 한 줄 이름 하나 = 1인 가정, 둘 = 한 가정(남편 아내), 셋 이상은 줄을 나누도록 안내. 같은 사람 판단은 연도 개편과 같이 nameKey(부부 순서·띄어쓰기·'/' 표기 무시)
+  const BK_NUM = /^(?:\(?\d{1,3}\s*[.)\]:、]|\d{1,3}(?=\s)|[-–—•·*▪●○▶■□◆◇➢]+|[①-⑳])\s*/;
+  const BK_NAME = /^[가-힣A-Za-z][가-힣A-Za-z.'-]*$/;
+  function bulkParse(text) {
+    const one = solo(), exist = {}, seen = {}, rows = [], noise = [];
+    ((S.rost && S.rost.rooms) || []).forEach(r => r.people.forEach(p => { const parts = p.name.split(' · ').map(x => x.replace(/\s+/g, '')); exist[nameKey(parts)] = { name: p.name, room: r.name, parts }; }));
+    String(text || '').split(/\r?\n/).forEach(raw => {
+      const line = raw.trim(); if (!line) return;
+      const l = line.replace(BK_NUM, '').replace(/가정/g, ' ').trim();
+      const toks = l.split(/[\t,;，、·\/]+|\s+/).map(x => x.trim()).filter(x => x && !/^\d{1,3}$/.test(x) && !/^(님|씨)$/.test(x));
+      if (!toks.length) return;
+      if (toks.some(x => !BK_NAME.test(x) || x.length > 10)) { noise.push(line.slice(0, 30)); return; }
+      const people = one ? toks.map(x => [x]) : toks.length <= 2 ? [toks] : null;
+      if (!people) { rows.push({ bad: '한 줄에 이름이 세 개 이상이에요. 줄을 나눠 주세요', label: toks.join(' · ') }); return; }
+      people.forEach(parts => {
+        const k = nameKey(parts); if (seen[k]) return; seen[k] = true;
+        const ex = exist[k], near = !ex && Object.keys(exist).map(x => exist[x]).find(e => e.parts.some(x => parts.includes(x)));
+        rows.push({ a: parts[0], b: parts[1] || '', label: parts.join(' · '), ex: ex || null, near: near || null });
+      });
+    });
+    return { rows, noise };
   }
   function rosterCard() {
     if (S.mv) return mvCard();
@@ -3874,6 +3912,17 @@ try { const p = JSON.parse(localStorage.getItem('koide-pref') || '{}'), d = docu
         <p class="label">연결된 카카오</p>${p.links && p.links.length ? `<ul class="rs-links">${p.links.map(l => `<li><span>${esc(l.person)} <small>카카오 "${esc(l.nick)}" · ${esc(l.since)}</small></span>${l.me ? '<small>나</small>' : `<button class="link danger" data-act="rsunlink" data-v="${esc(l.kakaoId)}" data-n="${esc(l.person)}">해제</button>`}</li>`).join('')}</ul>` : '<p class="hint" style="margin:0">아직 연결 없음</p>'}
         <p class="label">결혼·부서 옮기기</p><span class="foot-acts"><button class="link" data-act="mvstart" data-v="marry" data-fam="${esc(p.id)}">결혼해서 ${solo() ? '청장년부로 가기' : '가정 합치기'}</button>${p.id === me.familyId ? '' : `<button class="link" data-act="mvstart" data-v="move" data-fam="${esc(p.id)}">다른 부서로 옮기기</button>`}</span>
         ${p.id === me.familyId ? '' : `<button class="link danger" data-act="rsleave" data-n="${esc(p.name)}">${esc(R.term)}년 편성에서 빼기 (떠남)</button>`}</div>`;
+    const bulkForm = (r, E) => {
+      if (!E.res) return `<div class="rs-form rs-bulk"><label class="label" for="bk-text">여러 명 더하기 · ${esc(r.name)}</label>
+          <p class="hint">한 줄에 한 명씩 붙여 넣어요. 카톡이나 엑셀에서 복사해도 돼요.${solo() ? '' : ' 부부는 한 줄에 "남편 · 아내"처럼 두 분을 적으면 한 가정이 돼요.'}</p>
+          <textarea id="bk-text" class="field rg-text" rows="8" placeholder="${solo() ? '홍길동&#10;김영희&#10;박민수' : '홍길동 · 김영희&#10;박민수/이지은&#10;최하늘'}">${esc(E.text || '')}</textarea>
+          <div class="actions"><button class="btn small" data-act="rsbulkprev">미리 보기</button><button class="btn small ghost" data-act="rsedit" data-v="">취소</button></div></div>`;
+      const add = E.res.rows.filter(x => !x.bad && !x.ex), n = add.length, unit = solo() ? '명' : '가정';
+      return `<div class="rs-form rs-bulk"><p class="label">이렇게 더할까요? · ${esc(r.name)}</p>
+          <ul class="bk-list">${E.res.rows.map((x, i) => `<li class="${x.ex || x.bad ? 'ex' : ''}"><span>${esc(x.label)}</span>${x.ex ? `<small>이미 있어요${x.ex.room !== r.name ? ' · ' + esc(x.ex.room) : ''}</small>` : x.bad ? `<small>${esc(x.bad)}</small>` : x.near ? `<small>비슷한 이름: ${esc(x.near.name)}</small>` : ''}<button class="link quiet" data-act="rsbulkx" data-v="${i}" aria-label="${esc(x.label)} 빼기">×</button></li>`).join('') || '<li class="hint">더할 이름을 찾지 못했어요.</li>'}</ul>
+          ${E.res.noise.length ? `<p class="hint">이름이 아닌 것 같아서 뺀 줄이 ${E.res.noise.length}개 있어요: ${esc(E.res.noise.slice(0, 3).join(' / '))}${E.res.noise.length > 3 ? ' …' : ''}</p>` : ''}
+          <div class="actions"><button class="btn small" data-act="rsbulkgo" ${S.busy || !n ? 'disabled' : ''}>${n}${unit} 더하기</button><button class="btn small ghost" data-act="rsbulkback">다시 붙여 넣기</button><button class="btn small ghost" data-act="rsedit" data-v="">취소</button></div></div>`;
+    };
     const room = r => {
       const on = !!open[r.id], E = S.rostEdit && S.rostEdit.roomId === r.id ? S.rostEdit : null;
       return `<li class="rs-room${on ? ' open' : ''}"><button class="rs-head" data-act="rsopen" data-v="${esc(r.id)}" aria-expanded="${on}"><b>${esc(r.name)}</b><small>${r.people.length}${words().count}</small><span class="ops-chev" aria-hidden="true">${ICON.chev}</span></button>
@@ -3884,8 +3933,9 @@ try { const p = JSON.parse(localStorage.getItem('koide-pref') || '{}'), d = docu
               <input class="field" name="a" maxlength="10" required placeholder="${solo() ? '이름' : '남편 또는 본인 이름'}" aria-label="${solo() ? '이름' : '남편 또는 본인 이름'}" autocomplete="off">
               ${solo() ? '' : '<input class="field" name="b" maxlength="10" placeholder="아내 이름 · 1인 가정이면 비워 두세요" aria-label="아내 이름" autocomplete="off">'}
               <div class="actions"><button class="btn small" type="submit" ${S.busy ? 'disabled' : ''}>더하기</button><button class="btn small ghost" type="button" data-act="rsedit" data-v="">취소</button></div></form>`
+          : E && E.kind === 'bulk' ? bulkForm(r, E)
           : E && E.kind === 'rename' ? `<form class="kid-form rs-form" data-form="rsrename" data-v="${esc(r.id)}"><input class="field" name="n" maxlength="20" value="${esc(r.name)}" aria-label="새 이름" autocomplete="off"><button class="btn small" type="submit">바꾸기</button></form>`
-          : `<span class="foot-acts rs-foot"><button class="link" data-act="rsedit" data-v="person|${esc(r.id)}">+ ${solo() ? '사람' : '가정'} 더하기</button><button class="link quiet" data-act="rsedit" data-v="rename|${esc(r.id)}">이름 바꾸기</button>${r.people.length ? '' : `<button class="link quiet" data-act="rsdrop" data-v="${esc(r.id)}" data-n="${esc(r.name)}">지우기</button>`}</span>`}`}</li>`;
+          : `<span class="foot-acts rs-foot"><button class="link" data-act="rsedit" data-v="person|${esc(r.id)}">+ ${solo() ? '사람' : '가정'} 더하기</button><button class="link" data-act="rsedit" data-v="bulk|${esc(r.id)}">+ 여러 명 더하기</button><button class="link quiet" data-act="rsedit" data-v="rename|${esc(r.id)}">이름 바꾸기</button>${r.people.length ? '' : `<button class="link quiet" data-act="rsdrop" data-v="${esc(r.id)}" data-n="${esc(r.name)}">지우기</button>`}</span>`}`}</li>`;
     };
     const addRoom = S.rostEdit && S.rostEdit.kind === 'room';
     return `<section class="card"><h2>${title}</h2>
@@ -4025,7 +4075,7 @@ try { const p = JSON.parse(localStorage.getItem('koide-pref') || '{}'), d = docu
   }
   // ── 관리 › 운영 (설계서 S7): ① 앱 상태 ② 개인정보 요청. 할 일이 있는 카드만 관리 탭 위로 올라온다 ──
   //  NEED_SERVER: 이 화면이 바라는 서버 버전(서버 VERSION 앞 날짜). 서버 코드를 고쳐 배포해야 하는 기능을 넣을 때 함께 올린다
-  const NEED_SERVER = '2026-11-07';
+  const NEED_SERVER = '2026-11-08';
   // ── 시범 설문(survey.js): 이번 달 화면 위에 3·7·14일째 카드 한 장. 처음 도움말이 떠 있으면 도움말 먼저. 기도하기·모임 모드·관리 화면·장면 주소에서는 없다 ──
   //  시작한 날 = 이 사람이 처음 연결된 날(서버가 알면), 아니면 이 기기에서 처음 연 날. 보내는 숫자는 사용자가 켰을 때만(여기서는 홈 화면 앱 여부뿐), 기도 내용은 없다
   if (!SC) KOIDE_SURVEY.init({ where: 'community', key: DEMO_LINK ? 'koide-demo-survey' : 'koide-survey', api, start: () => (S.me && S.me.link && S.me.link.since) || '', nums: () => ({ app: STANDALONE }), ver: NEED_SERVER, demo: DEMO });
@@ -4771,6 +4821,17 @@ try { const p = JSON.parse(localStorage.getItem('koide-pref') || '{}'), d = docu
       case 'rsopen': S.rostOpen = Object.assign({}, S.rostOpen, { [v]: !(S.rostOpen || {})[v] }); S.rostSel = null; S.rostEdit = null; return render();
       case 'rssel': S.rostSel = S.rostSel === v ? null : v; return render();
       case 'rsedit': { const [kind, roomId] = (v || '').split('|'); S.rostEdit = kind ? { kind, roomId } : null; render(); const f = $('.rs-form .field'); if (f) f.focus(); return; }
+      case 'rsbulkprev': { const E = S.rostEdit; if (!E) return; E.text = ($('#bk-text') || {}).value || ''; E.res = bulkParse(E.text); if (!E.res.rows.length && !E.res.noise.length) { E.res = null; return toast('붙여 넣은 글이 없어요.'); } return render(); }
+      case 'rsbulkback': { const E = S.rostEdit; if (E) E.res = null; return render(); }
+      case 'rsbulkx': { const E = S.rostEdit; if (E && E.res) E.res.rows.splice(Number(v), 1); return render(); }
+      case 'rsbulkgo': {
+        const E = S.rostEdit; if (!E || !E.res) return;
+        const add = E.res.rows.filter(x => !x.bad && !x.ex).map(x => ({ a: x.a, b: x.b })); if (!add.length) return;
+        S.rostEdit = null; if (S.rost) delete S.rost.bulk;
+        await rosterDo({ op: 'addPeople', roomId: E.roomId, people: add }, R => { const B = R.bulk || {}; return (B.added || add.length) + (solo() ? '명' : '가정') + ' 더했어요.' + (B.skipped ? ' ' + B.skipped + '건은 이미 있어서 건너뛰었어요.' : ''); });
+        if (!(S.rost && S.rost.bulk)) { S.rostEdit = E; render(); }
+        return;
+      }
       case 'rspilot': { const on = !b.classList.contains('on'); return rosterDo({ op: 'pilotRoom', roomId: v, on }, on ? '시범 중을 켰어요.' : '시범 중을 껐어요.'); }
       case 'rsrole': return rosterDo({ op: 'role', familyId: S.rostSel, role: v }, euro(v) + ' 정했어요.');
       case 'rsadmin': { const on = !b.classList.contains('on'); return rosterDo({ op: 'admin', familyId: S.rostSel, on }, on ? '부서 관리자로 정했어요.' : '부서 관리자에서 뺐어요.'); }
@@ -5039,6 +5100,14 @@ try { const p = JSON.parse(localStorage.getItem('koide-pref') || '{}'), d = docu
         if (!confirm(s.label + '을(를) 교역자 목록에서 마칠까요? 연결도 풀리고, 기도제목 기록은 남아요.')) return;
         try { S.pending = await api('endStaff', { familyId: v }); render(); toast('교역자 목록에서 마쳤어요.'); } catch (err) { oops(err); }
         return;
+      }
+      case 'apall': S.apAsk = true; return render();
+      case 'apallno': S.apAsk = false; return render();
+      case 'apalldo': {
+        const ids = (S.pending ? S.pending.requests : []).map(q => q.kakaoId); S.apAsk = false; if (!ids.length) return render();
+        S.busy = true; render();
+        try { S.pending = await api('approveAll', { kakaoIds: ids }); const B = S.pending.bulk || {}; toast((B.done || 0) + '건 승인했어요.' + (B.skipped ? ' ' + B.skipped + '건은 하나씩 확인해 주세요.' : '')); } catch (err) { oops(err); }
+        S.busy = false; return render();
       }
       case 'approve': case 'reject': case 'unlink':
         try { S.pending = await api(b.dataset.act, { kakaoId: v }); render(); toast(b.dataset.act === 'approve' ? '승인했어요.' : b.dataset.act === 'reject' ? '거절했어요.' : '연결을 해제했어요.'); } catch (err) { oops(err); }

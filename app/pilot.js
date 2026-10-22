@@ -105,8 +105,8 @@
       const d = !!ST.done[k];
       return `<li><button type="button" class="pl-task${d ? ' done' : ''}" role="checkbox" aria-checked="${d}" data-pl="tog" data-k="${k}"><span class="pl-box">${d ? CHECK : ''}</span><span class="pl-txt">${esc(label(k, t))}</span></button></li>`;
     }).join('');
-    return `<section class="card pl${open ? ' open' : ''}" id="pl-band" aria-label="시범 해 볼 일">
-      <button type="button" class="pl-head" data-pl="fold" aria-expanded="${open}"><b>시범 · 해 볼 일</b><span class="pl-cnt">${count()}/${total()}</span>${CHEV}</button>
+    return `<section class="card pl${open ? ' open' : ''}" id="pl-band" aria-label="시범에서 해 볼 일">
+      <button type="button" class="pl-head" data-pl="fold" aria-expanded="${open}"><b>시범에서 해 볼 일</b><span class="pl-cnt">${count()}/${total()}</span>${CHEV}</button>
       ${all ? `<p class="pl-all">다 해 봤어요 🙏 불편했던 점을 알려 주세요 <button type="button" class="pl-link" data-pl="fb">의견 보내기</button></p>` : ''}
       ${open ? `<ul class="pl-list">${order.map(sec).join('')}</ul>` : ''}</section>`;
   }
@@ -133,7 +133,7 @@
   // 더보기에 넣는 두 줄(.mrow): 띠 보이기/숨기기, 시범 끝내기. 시범에 함께하지 않으면 없다
   function moreRows() {
     if (!on()) return '';
-    return `<button type="button" class="mrow" data-pl="show"><span><b>시범 · 해 볼 일</b><small>${ST.hide ? '띠를 숨겨 두었어요. 누르면 다시 보여요' : '화면 위에 띠가 보여요. 누르면 숨겨요'} · ${count()}/${total()}</small></span></button>
+    return `<button type="button" class="mrow" data-pl="show"><span><b>시범에서 해 볼 일</b><small>${ST.hide ? '띠를 숨겨 두었어요. 누르면 다시 보여요' : '화면 위에 띠가 보여요. 누르면 숨겨요'} · ${count()}/${total()}</small></span></button>
       <button type="button" class="mrow" data-pl="off"><span><b>시범 끝내기</b><small>해 볼 일 띠와 체크를 이 기기에서 지워요</small></span></button>`;
   }
 

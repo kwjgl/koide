@@ -97,7 +97,7 @@ const FIRST_DEPT = { id: 'D1', name: '청장년부', group: '사랑방', unit: '
 // ── 요청 받기 ─────────────────────────────────────────────
 
 // 서버 코드를 고칠 때마다 바꾼다. 웹 앱 주소를 열면 보여서, 새 버전으로 배포됐는지 확인할 수 있다
-const VERSION = '2026-11-07 사랑방 시범 중';
+const VERSION = '2026-11-08 여러 명 더하기·모두 승인';
 function doGet() {
   return ContentService.createTextOutput('코이데 서버가 켜져 있어요. (버전: ' + VERSION + ')');
 }
@@ -152,6 +152,7 @@ const ACTIONS = {
   pray: pray_,
   pending: body => pendingView_(leaderOrAdmin_(body)),
   approve: body => decide_(body, true),
+  approveAll: approveAll_,
   reject: body => decide_(body, false),
   post: body => setPosted_(body, true),
   unpost: body => setPosted_(body, false),
@@ -235,7 +236,7 @@ const ACTIONS = {
   notePut: body => { const a = auth_(body.token); return withLock_(() => notePut_(a, body)); },
   noteDel: body => { const a = auth_(body.token); return withLock_(() => noteDel_(a)); }
 };
-const OPS_ACTIONS_ = ['opsCtx', 'church', 'churchAnalysis', 'groupAdmin', 'changes', 'together', 'togetherSave', 'togetherState', 'opsInvite', 'opsRemove', 'deptSave', 'deptClose', 'deptReopen', 'deptErase', 'roster', 'rosterSave', 'deptFind', 'marryPreview', 'marrySave', 'marryUndo', 'moveDept', 'moveUndo', 'pending', 'approve', 'reject', 'unlink', 'saveStaff', 'endStaff',
+const OPS_ACTIONS_ = ['opsCtx', 'church', 'churchAnalysis', 'groupAdmin', 'changes', 'together', 'togetherSave', 'togetherState', 'opsInvite', 'opsRemove', 'deptSave', 'deptClose', 'deptReopen', 'deptErase', 'roster', 'rosterSave', 'deptFind', 'marryPreview', 'marrySave', 'marryUndo', 'moveDept', 'moveUndo', 'pending', 'approve', 'approveAll', 'reject', 'unlink', 'saveStaff', 'endStaff',
   'reorg', 'reorgSave', 'reorgCancel', 'analysis', 'saveGroup', 'ops', 'groups', 'openMonth', 'handover', 'eraseFamily', 'keepFamily', 'inviteRenew', 'feedbackRead', 'usage', 'surveyAdmin'];
 
 // ── 로그인 ───────────────────────────────────────────────
@@ -540,6 +541,27 @@ function decide_(body, ok) {
     logChange_(c, (f && f.status === '승인 대기' ? '새 가정 ' : '연결 ') + (ok ? '승인' : '거절'), (f ? f.name + ' · ' : '') + l.person);
     if (f && f.status === '승인 대기') { f.status = ok ? '활동' : '거절'; update_('families', f); }
     return pendingView_(c);
+  });
+}
+
+// 모두 승인: 관리자가 화면에서 본 요청(kakaoId 목록)만 한 번에 승인한다. 한 건씩 승인과 같은 권한 확인·같은 기록을 남기고,
+// 그사이 없어졌거나 내가 볼 수 없는 요청은 건너뛴다(승인 때 따로 고르는 것은 없어서 고르는 일이 필요한 요청은 지금은 없다)
+function approveAll_(body) {
+  const c = leaderOrAdmin_(body), ids = (Array.isArray(body.kakaoIds) ? body.kakaoIds : []).map(String).filter((x, i, a) => x && a.indexOf(x) === i);
+  if (!ids.length) throw fail_('bad', '승인할 요청이 없어요.');
+  if (ids.length > 100) throw fail_('bad', '한 번에 100건까지 승인할 수 있어요.');
+  return withLock_(() => {
+    let done = 0, skipped = 0;
+    ids.forEach(id => {
+      const l = read_('links').find(x => String(x.kakaoId) === id && x.status === '요청');
+      if (!l || !canManage_(c, l.familyId)) { skipped++; return; }
+      l.status = '연결'; l.approvedBy = c.person; update_('links', l);
+      const f = read_('families').find(x => x.id === l.familyId);
+      logChange_(c, (f && f.status === '승인 대기' ? '새 가정 ' : '연결 ') + '승인', (f ? f.name + ' · ' : '') + l.person, '모두 승인');
+      if (f && f.status === '승인 대기') { f.status = '활동'; update_('families', f); }
+      done++;
+    });
+    const out = pendingView_(c); out.bulk = { done, skipped }; return out;
   });
 }
 
@@ -1709,7 +1731,7 @@ function rosterView_(c) {
         linked: links.filter(l => l.familyId === o.f.id && l.status === '연결').length,
         links: links.filter(l => l.familyId === o.f.id && l.status === '연결').map(l => ({ kakaoId: String(l.kakaoId), person: l.person, nick: l.nick, since: fmtDay_(l.requestedAt), me: String(l.kakaoId) === c.kakaoId })) })) })) };
 }
-// 바꾸기: addRoom / renameRoom / pilotRoom(시범 중 켜기·끄기) / dropRoom(빈 소그룹만) / addPerson / move / role / admin / leave
+// 바꾸기: addRoom / renameRoom / pilotRoom(시범 중 켜기·끄기) / dropRoom(빈 소그룹만) / addPerson / addPeople(여러 명 한꺼번에) / move / role / admin / leave
 function rosterSave_(body) {
   const c = adminOf_(body), d = c.deptId, op = String(body.op || '');
   return withLock_(() => {
@@ -1752,6 +1774,32 @@ function rosterSave_(body) {
       append_('families', { id, name, kids: '', status: '활동', admin: '' });
       append_('roster', { year: y, roomId: r.id, familyId: id, role: '회원' });
       logChange_(c, '사람 더하기', name, r.name);
+    } else if (op === 'addPeople') {
+      // 여러 명 한꺼번에: addPerson과 같은 권한·같은 줄을 한 번에 만든다(한 번에 60명까지). 이미 있는 이름과 붙여 넣은 중복은 건너뛴다
+      const r = roomOf(body.roomId), one = c.dept.unit === '개인', list = Array.isArray(body.people) ? body.people : [];
+      if (!r) throw fail_('bad', c.dept.group + '을 확인해 주세요.');
+      if (!list.length) throw fail_('bad', '더할 이름이 없어요.');
+      if (list.length > 60) throw fail_('bad', '한 번에 60명까지 더할 수 있어요. 나누어 붙여 넣어 주세요.');
+      const key = n => String(n).split(' · ').map(x => x.replace(/\s+/g, '')).sort().join('|');
+      const seen = {};
+      read_('roster').filter(x => activeRow_(x) && roomOf(x.roomId)).forEach(x => { const f = famOf(x.familyId); if (f) seen[key(f.name)] = true; });
+      const base = Date.now().toString(36), fams = [], rows = [], names = [];
+      let skipped = 0;
+      list.forEach(it => {
+        const a = clean(it && it.a, 10), b = one ? '' : clean(it && it.b, 10);
+        if (!a) { skipped++; return; }
+        const name = b ? a + ' · ' + b : a, k = key(name);
+        if (seen[k]) { skipped++; return; }
+        seen[k] = true;
+        const id = 'F' + base + (fams.length ? 'x' + fams.length : '');
+        fams.push({ id, name, kids: '', status: '활동', admin: '' });
+        rows.push({ year: y, roomId: r.id, familyId: id, role: '회원' });
+        names.push(name);
+      });
+      if (!fams.length) throw fail_('bad', '새로 더할 이름이 없어요. 모두 이미 있어요.');
+      appendMany_('families', fams); appendMany_('roster', rows);
+      logChange_(c, '여러 명 더하기', r.name, names.length + (one ? '명' : '가정') + (skipped ? ' · 건너뜀 ' + skipped : ''));
+      const out = rosterView_(c); out.bulk = { added: names.length, skipped }; return out;
     } else {
       const row = rowOf(String(body.familyId || '')), f = row && famOf(row.familyId);
       if (!row || !f) throw fail_('bad', '지금 편성에서 찾지 못했어요.');
