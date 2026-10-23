@@ -1538,7 +1538,10 @@ try { const p = JSON.parse(localStorage.getItem('koide-pref') || '{}'), d = docu
         { mode: 'next', nextLabel: '계속', then: () => !S.ps, text: '이렇게 한 장씩 넘기며 기도해요. 이제 끝까지 마음껏 해 보세요.' },
         // ③ 둘러보기
         { mode: 'next', target: homeSpot, before: () => { if (S.tab !== 'home') goTab('home'); }, wait: () => S.tab === 'home' && !S.ps,
-          text: `이번 달 화면이에요. 이번 주에 기도한 ${w.one}마다 끈에 매듭이 지어져요. 기도할수록 이달의 그림이 하나씩 채워져요. 나만 보여요.` },
+          text: `이번 달 화면이에요. 이번 주에 기도한 ${w.one}마다 끈에 매듭이 지어져요. 나만 보여요.` },
+        // 이달의 그림도 따로 비춘다(휴대폰에서는 끈과 멀리 떨어져 있어 한 번에 못 비춘다)
+        { mode: 'next', target: () => $('.art-card'), skip: () => !$('.art-card'), wait: () => S.tab === 'home' && !S.ps,
+          text: '기도할수록 이달의 그림이 하나씩 채워져요. 기도한 날마다 주인공이 놓이고, 이번 달 처음 기도한 곳이 생기면 소품이 늘어요. 나만 보여요.' },
         { mode: 'next', target: () => tabBtn('history'), text: '지난달 기도제목과 응답을 다시 볼 수 있어요.' },
         { mode: 'next', target: () => tabBtn('more'), text: '화면 설정, 사용법, 홈 화면에 두기가 여기 있어요.' },
         // ④ 마무리: 연습한 예시를 치우고 빈 쓰기 칸을 비춘다. 칸은 눌리지 않고, 키보드도 우리가 열지 않는다
