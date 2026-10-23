@@ -215,7 +215,8 @@ button.knot { cursor: pointer; }
 .edit-foot { display: flex; justify-content: space-between; align-items: center; gap: .6em; font-size: .78em; color: var(--ink-2); }
 .state { font-size: .74em; color: var(--ink-2); }
 .foot-acts { display: flex; gap: 1em; flex: none; }
-.edit-foot .link { font-size: .8em; padding: .35em 0; white-space: nowrap; }
+/* 카드 아래 단추(마치기·나누기·지우기)는 공동체 내 기도와 같은 크기(.78em × 1.04 ≈ .81em) */
+.edit-foot .link { font-size: 1.04em; padding: .35em 0; white-space: nowrap; }
 /* 지난 기록 */
 .weeks { display: grid; grid-template-columns: repeat(7, 1fr); gap: 5px; }
 .weeks i { aspect-ratio: 1; border-radius: 6px; background: var(--surface-2); display: grid; place-items: center; font-style: normal; font-size: .68em; color: var(--ink-2); }
@@ -1053,14 +1054,14 @@ button.knot { cursor: pointer; }
   }
 
   // 내 기도: 왼쪽(휴대폰은 위)은 늘 새 기도제목 쓰기, 오른쪽은 기도제목마다 카드 하나(공동체 앱 '내 기도'와 같게).
-  //  대상은 칩 단추를 눌러 고르고, 내용은 카드 안에서 바로 고치고 칸을 벗어나면 저장해요
+  //  대상은 칩 단추를 눌러 고르고, 내용은 카드 안에서 바로 고치고 칸을 벗어나면 저장해요. 카드 아래에는 마치기·나누기·지우기
   function noteLi(i) {
     const open = S.tgtOpen === i.id;
     return `<li class="edit"><div class="edit-top"><button class="tgt-btn${open ? ' open' : ''}" data-a="tgtopen" data-v="${i.id}" aria-expanded="${open}" aria-label="대상 고르기: 지금 ${esc(targetName(i.target))}">${esc(targetName(i.target))}${CHEV}</button></div>
       ${open ? `<div class="tgt-pick chips" role="group" aria-label="기도 대상 고르기">${targets().map(([t, n]) => `<button class="chip${t === i.target ? ' on' : ''}" aria-pressed="${t === i.target}" data-a="tgtpick" data-v="${i.id}" data-t="${esc(t)}">${esc(n)}</button>`).join('')}<button class="chip add" data-a="addperson">+ 사람</button></div>` : ''}
       <textarea class="field" rows="2" maxlength="1000" data-item="${i.id}" aria-label="기도제목 내용">${esc(i.text)}</textarea>
       <div class="edit-foot"><span class="state">${short(i.created)}부터 · ${daysSince(i.created)}일째${lastPrayed(i.id) ? ' · 마지막 기도 ' + short(lastPrayed(i.id)) : ''}</span>
-        <span class="foot-acts"><button class="link" data-a="done" data-v="${i.id}">마치기</button><button class="link quiet" data-a="share" data-v="${i.id}">나누기</button></span></div></li>`;
+        <span class="foot-acts"><button class="link" data-a="done" data-v="${i.id}">마치기</button><button class="link quiet" data-a="share" data-v="${i.id}">나누기</button><button class="link quiet" data-a="delitem" data-v="${i.id}">지우기</button></span></div></li>`;
   }
   function noteView() {
     const T = targets(), list = T.flatMap(([t]) => open().filter(i => i.target === t));
@@ -1928,6 +1929,14 @@ button.knot { cursor: pointer; }
       case 'psflow': PS.flow = !PS.flow; savePs(); return render();
       case 'psclose': psStop(); return render();
       case 'renperson': { const p = D.people.find(x => x.id === v), n = (prompt('새 이름', p.name) || '').trim().slice(0, 12); if (n) { p.name = n; p.up = now(); save(); } return render(); }
+      // 기도제목 지우기: 기도 기록과 함께 지우고, 지움 표시(D.gone)를 남겨 동기화가 되살리지 않게 한다
+      case 'delitem': {
+        if (!confirm('이 기도제목을 지울까요? 기도한 기록도 함께 지워지고 되돌릴 수 없어요.')) return;
+        D.gone = [...new Set([...(D.gone || []), v])];
+        D.items = D.items.filter(i => i.id !== v); D.prays = D.prays.filter(p => p.item !== v);
+        if (S.tgtOpen === v) S.tgtOpen = null;
+        save(); return toast('지웠어요');
+      }
       case 'delperson': {
         const p = D.people.find(x => x.id === v), n = D.items.filter(i => i.target === 'p:' + v && !i.done).length;
         if (!confirm(`${p.name} 님을 뺄까요?${n ? ` 이 사람을 위한 기도제목 ${n}개는 "나"로 옮겨요.` : ''}`)) return;
