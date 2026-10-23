@@ -321,6 +321,11 @@ button.knot { cursor: pointer; }
 .mrow-end .tag { margin-right: 0; }
 .tag.off { color: var(--ink-2); background: var(--surface-2); }
 .mrow small { display: block; color: var(--ink-2); font-size: .8em; }
+/* 더보기: 작은 제목 아래에 카드와 줄로 묶는다(공동체 더보기와 같은 짜임) */
+.more-h { font-size: .8em; font-weight: 600; color: var(--ink-2); margin: 12px 4px 0; line-height: 1.2; letter-spacing: .02em; }
+.mrows { padding-top: 8px; padding-bottom: 4px; }
+.mrows > .mrow:first-child { border-top: 0; }
+.mset { display: flex; flex-direction: column; gap: 10px; border-top: 1px solid var(--line); padding: .9em 0 .5em; }
 /* 고르는 버튼 묶음: 공동체 앱과 같은 모양(디자인 스타일 new·classic·glass가 그대로 입혀진다) */
 .seg { display: grid; grid-auto-flow: column; grid-auto-columns: 1fr; gap: 3px; padding: 3px; background: var(--surface-2); border-radius: 12px; }
 .seg button { font: inherit; font-size: .86em; word-break: keep-all; padding: 0 4px; border: 0; border-radius: 9px; min-height: 44px; background: transparent; color: var(--ink-2); cursor: pointer; }
@@ -1255,7 +1260,7 @@ button.knot { cursor: pointer; }
     if (await X.saveBlob(blob, `koide-weave-${w.id}.png`, w.name)) toast('그림을 저장했어요');
   }
 
-  // 화면 설정(더보기 › 화면, 위쪽 톱니바퀴): 화면 모드 · 색 테마 · 디자인 · 큰 글씨. 공동체 화면과 함께 바뀐다
+  // 화면 설정(더보기 › 앱 설정 › 화면 설정, 위쪽 톱니바퀴): 화면 모드 · 색 테마 · 디자인 · 큰 글씨. 공동체 화면과 함께 바뀐다
   function screenControls() {
     const mode = PREF.mode || 'system', accent = PREF.accent || 'green', style = PREF.style || 'flat';
     return `<div class="seg" role="radiogroup" aria-label="화면 모드">${MODES.map(([k, l]) => `<button class="${mode === k ? 'on' : ''}" role="radio" aria-checked="${mode === k}" data-a="mode" data-v="${k}">${l}</button>`).join('')}</div>
@@ -1282,22 +1287,28 @@ button.knot { cursor: pointer; }
   function moreView() {
     const nick = (noteMe() || {}).nick;
     return `<header class="top"><div><p class="eyebrow">${nick ? esc(nick) : '코이데 기도 노트'}</p><h1>더보기</h1></div></header>
-      ${groupsCard()}
-      ${syncRow()}
-      <section class="card"><p class="label">내가 기도하는 사람들</p>
-        ${people().length ? `<ul class="people">${people().map(p => `<li><span>${esc(p.name)}</span><span><button class="link quiet" data-a="renperson" data-v="${p.id}">이름 바꾸기</button> <button class="link quiet" data-a="delperson" data-v="${p.id}">빼기</button></span></li>`).join('')}</ul>` : '<p class="hint">가족, 친구처럼 늘 기도하는 사람을 더해 두면 기도제목의 대상으로 고를 수 있고, 오늘 화면에 끈이 생겨요.</p>'}
-        <button class="btn ghost small" data-a="addperson" style="align-self:flex-start">+ 사람 더하기</button></section>
-      <section class="card"><p class="label">화면</p>${screenControls()}</section>
-      <section class="card"><button class="mrow" data-a="tab" data-v="help"><span><b>사용법</b><small>따라 하기와 도움말</small></span><span aria-hidden="true">›</span></button>
-        ${HOME_APP ? '' : '<button class="mrow" data-a="a2hsopen"><span><b>홈 화면에 앱처럼 두기</b><small>아이콘을 눌러 바로 열 수 있게 해요</small></span></button>'}
-        <button class="mrow" data-a="ivid"><span><b>코이데 소개 영상</b><small>코이데와 기도 노트를 영상으로 봐요</small></span></button>
-        ${KoidePilot.moreRows()}</section>
-      <section class="card"><p class="label">함께하는 곳</p>${inCommunity() ? `<p class="plain">기도 노트는 혼자 쓰는 곳이에요. 교회 사랑방과 함께 기도하는 곳은 같은 앱의 공동체예요. 노트의 기도제목을 사랑방이나 모임에 나누고 싶으면 노트에서 "나누기"를 눌러요. 모임은 해외선교팀처럼 잠깐 모이는 임시 공간이라 끝나는 날(최대 1년)에 기록과 함께 사라져요. 남기고 싶은 기도제목은 내 기도 노트로 옮겨 두세요.</p>
+      <p class="more-h">함께하는 곳</p>
+      <section class="card">${inCommunity() ? `<p class="plain">기도 노트는 혼자 쓰는 곳이에요. 교회 사랑방과 함께 기도하는 곳은 같은 앱의 공동체예요. 노트의 기도제목을 사랑방이나 모임에 나누고 싶으면 노트에서 "나누기"를 눌러요. 모임은 해외선교팀처럼 잠깐 모이는 임시 공간이라 끝나는 날(최대 1년)에 기록과 함께 사라져요. 남기고 싶은 기도제목은 내 기도 노트로 옮겨 두세요.</p>
         <a class="btn ghost small" style="align-self:flex-start;text-decoration:none;display:inline-flex;align-items:center" href="index.html${QS}">코이데 공동체로</a>`
         : `<p class="plain">교회 사랑방과 함께 기도하려면 공동체에 연결해요. 리더에게 초대 링크를 받았으면 그 링크를 열면 돼요. 링크가 없으면 부서와 사랑방을 골라 연결을 신청할 수 있어요.</p>
         <a class="btn ghost small" style="align-self:flex-start;text-decoration:none;display:inline-flex;align-items:center" href="index.html${DEMO_LINK ? '?demo&connect' : '?connect'}">우리 교회 공동체에 연결하기</a>`}</section>
-      <section class="card"><p class="label">의견 보내기</p><p class="hint">써 보고 좋았던 점, 불편한 점을 알려 주세요. 기도 내용은 담기지 않아요.</p>
-        <button class="btn ghost small" data-a="fbopen" style="align-self:flex-start">의견 보내기</button></section>
+      <p class="more-h">나</p>
+      <section class="card"><p class="label">내가 기도하는 사람들</p>
+        ${people().length ? `<ul class="people">${people().map(p => `<li><span>${esc(p.name)}</span><span><button class="link quiet" data-a="renperson" data-v="${p.id}">이름 바꾸기</button> <button class="link quiet" data-a="delperson" data-v="${p.id}">빼기</button></span></li>`).join('')}</ul>` : '<p class="hint">가족, 친구처럼 늘 기도하는 사람을 더해 두면 기도제목의 대상으로 고를 수 있고, 오늘 화면에 끈이 생겨요.</p>'}
+        <button class="btn ghost small" data-a="addperson" style="align-self:flex-start">+ 사람 더하기</button></section>
+      ${syncRow()}
+      ${groupsCard()}
+      <p class="more-h">앱 설정</p>
+      <section class="card mrows">
+        <button class="mrow" data-a="setopen" aria-expanded="${!!S.setOpen}"><span><b>화면 설정</b><small>화면 모드 · 색 테마 · 디자인 · 큰 글씨</small></span><span class="chev" aria-hidden="true">›</span></button>
+        ${S.setOpen ? `<div class="mset">${screenControls()}</div>` : ''}
+        ${HOME_APP ? '' : '<button class="mrow" data-a="a2hsopen"><span><b>홈 화면에 앱처럼 두기</b><small>아이콘을 눌러 바로 열 수 있게 해요</small></span></button>'}
+        ${KoidePilot.moreRows()}</section>
+      <p class="more-h">코이데</p>
+      <section class="card mrows">
+        <button class="mrow" data-a="ivid"><span><b>코이데 소개 영상</b><small>코이데와 기도 노트를 영상으로 봐요</small></span></button>
+        <button class="mrow" data-a="tab" data-v="help"><span><b>사용법</b><small>따라 하기와 도움말</small></span><span aria-hidden="true">›</span></button>
+        <button class="mrow" data-a="fbopen"><span><b>의견 보내기</b><small>불편한 점, 바라는 점, 고마운 점. 기도 내용은 담기지 않아요</small></span><span aria-hidden="true">›</span></button></section>
       <button class="link quiet" data-a="logout" style="display:block;margin:6px auto 0">로그아웃</button>
       <button class="link quiet" data-a="wipe" style="display:block;margin:6px auto 0">이 휴대폰의 기도 노트 모두 지우기</button>`;
   }
@@ -1811,6 +1822,7 @@ button.knot { cursor: pointer; }
       }
       case 'pray': { const was = prayedToday(v); togglePray(v); NoteGuide.pray(!was); return render(); }
       case 'guidere': return NoteGuide.goTutorial(false);
+      case 'setopen': S.setOpen = !S.setOpen; return render();
       case 'helpq': S.helpQ = S.helpQ === Number(v) ? null : Number(v); return render();
       case 'helpgo': S.helpQ = null; if (v !== 'keep') return go(v); S.gEdit = false; S.gbig = false; S.wopen = null; S.tab = 'keep'; render(); return window.scrollTo(0, 0);
       case 'tgt': S.draftT = v; return render();
