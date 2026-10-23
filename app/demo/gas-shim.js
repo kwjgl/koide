@@ -70,7 +70,17 @@
       return res(404, {});
     }
   };
-  const DEMO_NICK = { 최운영: '운영', 김도윤: '도윤아빠', 이수아: '수아', 박민재: '민재', 서준호: '준호아빠', 윤하람: '하람', 한기쁨: '기쁨목사' };
+  const DEMO_NICK = { 최운영: '운영', 김도윤: '도윤아빠', 이수아: '수아', 박민재: '민재', 서준호: '준호아빠', 윤하람: '하람', 한기쁨: '기쁨목사', 연습: '연습' };
+
+  // 연습 회원을 만든다(데이터가 준비된 뒤에 부른다). 이미 있으면 그대로 둔다
+  function addTutor() {
+    if ((db['가정'] || []).some(r => r[0] === 'FT')) return;
+    const today = Utilities.formatDate(new Date(), 'Asia/Seoul', 'yyyy-MM-dd');
+    append_('families', { id: 'FT', name: '류다윗 · 윤마리아', kids: '', status: '활동', admin: '' });
+    append_('roster', { year: termNow_(deptOfRoom_('R1').id), roomId: 'R1', familyId: 'FT', role: '회원' });
+    db['연결'].push(['d-연습', DEMO_NICK['연습'], 'FT', '류다윗', '연결', today, '데모', today]);
+    save();
+  }
 
   // 처음 열면 예시 데이터를 넣고, 김도윤(청장년부 리더·관리자), 박민재(회원), 윤하람(청년부 리더·관리자), 한기쁨(청장년부 목사님)은 이미 연결된 것으로 둔다
   window.koideDemo = {
@@ -81,7 +91,11 @@
         [['김도윤', 'F1'], ['박민재', 'F2'], ['윤하람', 'F8'], ['한기쁨', 'S1']].forEach(([p, f]) => db['연결'].push(['d-' + p, DEMO_NICK[p], f, p, '연결', today, '데모', today]));
         save();
       }
+      // 따라 하기 연습 페이지(?tutorial)이면 처음 온 연습 회원을 둔다
+      if (/[?&]tutorial(&|=|$)/.test(location.search)) addTutor();
     },
+    // 따라 하기 연습 회원: 2-20 사랑방의 '류다윗 · 윤마리아' 가정에 연결된 처음 온 회원('류다윗', 기도제목·마침 표시 없음). 몇 번 불러도 한 번만 만든다
+    addTutorialPerson() { this.ready(); addTutor(); },
     // 데모에서만: 모든 모임의 끝나는 날을 오늘로부터 days일 뒤로 당긴다(-1이면 어제 = 끝난 모임). 화면을 다시 열면 서버의 하루 정리가 돈다
     groupsTo(days) {
       this.ready(); const sh = db['모임'] || [], i = sh[0] ? sh[0].indexOf('끝나는 날') : -1; if (i < 0) return;

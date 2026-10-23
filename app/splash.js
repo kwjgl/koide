@@ -11,12 +11,13 @@
   //  이 창의 localStorage를 메모리 판으로 바꾼다(창을 닫으면 사라짐). 데모 데이터(koide-demo-db)만 기기에서 읽어 오고 쓰지는 않는다.
   //  시작 화면도 없다. 실제 앱(서버 주소가 있고 ?demo가 없음)에서는 쓰지 않는다
   const CFG = window.KOIDE_CONFIG || {};
-  // 따라 하기 페이지(기도 노트 ?tutorial)도 같은 메모리 판을 쓴다: 연습한 것이 진짜 노트와 로그인에 닿지 않게. 장면 표시(KOIDE_SCENE)는 달지 않는다
-  const tutorial = q.has('tutorial') && me.dataset.space === 'note';
+  // 따라 하기 페이지(공동체·기도 노트의 ?tutorial)도 같은 메모리 판을 쓴다: 연습한 것이 진짜 노트와 로그인에 닿지 않게. 장면 표시(KOIDE_SCENE)는 달지 않는다.
+  //  공동체의 연습 페이지는 데모 데이터를 늘 새로 만든다(예전에 ?demo를 쓴 기기의 데이터를 읽어 오지 않는다)
+  const tutorial = q.has('tutorial');
   if (((q.has('as') || q.has('at')) && (!CFG.API_URL || demo)) || tutorial) {
     const mem = new Map(), real = (() => { try { return window.localStorage; } catch (e) { return null; } })();
     const store = {
-      getItem: k => mem.has(k) ? mem.get(k) : k === 'koide-demo-db' && real ? real.getItem(k) : null,
+      getItem: k => mem.has(k) ? mem.get(k) : k === 'koide-demo-db' && real && !tutorial ? real.getItem(k) : null,
       setItem: (k, v) => { mem.set(String(k), String(v)); },
       removeItem: k => { mem.set(String(k), null); },
       clear: () => mem.clear(), key: () => null, get length() { return mem.size; }
