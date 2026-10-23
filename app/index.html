@@ -1581,7 +1581,7 @@ try { const p = JSON.parse(localStorage.getItem('koide-pref') || '{}'), d = docu
         { mode: 'tap', target: () => $('.pss-pray:not([disabled])'), wait: () => S.ps && !S.ps.open && !S.ps.done, timeout: 20000, waitText: '기도를 여는 중이에요', waitStyle: 'pill',
           done: () => !!S.ps && (S.ps.prayed.length > 0 || S.ps.extra.length > 0), text: '기도하고 나서 기도했어요를 눌러요.' },
         // 계속을 누르면 안내를 접어 두고, 기도하기를 마칠 때까지 기다렸다 이어 간다
-        { mode: 'next', nextLabel: '계속', then: () => !S.ps, text: '이렇게 한 장씩 넘기며 기도해요. 이제 끝까지 마음껏 해 보세요.' },
+        { mode: 'next', nextLabel: '계속', then: () => !S.ps, text: '이렇게 한 장씩 넘기며 기도해요. 이제 \'기도했어요\'를 계속 눌러 기도하기를 마쳐 보세요.' },
         // ③ 둘러보기
         { mode: 'next', target: homeSpot, before: () => { if (S.tab !== 'home') goTab('home'); }, wait: () => S.tab === 'home' && !S.ps,
           text: `이번 달 화면이에요. 이번 주에 기도한 ${w.one}마다 끈에 매듭이 지어져요. (나만 보여요)` },

@@ -1065,7 +1065,7 @@ button.knot { cursor: pointer; }
   // 미리보기에서 고를 수 있는 대상: 나 · 내가 기도하는 사람 · 교회 · 나라·세상, 그리고 이 글에서 처음 나온 이름(새 사람)
   function prevTargets(cur) {
     const L = targets(), fresh = [...new Set((S.preview || []).map(x => x.target).filter(t => t.startsWith('new:')))];
-    const all = [...L, ...fresh.map(t => [t, t.slice(4) + ' · 새'])];
+    const all = [...L, ...fresh.map(t => [t, t.slice(4)])];
     return all.some(([t]) => t === cur) ? all : [...all, [cur, cur]];
   }
 
