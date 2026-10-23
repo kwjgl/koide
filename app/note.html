@@ -115,11 +115,33 @@ h2 { font-family: var(--f-display); font-size: 1.15em; margin: 0; }
 .hint { margin: 0; font-size: .82em; color: var(--ink-2); word-break: keep-all; }
 .plain { margin: 0; word-break: keep-all; }
 .row { display: flex; justify-content: space-between; align-items: center; gap: 10px; }
-.btn { white-space: nowrap; flex: none; border: 0; border-radius: 999px; background: var(--accent); color: var(--on-accent); font-weight: 600; padding: .65em 1.2em; min-height: 44px; cursor: pointer; }
+/* 단추 모서리는 공동체와 같게(12px, 작은 것은 10px). 칩·태그·스위치·기도했어요 단추는 공동체도 알약형이라 그대로 */
+.btn { white-space: nowrap; flex: none; border: 0; border-radius: 12px; background: var(--accent); color: var(--on-accent); font-weight: 600; padding: .65em 1.2em; min-height: 44px; cursor: pointer; }
 .btn.ghost { background: var(--surface); color: var(--accent); border: 1.5px solid var(--accent-mid); }
-.btn.small { padding: .35em .9em; min-height: 36px; font-size: .88em; }
+.btn.small { padding: .35em .9em; min-height: 36px; font-size: .88em; border-radius: 10px; }
 .btn.wide { width: 100%; }
 .btn:disabled { opacity: .45; cursor: default; }
+/* 1000px 미만: 두 칸 틀은 레이아웃에 영향을 주지 않는다(카드가 지금과 같은 순서·간격으로 쌓임). 오른쪽에만 쓰는 순서 카드는 숨김 */
+.n-two, .n-main, .n-side, .n-end { display: contents; }
+.card.n-ord { display: none; }
+.ps-ord { margin: 0; padding-left: 1.4em; display: flex; flex-direction: column; gap: .4em; font-size: .92em; }
+.ps-ord li { padding-left: .1em; }
+.ps-ord li > div { display: flex; justify-content: space-between; align-items: baseline; gap: 10px; }
+.ps-ord li > div > span:first-child { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.ps-ord li > div > span:last-child { flex: none; font-size: .82em; color: var(--ink-2); }
+.ps-ord li .ok { color: var(--accent); font-weight: 600; }
+@media (min-width: 1000px) {
+  /* 내 기도·기도하기·지난 기록·더보기도 같은 두 칸: 왼쪽 본문 + 오른쪽 380px 고정 칸(공동체 .two-col과 같은 짜임). 오른쪽이 화면보다 길면 칸 안에서 스크롤 */
+  .wrap.has-top:has(.n-two) { max-width: 1160px; }
+  .n-two { display: grid; grid-template-columns: minmax(0, 1fr) 380px; gap: 0 24px; align-items: start; }
+  .n-main, .n-side { display: block; min-width: 0; grid-row: 1; }
+  .n-main { grid-column: 1; }
+  .n-side { grid-column: 2; position: sticky; top: calc(4.4em + env(safe-area-inset-top, 0px)); max-height: calc(100vh - 5.4em - env(safe-area-inset-top, 0px)); overflow-y: auto; overscroll-behavior: contain; scrollbar-width: thin; }
+  .n-end { display: block; grid-column: 1 / -1; grid-row: 2; }
+  .card.n-ord { display: flex; }
+  /* 지난 기록의 달력은 칸이 너무 커지지 않게 */
+  .n-main .weeks { max-width: 440px; width: 100%; margin: 0 auto; }
+}
 .link { background: none; border: 0; padding: .3em 0; color: var(--accent); font-weight: 600; cursor: pointer; min-height: 36px; }
 .link.quiet { color: var(--ink-2); font-weight: 500; }
 .field { width: 100%; min-width: 0; flex: 1; border: 1px solid var(--line-strong); border-radius: 12px; background: var(--surface); padding: .7em .8em; }
@@ -348,6 +370,8 @@ button.knot { cursor: pointer; }
 .ps-ring circle { fill: none; stroke-width: 12; }
 .ps-ring .track { stroke: var(--accent-soft); }
 .ps-ring .bar { stroke: var(--accent); stroke-linecap: round; transition: stroke-dashoffset 1s linear; }
+/* 기도 세션 아래 줄: 공동체(.pss-nav)처럼 세 단추 모두 모서리 14px */
+.ps-nav .btn, .ps-nav .pray-btn { border-radius: 14px; }
 .ps-nav .pray-btn.ready { animation: ps-glow 1.6s ease-in-out infinite; }
 @keyframes ps-glow { 50% { box-shadow: 0 0 0 6px var(--accent-soft); } }
 /* 저절로 다음 장으로: 버튼 줄 위에 '3초 뒤 … · 머무르기'(뒤에 두고 order로 올려서 이전 버튼이 첫 칸 그대로) */
@@ -1025,10 +1049,10 @@ button.knot { cursor: pointer; }
         <p class="label" style="margin-top:10px">누구를 위해</p>
         <div class="chips" role="radiogroup" aria-label="누구를 위해">${T.map(([t, n]) => `<button type="button" class="chip${S.draftT === t ? ' on' : ''}" role="radio" aria-checked="${S.draftT === t}" data-a="tgt" data-v="${t}">${esc(n)}</button>`).join('')}<button type="button" class="chip add" data-a="addperson">+ 사람</button></div>
         <div class="row" style="margin-top:12px;justify-content:flex-end"><button type="button" class="btn ghost small" data-a="editcancel">취소</button><button class="btn" type="submit">고치기</button></div></form></section>`;
-    return `<header class="top"><div><p class="eyebrow">나만 보는 기도제목</p><h1>내 기도</h1></div><span class="hint">${open().length}개</span></header>${form}
-      ${groups.length ? `<section class="card group">${groups.map(([t, n, L]) => `<h3>${esc(n)}</h3>${L.map(i => `<div class="note"><p>${esc(i.text)}</p>
+    return `<header class="top"><div><p class="eyebrow">나만 보는 기도제목</p><h1>내 기도</h1></div><span class="hint">${open().length}개</span></header>
+      <div class="n-two"><div class="n-side">${form}</div><div class="n-main">${groups.length ? `<section class="card group">${groups.map(([t, n, L]) => `<h3>${esc(n)}</h3>${L.map(i => `<div class="note"><p>${esc(i.text)}</p>
         <div class="row"><span class="days">${short(i.created)}부터 · ${daysSince(i.created)}일째${lastPrayed(i.id) ? ' · 마지막 기도 ' + short(lastPrayed(i.id)) : ''}</span>
-        <span class="acts"><button class="link quiet" data-a="edit" data-v="${i.id}">고치기</button><button class="link quiet" data-a="share" data-v="${i.id}">나누기</button><button class="link" data-a="done" data-v="${i.id}">마치기</button></span></div></div>`).join('')}`).join('')}</section>` : '<p class="hint" style="text-align:center">위에 첫 기도제목을 써 보세요.</p>'}`;
+        <span class="acts"><button class="link quiet" data-a="edit" data-v="${i.id}">고치기</button><button class="link quiet" data-a="share" data-v="${i.id}">나누기</button><button class="link" data-a="done" data-v="${i.id}">마치기</button></span></div></div>`).join('')}`).join('')}</section>` : '<p class="hint" style="text-align:center">첫 기도제목을 써 보세요.</p>'}</div></div>`;
   }
   // 지난 기록: 달마다 한 장. 위에서 달을 넘기고, 그 달의 기도한 날·감사와 응답·마친 기도만 보여서 쌓여도 길어지지 않는다
   function lookView() {
@@ -1048,13 +1072,13 @@ button.knot { cursor: pointer; }
         <button class="link quiet" data-a="undone" data-v="${i.id}" style="align-self:flex-start">다시 기도하기</button></div>`).join('') : '<p class="hint">이 달에 마친 기도는 없어요.</p>');
     const longest = M === cur ? open().slice().sort((p, q) => p.created.localeCompare(q.created)).slice(0, 3) : [];
     return `<header class="top"><div><p class="eyebrow">나만 보는 기록</p><h1>지난 기록</h1></div></header>
-      <div class="month-nav"><button class="btn ghost small" data-a="lookm" data-v="${shift(-1)}"${M > first ? '' : ' disabled'} aria-label="이전 달">‹</button><b>${y}년 ${m}월</b><button class="btn ghost small" data-a="lookm" data-v="${shift(1)}"${M < cur ? '' : ' disabled'} aria-label="다음 달">›</button></div>
+      <div class="n-two"><div class="n-main"><div class="month-nav"><button class="btn ghost small" data-a="lookm" data-v="${shift(-1)}"${M > first ? '' : ' disabled'} aria-label="이전 달">‹</button><b>${y}년 ${m}월</b><button class="btn ghost small" data-a="lookm" data-v="${shift(1)}"${M < cur ? '' : ' disabled'} aria-label="다음 달">›</button></div>
       <section class="card"><div class="stats"><div><b>${prayedDays.size}</b><span>기도한 날</span></div><div><b>${thanks.length}</b><span>감사·응답</span></div><div><b>${doneL.length}</b><span>마친 기도</span></div></div>
         <div class="weeks" aria-label="${m}월 중 기도한 날">${'일월화수목금토'.split('').map(w => `<i class="wd">${w}</i>`).join('')}${cells}</div>
-        <p class="hint">남과 견주지 않는 나만의 기록이에요. 빈 날이 있어도 괜찮아요.</p></section>
-      <section class="card"><div class="seg" role="tablist">${[['thanks', '감사와 응답 · ' + thanks.length], ['done', '마친 기도 · ' + doneL.length]].map(([k, l]) => `<button class="${tab === k ? 'on' : ''}" role="tab" aria-selected="${tab === k}" data-a="looktab" data-v="${k}">${l}</button>`).join('')}</div>${list}</section>
+        <p class="hint">남과 견주지 않는 나만의 기록이에요. 빈 날이 있어도 괜찮아요.</p></section></div>
+      <div class="n-side"><section class="card"><div class="seg" role="tablist">${[['thanks', '감사와 응답 · ' + thanks.length], ['done', '마친 기도 · ' + doneL.length]].map(([k, l]) => `<button class="${tab === k ? 'on' : ''}" role="tab" aria-selected="${tab === k}" data-a="looktab" data-v="${k}">${l}</button>`).join('')}</div>${list}</section>
       ${longest.length ? `<section class="card"><p class="label">오래 이어 온 기도</p>${longest.map(i => `<p class="plain"><span class="tag">${esc(targetName(i.target))}</span>${esc(i.text)} <span class="days">· ${daysSince(i.created)}일째</span></p>`).join('')}</section>` : ''}
-      <section class="card"><button class="mrow" data-a="keep" data-v=""><span><b>기도 서랍</b><small>이달의 조각보 · 올해의 실타래 · 실타래 상자</small></span><span aria-hidden="true">›</span></button></section>`;
+      <section class="card"><button class="mrow" data-a="keep" data-v=""><span><b>기도 서랍</b><small>이달의 조각보 · 올해의 실타래 · 실타래 상자</small></span><span aria-hidden="true">›</span></button></section></div></div>`;
   }
   // 기도 서랍: 지난 기록 맨 아래 입구로 들어가는 화면. 입체 그림 셋 중 하나를 크게(이달의 조각보 · 올해의 실타래 · 실타래 상자) + 담아 둔 그물이 있으면 넷째 탭 '함께 짠 그물'
   const KEEPS = [['garden', '이달의 조각보'], ['cord', '올해의 실타래'], ['chest', '실타래 상자']];
@@ -1297,7 +1321,7 @@ button.knot { cursor: pointer; }
   function moreView() {
     const nick = (noteMe() || {}).nick;
     return `<header class="top"><div><p class="eyebrow">${nick ? esc(nick) : '코이데 기도 노트'}</p><h1>더보기</h1></div></header>
-      <p class="more-h">함께하는 곳</p>
+      <div class="n-two"><div class="n-main"><p class="more-h">함께하는 곳</p>
       <section class="card">${inCommunity() ? `<p class="plain">기도 노트는 혼자 쓰는 곳이에요. 교회 사랑방과 함께 기도하는 곳은 같은 앱의 공동체예요. 노트의 기도제목을 사랑방이나 모임에 나누고 싶으면 노트에서 "나누기"를 눌러요. 모임은 해외선교팀처럼 잠깐 모이는 임시 공간이라 끝나는 날(최대 1년)에 기록과 함께 사라져요. 남기고 싶은 기도제목은 내 기도 노트로 옮겨 두세요.</p>
         <a class="btn ghost small" style="align-self:flex-start;text-decoration:none;display:inline-flex;align-items:center" href="index.html${QS}">코이데 공동체로</a>`
         : `<p class="plain">교회 사랑방과 함께 기도하려면 공동체에 연결해요. 리더에게 초대 링크를 받았으면 그 링크를 열면 돼요. 링크가 없으면 부서와 사랑방을 골라 연결을 신청할 수 있어요.</p>
@@ -1307,8 +1331,8 @@ button.knot { cursor: pointer; }
         ${people().length ? `<ul class="people">${people().map(p => `<li><span>${esc(p.name)}</span><span><button class="link quiet" data-a="renperson" data-v="${p.id}">이름 바꾸기</button> <button class="link quiet" data-a="delperson" data-v="${p.id}">빼기</button></span></li>`).join('')}</ul>` : '<p class="hint">가족, 친구처럼 늘 기도하는 사람을 더해 두면 기도제목의 대상으로 고를 수 있고, 오늘 화면에 끈이 생겨요.</p>'}
         <button class="btn ghost small" data-a="addperson" style="align-self:flex-start">+ 사람 더하기</button></section>
       ${syncRow()}
-      ${groupsCard()}
-      <p class="more-h">앱 설정</p>
+      ${groupsCard()}</div>
+      <div class="n-side"><p class="more-h">앱 설정</p>
       <section class="card mrows">
         <button class="mrow" data-a="setopen" aria-expanded="${!!S.setOpen}"><span><b>화면 설정</b><small>화면 모드 · 색 테마 · 디자인 · 큰 글씨</small></span><span class="chev" aria-hidden="true">›</span></button>
         ${S.setOpen ? `<div class="mset">${screenControls()}</div>` : ''}
@@ -1318,9 +1342,9 @@ button.knot { cursor: pointer; }
       <section class="card mrows">
         <button class="mrow" data-a="ivid"><span><b>코이데 소개 영상</b><small>코이데와 기도 노트를 영상으로 봐요</small></span></button>
         <button class="mrow" data-a="tab" data-v="help"><span><b>사용법</b><small>따라 하기와 도움말</small></span><span aria-hidden="true">›</span></button>
-        <button class="mrow" data-a="fbopen"><span><b>의견 보내기</b><small>불편한 점, 바라는 점, 고마운 점. 기도 내용은 담기지 않아요</small></span><span aria-hidden="true">›</span></button></section>
-      <button class="link quiet" data-a="logout" style="display:block;margin:6px auto 0">로그아웃</button>
-      <button class="link quiet" data-a="wipe" style="display:block;margin:6px auto 0">이 휴대폰의 기도 노트 모두 지우기</button>`;
+        <button class="mrow" data-a="fbopen"><span><b>의견 보내기</b><small>불편한 점, 바라는 점, 고마운 점. 기도 내용은 담기지 않아요</small></span><span aria-hidden="true">›</span></button></section></div>
+      <div class="n-end"><button class="link quiet" data-a="logout" style="display:block;margin:6px auto 0">로그아웃</button>
+      <button class="link quiet" data-a="wipe" style="display:block;margin:6px auto 0">이 휴대폰의 기도 노트 모두 지우기</button></div></div>`;
   }
   // 사용법(더보기 › 사용법): 위는 따라 하기 시작, 아래는 궁금한 것 찾아보기(질문을 누르면 풀이와 그 화면으로 가는 링크). 글은 실제 동작과 같게 쓴다
   const HELP = [
@@ -1753,8 +1777,13 @@ button.knot { cursor: pointer; }
     const nT = todaySet().length, nA = open().length, list = psList(PS.set);
     const seg = (items, cur, act) => `<div class="seg" role="radiogroup">${items.map(([k, l]) => `<button class="${cur === k ? 'on' : ''}" role="radio" aria-checked="${cur === k}" data-a="${act}" data-v="${k}">${l}</button>`).join('')}</div>`;
     const sw = (on, act, label) => `<button class="switch${on ? ' on' : ''}" role="switch" aria-checked="${!!on}" aria-label="${label}" data-a="${act}"><span></span></button>`;
+    // 오른쪽 칸(PC): 오늘 기도할 순서. 기도 세션이 넘길 장(psList)을 그대로 쓴다. 오늘 이미 기도했는지만 보이고 횟수는 세지 않는다
+    const ord = `<section class="card n-ord"><p class="label" style="margin:0">오늘 기도할 순서</p>
+        <ol class="ps-ord">${list.map(c => { if (c.topic) return `<li><div><span>${esc((topicByK(c.topic) || {}).name || '')}</span><span>하나님 나라</span></div></li>`;
+          const on = c.ids.every(prayedToday), txt = c.ids.map(id => (D.items.find(i => i.id === id) || {}).text || '').join(' · ');
+          return `<li><div><span><span class="tag">${esc(targetName(c.target))}</span>${esc(txt)}</span><span class="${on ? 'ok' : ''}">${on ? '오늘 기도함' : '아직'}</span></div></li>`; }).join('')}</ol></section>`;
     return `<header class="top"><div><p class="eyebrow">한 장씩 넘기며</p><h1>기도하기</h1></div></header>
-      <section class="card"><p class="plain">조용한 화면에서 한 장씩 넘기며 기도해요. 마지막에는 주기도문으로 마쳐요.</p>
+      <div class="n-two"><div class="n-main"><section class="card"><p class="plain">조용한 화면에서 한 장씩 넘기며 기도해요. 마지막에는 주기도문으로 마쳐요.</p>
         <p class="label">내 기도제목</p>${seg([['today', '오늘의 ' + nT + '개'], ['all', '모두 ' + nA + '개'], ['none', '빼기']], PS.set, 'psset')}
         <div class="row" style="margin-top:6px"><div><p class="plain">하나님 나라</p><p class="hint">주기도문의 간구를 따라 교회와 나라와 세상을 위해 기도해요. 마지막엔 감사와 찬양이에요.</p></div>${sw(PS.world, 'psworld', '하나님 나라')}</div>
         ${PS.world ? `<div class="chips">${KP.PRAY_TOPICS.map(t => `<button class="chip${PS.topics.includes(t.k) ? ' on' : ''}" data-a="pstopic" data-v="${t.k}" aria-pressed="${PS.topics.includes(t.k)}">${esc(t.name)}</button>`).join('')}</div>` : ''}
@@ -1764,7 +1793,7 @@ button.knot { cursor: pointer; }
         <div class="row" style="margin-top:6px"><div><p class="plain">잔잔한 음악 (찬송가 1~8장)</p><p class="hint">기도하는 동안 조용히 흘러요. 이어폰을 권해요.</p></div>${sw(PS.music, 'psmusic', '잔잔한 음악')}</div>
         ${PS.music ? `<div class="chips">${HYMNS.map((h, i) => `<button class="chip${PS.track === i ? ' on' : ''}" data-a="pstrack" data-v="${i}" aria-pressed="${PS.track === i}">${h.label}</button>`).join('')}</div>
           <div class="row"><p class="hint">${PS.auto ? '다 들으면 다음 곡으로 이어져요.' : HYMNS[PS.track].label + '만 반복해요.'}</p>${sw(PS.auto, 'psauto', '다 들으면 다음 곡으로')}</div>` : ''}
-        <button class="btn wide" data-a="psopen" data-v="tab" style="margin-top:8px;min-height:52px"${list.length ? '' : ' disabled'}>${list.length ? '기도 시작 · ' + list.length + '장' : nA ? '무엇을 위해 기도할지 골라 주세요' : '먼저 내 기도에 기도제목을 써 주세요'}</button></section>`;
+        <button class="btn wide" data-a="psopen" data-v="tab" style="margin-top:8px;min-height:52px"${list.length ? '' : ' disabled'}>${list.length ? '기도 시작 · ' + list.length + '장' : nA ? '무엇을 위해 기도할지 골라 주세요' : '먼저 내 기도에 기도제목을 써 주세요'}</button></section></div><div class="n-side">${list.length ? ord : ''}</div></div>`;
   }
   const TABS = [['today', '오늘', TICON.sun], ['note', '내 기도', TICON.pen], ['pray', '기도하기', TICON.hands], ['look', '지난 기록', TICON.book], ['more', '더보기', TICON.more]];
   function render() {
