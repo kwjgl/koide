@@ -217,6 +217,13 @@ button.knot { cursor: pointer; }
 .foot-acts { display: flex; gap: 1em; flex: none; }
 /* 카드 아래 단추(마치기·나누기·지우기)는 공동체 내 기도와 같은 크기(.78em × 1.04 ≈ .81em) */
 .edit-foot .link { font-size: 1.04em; padding: .35em 0; white-space: nowrap; }
+/* 10개를 넘으면 대상별 묶음: 이름 단추(작고 ink-2, 옛 .group h3처럼)와 접고 펴는 화살표, 칸 아래 더 보기 */
+.edit-list.grouped { gap: .5em; }
+.edit-list .grp { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: .7em; }
+.grp-h { font: inherit; font-size: .86em; font-weight: 600; color: var(--ink-2); background: none; border: 0; padding: .3em 0; min-height: 36px; width: 100%; display: flex; align-items: center; justify-content: space-between; gap: .5em; text-align: left; cursor: pointer; }
+.grp-h .ic { flex: none; }
+.grp-h.open .ic { transform: rotate(180deg); }
+.grp-more { align-self: flex-start; }
 /* 지난 기록 */
 .weeks { display: grid; grid-template-columns: repeat(7, 1fr); gap: 5px; }
 .weeks i { aspect-ratio: 1; border-radius: 6px; background: var(--surface-2); display: grid; place-items: center; font-style: normal; font-size: .68em; color: var(--ink-2); }
@@ -1063,6 +1070,28 @@ button.knot { cursor: pointer; }
       <div class="edit-foot"><span class="state">${short(i.created)}부터 · ${daysSince(i.created)}일째${lastPrayed(i.id) ? ' · 마지막 기도 ' + short(lastPrayed(i.id)) : ''}</span>
         <span class="foot-acts"><button class="link" data-a="done" data-v="${i.id}">마치기</button><button class="link quiet" data-a="share" data-v="${i.id}">나누기</button><button class="link quiet" data-a="delitem" data-v="${i.id}">지우기</button></span></div></li>`;
   }
+  // 내 기도가 10개를 넘으면 대상별로 묶는다. 묶음 이름을 누르면 접고 펴고(접힘은 이 기기에만 기억, 동기화·저장 안 함),
+  //  칸마다 처음 5개만 보이고 '더 보기'를 누르면 그 칸의 나머지가 열린다(펼침은 이번에만)
+  const FOLDK = 'koide-note-fold', GRP_MAX = 10, GRP_SHOW = 5;
+  const foldGet = () => { try { const a = JSON.parse(localStorage.getItem(FOLDK) || '[]'); return Array.isArray(a) ? a : []; } catch (e) { return []; } };
+  const foldSet = a => { try { localStorage.setItem(FOLDK, JSON.stringify(a)); } catch (e) { /* 저장하지 못하면 이번에만 */ } };
+  S.grpMore = new Set();
+  // 새로 더한 기도제목이 보이게: 그 대상의 묶음은 펴고 전부 보여 준다
+  function grpReveal(targets) {
+    const f = foldGet(), nf = f.filter(t => !targets.includes(t));
+    if (nf.length !== f.length) foldSet(nf);
+    targets.forEach(t => S.grpMore.add(t));
+  }
+  function grpHtml(T) {
+    const fold = foldGet();
+    return `<ul class="edit-list grouped">${T.map(([t, n]) => {
+      const its = open().filter(i => i.target === t); if (!its.length) return '';
+      const on = !fold.includes(t), all = S.grpMore.has(t), shown = on ? (all ? its : its.slice(0, GRP_SHOW)) : [];
+      return `<li class="grp"><button class="grp-h${on ? ' open' : ''}" data-a="grpfold" data-v="${esc(t)}" aria-expanded="${on}"><span>${esc(n)} · ${its.length}</span>${CHEV}</button>
+        ${shown.length ? `<ul class="edit-list">${shown.map(noteLi).join('')}</ul>` : ''}
+        ${on && !all && its.length > GRP_SHOW ? `<button class="link grp-more" data-a="grpmore" data-v="${esc(t)}">더 보기 · ${its.length - GRP_SHOW}개</button>` : ''}</li>`;
+    }).join('')}</ul>`;
+  }
   function noteView() {
     const T = targets(), list = T.flatMap(([t]) => open().filter(i => i.target === t));
     const P = S.preview;
@@ -1074,7 +1103,7 @@ button.knot { cursor: pointer; }
           ${P.map((x, k) => `<div class="prev-row"><select class="prev-t" data-k="${k}" aria-label="대상">${prevTargets(x.target).map(([t, n]) => `<option value="${esc(t)}"${t === x.target ? ' selected' : ''}>${esc(n)}</option>`).join('')}</select><p>${esc(x.text)}</p><button class="link quiet" data-a="prevrm" data-v="${k}" aria-label="이 항목 빼기">×</button></div>`).join('')}
           <div class="row" style="justify-content:flex-start"><button class="btn" data-a="addparts">추가하기</button><button class="btn ghost" data-a="unsplit">다시 쓰기</button></div></div>` : ''}</section>`;
     return `<header class="top"><div><p class="eyebrow">나만 보는 기도제목</p><h1>내 기도</h1></div><span class="hint">${open().length}개</span></header>
-      <div class="n-two"><div class="n-side">${form}</div><div class="n-main">${list.length ? `<ul class="edit-list">${list.map(noteLi).join('')}</ul>` : '<p class="hint" style="text-align:center">첫 기도제목을 써 보세요.</p>'}</div></div>`;
+      <div class="n-two"><div class="n-side">${form}</div><div class="n-main">${list.length > GRP_MAX ? grpHtml(T) : list.length ? `<ul class="edit-list">${list.map(noteLi).join('')}</ul>` : '<p class="hint" style="text-align:center">첫 기도제목을 써 보세요.</p>'}</div></div>`;
   }
   // 지난 기록: 달마다 한 장. 위에서 달을 넘기고, 그 달의 기도한 날·감사와 응답·마친 기도만 보여서 쌓여도 길어지지 않는다
   function lookView() {
@@ -1527,6 +1556,7 @@ button.knot { cursor: pointer; }
       if (D.items.some(i => i.target === target && i.text === text)) { skip++; return; }
       D.items.push({ id: uid(), text, target, created: /^\d{4}-\d{2}$/.test(x.month) ? x.month + '-01' : TODAY(), done: null, up: now() }); n++;
     });
+    if (n) grpReveal([...new Set(D.items.slice(-n).map(i => i.target))]);
     if (!D.started) D.started = true;
     save(); S.mv = null; if (S.tab === 'start') S.tab = 'today';
     toast(`${n}개를 노트에 옮겼어요` + (skip ? ` · 같은 글 ${skip}개는 건너뛰었어요` : '') + (made.length ? ` · 새 사람 ${made.join(', ')}` : ''));
@@ -1879,6 +1909,7 @@ button.knot { cursor: pointer; }
           if (t.startsWith('new:')) { const n = t.slice(4).slice(0, 12), had = people().find(p => p.name === n); t = 'p:' + (had ? had.id : (made[n] || (made[n] = (() => { const p = { id: uid(), name: n, up: now() }; if (pr) p.practice = true; D.people.push(p); return p.id; })()))); }
           D.items.push(Object.assign({ id: uid(), text: x.text, target: t, created: TODAY(), done: null, up: now() }, pr ? { practice: true } : {}));
         });
+        grpReveal([...new Set(D.items.slice(-parts.length).map(i => i.target))]);
         S.preview = null; S.draft = null; save(); a2hsDue(); pilotTwo();
         return toast(parts.length + '개를 내 기도에 더했어요' + (Object.keys(made).length ? ` · 새 사람 ${Object.keys(made).join(', ')}` : ''));
       }
@@ -1887,6 +1918,8 @@ button.knot { cursor: pointer; }
       case 'setopen': S.setOpen = !S.setOpen; return render();
       case 'helpq': S.helpQ = S.helpQ === Number(v) ? null : Number(v); return render();
       case 'helpgo': S.helpQ = null; if (v !== 'keep') return go(v); S.gEdit = false; S.gbig = false; S.wopen = null; S.tab = 'keep'; render(); return window.scrollTo(0, 0);
+      case 'grpfold': { const f = foldGet(); foldSet(f.includes(v) ? f.filter(t => t !== v) : [...f, v]); return render(); }
+      case 'grpmore': S.grpMore.add(v); return render();
       case 'tgtopen': S.tgtOpen = S.tgtOpen === v ? null : v; return render();
       case 'tgtpick': { const i = D.items.find(x => x.id === v); S.tgtOpen = null; if (i && i.target !== b.dataset.t) { i.target = b.dataset.t; i.up = now(); save(); } return render(); }
       // 대상 고르기 중에 사람을 더하면 그 기도제목의 대상으로 바로 정해요
