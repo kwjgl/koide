@@ -365,9 +365,10 @@ button.knot { cursor: pointer; }
 .mrow small { display: block; color: var(--ink-2); font-size: .8em; }
 /* 더보기: 작은 제목 아래에 카드와 줄로 묶는다(공동체 더보기와 같은 짜임) */
 .more-h { font-size: .8em; font-weight: 600; color: var(--ink-2); margin: 24px 4px 8px; line-height: 1.2; letter-spacing: .02em; }
-.mrows { padding-top: 8px; padding-bottom: 4px; }
+.mrows { padding-top: 4px; padding-bottom: 4px; gap: 0; }
+.mrows > .mrow:first-of-type { padding-top: .8em; }
 .mrows > .mrow:first-child { border-top: 0; }
-.mset { display: flex; flex-direction: column; gap: 10px; border-top: 1px solid var(--line); padding: .9em 0 .5em; }
+.mset { display: flex; flex-direction: column; gap: 10px; border-top: 1px solid var(--line); padding: .9em 0; }
 /* 고르는 버튼 묶음: 공동체 앱과 같은 모양(디자인 스타일 new·classic·glass가 그대로 입혀진다) */
 .seg { display: grid; grid-auto-flow: column; grid-auto-columns: 1fr; gap: 3px; padding: 3px; background: var(--surface-2); border-radius: 12px; }
 .seg button { font: inherit; font-size: .86em; word-break: keep-all; padding: 0 4px; border: 0; border-radius: 9px; min-height: 44px; background: transparent; color: var(--ink-2); cursor: pointer; }
@@ -1129,7 +1130,7 @@ button.knot { cursor: pointer; }
         <p class="hint">남과 견주지 않는 나만의 기록이에요. 빈 날이 있어도 괜찮아요.</p></section></div>
       <div class="n-side"><section class="card"><div class="seg" role="tablist">${[['thanks', '감사와 응답 · ' + thanks.length], ['done', '마친 기도 · ' + doneL.length]].map(([k, l]) => `<button class="${tab === k ? 'on' : ''}" role="tab" aria-selected="${tab === k}" data-a="looktab" data-v="${k}">${l}</button>`).join('')}</div>${list}</section>
       ${longest.length ? `<section class="card"><p class="label">오래 이어 온 기도</p>${longest.map(i => `<p class="plain"><span class="tag">${esc(targetName(i.target))}</span>${esc(i.text)} <span class="days">· ${daysSince(i.created)}일째</span></p>`).join('')}</section>` : ''}
-      <section class="card"><button class="mrow" data-a="keep" data-v=""><span><b>기도 서랍</b><small>이달의 조각보 · 올해의 실타래 · 실타래 상자</small></span><span aria-hidden="true">›</span></button></section></div></div>`;
+      <section class="card mrows"><button class="mrow" data-a="keep" data-v=""><span><b>기도 서랍</b><small>이달의 조각보 · 올해의 실타래 · 실타래 상자</small></span><span aria-hidden="true">›</span></button></section></div></div>`;
   }
   // 기도 서랍: 지난 기록 맨 아래 입구로 들어가는 화면. 입체 그림 셋 중 하나를 크게(이달의 조각보 · 올해의 실타래 · 실타래 상자) + 담아 둔 그물이 있으면 넷째 탭 '함께 짠 그물'
   const KEEPS = [['garden', '이달의 조각보'], ['cord', '올해의 실타래'], ['chest', '실타래 상자']];
@@ -1419,7 +1420,7 @@ button.knot { cursor: pointer; }
   function syncRow() {
     const V = D.vault, conn = !!(V && V.on), paused = conn && !!V.paused, live = conn && !paused;
     const st = !canLock() ? '이 화면 주소(https)에서만 쓸 수 있어요' : paused ? '꺼짐' : live ? syncLabel() : '켜면 휴대폰을 바꿔도 기록이 이어져요';
-    return `<section class="card"><button class="mrow" data-a="tab" data-v="sync"><span><b>동기화</b><small>${esc(st)}</small></span>
+    return `<section class="card mrows"><button class="mrow" data-a="tab" data-v="sync"><span><b>동기화</b><small>${esc(st)}</small></span>
       <span class="mrow-end">${canLock() ? `<span class="tag${live ? '' : ' off'}">${live ? '켜짐' : '꺼짐'}</span>` : ''}<span aria-hidden="true">›</span></span></button></section>`;
   }
   // 동기화 페이지(더보기 › 동기화): 동기화 카드, 연결된 기기의 비밀 문구·복구용 낱말 줄, 내 기록 파일, 알아 두세요
