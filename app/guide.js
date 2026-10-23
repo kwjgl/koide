@@ -1,6 +1,7 @@
 // 따라 하기(안내): 화면의 한 곳만 밝게 비추고, 말풍선이 한 걸음씩 이끈다. 공동체 앱(index.html)과 기도 노트(note.html)가 함께 쓴다. 모양은 guide.css
 //  이 파일은 앱 안쪽을 모른다. 앱이 단계(steps)를 넘기면 그대로 그리고, 끝나거나 건너뛰면 앱이 넘긴 함수를 부른다
 //  KoideGuide.run(steps, { onDone, onSkipFirst, onStep })
+//   noStuck?: true  오래 걸려도 [넘어가기]를 보여 주지 않는다(갇힐 일이 없는 연습 페이지에서 쓴다. 비출 곳이 안 나타났을 때의 [다음]은 그대로 있다)
 //   단계 하나 = {
 //     target: () => 요소 | 요소들 | 선택자   비출 곳(없으면 화면 가운데 말풍선만). 다시 그려져도 늘 새로 찾는다
 //     text, title?                        말풍선 글
@@ -23,7 +24,6 @@
 //       typingAlso?: () => 요소들          (쓰는 중에는 막는 판이 없어 어디든 눌린다. 예전 호환용으로만 남겨 둔다)
 //       typingText?, typingReady?          띠의 글(typingReady는 ready가 참일 때). 띠에는 readyLabel 단추가 붙는다
 //       쓰기 단계는 [넘어가기]와 "비출 곳 없음" 안전장치가 없다(빈 칸으로 넘어가 갇히지 않게)
-//     nudge?: { ms, when, text }          ms 동안 아무것도 안 했고 when()이 참이면 말풍선 글을 text로 바꾼다(넘어가기 대신 길을 알려 줌)
 //     bounce?: () => 글 | ''              글이 있으면 앞 단계로 되돌리고 그 글을 말풍선에 보여 준다(앞 단계에서 글자를 입력하면 사라진다)
 //   }
 //  둘러보기(mode 'next', then 없음) 단계는 [‹ 이전] [다음 ›]. 앞 단계도 둘러보기일 때만 [이전]이 있고, 마지막 단계에는 없다. 누르는 단계(tap)는 머리 줄의 [‹ 이전]이
@@ -126,9 +126,9 @@ window.KoideGuide = (() => {
   }
   const inside = (h, x, y) => { const V = view(); x -= V.x; y -= V.y; return x >= h.left && x <= h.right && y >= h.top && y <= h.bottom; };
 
-  // 사람이 한 일(누름·입력·글 칸에 들어감)을 적어 둔다: 한참 가만히 있었는지 가늠하는 데 쓴다. 글자를 입력하면 되돌림 안내는 사라진다
+  // 사람이 한 일(누름·입력·글 칸에 들어감)을 본다: 글자를 입력하면 되돌림 안내는 사라진다
   function onAct(e) {
-    if (!G) return; G.act = Date.now(); if (e.type === 'input') G.notice = '';
+    if (!G) return; if (e.type === 'input') G.notice = '';
     // 눌리지 않게 한 칸에 어떻게든 커서가 들어가면 바로 뺀다(키보드가 열리지 않게)
     if (e.type === 'focusin' && G.s && G.s.inert && inertEls().some(x => x === e.target || x.contains(e.target))) e.target.blur();
   }
@@ -225,7 +225,7 @@ window.KoideGuide = (() => {
     }
     if (G.peek) state = 'center';
     // 안전장치: 눌러도 안 넘어가는 채로 오래 걸리면 [넘어가기]를 보여 준다(글을 쓰는 단계는 쓰는 동안 시간이 가니 제외)
-    paintBubble(state, now - G.born > STUCK && !s.typing, false);
+    paintBubble(state, now - G.born > STUCK && !s.typing && !G.opts.noStuck, false);
     layout(state, els, V);
     if (!G.focused && (state === 'on' || state === 'center' || state === 'lost')) { G.focused = true; focusStart(state, els); }
   }
@@ -377,9 +377,8 @@ window.KoideGuide = (() => {
   function paintBubble(state, stuck, typing) {
     const s = G.s, n = G.steps.length, last = G.i === n - 1, ready = s.mode === 'tap' && s.ready && safe(s.ready);
     const lost = state === 'lost', waiting = state === 'wait';
-    // 글: 되돌림 안내 > 한참 가만히 있을 때의 길잡이 > 단계 글. 앞 설명 보기 중에는 앞 단계 글
-    const nd = s.nudge, nudged = !G.notice && nd && Date.now() - G.act > nd.ms && safe(nd.when);
-    let text = waiting ? (s.waitText || '잠시만 기다려 주세요…') : G.notice || (nudged ? nd.text : s.text);
+    // 글: 되돌림 안내 > 단계 글. 앞 설명 보기 중에는 앞 단계 글
+    let text = waiting ? (s.waitText || '잠시만 기다려 주세요…') : G.notice || s.text;
     if (G.peek) text = G.steps[G.i - 1].text;
     const look = lookOnly(s), canPrev = G.i > 0 && !last && (look ? lookOnly(G.steps[G.i - 1]) : s.mode === 'tap');
     const pill = waiting && s.waitStyle === 'pill';

@@ -76,6 +76,20 @@ button, a, label, summary, select, input, [role="button"], [data-a], .brand { to
 .brand-mark .ic { width: .95em; height: .95em; }
 .brand-name { font-family: var(--f-display); font-size: 1.05em; font-weight: 700; white-space: nowrap; }
 .spacer { flex: 1; }
+.topnav { display: none; gap: .2em; margin-left: 1.2em; }
+.topnav button { font-size: .92em; background: none; border: 0; color: var(--ink-2); padding: .5em .9em; border-radius: 10px; cursor: pointer; min-height: 40px; }
+.topnav button.on { background: var(--accent-soft); color: var(--accent); font-weight: 600; }
+/* PC(공동체 화면과 같은 1000px): 아래 탭 대신 위쪽 메뉴, 내용은 가운데 한 칸을 넓게 */
+@media (min-width: 1000px) {
+  .topnav { display: flex; }
+  .tabs { display: none !important; }
+  .topbar .wrap { max-width: 1160px; }
+  .wrap.has-top { max-width: 960px; padding-top: 28px; padding-bottom: 56px; }
+  /* 오늘 화면: 왼쪽에 오늘 기도할 제목, 오른쪽에 끈과 감사(공동체 '이번 달'과 같은 짜임). 위쪽 메뉴와 같은 폭으로 맞춘다 */
+  .wrap.has-top:has(.t-grid) { max-width: 1160px; }
+  .t-grid { display: grid; grid-template-columns: minmax(0, 1fr) 340px; gap: 0 24px; align-items: start; }
+  .t-side { position: sticky; top: calc(4.4em + env(safe-area-inset-top, 0px)); }
+}
 .badge-btn { position: relative; display: inline-flex; align-items: center; gap: .4em; font: inherit; font-size: .8em; font-weight: 600; color: var(--ink); background: var(--surface-2); border: 1px solid var(--line); border-radius: 999px; padding: .35em .5em .35em .85em; min-height: 38px; cursor: pointer; white-space: nowrap; }
 .role-tag { font-size: .93em; padding: .15em .6em; border-radius: 999px; background: var(--surface); color: var(--ink-2); border: 1px solid var(--line); }
 .badge-dot { position: absolute; top: 2px; right: 2px; width: 8px; height: 8px; border-radius: 50%; background: var(--warm); }
@@ -788,7 +802,7 @@ button.knot { cursor: pointer; }
     const can = () => !SC && D.started && S.tab !== 'start' && !KoideGuide.running();
     // 창이나 메뉴가 떠 있으면 시작하지 않는다
     const calmNow = () => !(S.menu || S.done || S.a2hs || S.vsheet || S.cut || S.recSheet || S.kc || S.share || S.mv || S.ps || S.gNew || S.fb) && !document.documentElement.classList.contains('booting');
-    const tabBtn = k => document.querySelector(`.tabs [data-v="${k}"]`);
+    const tabBtn = k => [...document.querySelectorAll(`.tabs [data-v="${k}"], .topnav [data-v="${k}"]`)].find(b => b.offsetWidth > 0);
     const goTab = k => { const b = document.createElement('button'); b.dataset.a = 'tab'; b.dataset.v = k; document.body.appendChild(b); b.click(); b.remove(); };
     // 오늘 화면에서 누를 기도했어요: 이번에 더한 기도제목 것이 있으면 그것, 없으면 보이는 첫 번째
     const prayBtn = () => { const L = [...document.querySelectorAll('.today-item .pray-btn:not(.on)')]; return L.find(b => !ev.pre.has(b.dataset.v)) || L[0]; };
@@ -812,8 +826,8 @@ button.knot { cursor: pointer; }
           text: '이렇게 들어갔어요. 대상별로 묶여서 나와요. 고치거나 마치고 싶으면 각 줄 아래 단추를 써요.' },
         // ② 기도해 보기
         { mode: 'tap', target: () => tabBtn('today'), text: '오늘 기도할 제목이 여기 나와요. 오늘을 눌러요.' },
-        { mode: 'tap', target: prayBtn, wait: () => S.tab === 'today', skip: () => S.tab === 'today' && !prayBtn(), done: () => ev.prayed,
-          text: '기도하고 나서 기도했어요를 눌러요.' },
+        { mode: 'tap', target: () => { const b = prayBtn(); return b && b.closest('.today-item'); }, wait: () => S.tab === 'today', skip: () => S.tab === 'today' && !prayBtn(), done: () => ev.prayed,
+          text: '추가한 기도제목이 오늘 화면에 이렇게 나와요. 기도하고 나서 기도했어요를 눌러요.' },
         { mode: 'next', before: () => { if (S.tab !== 'today') goTab('today'); }, target: () => { const c = cord(); return c ? c.closest('.card') : document.querySelector('.today-item .pray-btn'); }, wait: () => S.tab === 'today',
           get text() { return cord() ? '기도할 때마다 끈에 매듭이 지어져요. 이번 주 모두와 이으면 끈이 묶여요.' : '기도한 날이 쌓여요. 더보기에서 늘 기도하는 사람을 더하면, 사람마다 매듭이 지어지는 끈도 생겨요.'; } },
         // ③ 둘러보기
@@ -824,7 +838,7 @@ button.knot { cursor: pointer; }
           get text() { return syncOn() ? '동기화가 켜져 있어요. 휴대폰을 바꿔도 이어져요.' : '기도 노트는 이 기기에만 있어요. 휴대폰을 바꿔도 이어지게 동기화를 켜 두세요.'; } },
         // ④ 마무리: 연습한 예시를 치우고 빈 쓰기 칸을 비춘다. 칸은 눌리지 않고, 키보드도 우리가 열지 않는다
         { mode: 'next', target: () => $('#it-text'), nextLabel: '시작하기', wait: onNote, before: () => { drop(); if (S.tab !== 'note') goTab('note'); else render(); },
-          text: '연습한 예시는 지웠어요. 이제 내 기도제목을 직접 써 보세요.' }
+          text: '이제 내 기도제목을 직접 써 보세요.' }
       ];
     };
     // 연습으로 더한 것(practice 표시)을 지운다: 기도제목과 그 기도 기록, 남은 기도제목이 없는 연습 사람. 지움 표시(D.gone)를 남겨 동기화가 되살리지 않게 한다. 직접 쓴 것은 건드리지 않는다
@@ -842,6 +856,7 @@ button.knot { cursor: pointer; }
       ev = { sample: false, added: false, prayed: false, again: !!again, pre: new Set(D.items.map(i => i.id)) };
       S.menu = null;
       KoideGuide.run(steps(), {
+        noStuck: true,
         onSkipFirst: () => { drop(); back(); },
         onDone: () => { drop(); back(); }
       });
@@ -900,13 +915,13 @@ button.knot { cursor: pointer; }
     const set = todaySet(), all = open(), done = set.filter(i => prayedToday(i.id)).length;
     const head = `<header class="top"><div><p class="eyebrow">${dateLabel(TODAY())}</p><h1>오늘의 기도</h1></div></header>`;
     if (!all.length) return head + `<section class="card empty"><h2>아직 기도제목이 없어요</h2><p class="hint">나와 가족, 친구, 교회를 위한 기도제목을 써 보세요. 이 휴대폰에만 저장돼요.</p><button class="btn" data-a="tab" data-v="note">기도제목 쓰기</button></section>` + thanksQuick();
-    return head + `<section class="card"><div class="row"><p class="label">오늘 기도할 제목</p><span class="hint">${done} / ${set.length}</span></div>
+    return head + `<div class="t-grid"><div class="t-main"><section class="card"><div class="row"><p class="label">오늘 기도할 제목</p><span class="hint">${done} / ${set.length}</span></div>
       ${set.map(i => { const on = prayedToday(i.id); return `<div class="today-item${on ? ' on' : ''}"><p><span class="tag">${esc(targetName(i.target))}</span>${esc(i.text)}</p>
         <div class="row"><span class="days">${daysSince(i.created)}일째 기도하고 있어요</span><button class="pray-btn${on ? ' on' : ''}" data-a="pray" data-v="${i.id}" aria-pressed="${on}">${on ? ICON.check + '기도했어요' : '기도했어요'}</button></div></div>`; }).join('')}
       ${done === set.length ? `<p class="hint">오늘 기도할 제목을 다 기도했어요.${all.length > set.length ? ' 다른 기도제목도 함께 기도해 볼까요?' : ''}</p>` : ''}
       ${done === set.length && todayProp() ? `<button class="keep-note" data-a="keep" data-v="garden"><span>${todayProp().all ? '이달의 소품을 다 모았어요' : `오늘 <b>${esc(todayProp().name)}</b>${josaN(todayProp().name)} 조각보에 놓였어요`}</span><span class="go">조각보 보기 ›</span></button>` : ''}
-      <button class="btn ghost" data-a="psopen" data-v="${done === set.length ? 'all' : 'today'}">${done === set.length && all.length > set.length ? '모든 기도제목으로 기도하기' : '한 장씩 기도하기'}</button></section>
-      ${cordHtml()}${thanksQuick()}`;
+      <button class="btn ghost" data-a="psopen" data-v="${done === set.length ? 'all' : 'today'}">${done === set.length && all.length > set.length ? '모든 기도제목으로 기도하기' : '한 장씩 기도하기'}</button></section></div>
+      <div class="t-side">${cordHtml()}${thanksQuick()}</div></div>`;
   }
   // ── 시범 설문(survey.js): 시작한 지 3·7·14일째에 오늘 화면이 그려진 1.5초 뒤 팝업 카드(앱을 연 뒤 한 번만). 로그인하지 않았거나 장면 주소, 안내·기도하기·다른 창이 떠 있으면 없다 ──
   //  시작한 날 = 기도제목·기도한 날·감사 기록 중 가장 이른 날(아직 없으면 survey.js가 이 기기에서 처음 연 날로 센다). 보내는 숫자는 사용자가 켰을 때만, 기도 내용은 없다
@@ -1259,7 +1274,8 @@ button.knot { cursor: pointer; }
         attr: (k, id) => k === 'room' ? `href="index.html${QS}"` : k === 'group' ? `href="${groupUrl(id, G.find(x => x.id === id))}"` : 'data-a="menunew"' })}</div>`
       : S.menu === 'settings' ? `<div class="menu" role="menu" aria-label="설정"><p class="mlabel">화면 모드 · 색 테마 · 디자인</p><div class="menu-set">${screenControls()}</div></div>` : '';
     return `<header class="topbar"><div class="wrap">
-      <button class="brand" data-a="tab" data-v="today" aria-label="기도 노트 오늘"><span class="brand-mark">${TOP_ICON.knot}</span><span class="brand-name">코이데</span></button><span class="spacer"></span>
+      <button class="brand" data-a="tab" data-v="today" aria-label="기도 노트 오늘"><span class="brand-mark">${TOP_ICON.knot}</span><span class="brand-name">코이데</span></button>
+      <nav class="topnav" aria-label="주 메뉴">${TABS.map(([k, l]) => { const on = (S.tab === 'keep' ? 'look' : S.tab === 'fb' || S.tab === 'sync' || S.tab === 'help' ? 'more' : S.tab) === k; return `<button class="${on ? 'on' : ''}" data-a="tab" data-v="${k}" ${on ? 'aria-current="page"' : ''}>${l}</button>`; }).join('')}</nav><span class="spacer"></span>
       <button class="badge-btn" data-a="menu" data-v="badge" aria-haspopup="menu" aria-expanded="${S.menu === 'badge'}">나의 기도 노트<span class="role-tag">나</span>${G.some(g => g.asks) ? '<i class="badge-dot" aria-label="모임 신청이 있어요"></i>' : ''}</button>
       <button class="icon-btn" data-a="menu" data-v="settings" aria-haspopup="menu" aria-expanded="${S.menu === 'settings'}" aria-label="설정">${TOP_ICON.gear}</button>${menu}</div></header>`;
   }
