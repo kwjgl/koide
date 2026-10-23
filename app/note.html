@@ -407,6 +407,9 @@ button.knot { cursor: pointer; }
   // 장면 모드(?as=사람&at=오늘|note|pray|look|keep|more|start, 데모에서만): 화면 지도(demo/map.html)용. splash.js가 이 창의 localStorage를 메모리 판으로 바꿔 놓아서,
   //  예시 노트도 메모리에만 만들고 저장하지 않는다. 로그인·서버 확인·창·도움말도 없다
   const SC = DEMO && window.KOIDE_SCENE || null;
+  // 따라 하기 페이지(?tutorial): 처음 쓰는 사람이 로그인한 뒤 먼저 거치는 연습 노트. splash.js가 저장소를 메모리 판으로 바꿔 놓아서 진짜 노트·로그인에 닿지 않고, 서버와도 이야기하지 않는다.
+  //  끝나면 진짜 노트(?tutdone)로 돌아가 마침을 적는다. 화면 지도(SC)와 달리 따라 하기 안내는 돈다
+  const TUT = new URLSearchParams(location.search).has('tutorial'), QUIET = !!SC || TUT;
   // 기도 노트는 카카오 계정마다 따로 둔다(한 기기를 여럿이 써도 다른 사람의 노트가 보이지 않게). 주인 표시는 서버가 주는 값(uid)이다.
   //  주인 표시가 생기기 전의 노트는 처음 확인된 계정의 것으로 옮긴다. 주인을 아직 모르면(예전 로그인, 예전 서버) 예전 자리를 그대로 쓴다
   function ownNoteKey(base, uid) {
@@ -424,7 +427,7 @@ button.knot { cursor: pointer; }
   const getUid = () => { try { return localStorage.getItem(UID) || ''; } catch (e) { return ''; } };
   const KEY = ownNoteKey(BASE, getUid()), LOCK_KEY = KEY + '-key';
   // 기도제목·사람·감사·기도한 날마다 고친 시각(up)을 둔다. 다른 기기와 이어 둘 때 더 나중 것을 남기려고(지운 것도 지웠다는 표시로 남긴다)
-  const blank = () => ({ v: 2, started: false, name: '', nameUp: 0, people: [], items: [], prays: [], thanks: [], today: null, mode: '', vault: null, weaves: [], gone: [], survey: null });
+  const blank = () => ({ v: 2, started: false, name: '', nameUp: 0, people: [], items: [], prays: [], thanks: [], today: null, mode: '', vault: null, weaves: [], gone: [], survey: null, guide: '' });
   // 장면 모드의 예시 노트: 사람 둘, 기도제목 여럿, 최근 기도한 날과 감사(날짜는 오늘 기준). at=start이면 노트 없이 시작 화면
   function sceneNote() {
     const day = n => { const d = new Date(Date.now() - n * 864e5); return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0'); };
@@ -442,6 +445,7 @@ button.knot { cursor: pointer; }
     return { v: 2, started: true, name: '', nameUp: 0, people, items, prays, thanks, today: null, mode: '', vault: null, weaves };
   }
   if (SC && SC.at !== 'start') { try { localStorage.setItem(KEY, JSON.stringify(sceneNote())); } catch (e) { /* 무시 */ } }
+  if (TUT) { try { localStorage.setItem(KEY, JSON.stringify(Object.assign(blank(), { started: true }))); } catch (e) { /* 무시 */ } }
   let D;
   try { D = migrate(Object.assign(blank(), JSON.parse(localStorage.getItem(KEY) || 'null') || {})); } catch (e) { D = blank(); }
   let canSave = true;
@@ -528,7 +532,7 @@ button.knot { cursor: pointer; }
     return { words, rsalt, rwrap: await lockUp(await deriveKey(words.join(' '), rsalt), { k: raw }) };
   }
   // 맡기는 것: 이 기기만의 것(오늘 고른 3개, 화면 모드, 이어 두기 상태)은 빼고
-  const payload = () => ({ v: 2, name: D.name, nameUp: D.nameUp, people: D.people, items: D.items, prays: D.prays, thanks: D.thanks, weaves: D.weaves, gone: D.gone, survey: D.survey });
+  const payload = () => ({ v: 2, name: D.name, nameUp: D.nameUp, people: D.people, items: D.items, prays: D.prays, thanks: D.thanks, weaves: D.weaves, gone: D.gone, survey: D.survey, guide: D.guide || '' });
   function mergeBy(a, b, key) {
     const m = new Map();
     [...(a || []), ...(b || [])].forEach(x => { const k = key(x), o = m.get(k); if (!o || (x.up || 0) > (o.up || 0)) m.set(k, x); });
@@ -547,6 +551,8 @@ button.knot { cursor: pointer; }
     if ((r.nameUp || 0) > (D.nameUp || 0)) { D.name = r.name; D.nameUp = r.nameUp; }
     // 시범 설문 진행: 마침에 가까운 쪽(보냄 > 건너뜀 > 나중에)과 더 이른 시작일을 남기고, 그만 묻기는 한쪽이라도 켜졌으면 켜진 채
     D.survey = KOIDE_SURVEY.merge(D.survey, r.survey); KOIDE_SURVEY.reload();
+    // 따라 하기를 마친 날: 한 기기에서라도 마쳤으면 다른 기기에서 다시 보지 않게 더 이른 날을 남긴다
+    if (r.guide && (!D.guide || r.guide < D.guide)) D.guide = r.guide;
     D.started = true;
   }
   let syncing = false, syncAgain = false;
@@ -744,7 +750,7 @@ button.knot { cursor: pointer; }
   const HOME_APP = !!(navigator.standalone || (window.matchMedia && matchMedia('(display-mode: standalone)').matches));
   const A2HS_ASK = !HOME_APP && !!(window.matchMedia && matchMedia('(pointer: coarse)').matches);
   S.a2hsOs = /android/i.test(navigator.userAgent) ? 'android' : 'ios';
-  function a2hsDue() { if (SC) return; try { if (A2HS_ASK && !localStorage.getItem(A2HS_OFF)) S.a2hs = true; } catch (e) { /* 저장할 수 없으면 권하지 않는다 */ } }
+  function a2hsDue() { if (QUIET) return; try { if (A2HS_ASK && !localStorage.getItem(A2HS_OFF)) S.a2hs = true; } catch (e) { /* 저장할 수 없으면 권하지 않는다 */ } }
   // 홈 화면 창은 따라 하기 중에는 가려 두었다가(눌러야 할 곳을 가리지 않게) 끝나고 예시 묻기까지 마친 뒤에 띄운다
   const a2hsOn = () => !!S.a2hs && !S.ps && !KoideGuide.running();
   function a2hsSheet() {
@@ -761,13 +767,23 @@ button.knot { cursor: pointer; }
   // ── 따라 하기(처음 쓰는 사람, 결정 기록 2026-10-22): 시작 화면을 지나고 기도제목이 하나도 없는 사람이 처음 열면 저절로 시작한다 ──
   //  ① 써 보기(내 기도 › 예시 넣어 보기 › 대상별로 정리하기 › 추가하기) ② 기도해 보기(오늘 › 기도했어요) ③ 둘러보기(기도하기·지난 기록·더보기 › 동기화) ④ 이제 직접 써 보세요(쓰기 칸을 비춤). 모양과 움직임은 guide.js(공동체와 같은 틀)
   //  직접 쓰는 단계는 없다(키보드가 열리지 않게 예시로만 연습). 연습으로 더한 기도제목·사람은 practice 표시를 달고, ④에 들어갈 때 기도 기록과 함께 저절로 지운다(지움 표시 D.gone을 남겨 동기화로 되살아나지 않게)
-  //  기도 노트는 이 기기에만 있어서 마쳤는지도 이 기기에만 적는다(GUIDE_KEY). 더보기 › 따라 하기 다시 하기는 기도제목이 있어도, 마쳤어도 연다
+  //  (2026-10-23) 진짜 노트 위에서 돌리지 않고 따로 연 연습 페이지(?tutorial)에서 돈다: 로그인한 뒤 기도제목이 없고 아직 안 봤으면 그리로 보내고, 마치면 진짜 노트(?tutdone)로 돌아온다.
+  //  마쳤는지는 노트 기록(D.guide, 동기화하면 기기 사이에 따라간다)과 서버의 tourDone(공동체에서 마쳤거나 노트에서 마치면 연결된 사람만 적힌다) 둘 다 본다. 옛 GUIDE_KEY도 마친 것으로 센다
+  //  더보기 › 따라 하기 다시 하기는 기도제목이 있어도, 마쳤어도 연다
   //  하나만 궁금할 때는 더보기 › 사용법(helpView)에서 찾는다. 예전 사용법 카드는 없앴다(결정 기록 2026-10-22)
   const GUIDE_KEY = DEMO_LINK ? 'koide-demo-note-guide' : 'koide-note-guide';
   const NoteGuide = (() => {
     let ev = null, timer = 0;
-    const done = () => { try { return !!localStorage.getItem(GUIDE_KEY); } catch (e) { return true; } };
-    const markDone = () => { try { localStorage.setItem(GUIDE_KEY, new Date().toISOString().slice(0, 10)); } catch (e) { /* 이번만 */ } };
+    const done = () => { if (D.guide || (noteMe() && noteMe().tour)) return true; try { return !!localStorage.getItem(GUIDE_KEY); } catch (e) { return true; } };
+    // 연습 페이지에서 돌아오면(?tutdone) 마침을 노트 기록에 적고, 연결된 사람이면 서버에도 알린다(공동체에서 다시 안 나오게)
+    const markDone = () => {
+      if (!D.guide) { D.guide = new Date().toISOString().slice(0, 10); save(); }
+      if (getToken()) api('tourDone').catch(() => { /* 연결 전이거나 옛 서버: 노트 기록에만 남긴다 */ });
+    };
+    // 연습 페이지(?tutorial)로 간다. 끝나면 ?tutdone으로 돌아온다.
+    //  저절로 보낼 때(auto)는 replace: 방문 기록에 진짜 노트를 남기면 연습 중 '뒤로 가기'가 안 마친 노트로 돌아가 다시 끌려온다. 더보기에서 누를 때는 이미 마친 사람이라 href로 충분하다
+    const goTutorial = auto => { if (window.koideSpace) window.koideSpace.going('note'); const to = 'note.html?tutorial' + (DEMO_LINK ? '&demo' : ''); if (auto === true) location.replace(to); else location.href = to; };
+    const back = () => { location.replace('note.html?tutdone' + (DEMO_LINK ? '&demo' : '')); };
     // 열 수 있는 때: 노트를 시작한 뒤이고, 장면 모드(화면 지도)가 아니다
     const can = () => !SC && D.started && S.tab !== 'start' && !KoideGuide.running();
     // 창이나 메뉴가 떠 있으면 시작하지 않는다
@@ -826,21 +842,22 @@ button.knot { cursor: pointer; }
       ev = { sample: false, added: false, prayed: false, again: !!again, pre: new Set(D.items.map(i => i.id)) };
       S.menu = null;
       KoideGuide.run(steps(), {
-        onSkipFirst: () => { drop(); markDone(); render(); },
-        onDone: () => { drop(); markDone(); render(); }
+        onSkipFirst: () => { drop(); back(); },
+        onDone: () => { drop(); back(); }
       });
       render();
     }
-    // 화면을 그릴 때마다: 조건이 맞으면 처음 한 번만 시작한다. 화면이 자리 잡도록 잠깐 뒤에
+    // 화면을 그릴 때마다: 조건이 맞으면 처음 한 번만 시작한다. 진짜 노트에서는 연습 페이지로 보내고, 연습 페이지에서는 바로 안내를 연다. 화면이 자리 잡도록 잠깐 뒤에
     function maybe() {
       // 연습 도중에 앱이 닫혔다면 남은 연습 예시를 치운다(안내가 돌고 있지 않은데 practice 표시가 남은 경우)
       if (!KoideGuide.running() && D.started && (D.items.some(i => i.practice) || D.people.some(p => p.practice && !p.del))) drop();
       if (timer || KoideGuide.running() || !can() || (S.tab !== 'today' && S.tab !== 'note')) return;
+      if (TUT) { timer = setTimeout(() => { timer = 0; if (can() && !KoideGuide.running() && calmNow()) start(false); }, 700); return; }
       if (D.items.length || done() || !calmNow()) return;
-      timer = setTimeout(() => { timer = 0; if (can() && (S.tab === 'today' || S.tab === 'note') && !D.items.length && !done() && calmNow()) start(false); }, 700);
+      timer = setTimeout(() => { timer = 0; if (can() && (S.tab === 'today' || S.tab === 'note') && !D.items.length && !done() && calmNow()) goTutorial(true); }, 700);
     }
     return {
-      start, maybe, drop,
+      start, maybe, drop, goTutorial, markDone,
       // 눌러 보며 한 일을 기억한다(앱의 누름 처리가 부른다)
       sample() { if (ev && KoideGuide.running()) ev.sample = true; },
       // 연습으로 더한 줄에 practice 표시를 달아 준다(추가하기가 부른다). 안내 중이고 예시에서 나온 줄이면 true
@@ -897,12 +914,12 @@ button.knot { cursor: pointer; }
   const APP_VER = '2026-11-08';
   const noteStart = () => [...D.items.map(i => i.created), ...prays().map(p => p.d), ...D.thanks.map(x => x.date)].filter(Boolean).sort()[0] || '';
   const surveyNums = () => ({ days: new Set(prays().map(p => p.d)).size, items: D.items.length, thanks: D.thanks.length, app: HOME_APP, vault: !!(D.vault && D.vault.on) });
-  if (!SC) KOIDE_SURVEY.init({ where: 'note', key: DEMO_LINK ? 'koide-demo-survey' : 'koide-survey', api, start: noteStart, nums: surveyNums, ver: APP_VER, demo: DEMO,
-    can: () => !SC && D.started && !!getToken() && S.tab === 'today' && !S.ps && !a2hsOn() && !S.done && !S.vsheet && !S.cut && !S.recSheet && !S.kc && !S.share && !S.mv && !S.gbig && S.wopen == null && !S.menu,
+  if (!QUIET) KOIDE_SURVEY.init({ where: 'note', key: DEMO_LINK ? 'koide-demo-survey' : 'koide-survey', api, start: noteStart, nums: surveyNums, ver: APP_VER, demo: DEMO,
+    can: () => !QUIET && D.started && !!getToken() && S.tab === 'today' && !S.ps && !a2hsOn() && !S.done && !S.vsheet && !S.cut && !S.recSheet && !S.kc && !S.share && !S.mv && !S.gbig && S.wopen == null && !S.menu,
     ready: () => !syncing, store: { get: () => D.survey, set: v => { D.survey = v; save(); } } });
   // ── 시범 '해 볼 일' 띠(pilot.js): 시범 링크(?pilot)로 연 사람, 또는 공동체 앱이 남긴 '내 사랑방 시범 중' 표시가 있는 사람에게만(같은 앱·같은 브라우저 저장 공간 안에서). 화면 제목 바로 아래에 한 줄. 기도하기·사용법 카드·시작 화면에는 없다 ──
-  if (!SC) KoidePilot.init({ where: 'note', demo: DEMO, home: () => HOME_APP, rerender: () => render(), feedback: () => { S.fb = null; go('fb'); } });
-  const pilotBand = () => KoidePilot.mount($('#root > .wrap'), 'header.top', !SC && D.started && S.tab !== 'start' && !S.ps && !KoideGuide.running());
+  if (!QUIET) KoidePilot.init({ where: 'note', demo: DEMO, home: () => HOME_APP, rerender: () => render(), feedback: () => { S.fb = null; go('fb'); } });
+  const pilotBand = () => KoidePilot.mount($('#root > .wrap'), 'header.top', !QUIET && D.started && S.tab !== 'start' && !S.ps && !KoideGuide.running());
   // 같은 사람(나 또는 내가 기도하는 사람)을 위한 기도제목이 두 개 이상인지
   const pilotTwo = () => { const n = {}; D.items.forEach(i => { if (!i.done && (i.target === 'me' || i.target.startsWith('p:'))) n[i.target] = (n[i.target] || 0) + 1; }); if (Object.keys(n).some(t => n[t] >= 2)) KoidePilot.done('n-two'); };
   function thanksQuick() {
@@ -1360,7 +1377,7 @@ button.knot { cursor: pointer; }
   const ME_KEY = DEMO_LINK ? 'koide-demo-note-me' : 'koide-note-me', PLACES = koidePlaces.MAX;
   const noteMe = () => { try { return JSON.parse(localStorage.getItem(ME_KEY) || 'null'); } catch (e) { return null; } };
   async function loadMe() {
-    try { const r = await api('me'); const m = { groups: r.groups || [], linked: !!(r.link && r.link.status === '연결'), nick: r.nick || '' };
+    try { const r = await api('me'); const m = { groups: r.groups || [], linked: !!(r.link && r.link.status === '연결'), nick: r.nick || '', tour: r.tourDone === true };
       try { localStorage.setItem(ME_KEY, JSON.stringify(m)); } catch (e) { /* 이번만 */ } render(); return r; }
     catch (e) { return null; }
   }
@@ -1777,7 +1794,7 @@ button.knot { cursor: pointer; }
         return toast(parts.length + '개를 내 기도에 더했어요' + (Object.keys(made).length ? ` · 새 사람 ${Object.keys(made).join(', ')}` : ''));
       }
       case 'pray': { const was = prayedToday(v); togglePray(v); NoteGuide.pray(!was); return render(); }
-      case 'guidere': return NoteGuide.start(true);
+      case 'guidere': return NoteGuide.goTutorial(false);
       case 'helpq': S.helpQ = S.helpQ === Number(v) ? null : Number(v); return render();
       case 'helpgo': S.helpQ = null; if (v !== 'keep') return go(v); S.gEdit = false; S.gbig = false; S.wopen = null; S.tab = 'keep'; render(); return window.scrollTo(0, 0);
       case 'tgt': S.draftT = v; return render();
@@ -2015,7 +2032,7 @@ button.knot { cursor: pointer; }
         const x = JSON.parse(r.result);
         if (x.app !== 'koide-note' || !Array.isArray(x.items)) throw new Error();
         if (!confirm(`백업(${x.saved ? short(dkey(new Date(x.saved))) : '날짜 모름'}, 기도제목 ${x.items.length}개)으로 바꿀까요? 지금 이 휴대폰의 기도 노트는 지워져요.`)) return;
-        const vault = D.vault, sv = D.survey; D = migrate(Object.assign(blank(), x)); delete D.app; delete D.saved; D.started = true; D.vault = vault; D.survey = KOIDE_SURVEY.merge(sv, D.survey); KOIDE_SURVEY.reload(); save(); S.tab = 'today'; toast('백업을 불러왔어요');
+        const vault = D.vault, sv = D.survey, gd = D.guide; D = migrate(Object.assign(blank(), x)); delete D.app; delete D.saved; D.started = true; D.vault = vault; D.survey = KOIDE_SURVEY.merge(sv, D.survey); if (gd && (!D.guide || gd < D.guide)) D.guide = gd; KOIDE_SURVEY.reload(); save(); S.tab = 'today'; toast('백업을 불러왔어요');
       } catch (err) { toast('코이데 기도 노트 백업 파일이 아니에요'); }
     };
     r.readAsText(e.target.files[0]);
@@ -2034,8 +2051,10 @@ button.knot { cursor: pointer; }
     let pack = null; try { pack = JSON.parse(sessionStorage.getItem('koide-weave-pack') || 'null'); sessionStorage.removeItem('koide-weave-pack'); } catch (e) { /* 건네받지 못함 */ }
     if (pack && pack.id === wid && weaveAdd(pack)) setTimeout(() => toast(D.started ? '그물을 담았어요' : '그물을 담았어요. 노트를 시작하면 볼 수 있어요'), 300); else setTimeout(() => toast('그물을 담지 못했어요. 모임 화면에서 다시 해 주세요'), 300);
   } }
+  // 따라 하기 페이지에서 돌아오면(?tutdone) 마침을 적고 주소에서 지운다
+  { const q = new URLSearchParams(location.search); if (q.has('tutdone')) { q.delete('tutdone'); history.replaceState(null, '', location.pathname + (q.toString() ? '?' + q.toString().replace(/=(&|$)/g, '$1') : '')); if (!QUIET && D.started && getToken()) NoteGuide.markDone(); } }
   // 카카오 로그인이 기본: 로그인하지 않았으면 로그인 화면으로(노트는 이 휴대폰에 그대로 남아 있다)
-  if (!SC && !getToken()) { if (window.koideSpace) window.koideSpace.going('community'); location.replace('index.html' + QS); return; }
+  if (!QUIET && !getToken()) { if (window.koideSpace) window.koideSpace.going('community'); location.replace('index.html' + QS); return; }
   // 공동체의 '함께하는 곳' 메뉴에서 '+ 모임 만들기'로 오면(?new) 더보기 › 내 모임의 만들기 창을 바로 연다
   { const q = new URLSearchParams(location.search); if (q.has('new')) { if (D.started) { S.tab = 'more'; S.gNew = true; } else S.wantNew = true; q.delete('new'); history.replaceState(null, '', location.pathname + (q.toString() ? '?' + q.toString().replace(/=(&|$)/g, '$1') : '')); } }
   // 모임 화면의 '내 기도 노트로 옮기기'로 오면(?move=모임ID) 옮길 기도제목 고르는 창을 바로 연다
@@ -2046,7 +2065,7 @@ button.knot { cursor: pointer; }
   if (window.koideSpace) window.koideSpace.used('note');
   if (SC && !window.KoideBeatitudes.scene(SC.at)) window.KoideSunrain.scene(SC.at, { n: people().length + 1 });
   // 노트 주인을 아직 모르면(예전 로그인) 서버에 한 번 묻고, 내 노트 자리가 달라지면 다시 연다. 서버가 답하지 않으면 이번에는 예전 자리 그대로
-  if (!SC) (async () => {
+  if (!QUIET) (async () => {
     if (!getUid()) {
       try { const r = await api('me'); if (r && r.uid) { try { localStorage.setItem(UID, r.uid); } catch (e) { /* 무시 */ } if (ownNoteKey(BASE, r.uid) !== KEY) return location.reload(); } }
       catch (e) { if (e && e.code === 'login') { if (window.koideSpace) window.koideSpace.going('community'); return location.replace('index.html' + QS); } }
