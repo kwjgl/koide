@@ -368,6 +368,12 @@ button.knot { cursor: pointer; }
 .mrows { padding-top: 4px; padding-bottom: 4px; gap: 0; }
 .mrows > .mrow:first-of-type { padding-top: .8em; }
 .mrows > .mrow:first-child { border-top: 0; }
+/* 맨 위에 작은 제목(.label)이 있는 카드: 카드 위 4px에 12px를 더해 제목 자리를 1em으로 */
+.mrows > .label:first-child { margin-top: 12px; }
+/* 줄 아래에 붙는 안내글(.hint): gap을 없앴으니 띄우는 틈과 카드 아래 여백을 직접 */
+.mrows > .hint { margin: 11px 0 12px; }
+/* 창(.sheet)의 줄이 이어질 때: 창의 gap(12px)만큼 당겨서 줄 사이 틈을 없앤다 */
+.sheet > .mrow + .mrow { margin-top: -12px; }
 .mset { display: flex; flex-direction: column; gap: 10px; border-top: 1px solid var(--line); padding: .9em 0; }
 /* 고르는 버튼 묶음: 공동체 앱과 같은 모양(디자인 스타일 new·classic·glass가 그대로 입혀진다) */
 .seg { display: grid; grid-auto-flow: column; grid-auto-columns: 1fr; gap: 3px; padding: 3px; background: var(--surface-2); border-radius: 12px; }
@@ -1411,7 +1417,7 @@ button.knot { cursor: pointer; }
       <header class="top"><div><p class="eyebrow">따라 하기와 도움말</p><h1>사용법</h1></div></header>
       <section class="card"><p class="label">처음처럼 따라 해 보기</p><p class="plain">예시로 쓰기와 기도하기를 직접 눌러 보며 한 걸음씩 익혀요. 연습한 것은 지워져요.</p>
         <button class="btn wide help-go" data-a="guidere">▶ 따라 하기 시작</button></section>
-      <section class="card"><p class="label">궁금한 것 찾아보기</p>
+      <section class="card mrows"><p class="label">궁금한 것 찾아보기</p>
         ${HELP.map(([q, lines, go, to], k) => { const on = S.helpQ === k;
           return `<button class="mrow" data-a="helpq" data-v="${k}" aria-expanded="${on}"><span><b>${q}</b></span><span class="chev" aria-hidden="true">›</span></button>
             ${on ? `<div class="help-body">${lines.map(t => `<p class="plain">${t}</p>`).join('')}<button class="link" data-a="helpgo" data-v="${to}">${go} ›</button></div>` : ''}`; }).join('')}</section>`;
@@ -1429,12 +1435,12 @@ button.knot { cursor: pointer; }
     return `<button class="link" data-a="tab" data-v="more" style="align-self:flex-start;margin-bottom:6px">‹ 더보기</button>
       <header class="top"><div><p class="eyebrow">${nick ? esc(nick) : '코이데 기도 노트'}</p><h1>동기화</h1></div></header>
       ${vaultCard()}
-      ${conn && canLock() ? `<section class="card">
+      ${conn && canLock() ? `<section class="card mrows">
         <button class="mrow" data-a="kcchange"><span><b>비밀 문구 바꾸기</b><small>기록을 잠그는 문구를 새로 정해요</small></span><span aria-hidden="true">›</span></button>
         <button class="mrow" data-a="kcforgot"><span><b>비밀 문구를 잊었어요</b><small>적어 둔 복구용 낱말로 다시 열어요</small></span><span aria-hidden="true">›</span></button>
         <button class="mrow" data-a="vrec"${S.recBusy ? ' disabled' : ''}><span><b>${D.vault.rec ? '복구용 낱말 새로 만들기' : '복구용 낱말 만들기'}</b>${D.vault.rec ? '' : '<small>아직 없어요. 비밀 문구를 잊어도 열 수 있게 만들어 두세요.</small>'}</span><span aria-hidden="true">›</span></button>
         <p class="hint">비밀 문구와 복구용 낱말을 둘 다 잃으면 기록을 되살릴 수 없어요.</p></section>` : ''}
-      <section class="card"><p class="label">내 기록 파일</p>
+      <section class="card mrows"><p class="label">내 기록 파일</p>
         <button class="mrow" data-a="backup"><span><b>기록 저장하기</b><small>파일·드라이브에 저장하거나, 카카오톡으로 보내요.</small></span></button>
         <button class="mrow" data-a="restore"><span><b>불러오기</b><small>저장해 둔 파일로 기록을 되살려요.</small></span></button>
         <input type="file" id="restore-file" accept="application/json,.json" hidden></section>
@@ -1517,10 +1523,10 @@ button.knot { cursor: pointer; }
     const M = noteMe(), G = (M && M.groups) || [], lead = G.some(g => g.role === '모임장'), used = (M && M.linked ? 1 : 0) + G.length, full = used >= PLACES, E = S.gNew;
     return `<section class="card"><div class="row"><p class="label" style="margin:0">내 모임</p>${M ? `<small class="hint">${used}/${PLACES}곳</small>` : ''}</div>
       <p class="hint">잠깐 모여 서로를 위해 기도하는 곳이에요(해외선교팀처럼). 끝나는 날이 있고, 이 노트와는 따로예요.</p>
-      ${!M ? '<p class="hint">모임 목록을 불러오는 중이에요…</p>' : G.length ? G.map(g => g.wait
+      ${!M ? '<p class="hint">모임 목록을 불러오는 중이에요…</p>' : G.length ? '<div class="mlist">' + G.map(g => g.wait
         ? `<div class="mrow" aria-disabled="true"><span><b>${esc(g.name)}</b><small>모임장의 승인을 기다려요</small></span></div>`
         : `<a class="mrow" style="text-decoration:none;color:inherit" href="${groupUrl(g.id, g)}"><span><b>${esc(g.name)}${g.role === '모임장' ? ' · 모임장' : ''}</b><small>${g.n}명 · ${koidePlaces.dday(g) || '끝나는 날 정하는 중'}${g.endsAt ? ' (' + dayLabel(g.endsAt) + '까지)' : ''}${g.asks ? ` · 신청 ${g.asks}` : ''}</small></span><span aria-hidden="true">›</span></a>
-          <div class="mrow-sub"><button class="link quiet" data-a="mvopen" data-v="${esc(g.id)}">내 기도 노트로 옮기기</button>${g.left != null && g.left <= 30 ? `<small class="warn-text">곧 끝나요</small>` : ''}</div>`).join('') : ''}
+          <div class="mrow-sub"><button class="link quiet" data-a="mvopen" data-v="${esc(g.id)}">내 기도 노트로 옮기기</button>${g.left != null && g.left <= 30 ? `<small class="warn-text">곧 끝나요</small>` : ''}</div>`).join('') + '</div>' : ''}
       ${!M ? '' : E ? `<form data-f="gcreate" style="display:flex;flex-direction:column;gap:8px;margin-top:4px">
           <label class="label" for="gc-n" style="margin:0">모임 이름</label><input id="gc-n" class="field" maxlength="16" placeholder="예: 직장인 기도 모임" autocomplete="off">
           ${M.linked ? '' : `<label class="label" for="gc-p" style="margin:0">모임에서 쓸 내 이름</label><input id="gc-p" class="field" maxlength="10" value="${esc(M.nick || '')}" autocomplete="name">`}
