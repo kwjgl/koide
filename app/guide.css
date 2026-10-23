@@ -12,7 +12,7 @@
 .kg-bubble { position: absolute; pointer-events: auto; box-sizing: border-box; width: min(380px, calc(100% - 32px)); max-height: calc(100% - 24px); overflow-y: auto; background: var(--surface); color: var(--ink); border: 1px solid var(--line-strong); border-radius: 18px; padding: 14px 16px 16px; display: flex; flex-direction: column; gap: 8px; box-shadow: 0 10px 34px var(--shadow); outline: none; }
 .kg-anim .kg-bubble { transition: left .28s ease, top .28s ease; }
 .kg-tight { padding: 8px 12px 10px; gap: 4px; }
-.kg-tight .kg-text { font-size: .95em; line-height: 1.45; }
+.kg-tight .kg-text { line-height: 1.45; }
 .kg-tight .kg-head { min-height: 0; }
 .kg-tight .kg-act .btn { min-height: 40px; }
 .kg-head { display: flex; justify-content: space-between; align-items: center; min-height: 28px; gap: 8px; }
