@@ -429,6 +429,12 @@ button.knot { cursor: pointer; }
   // 따라 하기 페이지(?tutorial): 처음 쓰는 사람이 로그인한 뒤 먼저 거치는 연습 노트. splash.js가 저장소를 메모리 판으로 바꿔 놓아서 진짜 노트·로그인에 닿지 않고, 서버와도 이야기하지 않는다.
   //  끝나면 진짜 노트(?tutdone)로 돌아가 마침을 적는다. 화면 지도(SC)와 달리 따라 하기 안내는 돈다
   const TUT = new URLSearchParams(location.search).has('tutorial'), QUIET = !!SC || TUT;
+  let TUTDONE = ''; // 연습 페이지에서 돌아왔다는 표시: 'done'(마침) 또는 'fail'(연습 페이지를 열지 못함)
+  // 연습 페이지를 열지 못했거나 안내가 시작되지 않으면 진짜 노트로 돌려보낸다. 이 창에서는 다시 보내지 않게 표시를 남긴다(무한 반복 방지)
+  function tutFail() {
+    try { sessionStorage.setItem('koide-note-tut-off', '1'); } catch (e) { /* 표시를 못 남겨도 돌아간다 */ }
+    location.replace('note.html?tutdone=fail' + (DEMO_LINK ? '&demo' : ''));
+  }
   // 기도 노트는 카카오 계정마다 따로 둔다(한 기기를 여럿이 써도 다른 사람의 노트가 보이지 않게). 주인 표시는 서버가 주는 값(uid)이다.
   //  주인 표시가 생기기 전의 노트는 처음 확인된 계정의 것으로 옮긴다. 주인을 아직 모르면(예전 로그인, 예전 서버) 예전 자리를 그대로 쓴다
   function ownNoteKey(base, uid) {
@@ -789,10 +795,12 @@ button.knot { cursor: pointer; }
   //  (2026-10-23) 진짜 노트 위에서 돌리지 않고 따로 연 연습 페이지(?tutorial)에서 돈다: 로그인한 뒤 기도제목이 없고 아직 안 봤으면 그리로 보내고, 마치면 진짜 노트(?tutdone)로 돌아온다.
   //  마쳤는지는 노트 기록(D.guide, 동기화하면 기기 사이에 따라간다)과 서버의 tourDone(공동체에서 마쳤거나 노트에서 마치면 연결된 사람만 적힌다) 둘 다 본다. 옛 GUIDE_KEY도 마친 것으로 센다
   //  더보기 › 따라 하기 다시 하기는 기도제목이 있어도, 마쳤어도 연다
+  //  연습 페이지가 뜬 뒤 6초 안에 안내가 시작되지 않으면 진짜 노트(?tutdone=fail)로 돌려보내고 마침은 적지 않는다. 이 창에서는 다시 보내지 않는다(sessionStorage koide-note-tut-off: 무한 반복 방지)
   //  하나만 궁금할 때는 더보기 › 사용법(helpView)에서 찾는다. 예전 사용법 카드는 없앴다(결정 기록 2026-10-22)
   const GUIDE_KEY = DEMO_LINK ? 'koide-demo-note-guide' : 'koide-note-guide';
   const NoteGuide = (() => {
-    let ev = null, timer = 0;
+    let ev = null, timer = 0, leaving = false;
+    const tutOff = () => { try { return !!sessionStorage.getItem('koide-note-tut-off'); } catch (e) { return false; } };
     const done = () => { if (D.guide || (noteMe() && noteMe().tour)) return true; try { return !!localStorage.getItem(GUIDE_KEY); } catch (e) { return true; } };
     // 연습 페이지에서 돌아오면(?tutdone) 마침을 노트 기록에 적고, 연결된 사람이면 서버에도 알린다(공동체에서 다시 안 나오게)
     const markDone = () => {
@@ -802,7 +810,7 @@ button.knot { cursor: pointer; }
     // 연습 페이지(?tutorial)로 간다. 끝나면 ?tutdone으로 돌아온다.
     //  저절로 보낼 때(auto)는 replace: 방문 기록에 진짜 노트를 남기면 연습 중 '뒤로 가기'가 안 마친 노트로 돌아가 다시 끌려온다. 더보기에서 누를 때는 이미 마친 사람이라 href로 충분하다
     const goTutorial = auto => { if (window.koideSpace) window.koideSpace.going('note'); const to = 'note.html?tutorial' + (DEMO_LINK ? '&demo' : ''); if (auto === true) location.replace(to); else location.href = to; };
-    const back = () => { location.replace('note.html?tutdone' + (DEMO_LINK ? '&demo' : '')); };
+    const back = () => { leaving = true; location.replace('note.html?tutdone' + (DEMO_LINK ? '&demo' : '')); };
     // 열 수 있는 때: 노트를 시작한 뒤이고, 장면 모드(화면 지도)가 아니다
     const can = () => !SC && D.started && S.tab !== 'start' && !KoideGuide.running();
     // 창이나 메뉴가 떠 있으면 시작하지 않는다
@@ -871,13 +879,15 @@ button.knot { cursor: pointer; }
     function maybe() {
       // 연습 도중에 앱이 닫혔다면 남은 연습 예시를 치운다(안내가 돌고 있지 않은데 practice 표시가 남은 경우)
       if (!KoideGuide.running() && D.started && (D.items.some(i => i.practice) || D.people.some(p => p.practice && !p.del))) drop();
-      if (timer || KoideGuide.running() || !can() || (S.tab !== 'today' && S.tab !== 'note')) return;
-      if (TUT) { timer = setTimeout(() => { timer = 0; if (can() && !KoideGuide.running() && calmNow()) start(false); }, 700); return; }
-      if (D.items.length || done() || !calmNow()) return;
-      timer = setTimeout(() => { timer = 0; if (can() && (S.tab === 'today' || S.tab === 'note') && !D.items.length && !done() && calmNow()) goTutorial(true); }, 700);
+      if (timer || leaving || KoideGuide.running() || !can() || (S.tab !== 'today' && S.tab !== 'note')) return;
+      if (TUT) { timer = setTimeout(() => { timer = 0; if (!leaving && can() && !KoideGuide.running() && calmNow()) start(false); }, 700); return; }
+      if (D.items.length || done() || !calmNow() || tutOff()) return;
+      timer = setTimeout(() => { timer = 0; if (can() && (S.tab === 'today' || S.tab === 'note') && !D.items.length && !done() && calmNow() && !tutOff()) goTutorial(true); }, 700);
     }
     return {
       start, maybe, drop, goTutorial, markDone,
+      // 연습 페이지에서 안내가 한 번이라도 시작됐거나 마치고 돌아가는 중인지(안 시작됐으면 비상구가 진짜 노트로 돌려보낸다)
+      begun: () => !!ev || leaving,
       // 눌러 보며 한 일을 기억한다(앱의 누름 처리가 부른다)
       sample() { if (ev && KoideGuide.running()) ev.sample = true; },
       // 연습으로 더한 줄에 practice 표시를 달아 준다(추가하기가 부른다). 안내 중이고 예시에서 나온 줄이면 true
@@ -2080,7 +2090,7 @@ button.knot { cursor: pointer; }
     if (pack && pack.id === wid && weaveAdd(pack)) setTimeout(() => toast(D.started ? '그물을 담았어요' : '그물을 담았어요. 노트를 시작하면 볼 수 있어요'), 300); else setTimeout(() => toast('그물을 담지 못했어요. 모임 화면에서 다시 해 주세요'), 300);
   } }
   // 따라 하기 페이지에서 돌아오면(?tutdone) 마침을 적고 주소에서 지운다
-  { const q = new URLSearchParams(location.search); if (q.has('tutdone')) { q.delete('tutdone'); history.replaceState(null, '', location.pathname + (q.toString() ? '?' + q.toString().replace(/=(&|$)/g, '$1') : '')); if (!QUIET && D.started && getToken()) NoteGuide.markDone(); } }
+  { const q = new URLSearchParams(location.search); if (q.has('tutdone')) { TUTDONE = q.get('tutdone') || 'done'; q.delete('tutdone'); history.replaceState(null, '', location.pathname + (q.toString() ? '?' + q.toString().replace(/=(&|$)/g, '$1') : '')); if (TUTDONE === 'fail') setTimeout(() => toast('연습 페이지를 열지 못했어요. 더보기 › 사용법에서 다시 할 수 있어요.'), 300); else if (!QUIET && D.started && getToken()) NoteGuide.markDone(); } }
   // 카카오 로그인이 기본: 로그인하지 않았으면 로그인 화면으로(노트는 이 휴대폰에 그대로 남아 있다)
   if (!QUIET && !getToken()) { if (window.koideSpace) window.koideSpace.going('community'); location.replace('index.html' + QS); return; }
   // 공동체의 '함께하는 곳' 메뉴에서 '+ 모임 만들기'로 오면(?new) 더보기 › 내 모임의 만들기 창을 바로 연다
@@ -2088,6 +2098,8 @@ button.knot { cursor: pointer; }
   // 모임 화면의 '내 기도 노트로 옮기기'로 오면(?move=모임ID) 옮길 기도제목 고르는 창을 바로 연다
   { const q = new URLSearchParams(location.search), mid = q.get('move'); if (mid) { q.delete('move'); history.replaceState(null, '', location.pathname + (q.toString() ? '?' + q.toString().replace(/=(&|$)/g, '$1') : '')); if (!SC) setTimeout(() => mvOpen(mid), 0); } }
   render();
+  // 연습 페이지는 데모 띠가 없어 진짜 노트처럼 보인다. 6초 안에 안내가 시작되지 않으면 갇히지 않게 진짜 노트로 돌려보낸다
+  if (TUT) setTimeout(() => { if (!NoteGuide.begun()) tutFail(); }, 6000);
   // 시작 화면(splash.js)을 닫고, 다시 켤 때 기도 노트로 시작하게 적어 둔다
   if (window.koideSplash) window.koideSplash.hide();
   if (window.koideSpace) window.koideSpace.used('note');
