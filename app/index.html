@@ -1249,7 +1249,7 @@ try { const p = JSON.parse(localStorage.getItem('koide-pref') || '{}'), d = docu
   const writeCache = () => { try { localStorage.setItem(CACHE, JSON.stringify({ me: S.me, month: S.month })); } catch (e) { /* 무시 */ } };
 
   // 화면 상태
-  const S = { practice: [], openItems: new Set(), openFams: new Set(), view: 'loading', me: null, depts: null, rooms: null, pick: {}, month: null, tab: 'home', pending: null, busy: false };
+  const S = { openItems: new Set(), openFams: new Set(), view: 'loading', me: null, depts: null, rooms: null, pick: {}, month: null, tab: 'home', pending: null, busy: false };
 
   // ── 서버 부르기: 데모는 브라우저 안의 서버 코드, 실제는 Apps Script 웹 앱 ──
   async function api(action, data) {
@@ -1500,7 +1500,7 @@ try { const p = JSON.parse(localStorage.getItem('koide-pref') || '{}'), d = docu
   function tipDone(k) { try { const t = tipsSeen(); t[k] = 1; localStorage.setItem(TIPS_KEY(), JSON.stringify(t)); } catch (e) { /* 이번만 */ } }
   // 따라 하기(처음 쓰는 회원, 결정 기록 2026-10-22): 이번 달 기도제목이 하나도 없는 회원이 처음 열면 저절로 시작한다.
   //  ① 써 보기(내 기도 › 예시 넣어 보기 › 대상별로 정리하기 › 추가하기 › 공개 범위) ② 기도해 보기(기도하기 › 기도했어요) ③ 둘러보기 ④ 이제 직접 써 보세요(쓰기 칸을 비춤). 모양과 움직임은 guide.js
-  //  직접 쓰는 단계는 없다(키보드가 열리지 않게 예시로만 연습). 연습으로 더한 기도제목은 연습 모드: S.practice(그릴 때만 합친다)에만 있고 서버·기억해 둔 화면에는 가지 않으며, 끝나면 저절로 사라진다
+  //  직접 쓰는 단계는 없다(키보드가 열리지 않게 예시로만 연습). 연습으로 더한 기도제목은 연습 페이지의 데모 서버(메모리)에만 있고, 마지막 단계에서 목록에서 지우며 페이지를 떠나면 사라진다
   //  (2026-10-23) 진짜 이번 달 화면 위에서 돌리지 않고 따로 연 연습 페이지(?tutorial)에서 돈다: 로그인한 뒤 이번 달 기도제목이 없고 아직 안 봤으면 그리로 보내고,
   //  마치면 진짜 앱(?tutdone)으로 돌아와 마침을 적는다. 연습 페이지는 서버와 이야기하지 않고 데모 서버(브라우저 안, 메모리 저장)로 돈다. 연습 회원은 지어낸 사람이다(gas-shim의 addTutorialPerson)
   //  연습 페이지를 열지 못하면(?tutdone=fail) 마침을 적지 않고 알리기만 한다. 이 창에서는 다시 보내지 않는다(sessionStorage koide-tut-off: 무한 반복 방지)
@@ -1536,15 +1536,22 @@ try { const p = JSON.parse(localStorage.getItem('koide-pref') || '{}'), d = docu
     // 누를 탭: 휴대폰은 아래 탭, 넓은 화면은 위 메뉴
     const tabBtn = k => [...document.querySelectorAll(`#tabs [data-v="${k}"], .topnav [data-v="${k}"]`)].find(b => b.offsetWidth > 0);
     const goTab = k => { const b = document.createElement('button'); b.dataset.act = 'tab'; b.dataset.v = k; document.body.appendChild(b); b.click(); b.remove(); };
-    // 연습으로 더한 첫 기도제목의 공개 범위 단추
+    // 연습으로 더한 기도제목(연습 전부터 있던 것은 뺀다)
+    const added = () => ev ? mineFam().items.filter(i => !ev.pre.has(i.id)) : [];
+    // 연습으로 더한 첫 기도제목의 공개 범위 단추(저장 중에는 id가 바뀌니 매번 다시 찾는다)
     const scopeBtn = () => {
-      const it = S.practice[0]; if (!it) return null;
+      const it = added()[0]; if (!it) return null;
       return document.querySelector(`.edit-list [data-act="scope"][data-id="${CSS.escape(it.id)}"]`);
     };
-    // 연습 예시를 치운다(안내가 끝났을 때, 마지막 단계에 들어갈 때). 서버에는 간 적이 없어서 아무것도 지울 필요가 없다
-    function clearPractice() {
-      const had = S.practice.length > 0 || !!S.draft || !!S.preview;
-      S.practice = []; S.draft = ''; S.preview = null; S.tgtOpen = null; S.delAsk = null;
+    // 연습 예시를 치운다(마지막 단계에 들어갈 때). 연습 페이지의 데모 서버에서도 조용히 지운다
+    function clearTrial() {
+      const gone = added(), had = gone.length > 0 || !!S.draft || !!S.preview;
+      const ids = new Set(gone.map(i => i.id)), f = mineFam(); f.items = f.items.filter(i => !ids.has(i.id));
+      gone.forEach(i => { if (!String(i.id).startsWith('new')) api('deleteItem', { id: i.id }).catch(() => { /* 연습 페이지는 곧 닫힌다 */ }); });
+      // 서버가 남긴 '손봤음'과 '저장됨' 표시는 연습 때문이니, 처음 모습(이번 달도 그대로예요 단추, 표시 없음)으로 되돌린다
+      if (!f.items.length) f.status = 'same';
+      setSaved('');
+      S.draft = ''; S.preview = null; S.tgtOpen = null; S.delAsk = null;
       if (S.tab !== 'mine') goTab('mine'); else if (had) render();
     }
     // 홈에서 비출 곳: 카드가 화면에 들어올 만큼 작으면 카드째, 길면(휴대폰) 기도의 끈만. 둘 다 없으면 화면 제목
@@ -1563,9 +1570,9 @@ try { const p = JSON.parse(localStorage.getItem('koide-pref') || '{}'), d = docu
         { mode: 'tap', target: () => $('.preview'), wait: () => S.tab === 'mine' && S.preview, done: () => ev.added, back: () => !S.preview && !ev.added,
           text: '정리된 목록이에요. 빼야 할 줄은 ×를 눌러요. 괜찮으면 추가하기를 눌러요.' },
         // 추가한 뒤 어떻게 들어갔는지 먼저 보여 준다(목록 전체를 비춘다)
-        { mode: 'next', target: () => $('.edit-list'), wait: () => S.tab === 'mine' && S.practice.length > 0,
+        { mode: 'next', target: () => $('.edit-list'), wait: () => S.tab === 'mine' && added().length > 0 && added().every(i => !i.pending),
           text: `이렇게 들어갔어요. 대상마다 한 줄씩 나뉘어 ${scopeName(staffMe() ? 'dept' : 'room')}로 들어갔어요. 대상이나 글을 고치고 싶으면 여기서 바로 고쳐요.` },
-        { mode: 'tap', target: scopeBtn, wait: () => S.tab === 'mine', done: () => ev.scoped, timeout: 40000,
+        { mode: 'tap', target: scopeBtn, wait: () => S.tab === 'mine' && added().length > 0 && added().every(i => !i.pending), done: () => ev.scoped, timeout: 40000,
           text: `누가 볼지 여기서 바꿔요. 누를 때마다 ${scopeName('room')} → ${scopeName('leader')} → ${w.only} 순서로 바뀌어요. 한 번 눌러 봐요. 나중에 언제든 다시 바꿀 수 있어요.` },
         // ② 기도해 보기
         { mode: 'tap', target: () => tabBtn('pray'), text: '이제 함께 기도해 봐요. 기도하기를 눌러요.' },
@@ -1584,19 +1591,18 @@ try { const p = JSON.parse(localStorage.getItem('koide-pref') || '{}'), d = docu
         { mode: 'next', target: () => tabBtn('history'), text: '지난달 기도제목과 응답을 다시 볼 수 있어요.' },
         { mode: 'next', target: () => tabBtn('more'), text: '화면 설정, 사용법, 홈 화면에 두기가 여기 있어요.' },
         // ④ 마무리: 연습한 예시를 치우고 빈 쓰기 칸을 비춘다. 칸은 눌리지 않고, 키보드도 우리가 열지 않는다
-        { mode: 'next', target: () => $('#add-t'), nextLabel: '시작하기', wait: onMine, before: clearPractice,
+        { mode: 'next', target: () => $('#add-t'), nextLabel: '시작하기', wait: onMine, before: clearTrial,
           text: '연습한 예시는 지웠어요. 이제 내 기도제목을 직접 써 보세요.' }
       ];
     };
     // 연습 페이지에서만 돈다(더보기 › 사용법과 저절로 보내기는 goTutorial). 서버 기록이 없으니 단계별 기록(track)도 하지 않는다
     function start(again) {
       if (KoideGuide.running() || !can()) return;
-      ev = { sample: false, added: false, scoped: false, again: !!again };
-      S.practice = [];
+      ev = { sample: false, added: false, scoped: false, again: !!again, pre: new Set(mineFam().items.map(i => i.id)) };
       KoideGuide.run(steps(), {
         noStuck: true,
-        onSkipFirst: () => { S.practice = []; back('skip'); },
-        onDone: () => { S.practice = []; back('done'); }
+        onSkipFirst: () => back('skip'),
+        onDone: () => back('done')
       });
       render();
     }
@@ -1625,13 +1631,8 @@ try { const p = JSON.parse(localStorage.getItem('koide-pref') || '{}'), d = docu
       // 눌러 보며 한 일을 기억한다(앱의 누름 처리가 부른다)
       sample() { if (ev && KoideGuide.running()) ev.sample = true; },
       scope() { if (ev && KoideGuide.running()) ev.scoped = true; },
-      // 추가하기: 안내 중이고 예시에서 나온 줄이면 연습 모드로 화면에만 더한다(true). 서버에 보내지 않는다
-      add(parts) {
-        if (!ev || !KoideGuide.running() || !ev.sample) return false;
-        const t = Date.now();
-        S.practice = parts.map((x, k) => ({ id: 'practice-' + t + '-' + k, target: x.target, text: x.text, scope: staffMe() ? 'dept' : 'room', isNew: true, editedBy: S.me.person, practice: true }));
-        ev.added = true; return true;
-      }
+      // 추가하기: 안내 중이고 예시에서 나온 줄이면 추가했다고 기억만 한다(저장은 보통대로)
+      sawAdd() { if (ev && KoideGuide.running() && ev.sample) ev.added = true; }
     };
   })();
   // 화면을 처음 열 때 한 번 나오는 도움말: 화면 제목 바로 아래에 한 장. 내 기도는 버튼 옆 말풍선(tipOn)이 이미 있어서 여기서는 빼고, 다시 보기 때 함께 되살린다
@@ -2068,7 +2069,7 @@ try { const p = JSON.parse(localStorage.getItem('koide-pref') || '{}'), d = docu
     </fieldset></li>`;
   }
   function mineView() {
-    const mine = mineFam(), items = mine.items.concat(S.practice), mm = Number(S.month.month.slice(5)), carried = mine.items.filter(i => i.same).length, ended = mine.ended || [];
+    const mine = mineFam(), items = mine.items, mm = Number(S.month.month.slice(5)), carried = mine.items.filter(i => i.same).length, ended = mine.ended || [];
     const P = S.preview;
     return `<div class="page-top"><div><p class="eyebrow">${solo() ? esc(S.me.person) : famWho(mine.name, S.me.person)}</p><h1>내 기도 · ${mm}월 <span aria-hidden="true">✏️</span></h1></div><p class="saved" id="saved">${S.saved || ''}</p></div>
       <div class="two-col"><div class="col">
@@ -2090,7 +2091,6 @@ try { const p = JSON.parse(localStorage.getItem('koide-pref') || '{}'), d = docu
   function setTarget(id, target) {
     const i = itemOf(id); S.tgtOpen = null; if (!i || i.target === target) return render();
     i.target = target; i.same = false; render();
-    if (isPractice(id)) return;
     const body = { id, target, text: i.text, scope: i.scope };
     save(() => api('saveItem', body));
   }
@@ -4607,7 +4607,6 @@ try { const p = JSON.parse(localStorage.getItem('koide-pref') || '{}'), d = docu
     S.tab = 'mine'; S.draft = (S.draft ? S.draft + '\n\n' : '') + x.text; say();
   }
   function render() {
-    if (S.practice.length && !KoideGuide.running()) S.practice = []; // 연습 예시는 안내가 도는 동안만 있다
     if (S.view === 'app' && !S.op && S.month) { try { if (localStorage.getItem('koide-share')) takeShare(); } catch (e) { /* 무시 */ } }
     const sig = viewSig(), kind = vtKind(lastSig, sig);
     lastSig = sig;
@@ -4738,8 +4737,7 @@ try { const p = JSON.parse(localStorage.getItem('koide-pref') || '{}'), d = docu
   }
   addEventListener('resize', () => stickSide());
   const mineFam = () => S.month.families.find(f => f.own);
-  const itemOf = id => mineFam().items.find(i => i.id === id) || S.practice.find(i => i.id === id);
-  const isPractice = id => String(id).startsWith('practice-'); // 따라 하기 연습 예시: 서버에 보내는 일은 모두 건너뛴다
+  const itemOf = id => mineFam().items.find(i => i.id === id);
   // 저장: 서버는 2~4초 걸리므로 화면은 먼저 바꿔 두고(부르는 쪽에서), 서버에는 하나씩 차례대로 보낸다.
   //  마지막 저장의 답이 오면 서버가 돌려준 이번 달로 맞추고, 실패하면 서버의 이번 달을 다시 받아 되돌린다
   let queue = Promise.resolve(), waiting = 0;
@@ -5105,12 +5103,10 @@ try { const p = JSON.parse(localStorage.getItem('koide-pref') || '{}'), d = docu
       case 'scope': {
         TourC.scope();
         const i = itemOf(id); i.scope = nextScope(i.scope); render();
-        if (isPractice(id)) return;
         const body = { id, target: i.target, text: i.text, scope: i.scope };
         return save(() => api('saveItem', body));
       }
       case 'end': case 'del': {
-        if (isPractice(id)) { S.practice = S.practice.filter(i => i.id !== id); S.delAsk = null; S.tgtOpen = null; return render(); }
         const f = mineFam(), it = f.items.find(i => i.id === id); f.items = f.items.filter(i => i.id !== id); S.delAsk = null; S.tgtOpen = null;
         if (b.dataset.act === 'end') { f.ended = [...(f.ended || []), it]; toast('마쳤어요. 지난 기록에는 남아요.'); }
         render();
@@ -5142,8 +5138,8 @@ try { const p = JSON.parse(localStorage.getItem('koide-pref') || '{}'), d = docu
       case 'addparts': {
         // 목록에 바로 넣고(서버의 답이 오기 전까지는 잠가 둠), 서버에는 한 번에 보낸다(이번 달 화면을 한 번만 만들게)
         const parts = S.preview, f = mineFam(); S.preview = null; S.draft = ''; const at = $('#add-t'); if (at) at.value = '';
-        // 따라 하기 중이면 연습 모드: 화면에만 더하고 서버·분석에는 아무것도 보내지 않는다
-        if (TourC.add(parts)) { render(); return toast(parts.length + '개를 더했어요. (연습)'); }
+        // 안내 중이면 예시에서 추가했다고 기억만 한다. 연습 페이지는 데모 서버라 보통대로 저장해도 진짜 데이터에 닿지 않는다
+        TourC.sawAdd();
         track('기도제목 저장', { items: parts.length, split: true });
         const items = parts.map(x => ({ target: x.target, text: x.text, scope: staffMe() ? 'dept' : 'room' }));
         items.forEach((x, k) => f.items.push({ id: 'new' + Date.now() + k, target: x.target, text: x.text, scope: x.scope, isNew: true, editedBy: S.me.person, pending: true }));
@@ -5364,7 +5360,6 @@ try { const p = JSON.parse(localStorage.getItem('koide-pref') || '{}'), d = docu
       if (!text || text === i.text) return;
       // 칸에는 이미 고친 글이 보이니 다시 그리지 않고 기억만 바꾼다(칸을 벗어나며 바로 누른 탭이 그대로 눌리게)
       Object.assign(i, { text, target });
-      if (isPractice(id)) return;
       const body = { id, target, text, scope: i.scope };
       save(() => api('saveItem', body));
       track('기도제목 저장', { items: 1, split: false });
