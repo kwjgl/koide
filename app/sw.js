@@ -4,7 +4,7 @@
  * 이달의 그림(img/ 아래 그림 파일)은 따로 남겨 둔다: 있으면 바로 보여 주고 뒤에서 새로 받아 바꾼다. 화면 파일이 새 버전으로 넘어가도 그림은 지우지 않는다.
  * 기도제목은 여기 남기지 않는다: 서버(Apps Script)와 주고받는 요청과 다른 주소의 파일은 건드리지 않는다.
  */
-const CACHE = 'koide-v64';
+const CACHE = 'koide-v65';
 const IMG = 'koide-img', IMG_MAX = 300; // 그림 사본 이름은 버전을 붙이지 않는다. 300장이 넘으면 오래된 것부터 지운다
 const SHELL = ['./', 'index.html', 'note.html', 'config.js', 'pray-data.js', 'pray-open.js', 'guide.js', 'art-data.js', 'intro-video.js', 'beatitudes.js', 'sunrain.js', 'words-ko.js', 'splash.js', 'places.js', 'survey.js', 'pilot.js', 'intro-video.css', 'pray-open.css', 'beatitudes.css', 'sunrain.css', 'guide.css', 'design-styles.css', 'manifest.webmanifest', 'icons/icon-192.png', 'icons/apple-touch-icon.png'];
 
