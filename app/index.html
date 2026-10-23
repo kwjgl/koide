@@ -2859,11 +2859,11 @@ try { const p = JSON.parse(localStorage.getItem('koide-pref') || '{}'), d = docu
         ${staffRoom ? `<p class="label" style="margin-top:14px">오늘의 ${esc(grp())}</p><div class="chips">${S.month.rooms.map(r => `<button class="chip-btn${r.id === staffRoom ? ' on' : ''}" data-act="psroom" data-v="${esc(r.id)}" aria-pressed="${r.id === staffRoom}">${esc(r.name)}</button>`).join('')}</div>` : ''}
         ${PSET.kinds.includes('world') ? `<div class="ps-topics"><p class="hint" style="margin:0">기도할 주제를 골라요. 마지막엔 늘 감사와 찬양으로 마쳐요.</p>${seg(PRAY_TOPICS.map(t => [t.k, t.name]), PSET.topics, 'pstopic', 2, true)}</div>` : ''}
         <p class="label" style="margin-top:14px">한 장에 머무는 시간</p>${seg(PS_TIMES, PSET.dur, 'psdur')}
-        ${PSET.dur ? `<div class="row" style="margin-top:10px"><div><p class="label" style="margin:0">자동으로 넘기기</p><p class="hint">만지면 멈추고, 넘기면 기도한 것으로 세요.</p></div>
+        ${PSET.dur ? `<div class="row" style="margin-top:10px"><div><p class="plain" style="margin:0;word-break:keep-all">자동으로 넘기기</p><p class="hint">만지면 멈추고, 넘기면 기도한 것으로 세요.</p></div>
           <button class="switch${PSET.flow ? ' on' : ''}" role="switch" aria-checked="${!!PSET.flow}" aria-label="자동으로 넘기기" data-act="psflow"><span></span></button></div>` : ''}
-        <div class="row" style="margin-top:14px"><div><p class="label" style="margin:0">기도를 열며</p><p class="hint">삼위일체 하나님께 간구로 시작해요</p></div>
+        <div class="row" style="margin-top:14px"><div><p class="plain" style="margin:0;word-break:keep-all">기도를 열며</p><p class="hint">삼위일체 하나님께 간구로 시작해요</p></div>
           <button class="switch${PSET.open !== false ? ' on' : ''}" role="switch" aria-checked="${PSET.open !== false}" aria-label="기도를 열며" data-act="psopen"><span></span></button></div>
-        <div class="row" style="margin-top:14px"><div><p class="label" style="margin:0">잔잔한 음악 (찬송가 1~8장)</p><p class="hint">기도하는 동안 조용히 흘러요. 이어폰을 권해요.</p></div>
+        <div class="row" style="margin-top:14px"><div><p class="plain" style="margin:0;word-break:keep-all">잔잔한 음악 (찬송가 1~8장)</p><p class="hint">기도하는 동안 조용히 흘러요. 이어폰을 권해요.</p></div>
           <button class="switch${PSET.music ? ' on' : ''}" role="switch" aria-checked="${PSET.music}" aria-label="잔잔한 음악" data-act="psmusic"><span></span></button></div>
         ${PSET.music ? `<div class="ps-music-set"><p class="label" style="margin:0">처음 들을 곡</p>
           <div class="ps-tracks">${HY.map(([i, l]) => `<button class="chip-btn${PSET.track === i ? ' on' : ''}" data-act="pstrack" data-v="${i}" aria-pressed="${PSET.track === i}" style="justify-content:center">${l}</button>`).join('')}</div>
