@@ -991,7 +991,7 @@ button.knot { cursor: pointer; }
   }
   function todayView() {
     const set = todaySet(), all = open(), done = set.filter(i => prayedToday(i.id)).length;
-    const head = `<header class="top"><div><p class="eyebrow">${dateLabel(TODAY())}</p><h1>오늘의 기도</h1></div></header>`;
+    const head = `<header class="top"><div><p class="eyebrow">오늘의 기도</p><h1>${dateLabel(TODAY())} 기도제목</h1></div></header>`;
     if (!all.length) return head + `<section class="card empty"><h2>아직 기도제목이 없어요</h2><p class="hint">나와 가족, 친구, 교회를 위한 기도제목을 써 보세요. 이 휴대폰에만 저장돼요.</p><button class="btn" data-a="tab" data-v="note">기도제목 쓰기</button></section>` + thanksQuick();
     return head + `<div class="t-grid"><div class="t-main"><section class="card"><div class="row"><p class="label">오늘 기도할 제목</p><span class="hint">${done} / ${set.length}</span></div>
       ${set.map(i => { const on = prayedToday(i.id); return `<div class="today-item${on ? ' on' : ''}"><p><span class="tag">${esc(targetName(i.target))}</span>${esc(i.text)}</p>
