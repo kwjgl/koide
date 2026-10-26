@@ -167,7 +167,7 @@ const ACTIONS = {
     if (text !== JSON.stringify(have) || String(w.link.survey || '') !== text) { w.link.survey = text; update_('links', w.link); }
     return { survey: text };
   }),
-  confirmSame: body => { const c = member_(body); setMonthly_(c.familyId, month_(), 'confirmed'); return monthView_(c); },
+  confirmSame: body => { const c = member_(body); setMonthly_(c.familyId, period_(c.deptId), 'confirmed'); return monthView_(c); },
   pray: pray_,
   pending: body => pendingView_(leaderOrAdmin_(body)),
   approve: body => decide_(body, true),
@@ -317,7 +317,7 @@ function memberFrom_(w) {
   // 교역자는 사랑방 편성 없이 교역자 탭으로 부서에 속한다
   const st = !r && fam ? staffOf_(fam.id) : null;
   if (!fam || (!r && !st)) throw fail_('notLinked', st === null && fam && fam.status === '교역자' ? '교역자 목록에서 빠졌어요. 관리자에게 알려 주세요.' : notInTerm_(w.link.familyId));
-  if (w.link.lastSeen !== today_()) { w.link.lastSeen = today_(); update_('links', w.link); markVisit_(fam.id); }
+  if (w.link.lastSeen !== today_()) { w.link.lastSeen = today_(); update_('links', w.link); markVisit_(fam.id, st ? st.deptId : deptOfRoom_(r.roomId).id); }
   const shut = d => { if (d && d.status) throw fail_('notLinked', d.name + '는 지금 닫혀 있어요. 다시 열리면 들어올 수 있어요.'); };
   if (st) {
     const d = deptById_(st.deptId); shut(d);
@@ -433,16 +433,15 @@ function pendingView_(c) {
   read_('posts').filter(p => p.roomId === c.roomId).forEach(p => { if (!posts[p.familyId] || p.date > posts[p.familyId]) posts[p.familyId] = p.date; });
   // 돌봄 신호: 리더·코리더가 우리 사랑방 것을 본다
   const lead = c.role === '리더' || c.role === '코리더';
-  return { requests, families, posts, today: today_(), staff: c.admin ? staffList_(c.deptId) : undefined, signals: lead ? careSignals_([c.roomId], month_()) : undefined,
-    history: lead ? updateHistory_(c.roomId, c.deptId, month_()) : undefined, trend: lead ? updateTrend_(c.roomId, c.deptId, month_()) : undefined,
+  return { requests, families, posts, today: today_(), staff: c.admin ? staffList_(c.deptId) : undefined, signals: lead ? careSignals_([c.roomId], period_(c.deptId)) : undefined,
+    history: lead ? updateHistory_(c.roomId, c.deptId, period_(c.deptId)) : undefined, trend: lead ? updateTrend_(c.roomId, c.deptId, period_(c.deptId)) : undefined,
     invite: lead ? (invites_(c).rooms.find(r => r.id === c.roomId) || {}).token : undefined };
 }
 
 // 월별 업데이트 추이(설계서 10장, 리더): 최근 12개월, 그달 편성에서 우리 사랑방 가정 수와 손봄·그대로 확인 수. 사랑방 합계만.
 //  그달에 이 사랑방이 없었으면 n이 0이다
 function updateTrend_(roomId, deptId, m) {
-  const months = [m];
-  while (months.length < 12) months.unshift(prevMonth_(months[0]));
+  const months = periodsBack_(m, 12);
   const status = {}; read_('monthly').forEach(x => { status[x.familyId + '|' + x.month] = x.status; });
   const roster = read_('roster').filter(r => r.roomId === roomId);
   return months.map(mm => {
@@ -457,8 +456,7 @@ function updateTrend_(roomId, deptId, m) {
 //  월별 상태가 적혀 있지 않은 달은 기도제목으로 짐작한다(새로 쓰거나 고친 항목이 있으면 손봄, 모두 이어 온 것이면 그대로)
 function updateHistory_(roomId, deptId, m) {
   const t = terms_(deptId).filter(x => x.start <= m).pop(), from = t ? t.start : m.slice(0, 4) + '-01';
-  const months = [];
-  for (let mm = m; mm >= from && months.length < 24; mm = prevMonth_(mm)) months.unshift(mm);
+  const months = periodsBack_(m, 24, from);
   const status = {}, guess = {};
   read_('monthly').forEach(x => { status[x.familyId + '|' + x.month] = x.status; });
   read_('items').forEach(i => { const k = i.familyId + '|' + i.month; if (months.indexOf(i.month) >= 0) guess[k] = guess[k] === 'edited' || !yes_(i.same) ? 'edited' : 'same'; });
@@ -478,7 +476,7 @@ function importRoom_(body) {
   const roomName = String(body.roomName || '').trim(), list = Array.isArray(body.families) ? body.families : [];
   if (!roomName || !list.length) throw fail_('bad', '사랑방 이름과 가정을 확인해 주세요.');
   return withLock_(() => {
-    const m = month_(), y = termNow_(c.deptId), now = new Date();
+    const m = period_(c.deptId), y = termNow_(c.deptId), now = new Date();
     const rooms = read_('rooms');
     let room = rooms.find(r => r.name === roomName && deptOfRoom_(r.id).id === c.deptId);
     if (!room) {
@@ -619,7 +617,7 @@ function historyView_(c, want, roomId) {
   const seen = {};
   items.forEach(i => { const r = myRoom(i.month); if (i.familyId === c.familyId || (r && i.roomId === r.roomId)) seen[i.month] = true; });
   const months = Object.keys(seen).sort().reverse();
-  const m = months.indexOf(want) >= 0 ? want : (months.find(x => x < month_()) || months[0] || month_());
+  const m = months.indexOf(want) >= 0 ? want : (months.find(x => x < period_(c.deptId)) || months[0] || period_(c.deptId));
   const r = myRoom(m), lead = !!r && (r.role === '리더' || r.role === '코리더');
   const show = i => ({ target: i.target, text: i.text, scope: i.scope, ended: i.state === '마침' });
   const families = !r ? [] : roster.filter(x => x.roomId === r.roomId && rowIn_(x, m)).map(x => {
@@ -632,7 +630,7 @@ function historyView_(c, want, roomId) {
   const mine = months.map(mm => ({ month: mm, items: items.filter(i => i.month === mm && i.familyId === c.familyId).sort((a, b) => a.order - b.order).map(show) }))
     .filter(x => x.items.length);
   const room = r ? rooms.find(x => x.id === r.roomId) : null;
-  return { months, month: m, now: month_(), room: room ? room.name : '', families, mine, threads: threads_(items.filter(i => i.familyId === c.familyId)) };
+  return { months, month: m, now: period_(c.deptId), room: room ? room.name : '', families, mine, threads: threads_(items.filter(i => i.familyId === c.familyId), c.deptId) };
 }
 
 // 지난 기록 검색(설계서 S3): 지난 기록 열람 규칙 그대로, 내가 볼 수 있던 기도제목 중 대상이나 내용에 낱말이 있는 것.
@@ -661,7 +659,7 @@ function search_(c, q) {
     else { if (i.month < g.from) g.from = i.month; if (i.month > g.to) g.to = i.month; }
   });
   const list = Object.keys(groups).map(k => groups[k]).sort((a, b) => a.to < b.to ? 1 : a.to > b.to ? -1 : 0);
-  return { q, now: month_(), n: list.length, list: list.slice(0, 40) };
+  return { q, now: period_(c.deptId), n: list.length, list: list.slice(0, 40) };
 }
 
 // 목사님·장로님의 지난 기록: 달과 사랑방을 골라 그 달의 사랑방 모습(그때 편성 그대로). 리더·목사님 항목까지, 우리 가정만 항목은 빼고.
@@ -672,7 +670,7 @@ function staffHistory_(c, want, roomId) {
   const seen = {};
   items.forEach(i => { if (i.familyId === c.familyId || ids.indexOf(i.roomId) >= 0) seen[i.month] = true; });
   const months = Object.keys(seen).sort().reverse();
-  const m = months.indexOf(want) >= 0 ? want : (months.find(x => x < month_()) || months[0] || month_());
+  const m = months.indexOf(want) >= 0 ? want : (months.find(x => x < period_(c.deptId)) || months[0] || period_(c.deptId));
   // 그 달에 적용 중이던 편성에 가정이 있던 사랑방만 고를 수 있다
   const rows = roster.filter(r => rowIn_(r, m) && ids.indexOf(r.roomId) >= 0);
   const rooms = deptRooms.filter(r => rows.some(x => x.roomId === r.id)).map(r => ({ id: r.id, name: r.name }));
@@ -685,7 +683,7 @@ function staffHistory_(c, want, roomId) {
   }).filter(Boolean).sort((a, b) => (b.role === '리더') - (a.role === '리더') || (b.role === '코리더') - (a.role === '코리더'));
   const mine = months.map(mm => ({ month: mm, items: items.filter(i => i.month === mm && i.familyId === c.familyId).sort((a, b) => a.order - b.order).map(show) }))
     .filter(x => x.items.length);
-  return { months, month: m, now: month_(), room: room ? room.name : '', roomId: room ? room.id : '', rooms, families, mine, threads: threads_(items.filter(i => i.familyId === c.familyId)) };
+  return { months, month: m, now: period_(c.deptId), room: room ? room.name : '', roomId: room ? room.id : '', rooms, families, mine, threads: threads_(items.filter(i => i.familyId === c.familyId), c.deptId) };
 }
 
 // 목사님·장로님이 사랑방 가정 하나의 기도 타임라인을 본다(설계서 S5). 리더·목사님 항목까지, 우리 가정만 항목은 빼고.
@@ -695,12 +693,12 @@ function famTimeline_(c, familyId) {
   const row = read_('roster').filter(r => r.familyId === familyId && deptOfRoom_(r.roomId).id === c.deptId).pop();
   const f = read_('families').find(x => x.id === familyId);
   if (!row || !f) throw fail_('bad', '우리 부서 ' + (c.dept.unit === '개인' ? '사람' : '가정') + '이 아니에요.');
-  return { id: f.id, name: f.name, now: month_(), threads: threads_(read_('items').filter(i => i.familyId === familyId && i.scope !== 'family')) };
+  return { id: f.id, name: f.name, now: period_(c.deptId), threads: threads_(read_('items').filter(i => i.familyId === familyId && i.scope !== 'family'), c.deptId) };
 }
 
 // 기도 타임라인(우리 가정만 봄): 이전 항목ID로 이어진 기도제목을 한 줄로. 처음 올린 달(from)부터 마지막 달(to)까지,
 //  글은 마지막 달 것. 마쳤으면 ended. 지금 이어지는 것을 먼저, 그 안에서는 오래된 순
-function threads_(own) {
+function threads_(own, deptId) {
   const byId = {}, next = {};
   own.forEach(i => { byId[i.id] = i; });
   own.forEach(i => { if (i.prevId && byId[i.prevId]) next[i.prevId] = i; });
@@ -709,13 +707,13 @@ function threads_(own) {
     while (next[last.id] && n < 600) { last = next[last.id]; n++; }
     return { target: last.target, text: last.text, scope: last.scope, from: first.month, to: last.month, ended: last.state === '마침' };
   });
-  const now = month_(), on = t => t.to === now && !t.ended;
+  const now = period_(deptId), on = t => t.to === now && !t.ended;
   return out.sort((a, b) => on(b) - on(a) || (a.from < b.from ? -1 : a.from > b.from ? 1 : 0));
 }
 
 // 교역자의 이번 달: 사랑방 대신 우리 가정 하나와 섬기는 분들(목사님 홈은 다음 단계)
 function staffMonthView_(c) {
-  const m = month_();
+  const m = period_(c.deptId);
   // 부서의 모든 사랑방을 이번 달로 이월해 둔다(사랑방 현황과 돌봄 신호가 이번 달 기준이 되게)
   const roomIds = activeRooms_(c.deptId).map(r => r.id);
   roomIds.forEach(id => ensureMonth_(id, m));
@@ -764,7 +762,7 @@ function careSignals_(roomIds, m) {
     const at = { roomId: r.roomId, room: (rooms.find(x => x.id === r.roomId) || {}).name || '', familyId: f.id, name: f.name };
     // 이번 달부터 거슬러 기도제목이 있고 '지난달 그대로'(상태가 없으면 그대로로 본다)인 달을 센다
     let n = 0;
-    for (let mm = m; has[f.id + '|' + mm] && (status[f.id + '|' + mm] || 'same') === 'same'; mm = prevMonth_(mm)) n++;
+    for (let mm = m; has[f.id + '|' + mm] && (status[f.id + '|' + mm] || 'same') === 'same'; mm = prevPeriod_(mm)) n++;
     if (n >= 3) out.push(Object.assign({ type: 'same', n, note: '' }, at));
     items.filter(i => i.familyId === f.id && i.month === m && i.state !== '마침' && i.scope !== 'family').forEach(i => {
       let k = 1;
@@ -780,21 +778,21 @@ function staffRoomView_(c, roomId) {
   if (!c.staff) throw fail_('forbidden', '목사님·장로님만 볼 수 있어요.');
   const room = read_('rooms').find(r => r.id === roomId);
   if (!room || deptOfRoom_(room.id).id !== c.deptId) throw fail_('bad', '우리 부서 사랑방이 아니에요.');
-  return { room: { id: room.id, name: room.name }, families: roomFamilies_(c, room.id, month_(), true) };
+  return { room: { id: room.id, name: room.name }, families: roomFamilies_(c, room.id, period_(c.deptId), true) };
 }
 
 function monthView_(c) {
   if (c.staff) return staffMonthView_(c);
   if (c.grp) return groupMonthView_(c);
-  const m = month_();
+  const m = period_(c.deptId);
   const isLeader = c.role === '리더' || c.role === '코리더';
   const room = read_('rooms').find(r => r.id === c.roomId) || {};
   const families = roomFamilies_(c, c.roomId, m, isLeader);
   // 이번 달 사랑방의 다른 가정 중 몇 가정이 우리 가정을 위해 기도했는지(누가 했는지는 알리지 않는다)
-  const by = {}; read_('prayers').forEach(p => { if (p.familyId === c.familyId && p.by !== c.familyId && fmtMonth_(p.at) === m) by[p.by] = true; });
+  const by = {}; read_('prayers').forEach(p => { if (p.familyId === c.familyId && p.by !== c.familyId && periodOf_(p.at, c.deptId) === m) by[p.by] = true; });
   const received = { n: Object.keys(by).length, of: Math.max(0, families.length - 1) };
   return { month: m, term: termNow_(c.deptId), shift: shift_(c), dept: c.dept, room: { id: room.id, name: room.name, pilot: yes_(room.pilot) }, me: { person: c.person, familyId: c.familyId, role: c.role, admin: c.admin, tourDone: c.tourDone, survey: c.survey }, families, received, serve: serveView_(c.deptId),
-    art: artNums_(c, [m])[0], eraseReq: eraseAsked_(c.familyId), together: togetherItems_(c.deptId), news: newsOfFamily_(c.familyId) };
+    art: artNums_(c, [month_()])[0], eraseReq: eraseAsked_(c.familyId), together: togetherItems_(c.deptId), news: newsOfFamily_(c.familyId) };
 }
 
 // 이달의 그림 모으기(설계서 4장): 내가 누른 '기도했어요'로 달마다 세 숫자를 센다. 나만 본다. 기도기록에서 바로 세어서 줄지 않는다.
@@ -834,7 +832,7 @@ function roomFamilies_(c, roomId, m, isLeader) {
   const fams = read_('families'), roster = read_('roster').filter(r => activeRow_(r) && r.roomId === roomId);
   const items = read_('items').filter(i => i.month === m && i.state !== '마침');
   const monthly = read_('monthly').filter(x => x.month === m);
-  const mineAll = read_('prayers').filter(p => p.kakaoId === c.kakaoId), prayed = mineAll.filter(p => fmtMonth_(p.at) === m);
+  const mineAll = read_('prayers').filter(p => p.kakaoId === c.kakaoId), prayed = mineAll.filter(p => periodOf_(p.at, c.deptId) === m);
   // 이번 주(주일부터) 횟수는 달과 상관없이 센다(한 주가 두 달에 걸칠 수 있어서)
   const wk = weekStart_(), weekP = mineAll.filter(p => fmtDate_(p.at) >= wk);
   return roster.map(r => fams.find(f => f.id === r.familyId)).filter(f => f && f.status === '활동').map(f => {
@@ -862,7 +860,7 @@ function ensureMonth_(roomId, m) {
 }
 // 가정들의 월초 이월(사랑방 가정은 그 사랑방, 교역자 가정은 사랑방 없이)
 function ensureFamilies_(famIds, m, roomOf) {
-  const prev = prevMonth_(m);
+  const prev = prevPeriod_(m);
   const items = read_('items');
   const need = famIds.filter(id => !items.some(i => i.month === m && i.familyId === id) && items.some(i => i.month === prev && i.familyId === id && i.state !== '마침'));
   if (!need.length) return;
@@ -890,7 +888,7 @@ function itemInput_(c, o) {
 }
 
 function saveItem_(body) {
-  const c = member_(body), m = month_();
+  const c = member_(body), m = period_(c.deptId);
   const { text, target, scope } = itemInput_(c, body);
   if (!text) throw fail_('bad', '내용을 적어 주세요.');
   return withLock_(() => {
@@ -912,7 +910,7 @@ function saveItem_(body) {
 //  하나라도 잘못되면 아무것도 적지 않고 모두 돌려보낸다
 const SAVE_ITEMS_MAX_ = 20;
 function saveItems_(body) {
-  const c = member_(body), m = month_(), list = Array.isArray(body.items) ? body.items : [];
+  const c = member_(body), m = period_(c.deptId), list = Array.isArray(body.items) ? body.items : [];
   if (!list.length) throw fail_('bad', '더할 기도제목이 없어요.');
   if (list.length > SAVE_ITEMS_MAX_) throw fail_('bad', '한 번에 ' + SAVE_ITEMS_MAX_ + '개까지 더할 수 있어요.');
   const inputs = list.map((o, k) => {
@@ -931,7 +929,7 @@ function saveItems_(body) {
 
 // 마치기: 지난 기록에는 남고 다음 달로 넘어가지 않는다
 function setItemState_(body, state) {
-  const c = member_(body), m = month_();
+  const c = member_(body), m = period_(c.deptId);
   return withLock_(() => {
     const i = read_('items').find(x => x.id === body.id && x.familyId === c.familyId && x.month === m);
     if (!i) throw fail_('bad', '기도제목을 찾지 못했어요.');
@@ -943,7 +941,7 @@ function setItemState_(body, state) {
 
 // 지우기: 잘못 쓴 것. 행을 남기지 않는다
 function deleteItem_(body) {
-  const c = member_(body), m = month_();
+  const c = member_(body), m = period_(c.deptId);
   return withLock_(() => {
     const i = read_('items').find(x => x.id === body.id && x.familyId === c.familyId && x.month === m);
     if (!i) throw fail_('bad', '기도제목을 찾지 못했어요.');
@@ -961,7 +959,7 @@ function pray_(body) {
   if (c.grp ? !groupPeople_(c.grp).some(m => m.id === body.familyId) : !read_('roster').some(ok)) throw fail_('bad', c.staff ? '우리 부서 사랑방 가정이 아니에요.' : '우리 사랑방 가정이 아니에요.');
   // prayed: 이번 달 내 횟수, today: 오늘 내 횟수(가정마다 하루 3번까지), week: 이번 주(주일부터) 내 횟수
   const all = read_('prayers').filter(p => p.kakaoId === c.kakaoId && p.familyId === body.familyId), wk = weekStart_();
-  const mine = all.filter(p => fmtMonth_(p.at) === month_());
+  const mine = all.filter(p => periodOf_(p.at, c.deptId) === period_(c.deptId));
   const n = mine.filter(p => fmtDate_(p.at) === today_()).length, w = all.filter(p => fmtDate_(p.at) >= wk).length;
   if (n >= 3) return { prayed: mine.length, today: n, week: w, capped: true };
   append_('prayers', { at: new Date(), by: c.familyId, familyId: body.familyId, kakaoId: c.kakaoId });
@@ -1003,8 +1001,8 @@ function usage_(w, body) {
 }
 
 // 그달 처음 연 가정을 접속 기록에 한 줄 남긴다(사람마다 하루 한 번만 확인한다)
-function markVisit_(familyId) {
-  const m = month_();
+function markVisit_(familyId, deptId) {
+  const m = period_(deptId);
   if (!read_('visits').some(v => v.month === m && v.familyId === familyId)) append_('visits', { month: m, familyId });
 }
 
@@ -1014,8 +1012,7 @@ function markVisit_(familyId) {
 //  - 손봄·확인: 월별 상태가 edited 또는 confirmed
 //  - 그달의 가정은 그달 편성(편성 일정)의 활동 가정이다. 지금 떠난 가정은 지난달에서도 빼고 센다
 function analysisView_(c) {
-  const m = month_(), months = [m];
-  while (months.length < 6) months.unshift(prevMonth_(months[0]));
+  const m = period_(c.deptId), months = periodsBack_(m, 6);
   const deptRooms = roomIdsOfDept_(c.deptId), rooms = activeRooms_(c.deptId).sort((a, b) => a.order - b.order);
   const fams = read_('families'), live = id => (fams.find(f => f.id === id) || {}).status === '활동';
   const roster = read_('roster').filter(r => deptRooms.indexOf(r.roomId) >= 0 && live(r.familyId));
@@ -1025,7 +1022,7 @@ function analysisView_(c) {
   read_('monthly').forEach(x => { st[x.familyId + '|' + x.month] = x.status; if (x.status !== 'same') mark(x.familyId, x.month); });
   const inDept = {}; roster.forEach(r => { inDept[r.familyId] = true; });
   const prayers = read_('prayers').filter(p => inDept[p.familyId]);
-  read_('prayers').forEach(p => mark(p.by, fmtMonth_(p.at)));
+  read_('prayers').forEach(p => mark(p.by, periodOf_(p.at, c.deptId)));
   const done = (f, mm) => st[f + '|' + mm] === 'edited' || st[f + '|' + mm] === 'confirmed';
   const pct = (k, n) => n ? Math.round(k / n * 100) : null;
   const trend = months.map(mm => {
@@ -1037,7 +1034,7 @@ function analysisView_(c) {
   const day = 864e5, start = Date.parse(weekStart_() + 'T00:00:00Z') - 7 * 7 * day;
   const weeks = Array.from({ length: 8 }, (_, i) => { const d = new Date(start + i * 7 * day); return { label: (d.getUTCMonth() + 1) + '/' + d.getUTCDate(), n: 0 }; });
   prayers.forEach(p => { const i = Math.floor((Date.parse(fmtDate_(p.at) + 'T00:00:00Z') - start) / (7 * day)); if (i >= 0 && i < 8) weeks[i].n++; });
-  const reached = {}; prayers.forEach(p => { if (fmtMonth_(p.at) === m) reached[p.familyId] = true; });
+  const reached = {}; prayers.forEach(p => { if (periodOf_(p.at, c.deptId) === m) reached[p.familyId] = true; });
   // 기도하는 때: 최근 4주, 요일(월~일) × 때(새벽 5~9, 오전 9~12, 오후 12~18, 저녁 18~22, 밤 22~5). 서울 시각은 UTC+9(서머타임 없음)
   const since = Date.now() - 28 * day, time = Array.from({ length: 7 }, () => [0, 0, 0, 0, 0]);
   prayers.forEach(p => {
@@ -1059,6 +1056,7 @@ function analysisView_(c) {
 // ── 나의 기도 (지난 기록, 설계서 10장 '누구를 위해 기도했나') ────────────
 // 내가 누른 '기도했어요'를 최근 6개월, 가정마다(목사님·장로님은 사랑방마다) 센다. 나만 본다.
 //  누른 사람 칸이 생기기 전 기록은 우리 가정이 누른 것으로 함께 센다
+//  달력 달 기준(부서 올리는 주기와 상관없이)
 function myPrayers_(c) {
   const m = month_(), months = [m];
   while (months.length < 6) months.unshift(prevMonth_(months[0]));
@@ -1105,8 +1103,7 @@ function staffOrAdmin_(body) {
 //  목사님·장로님에게만 이번 달 '기타'로 빠진 사랑방 공개 항목의 내용(가정 이름 없이)과 사전을 함께 준다(키워드 다듬기용).
 //  관리자는 다른 사랑방 기도제목 내용을 보지 않으므로 주제별 숫자만 본다
 function topicFlow_(c, allRooms) {
-  const m = month_(), months = [m];
-  while (months.length < 6) months.unshift(prevMonth_(months[0]));
+  const m = period_(c.deptId), months = periodsBack_(m, 6);
   const dict = topicDict_(), names = dict.map(d => d.topic).concat('기타');
   const rooms = allRooms || roomIdsOfDept_(c.deptId), items = read_('items').filter(i => months.indexOf(i.month) >= 0 && rooms.indexOf(i.roomId) >= 0);
   const flow = months.map(mm => {
@@ -1219,7 +1216,7 @@ const monAdd_ = (m, k) => { const [y, mo] = m.split('-').map(Number), t = y * 12
 // ① 앱 상태와 ② 개인정보 요청을 한 번에
 function opsView_(c) {
   trimLogs_();
-  const d = c.deptId, m = month_(), prev = prevMonth_(m), p = props_();
+  const d = c.deptId, m = period_(d), prev = prevPeriod_(m), p = props_();
   // 새 달: 이번 달로 넘어온 기도제목 수, 아직 아무도 열지 않아 넘어오기를 기다리는 소그룹 수
   const rooms = activeRooms_(d).map(r => r.id), roster = read_('roster').filter(r => activeRow_(r) && rooms.indexOf(r.roomId) >= 0);
   const has = {}, open = {};
@@ -1247,7 +1244,7 @@ function opsView_(c) {
 
 // 아직 아무도 열지 않은 소그룹까지 이번 달로 넘긴다(앱을 처음 열 때 저절로 되는 일을 지금 한꺼번에)
 function openMonth_(body) {
-  const c = adminOf_(body), m = month_();
+  const c = adminOf_(body), m = period_(c.deptId);
   activeRooms_(c.deptId).forEach(r => ensureMonth_(r.id, m));
   logChange_(c, '새 달 열기', m);
   return opsView_(c);
@@ -1572,7 +1569,7 @@ function opsOf_(body) {
 // 운영 화면을 열 때: 부서, 소그룹 목록, 맡은 부서들. 이번 달 화면 대신 쓴다
 function opsCtxView_(c) {
   const sc = opsScope_(c.kakaoId);
-  return { month: month_(), term: termNow_(c.deptId), dept: c.dept, room: { id: '', name: c.dept.name }, families: [], serve: [],
+  return { month: period_(c.deptId), term: termNow_(c.deptId), dept: c.dept, room: { id: '', name: c.dept.name }, families: [], serve: [],
     rooms: activeRooms_(c.deptId).sort((a, b) => a.order - b.order).map(r => ({ id: r.id, name: r.name })),
     me: { person: c.person, familyId: '', role: '운영', admin: true, ops: true, all: sc.all }, scope: sc.depts, opsList: opsList_(c) };
 }
@@ -1746,7 +1743,7 @@ function churchAnalysis_(body) {
 const togetherKey_ = deptId => 'DEPT-' + deptId;
 function togetherItems_(deptId, withEnded) {
   if (!deptId) return [];
-  const m = month_(), key = togetherKey_(deptId);
+  const m = period_(deptId), key = togetherKey_(deptId);
   ensureFamilies_([key], m, () => '');
   const all = read_('items').filter(i => i.month === m && i.familyId === key).sort((a, b) => a.order - b.order);
   const show = i => ({ id: i.id, target: i.target, text: i.text, isNew: !i.prevId && !yes_(i.same), by: i.editedBy, at: fmtDay_(i.editedAt) });
@@ -1760,7 +1757,7 @@ function togetherOf_(body) {
 }
 // 쓰기·고치기: id가 있으면 고치기. 대상(선택, 10자)과 내용
 function togetherSave_(body) {
-  const c = togetherOf_(body), m = month_(), key = togetherKey_(c.deptId);
+  const c = togetherOf_(body), m = period_(c.deptId), key = togetherKey_(c.deptId);
   const text = String(body.text || '').trim().slice(0, 300), target = String(body.target || '함께').trim().slice(0, 10) || '함께';
   if (!text) throw fail_('bad', '내용을 적어 주세요.');
   return withLock_(() => {
@@ -1779,7 +1776,7 @@ function togetherSave_(body) {
 }
 // 마치기(end)·다시 이어가기(reopen)·지우기(delete)
 function togetherState_(body) {
-  const c = togetherOf_(body), m = month_(), key = togetherKey_(c.deptId);
+  const c = togetherOf_(body), m = period_(c.deptId), key = togetherKey_(c.deptId);
   return withLock_(() => {
     const i = read_('items').find(x => x.id === body.id && x.familyId === key && x.month === m);
     if (!i) throw fail_('bad', '기도제목을 찾지 못했어요.');
@@ -2045,12 +2042,12 @@ function marrySave_(body) {
     //  이번 달 항목이 아직 없으면(아직 지난달에서 넘어오지 않았으면) 지난달 마치지 않은 항목을 본다
     let carried = 0;
     if (body.carry !== false) {
-      const all = read_('items'), now = new Date();
+      const all = read_('items'), now = new Date(), pm = period_(dept.id);
       olds.forEach(o => {
-        const mine = all.filter(i => i.familyId === o.f.id), cur = mine.filter(i => i.month === m);
-        (cur.length ? cur : mine.filter(i => i.month === prevMonth_(m))).filter(i => i.state !== '마침' && (i.scope === 'room' || i.scope === 'leader') && i.text !== '')
+        const mine = all.filter(i => i.familyId === o.f.id), cur = mine.filter(i => i.month === pm);
+        (cur.length ? cur : mine.filter(i => i.month === prevPeriod_(pm))).filter(i => i.state !== '마침' && (i.scope === 'room' || i.scope === 'leader') && i.text !== '')
           .sort((a, b) => a.order - b.order).forEach(i => {
-            append_('items', { id: newId_(), month: m, familyId: id, roomId: room.id, target: i.target, text: i.text, scope: i.scope, state: '이어짐', prevId: '', same: '아니오', order: ++carried, editedAt: now, editedBy: i.editedBy });
+            append_('items', { id: newId_(), month: pm, familyId: id, roomId: room.id, target: i.target, text: i.text, scope: i.scope, state: '이어짐', prevId: '', same: '아니오', order: ++carried, editedAt: now, editedBy: i.editedBy });
           });
       });
     }
@@ -2111,7 +2108,7 @@ function moveDept_(body) {
     row.to = m; update_('roster', row);
     append_('roster', { year: termNow_(to.id), roomId: room.id, familyId: id, role: '회원', from: m });
     if (yes_(f.admin)) { f.admin = ''; update_('families', f); }
-    read_('items').filter(i => i.familyId === id && i.month === m).forEach(i => { i.roomId = room.id; update_('items', i); });
+    read_('items').filter(i => i.familyId === id && i.month === period_(from.id)).forEach(i => { i.roomId = room.id; update_('items', i); });
     // 옛 부서의 다음 편성 예약에 든 줄은 뺀다(받는 부서의 예약에는 개편 마법사에서 넣는다)
     const next = read_('roster').filter(r => r.familyId === id && Number(r.year) > Number(termNow_(from.id)) && deptOfRoom_(r.roomId).id === from.id);
     next.sort((a, b) => b._row - a._row).forEach(r => remove_('roster', r));
@@ -2135,7 +2132,7 @@ function moveUndo_(body) {
     if (!canReceive_(c, deptOfRoom_(now.roomId).id)) throw fail_('forbidden', '받는 부서의 관리자가 되돌릴 수 있어요.');
     gone.to = ''; update_('roster', gone);
     remove_('roster', now);
-    read_('items').filter(i => i.familyId === id && i.month === m).forEach(i => { i.roomId = gone.roomId; update_('items', i); });
+    read_('items').filter(i => i.familyId === id && i.month === period_(deptOfRoom_(gone.roomId).id)).forEach(i => { i.roomId = gone.roomId; update_('items', i); });
     logChange_(c, '부서 옮김 되돌림', f.name, deptOfRoom_(gone.roomId).name + '으로 돌아감');
     return rosterView_(c);
   });
@@ -2183,11 +2180,11 @@ function groupMember_(body) {
 }
 // 모임의 이번 달: 사랑방의 이번 달과 같은 모양(모임 사람이 한 사람씩 카드)
 function groupMonthView_(c) {
-  const m = month_(), people = groupPeople_(c.grp);
+  const m = period_(c.deptId), people = groupPeople_(c.grp);
   ensureFamilies_(people.map(p => p.id), m, () => c.grp);
   const items = read_('items').filter(i => i.month === m && i.roomId === c.grp && i.state !== '마침');
   const monthly = read_('monthly').filter(x => x.month === m);
-  const mineAll = read_('prayers').filter(p => p.kakaoId === c.kakaoId), prayed = mineAll.filter(p => fmtMonth_(p.at) === m);
+  const mineAll = read_('prayers').filter(p => p.kakaoId === c.kakaoId), prayed = mineAll.filter(p => periodOf_(p.at, c.deptId) === m);
   const wk = weekStart_(), weekP = mineAll.filter(p => fmtDate_(p.at) >= wk);
   const families = people.map(p => {
     const own = p.id === c.familyId, st = monthly.find(x => x.familyId === p.id);
@@ -2198,10 +2195,10 @@ function groupMonthView_(c) {
         .map(i => ({ id: i.id, target: i.target, text: i.text, scope: i.scope, same: yes_(i.same), isNew: !i.prevId && !yes_(i.same), editedBy: own ? i.editedBy : '', editedAt: own ? fmtDay_(i.editedAt) : '' })),
       ended: own ? read_('items').filter(i => i.month === m && i.familyId === p.id && i.state === '마침').map(i => ({ id: i.id, target: i.target, text: i.text, scope: i.scope })) : [] };
   }).sort((a, b) => b.own - a.own);
-  const by = {}; read_('prayers').forEach(p => { if (p.familyId === c.familyId && p.kakaoId !== c.kakaoId && fmtMonth_(p.at) === m) by[p.kakaoId || p.by] = true; });
+  const by = {}; read_('prayers').forEach(p => { if (p.familyId === c.familyId && p.kakaoId !== c.kakaoId && periodOf_(p.at, c.deptId) === m) by[p.kakaoId || p.by] = true; });
   return { month: m, term: m.slice(0, 4), dept: c.dept, room: { id: c.grp, name: c.group.name }, group: groupInfo_(c),
     me: { person: c.person, familyId: c.familyId, role: c.role, admin: false, grp: c.grp }, families, received: { n: Object.keys(by).length, of: Math.max(0, families.length - 1) }, serve: [],
-    art: artNums_(c, [m])[0], weave: weave_(c) };
+    art: artNums_(c, [month_()])[0], weave: weave_(c) };
 }
 // 함께 짜는 그물(모임 화면): 모임 사람끼리 서로를 위해 기도한 기록을 모임 만든 날부터 세어, 사람 쌍마다 실 한 가닥(방향 없이)으로 돌려준다.
 //  말뚝(사람)은 이름도 사람ID도 없이 번호(0~n-1)만 준다. 내 말뚝이 몇 번인지도 주지 않는다. 번호는 들어온 순서로 줄 세운 뒤 모임 id로 섞어서, 모임마다 늘 같다.
@@ -2240,14 +2237,14 @@ function weave_(c) {
 // 모임의 지난 기록: 그 모임에 쓰인 달들, 모임 공개 항목과 내 것
 function groupHistory_(c, want) {
   const items = read_('items').filter(i => i.roomId === c.grp), months = Object.keys(items.reduce((a, i) => { a[i.month] = 1; return a; }, {})).sort().reverse();
-  const m = months.indexOf(want) >= 0 ? want : (months.find(x => x < month_()) || months[0] || month_());
+  const m = months.indexOf(want) >= 0 ? want : (months.find(x => x < period_(c.deptId)) || months[0] || period_(c.deptId));
   const show = i => ({ target: i.target, text: i.text, scope: i.scope, ended: i.state === '마침' });
   const people = groupPeople_(c.grp, true).filter(p => p.status === '함께' || items.some(i => i.familyId === p.id));
   const families = people.map(p => ({ id: p.id, name: p.person, own: p.id === c.familyId,
     items: items.filter(i => i.month === m && i.familyId === p.id && (p.id === c.familyId || i.scope === 'room')).sort((a, b) => a.order - b.order).map(show) })).sort((a, b) => b.own - a.own);
   const mine = items.filter(i => i.familyId === c.familyId);
-  return { months, month: m, now: month_(), room: c.group.name, families,
-    mine: months.map(mm => ({ month: mm, items: mine.filter(i => i.month === mm).sort((a, b) => a.order - b.order).map(show) })).filter(x => x.items.length), threads: threads_(mine) };
+  return { months, month: m, now: period_(c.deptId), room: c.group.name, families,
+    mine: months.map(mm => ({ month: mm, items: mine.filter(i => i.month === mm).sort((a, b) => a.order - b.order).map(show) })).filter(x => x.items.length), threads: threads_(mine, c.deptId) };
 }
 // 모임 정보(모임 사람 누구나): 사람, 모임장에게는 신청과 초대 값
 function groupInfo_(c) {
@@ -2662,13 +2659,13 @@ function terms_(deptId) {
   return (memo[deptId] = Object.keys(ys).map(y => ({ year: y, start: ys[y] })).sort((a, b) => a.start < b.start ? -1 : a.start > b.start ? 1 : 0));
 }
 // 그 달(yyyy-MM)에 적용 중인 편성 연도. 편성이 하나도 없으면 달력 연도
-function termAt_(deptId, m) { const t = terms_(deptId).filter(x => x.start <= m).pop(); return t ? t.year : m.slice(0, 4); }
+function termAt_(deptId, m) { const k = monthOfPeriod_(m), t = terms_(deptId).filter(x => x.start <= k).pop(); return t ? t.year : k.slice(0, 4); }
 function termNow_(deptId) { return termAt_(deptId, month_()); }
 // 지금 적용 중인 편성의 줄인지(편성 탭 한 줄)
 function activeRow_(r) { return rowIn_(r, month_()); }
 // 편성 줄이 그 달(yyyy-MM)에 적용 중인지: 그 달의 편성 연도이고, 한 해 중간에 들어오거나 나간 줄이면 그 달 안쪽일 때
 //  (결혼해서 새 가정이 된 달, 다른 부서로 옮긴 달부터는 옛 줄이 빠지고 새 줄이 쓰인다. 지난 달은 옛 줄 그대로다)
-function rowIn_(r, mm) { return String(r.year) === termAt_(deptOfRoom_(r.roomId).id, mm) && (!r.from || r.from <= mm) && (!r.to || mm < r.to); }
+function rowIn_(r, mm) { const k = monthOfPeriod_(mm); return String(r.year) === termAt_(deptOfRoom_(r.roomId).id, k) && (!r.from || r.from <= k) && (!r.to || k < r.to); }
 // 지금 쓰는 사랑방: 지금 편성에 가정이 있거나, 아직 어느 편성에도 쓰이지 않은 새 사랑방. 지난 편성에만 있던 사랑방은 지난 기록에만 남는다
 function activeRooms_(deptId) {
   const roster = read_('roster');
@@ -2704,7 +2701,7 @@ function activeStaff_(deptId) { return read_('staff').filter(s => s.status !== '
 function staffOf_(familyId) { return activeStaff_().filter(s => s.familyId === familyId).pop() || null; }
 // 섬기는 분들 카드: 그 부서에서 섬기는 분들이 '예'인 교역자 가정의 부서 공개 기도제목(이번 달, 마친 것 빼고)
 function serveView_(deptId) {
-  const m = month_(), list = activeStaff_(deptId).filter(s => yes_(s.serve));
+  const m = period_(deptId), list = activeStaff_(deptId).filter(s => yes_(s.serve));
   if (!list.length) return [];
   ensureFamilies_(list.map(s => s.familyId), m, () => '');
   const items = read_('items').filter(i => i.month === m && i.state !== '마침' && i.scope === 'dept');
@@ -3046,3 +3043,23 @@ function weekStart_() { const d = new Date(today_() + 'T00:00:00Z'); d.setUTCDat
 function fmtMonth_(d) { return fmt_(d, 'yyyy-MM'); }
 function fmtDay_(d) { return d ? fmt_(d, 'M월 d일') : ''; }
 function prevMonth_(m) { const [y, mo] = m.split('-').map(Number); return mo === 1 ? (y - 1) + '-12' : y + '-' + String(mo - 1).padStart(2, '0'); }
+
+// ── 기도제목 기간(period) ──────────────────────────────────
+// 기도제목을 올리고 이어 가는 한 마디를 '기간', 그 이름표를 '기간 키'라 한다. 기도제목·월별 상태·접속 기록 시트의 '월' 칸과
+//  응답의 month가 이 키를 담는다(칸 이름·JSON 이름은 그대로). 지금은 모든 부서가 월 단위라 키는 'yyyy-MM'이고 아래 함수는 모두 달 계산을 한다.
+//  나중에 부서마다 올리는 주기(월/주) 설정을 두면 period_·periodOf_가 부서의 주기를 보고 갈라 준다.
+//  주 부서의 키는 그 주 주일 날짜 'yyyy-MM-dd'(주일부터 한 주, weekStart_와 같은 규칙)다.
+//  키 모양(7글자/10글자)으로 월/주를 알아볼 수 있어서 prevPeriod_·periodsBack_은 부서를 몰라도 된다.
+//  달력의 달 그대로여야 하는 것(이달의 그림, 해 합계, 편성·결혼·부서 옮김의 달, 보관 기한, 교회 전체 분석)은
+//  기간이 아니라 month_()·fmtMonth_()·prevMonth_()를 계속 쓴다. 설계서 결정 기록은 PR #177이 합쳐진 뒤에 적는다.
+function period_(deptId) { return month_(); }               // 지금 기간 키. deptId는 나중에 주기를 고를 때 쓴다
+function periodOf_(date, deptId) { return fmtMonth_(date); }  // 그 시각이 속한 기간 키('기도했어요'를 기간에 넣을 때)
+function prevPeriod_(key) { return prevMonth_(key); }       // 바로 앞 기간 키(이월·거슬러 세기)
+// key부터 거슬러 n개(옛것이 앞). floor가 있으면 floor보다 앞선 키는 넣지 않는다(편성 시작 달까지만 보여 줄 때)
+function periodsBack_(key, n, floor) {
+  const out = [];
+  for (let k = key; out.length < n && (!floor || k >= floor); k = prevPeriod_(k)) out.unshift(k);
+  return out;
+}
+// 기간이 걸친 달력의 달(주 키는 그 주일이 든 달). 편성은 달 단위라 기간 키를 편성 계산에 넣을 때 거친다
+function monthOfPeriod_(key) { return String(key).slice(0, 7); }
