@@ -217,13 +217,11 @@ button.knot { cursor: pointer; }
 .foot-acts { display: flex; gap: 1em; flex: none; }
 /* 카드 아래 단추(마치기·나누기·지우기)는 공동체 내 기도와 같은 크기(.78em × 1.04 ≈ .81em) */
 .edit-foot .link { font-size: 1.04em; padding: .35em 0; white-space: nowrap; }
-/* 10개를 넘으면 대상별 묶음: 이름 단추(작고 ink-2, 옛 .group h3처럼)와 접고 펴는 화살표, 칸 아래 더 보기 */
-.edit-list.grouped { gap: .5em; }
-.edit-list .grp { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: .7em; }
-.grp-h { font: inherit; font-size: .86em; font-weight: 600; color: var(--ink-2); background: none; border: 0; padding: .3em 0; min-height: 36px; width: 100%; display: flex; align-items: center; justify-content: space-between; gap: .5em; text-align: left; cursor: pointer; }
-.grp-h .ic { flex: none; }
-.grp-h.open .ic { transform: rotate(180deg); }
-.grp-more { align-self: flex-start; }
+/* 내 기도 목록 위의 대상 걸러 보기: 칩 한 줄(공동체 앱 .hist-chips처럼 휴대폰은 옆으로 밀어 보고 막대는 안 보인다). 넓은 화면은 줄바꿈 */
+.tgt-filter { display: flex; gap: 6px; overflow-x: auto; padding: 2px 0 8px; margin: 0 0 .2em; scrollbar-width: none; position: relative; }
+.tgt-filter::-webkit-scrollbar { display: none; }
+.tgt-filter .chip { flex: none; white-space: nowrap; }
+@media (min-width: 1000px) { .tgt-filter { flex-wrap: wrap; overflow: visible; } }
 /* 지난 기록 */
 .weeks { display: grid; grid-template-columns: repeat(7, 1fr); gap: 5px; }
 .weeks i { aspect-ratio: 1; border-radius: 6px; background: var(--surface-2); display: grid; place-items: center; font-style: normal; font-size: .68em; color: var(--ink-2); }
@@ -295,14 +293,6 @@ button.knot { cursor: pointer; }
 .sheet-back { position: fixed; inset: 0; background: color-mix(in srgb, var(--ink) 45%, transparent); z-index: 30; display: grid; place-items: end center; padding: 16px; }
 .sheet { width: min(480px, 100%); background: var(--surface); border-radius: 20px; padding: 18px; display: flex; flex-direction: column; gap: 12px; max-height: calc(100dvh - 32px); overflow: auto; }
 @media (min-width: 640px) { .sheet-back { place-items: center; } }
-.ps { position: fixed; inset: 0; z-index: 40; background: var(--page); display: flex; flex-direction: column; }
-.ps-top { display: flex; justify-content: space-between; align-items: center; padding: calc(12px + env(safe-area-inset-top, 0px)) 16px 8px; }
-.ps-body { flex: 1; display: grid; place-items: center; padding: 16px; text-align: center; overflow: auto; }
-.ps-body .in { max-width: 30em; display: flex; flex-direction: column; gap: 14px; align-items: center; }
-.ps-text { font-family: var(--f-display); font-size: clamp(1.25rem, 4.5vw, 1.7rem); line-height: 1.6; margin: 0; word-break: keep-all; white-space: pre-wrap; }
-.ps-nav { display: grid; grid-template-columns: 1fr 1.4fr 1fr; gap: 10px; padding: 12px 16px calc(16px + env(safe-area-inset-bottom, 0px)); }
-.bar { height: 3px; background: var(--line); margin: 0 16px; border-radius: 2px; overflow: hidden; }
-.bar b { display: block; height: 100%; background: var(--accent); }
 .toast { position: fixed; left: 50%; bottom: calc(84px + env(safe-area-inset-bottom, 0px)); transform: translateX(-50%); background: var(--ink); color: var(--page); padding: .55em 1.1em; border-radius: 999px; font-size: .88em; z-index: 50; }
 .empty { text-align: center; padding: 1.4em 1em; }
 .garden-acts { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 10px 12px; margin-top: 10px; }
@@ -395,31 +385,46 @@ button.knot { cursor: pointer; }
 .switch > span { position: absolute; top: 3px; left: 3px; width: 22px; height: 22px; border-radius: 50%; background: var(--surface); transition: left .2s; }
 .switch.on { background: var(--accent); }
 .switch.on > span { left: 23px; }
-/* 기도하기: 하나님 나라 장과 주기도문 */
-.ps-step { display: inline-flex; align-items: center; gap: .6em; font-variant-numeric: tabular-nums; }
-.ps-timer { display: inline-flex; align-items: center; gap: .3em; color: var(--accent); font-weight: 600; }
-.ps-ring { width: 22px; height: 22px; transform: rotate(-90deg); }
-.ps-ring circle { fill: none; stroke-width: 12; }
-.ps-ring .track { stroke: var(--accent-soft); }
-.ps-ring .bar { stroke: var(--accent); stroke-linecap: round; transition: stroke-dashoffset 1s linear; }
-/* 기도 세션 아래 줄: 공동체(.pss-nav)처럼 세 단추 모두 모서리 14px */
-.ps-nav .btn, .ps-nav .pray-btn { border-radius: 14px; }
-.ps-nav .pray-btn.ready { animation: ps-glow 1.6s ease-in-out infinite; }
-@keyframes ps-glow { 50% { box-shadow: 0 0 0 6px var(--accent-soft); } }
+/* 기도하는 화면: 공동체(index.html의 .pss-*)와 같은 값. 전체 화면이 스크롤 칸이고, 위 줄과 아래 단추 줄은 늘 화면에 붙어 있다. 색 변수만 쓴다 */
+.pss { position: fixed; inset: 0; z-index: 40; background: var(--page); overflow-y: auto; display: flex; flex-direction: column; gap: 16px; padding: max(16px, env(safe-area-inset-top)) 16px 0; }
+.pss-top { display: flex; justify-content: space-between; align-items: center; gap: 8px; max-width: 640px; width: 100%; margin: 0 auto; flex-wrap: wrap; }
+/* 기도제목이 길어 내려 읽어도 끝내기·남은 시간·음악은 늘 위에 보이게 붙여 둔다(아래 버튼 줄과 짝) */
+.pss-top { position: sticky; top: calc(-1 * max(16px, env(safe-area-inset-top))); z-index: 2; padding: max(10px, env(safe-area-inset-top)) 0 10px; margin-top: calc(-1 * max(16px, env(safe-area-inset-top))); background: linear-gradient(var(--page) 75%, transparent); }
+.pss-step { font-size: .86em; color: var(--ink-2); font-variant-numeric: tabular-nums; display: inline-flex; align-items: center; gap: .6em; }
+.pss-timer { display: inline-flex; align-items: center; gap: .3em; color: var(--accent); font-weight: 600; }
+.pss-ring { width: 22px; height: 22px; transform: rotate(-90deg); }
+.pss-ring circle { fill: none; stroke-width: 12; }
+.pss-ring .track { stroke: var(--accent-soft); }
+.pss-ring .bar { stroke: var(--accent); stroke-linecap: round; transition: stroke-dashoffset 1s linear; }
+.pss-x, .pss-music { font: inherit; font-size: .84em; font-weight: 600; background: var(--surface); color: var(--ink-2); border: 1px solid var(--line); border-radius: 999px; padding: .35em .9em; min-height: 40px; cursor: pointer; }
+.pss-music.on { color: var(--accent); background: var(--accent-soft); border-color: transparent; }
+.pss-mus { display: inline-flex; gap: 6px; }
+.pss-body { flex: 1; max-width: 640px; width: 100%; margin: 0 auto; display: flex; flex-direction: column; align-items: center; gap: 14px; text-align: center; }
+.pss-body h2 { font-family: var(--f-display, inherit); font-size: clamp(1.6em, 6vmin, 2.3em); margin: 0; }
+.pss-body .eyebrow { margin: 1em 0 0; }
+.pss-body ul { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 10px; text-align: left; width: 100%; }
+.pss-body li { display: flex; gap: .7em; font-size: 1.05em; line-height: 1.6; background: var(--surface); border-radius: 14px; padding: .7em .9em; }
+.pss-lp { margin: 0; color: var(--accent); font-size: .92em; word-break: keep-all; }
+/* 하나님 나라: 성경의 기도 장절은 문장 끝에 작게, "내 말로 이어서"는 문장 아래 흐린 글씨로 */
+.pss-ref { display: block; margin-top: .15em; font-size: .78em; color: var(--ink-2); }
+.pss-next { margin: 0; max-width: 32em; color: var(--ink-2); font-size: .95em; line-height: 1.6; word-break: keep-all; }
+.pss-nav { position: sticky; bottom: 0; display: grid; grid-template-columns: 1fr 1.4fr; gap: 10px; max-width: 640px; width: 100%; margin: 0 auto; padding: 12px 0 max(16px, env(safe-area-inset-bottom)); background: linear-gradient(transparent, var(--page) 30%); }
+.pss-nav.one { grid-template-columns: 1fr; }
+/* 기도하기: 이전 | 기도했어요 | 다음 (기도 노트와 같게). 이전·다음은 작게, 기도했어요는 가운데에 크게 */
+.pss-nav.trio { grid-template-columns: 1fr 1.4fr 1fr; }
+.pss-nav button:disabled:not(.pss-pray) { opacity: .4; cursor: default; }
+.pss-nav button { font: inherit; font-weight: 600; min-height: 56px; border-radius: 14px; border: 1px solid var(--line); background: var(--surface); color: var(--ink); cursor: pointer; display: inline-flex; align-items: center; justify-content: center; gap: .4em; }
+.pss-nav .pss-pray { background: var(--accent); border-color: var(--accent); color: var(--on-accent); }
+.pss-nav .pss-pray:disabled { opacity: .55; cursor: default; }
+.pss-nav .pss-pray.ready { animation: pss-glow 1.6s ease-in-out infinite; }
 /* 저절로 다음 장으로: 버튼 줄 위에 '3초 뒤 … · 머무르기'(뒤에 두고 order로 올려서 이전 버튼이 첫 칸 그대로) */
-.ps-nav .ps-cd { grid-column: 1 / -1; order: -1; display: flex; justify-content: space-between; align-items: center; gap: .6em; padding: .45em .5em .45em .95em; border-radius: 14px; background: var(--accent-soft); color: var(--accent); font-size: .9em; font-weight: 600; }
-.ps-nav .ps-cd b { font-variant-numeric: tabular-nums; }
-.ps-nav .ps-cd button { font: inherit; font-size: .95em; font-weight: 600; min-height: 40px; padding: 0 1em; border-radius: 999px; border: 1px solid var(--line); background: var(--surface); color: var(--ink); cursor: pointer; }
-@media (prefers-reduced-motion: reduce) { .ps-nav .pray-btn.ready { animation: none; } }
-.ps-lp { margin: 0; font-size: .82em; color: var(--accent); font-weight: 600; word-break: keep-all; }
-.ps-list { margin: 0; padding: 0; list-style: none; display: flex; flex-direction: column; gap: .8em; text-align: left; }
-.ps-list li { font-family: var(--f-display); font-size: 1.1em; line-height: 1.6; word-break: keep-all; }
-.ps-list small { display: block; font-family: var(--f-body); font-size: .72em; color: var(--ink-2); margin-top: .2em; }
-.ps-next { margin: 0; font-size: .9em; color: var(--ink-2); word-break: keep-all; }
-.ps-lord { margin: 0; font-family: var(--f-display); font-size: clamp(1.05rem, 4vw, 1.35rem); line-height: 1.8; word-break: keep-all; }
-.ps-lord span { display: block; }
-.ps-music { background: none; border: 1px solid var(--line-strong); border-radius: 999px; padding: .25em .8em; min-height: 34px; font-size: .82em; color: var(--ink-2); cursor: pointer; }
-.ps-music.on { color: var(--accent); border-color: var(--accent-mid); }
+.pss-nav .pss-cd { grid-column: 1 / -1; order: -1; display: flex; justify-content: space-between; align-items: center; gap: .6em; padding: .45em .5em .45em .95em; border-radius: 14px; background: var(--accent-soft); color: var(--accent); font-size: .9em; font-weight: 600; }
+.pss-nav .pss-cd b { font-variant-numeric: tabular-nums; }
+.pss-nav .pss-cd button { min-height: 40px; padding: 0 1em; border-radius: 999px; font-size: .95em; }
+@keyframes pss-glow { 50% { box-shadow: 0 0 0 6px var(--accent-soft); } }
+@media (prefers-reduced-motion: reduce) { .pss-nav .pss-pray.ready { animation: none; } }
+.lp-text { margin: .4em auto 0; max-width: 30em; font-family: var(--f-display, inherit); font-size: clamp(1.15em, 3vmin, 1.7em); line-height: 1.7; word-break: keep-all; text-wrap: balance; }
+.lp-text span { display: block; }
 /* 사용법 페이지: 따라 하기 단추와 궁금한 것 찾아보기(눌러서 펼치는 줄) */
 .help-go { min-height: 56px; font-size: 1.1em; font-weight: 700; }
 .help-body { display: flex; flex-direction: column; gap: .5em; padding: 0 0 .9em; }
@@ -442,17 +447,15 @@ button.knot { cursor: pointer; }
 :root[data-style="neu"] .today-item.on { background: var(--accent-soft); }
 :root[data-style="neu"] .tag { background: var(--page); box-shadow: var(--press-sm); }
 :root[data-style="neu"] .sheet { background: var(--card); box-shadow: var(--raise); }
-:root[data-style="neu"] .ps { background: var(--page); }
-:root[data-style="neu"] .ps-nav .btn, :root[data-style="neu"] .ps-nav .pray-btn { box-shadow: var(--raise); border-color: transparent; }
 :root[data-style="skeu"] .chip, :root[data-style="skeu"] .pray-btn:not(.on), :root[data-style="skeu"] .btn.ghost {
   background-image: linear-gradient(180deg, rgba(255,255,255,.3), rgba(255,255,255,0) 60%, rgba(0,0,0,.06)); background-color: var(--surface); border: 1px solid color-mix(in srgb, var(--line-strong) 85%, #000 10%); box-shadow: inset 0 1px 0 rgba(255,255,255,.7), 0 1px 2px rgba(0,0,0,.15); }
 :root[data-style="skeu"] .chip.on, :root[data-style="skeu"] .pray-btn.on { background-image: var(--gloss); background-color: var(--accent); color: var(--on-accent); border: 1px solid color-mix(in srgb, var(--accent) 70%, #000); box-shadow: var(--bevel); text-shadow: 0 -1px 0 rgba(0,0,0,.25); }
 :root[data-style="skeu"] .today-item, :root[data-style="skeu"] .tag { box-shadow: inset 0 1px 3px rgba(0,0,0,.12); }
 :root[data-style="skeu"] .sheet { background: linear-gradient(180deg, var(--paper-hi), var(--paper-lo)); }
 :root[data-style="glass"] .chip, :root[data-style="glass"] .pray-btn:not(.on), :root[data-style="glass"] .btn.ghost, :root[data-style="glass"] .today-item { background: var(--glass-soft); border-color: color-mix(in srgb, var(--surface) 65%, transparent); }
+:root[data-style="glass"] .chip.on { background: color-mix(in srgb, var(--accent-soft) 70%, transparent); color: var(--ink); border-color: color-mix(in srgb, var(--accent) 55%, transparent); }
 :root[data-style="glass"] .today-item.on { background: color-mix(in srgb, var(--accent-soft) 70%, transparent); }
 :root[data-style="glass"] .sheet { background: var(--glass-strong); -webkit-backdrop-filter: var(--glass-blur); backdrop-filter: var(--glass-blur); border: var(--glass-edge); }
-:root[data-style="glass"] .ps { background: color-mix(in srgb, var(--page) 82%, transparent); -webkit-backdrop-filter: blur(24px) saturate(160%); backdrop-filter: blur(24px) saturate(160%); }
 </style>
 <!-- 시작 화면이 뜨기 전에는 바탕을 시작 화면과 같은 단색으로(glass의 그라데이션, classic의 무늬가 잠깐 비치지 않게). splash.js가 시작 화면을 닫을 때 푼다 -->
 <script>document.documentElement.classList.add('booting'); setTimeout(() => document.documentElement.classList.remove('booting'), 5000);</script>
@@ -765,7 +768,7 @@ button.knot { cursor: pointer; }
     }, 900);
   }
 
-  const S = { tab: 'today', tgtOpen: null, done: null, ps: null, toast: '', pick: null };
+  const S = { tab: 'today', tgtFilter: 'all', tgtOpen: null, done: null, ps: null, toast: '', pick: null };
   if (SC && ['today', 'note', 'pray', 'look', 'keep', 'more'].includes(SC.at)) S.tab = SC.at;
   // 그물 장면(at=weaves: 함께 짠 그물 탭에 그물 네 개가 걸려 있다)
   if (SC && SC.at === 'weaves') { S.tab = 'keep'; S.keep = 'weaves'; }
@@ -823,7 +826,7 @@ button.knot { cursor: pointer; }
   // 잔잔한 음악: 찬송가 1~8장 연주 파일(공동체 앱과 같은 파일)
   const HYMNS = Array.from({ length: 8 }, (_, i) => ({ label: (i + 1) + '장', file: (CFG.MUSIC || 'music/') + 'hymn-' + String(i + 1).padStart(2, '0') + '.mp3' }));
   const player = new Audio(); player.preload = 'auto';
-  function playTrack(i) { PS.track = i; savePs(); player.src = HYMNS[i].file; player.play().catch(() => {}); document.querySelectorAll('.ps-music .trk').forEach(e => { e.textContent = HYMNS[i].label; }); }
+  function playTrack(i) { PS.track = i; savePs(); player.src = HYMNS[i].file; player.play().catch(() => {}); document.querySelectorAll('.pss-music .trk').forEach(e => { e.textContent = HYMNS[i].label; }); }
   player.addEventListener('ended', () => { if (S.ps && PS.music) playTrack(PS.auto ? (PS.track + 1) % HYMNS.length : PS.track); });
   const musicOff = () => { player.pause(); };
 
@@ -892,7 +895,7 @@ button.knot { cursor: pointer; }
           bounce: () => S.preview || canSplit() ? '' : '예시 넣어 보기를 먼저 눌러요.' },
         { mode: 'tap', target: () => $('.preview'), wait: () => S.tab === 'note' && S.preview, done: () => ev.added, back: () => !S.preview && !ev.added,
           text: '정리된 목록이에요. 빼야 할 줄은 ×를 눌러요. 괜찮으면 추가하기를 눌러요.' },
-        // 추가한 뒤 어떻게 들어갔는지 먼저 보여 준다(기도제목마다 카드 하나, 대상별로 모여 있음)
+        // 추가한 뒤 어떻게 들어갔는지 먼저 보여 준다(기도제목마다 카드 하나, 위의 대상 칩으로 걸러 볼 수 있음)
         { mode: 'next', target: () => $('.edit-list'), wait: () => S.tab === 'note' && !!$('.edit-list'),
           text: '이렇게 들어갔어요. 기도제목마다 카드 하나예요. 위의 대상 단추로 대상을 바꾸고, 글은 눌러서 바로 고쳐요. 마치고 싶으면 카드 아래 단추를 써요.' },
         // ② 기도해 보기
@@ -1079,30 +1082,18 @@ button.knot { cursor: pointer; }
       <div class="edit-foot"><span class="state">${short(i.created)}부터 · ${daysSince(i.created)}일째${lastPrayed(i.id) ? ' · 마지막 기도 ' + short(lastPrayed(i.id)) : ''}</span>
         <span class="foot-acts"><button class="link" data-a="done" data-v="${i.id}">마치기</button><button class="link quiet" data-a="share" data-v="${i.id}">나누기</button><button class="link quiet" data-a="delitem" data-v="${i.id}">지우기</button></span></div></li>`;
   }
-  // 내 기도가 10개를 넘으면 대상별로 묶는다. 묶음 이름을 누르면 접고 펴고(접힘은 이 기기에만 기억, 동기화·저장 안 함),
-  //  칸마다 처음 5개만 보이고 '더 보기'를 누르면 그 칸의 나머지가 열린다(펼침은 이번에만)
-  const FOLDK = 'koide-note-fold', GRP_MAX = 10, GRP_SHOW = 5;
-  const foldGet = () => { try { const a = JSON.parse(localStorage.getItem(FOLDK) || '[]'); return Array.isArray(a) ? a : []; } catch (e) { return []; } };
-  const foldSet = a => { try { localStorage.setItem(FOLDK, JSON.stringify(a)); } catch (e) { /* 저장하지 못하면 이번에만 */ } };
-  S.grpMore = new Set();
-  // 새로 더한 기도제목이 보이게: 그 대상의 묶음은 펴고 전부 보여 준다
-  function grpReveal(targets) {
-    const f = foldGet(), nf = f.filter(t => !targets.includes(t));
-    if (nf.length !== f.length) foldSet(nf);
-    targets.forEach(t => S.grpMore.add(t));
-  }
-  function grpHtml(T) {
-    const fold = foldGet();
-    return `<ul class="edit-list grouped">${T.map(([t, n]) => {
-      const its = open().filter(i => i.target === t); if (!its.length) return '';
-      const on = !fold.includes(t), all = S.grpMore.has(t), shown = on ? (all ? its : its.slice(0, GRP_SHOW)) : [];
-      return `<li class="grp"><button class="grp-h${on ? ' open' : ''}" data-a="grpfold" data-v="${esc(t)}" aria-expanded="${on}"><span>${esc(n)} · ${its.length}</span>${CHEV}</button>
-        ${shown.length ? `<ul class="edit-list">${shown.map(noteLi).join('')}</ul>` : ''}
-        ${on && !all && its.length > GRP_SHOW ? `<button class="link grp-more" data-a="grpmore" data-v="${esc(t)}">더 보기 · ${its.length - GRP_SHOW}개</button>` : ''}</li>`;
-    }).join('')}</ul>`;
+  // 내 기도 목록은 늘 한 줄로 길게 이어지고, 위의 대상 칩으로 걸러 본다(고른 대상은 이번에만 기억하고 저장·동기화하지 않는다).
+  //  새로 더한 기도제목이 걸러 둔 대상이 아니면 전체로 풀어서 바로 보이게 한다
+  function filterReveal(targets) {
+    if (S.tgtFilter && S.tgtFilter !== 'all' && !targets.includes(S.tgtFilter)) S.tgtFilter = 'all';
   }
   function noteView() {
-    const T = targets(), list = T.flatMap(([t]) => open().filter(i => i.target === t));
+    const T = targets(), all = T.flatMap(([t]) => open().filter(i => i.target === t));
+    // 열린 기도제목이 있는 대상만 칩으로(대상이 둘 이상일 때만). 고른 대상에 기도제목이 없으면 전체로 본다
+    const cnt = T.map(([t, n]) => [t, n, all.filter(i => i.target === t).length]).filter(c => c[2]);
+    const f = cnt.some(c => c[0] === S.tgtFilter) ? S.tgtFilter : 'all';
+    const list = f === 'all' ? all : all.filter(i => i.target === f);
+    const filt = cnt.length > 1 ? `<div class="tgt-filter" role="group" aria-label="대상별로 걸러 보기">${[['all', '전체', all.length], ...cnt].map(([t, n, c]) => `<button class="chip${t === f ? ' on' : ''}" aria-pressed="${t === f}" data-a="tgtfilter" data-v="${esc(t)}">${esc(n)} · ${c}</button>`).join('')}</div>` : '';
     const P = S.preview;
     const form = `<section class="card"><label class="label" for="it-text">새 기도제목 쓰기</label>
       <textarea class="field" id="it-text" maxlength="3000" rows="4" placeholder="예)&#10;회사 일이 바빠도 지치지 않도록&#10;엄마ㅡ수술이 잘 끝나도록&#10;교회ㅡ새로 온 가정들이 잘 정착하도록">${esc(S.draft || '')}</textarea>
@@ -1112,7 +1103,7 @@ button.knot { cursor: pointer; }
           ${P.map((x, k) => `<div class="prev-row"><select class="prev-t" data-k="${k}" aria-label="대상">${prevTargets(x.target).map(([t, n]) => `<option value="${esc(t)}"${t === x.target ? ' selected' : ''}>${esc(n)}</option>`).join('')}</select><p>${esc(x.text)}</p><button class="link quiet" data-a="prevrm" data-v="${k}" aria-label="이 항목 빼기">×</button></div>`).join('')}
           <div class="row" style="justify-content:flex-start"><button class="btn" data-a="addparts">추가하기</button><button class="btn ghost" data-a="unsplit">다시 쓰기</button></div></div>` : ''}</section>`;
     return `<header class="top"><div><p class="eyebrow">나만 보는 기도제목</p><h1>내 기도</h1></div><span class="hint">${open().length}개</span></header>
-      <div class="n-two"><div class="n-side">${form}</div><div class="n-main">${list.length > GRP_MAX ? grpHtml(T) : list.length ? `<ul class="edit-list">${list.map(noteLi).join('')}</ul>` : '<p class="hint" style="text-align:center">첫 기도제목을 써 보세요.</p>'}</div></div>`;
+      <div class="n-two"><div class="n-side">${form}</div><div class="n-main">${filt}${list.length ? `<ul class="edit-list">${list.map(noteLi).join('')}</ul>` : '<p class="hint" style="text-align:center">첫 기도제목을 써 보세요.</p>'}</div></div>`;
   }
   // 지난 기록: 달마다 한 장. 위에서 달을 넘기고, 그 달의 기도한 날·감사와 응답·마친 기도만 보여서 쌓여도 길어지지 않는다
   function lookView() {
@@ -1565,7 +1556,7 @@ button.knot { cursor: pointer; }
       if (D.items.some(i => i.target === target && i.text === text)) { skip++; return; }
       D.items.push({ id: uid(), text, target, created: /^\d{4}-\d{2}$/.test(x.month) ? x.month + '-01' : TODAY(), done: null, up: now() }); n++;
     });
-    if (n) grpReveal([...new Set(D.items.slice(-n).map(i => i.target))]);
+    if (n) filterReveal([...new Set(D.items.slice(-n).map(i => i.target))]);
     save(); S.mv = null;
     toast(`${n}개를 노트에 옮겼어요` + (skip ? ` · 같은 글 ${skip}개는 건너뛰었어요` : '') + (made.length ? ` · 새 사람 ${made.join(', ')}` : ''));
   }
@@ -1729,46 +1720,46 @@ button.knot { cursor: pointer; }
   }
   function psHtml() {
     const P = S.ps, L = P.list, last = P.i >= L.length;
-    const mus = `<span style="display:flex;gap:6px"><button class="ps-music${PS.music ? ' on' : ''}" data-a="psmusic" aria-pressed="${PS.music}">♪ <span class="trk">${PS.music ? HYMNS[PS.track].label : '음악 꺼짐'}</span></button>${PS.music ? '<button class="ps-music" data-a="psnexttrack" aria-label="다음 곡">다음 곡 ›</button>' : ''}</span>`;
-    const ring = !last && P.dur ? `<span class="ps-timer"><svg class="ps-ring" viewBox="0 0 100 100" aria-hidden="true"><circle cx="50" cy="50" r="44" class="track"/><circle cx="50" cy="50" r="44" class="bar" stroke-dasharray="276.5" stroke-dashoffset="${(276.5 * (1 - P.left / P.dur)).toFixed(1)}"/></svg><span id="ps-time">${fmtTime(P.left)}</span></span>` : '';
-    const top = `<div class="ps-top"><span class="hint ps-step">${ring}<span>${last ? '마침' : `${P.i + 1} / ${L.length}`}</span></span>${mus}<button class="link" data-a="psclose">닫기</button></div><div class="bar"><b style="width:${Math.min(100, P.i / L.length * 100)}%"></b></div>`;
+    const ico = s => s.replace('<svg', '<svg width="20" height="20"');
+    const mus = `<span class="pss-mus"><button class="pss-music${PS.music ? ' on' : ''}" data-a="psmusic" aria-pressed="${PS.music}">♪ <span class="trk">${PS.music ? HYMNS[PS.track].label : '음악 꺼짐'}</span></button>${PS.music ? '<button class="pss-music" data-a="psnexttrack" aria-label="다음 곡">다음 곡 ›</button>' : ''}</span>`;
+    const ring = !last && P.dur ? `<span class="pss-timer"><svg class="pss-ring" viewBox="0 0 100 100" aria-hidden="true"><circle cx="50" cy="50" r="44" class="track"/><circle cx="50" cy="50" r="44" class="bar" stroke-dasharray="276.5" stroke-dashoffset="${(276.5 * (1 - P.left / P.dur)).toFixed(1)}"/></svg><span id="ps-time">${fmtTime(P.left)}</span></span>` : '';
+    const top = `<div class="pss-top"><button class="pss-x" data-a="psclose">끝내기</button><span class="pss-step">${ring}<span>${last ? '마침' : `${P.i + 1} / ${L.length}`}</span></span>${mus}</div>`;
+    const dlg = '<div class="pss" role="dialog" aria-modal="true" aria-label="기도하기">';
     // 기도를 열며: 첫 장 앞의 한 장. 장 수에 세지 않고, 누르면 바로 첫 장으로 간다
-    if (P.open) return `<div class="ps" role="dialog" aria-modal="true" aria-label="기도하기"><div class="ps-top"><span class="hint"></span><span></span><button class="link" data-a="psclose">닫기</button></div>
-      <div class="ps-body" data-a="psskip" style="cursor:pointer"><div class="in">${KoidePrayOpen.html()}</div></div></div>`;
+    if (P.open) return `${dlg}<div class="pss-top"><button class="pss-x" data-a="psclose">끝내기</button><span></span></div>
+      <div class="pss-body" data-a="psskip" style="justify-content:center;cursor:pointer">${KoidePrayOpen.html()}</div></div>`;
     const n = L.filter(x => cardOn(P, x)).length;
     // 마지막 장: 주기도문으로 마치고, 오늘 감사한 것을 남긴다
-    if (last) return `<div class="ps" role="dialog" aria-modal="true" aria-label="기도하기">${top}<div class="ps-body"><div class="in">
-      <p class="eyebrow">주기도문으로 마쳐요</p><p class="ps-lord">${KP.LORDS_PRAYER.map(x => `<span>${x}</span>`).join('')}</p>
+    if (last) return `${dlg}${top}<div class="pss-body" style="justify-content:center">
+      <p class="eyebrow">주기도문으로 마쳐요</p><p class="lp-text">${KP.LORDS_PRAYER.map(x => `<span>${x}</span>`).join('')}</p>
       <p class="hint">${n ? n + '장을 기도했어요.' : '오늘도 함께해 주신 아버지께 감사해요.'}</p>
-      <form data-f="thanks" style="width:100%;display:flex;gap:8px"><input class="field" id="th-in" maxlength="200" placeholder="오늘 감사한 것 한 줄" aria-label="오늘 감사한 것" value="${esc(S.thDraft || '')}"><button class="btn small" type="submit">남기기</button></form></div></div>
-      <div class="ps-nav" style="grid-template-columns:1fr"><button class="btn" data-a="psclose">마치기</button></div></div>`;
+      <form data-f="thanks" style="width:100%;display:flex;gap:8px"><input class="field" id="th-in" maxlength="200" placeholder="오늘 감사한 것 한 줄" aria-label="오늘 감사한 것" value="${esc(S.thDraft || '')}"><button class="btn small" type="submit">남기기</button></form></div>
+      <div class="pss-nav one"><button data-a="psclose">마치기</button></div></div>`;
     const it = L[P.i];
     let body, on;
     if (it.topic) {
       // 하나님 나라: 주기도문의 간구, 오늘의 간구 문장 하나와 성경의 기도 하나, 내 말로 이어서
       const t = topicByK(it.topic), d = prayDay(t); on = P.extra.includes(it.topic);
-      body = `<p class="ps-lp">${t.lines.map(k => KP.LORDS_PRAYER[k]).join(' ')}</p><p class="eyebrow">하나님 나라</p><h2>${esc(t.name)}</h2>
-        <ul class="ps-list"><li>${esc(solo(d.a[0]))}${d.a[1] ? `<small>${esc(d.a[1])}</small>` : ''}</li><li>${esc(solo(d.b[0]))}<small>${esc(d.b[1])}</small></li></ul><p class="ps-next">${esc(solo(d.next))}</p>`;
+      const line = ([x, r]) => `<li><span>${esc(solo(x))}${r ? `<small class="pss-ref">${esc(r)}</small>` : ''}</span></li>`;
+      body = `<p class="pss-lp">${t.lines.map(k => KP.LORDS_PRAYER[k]).join(' ')}</p><p class="eyebrow">하나님 나라</p><h2>${esc(t.name)}</h2><ul>${line(d.a)}${line(d.b)}</ul><p class="pss-next">${esc(solo(d.next))}</p>`;
     } else {
       on = cardOn(P, it);
-      // 같은 대상의 기도제목을 한 장에: 위에 대상, 아래에 기도제목들(하나뿐이면 예전처럼 크게)
+      // 같은 대상의 기도제목을 한 장에: 큰 제목에 대상, 아래 흰 카드에 기도제목들(공동체와 같게)
       const its = it.ids.map(id => D.items.find(x => x.id === id)).filter(Boolean), days = i => `${daysSince(i.created)}일째 기도하고 있어요`;
-      body = its.length === 1
-        ? `<span class="tag">${esc(targetName(it.target))}</span><p class="ps-text">${esc(its[0].text)}</p><span class="days">${days(its[0])}</span>`
-        : `<span class="tag">${esc(targetName(it.target))}</span><ul class="ps-list">${its.map(i => `<li>${esc(i.text)}<small>${days(i)}</small></li>`).join('')}</ul>`;
+      body = `<h2>${esc(targetName(it.target))}</h2><ul>${its.map(i => `<li><span>${esc(i.text)}<small class="pss-ref">${days(i)}</small></span></li>`).join('')}</ul>`;
     }
     const ready = P.dur && P.left === 0 && !on, nxt = P.i === L.length - 1;
-    const cd = P.cd ? `<div class="ps-cd" role="status"><span><b id="ps-cd">${P.cd}</b>초 뒤 ${nxt ? '마쳐요' : '다음 장으로 넘어가요'}</span><button data-a="psstay">머무르기</button></div>` : '';
-    return `<div class="ps" role="dialog" aria-modal="true" aria-label="기도하기">${top}<div class="ps-body"><div class="in">${body}</div></div>
-      <div class="ps-nav"><button class="btn ghost" data-a="psgo" data-v="-1"${P.i ? '' : ' disabled'}>이전</button>
-        <button class="pray-btn${on ? ' on' : ''}${ready ? ' ready' : ''}" style="align-self:stretch;justify-content:center" data-a="${it.topic ? 'psxtra' : 'pspray'}" data-v="${it.topic || ''}" aria-pressed="${on}">${on ? ICON.check + '기도했어요' : '기도했어요'}</button>
-        <button class="btn ghost" data-a="psgo" data-v="1">${nxt ? '마침' : '다음'}</button>${cd}</div></div>`;
+    const cd = P.cd ? `<div class="pss-cd" role="status"><span><b id="ps-cd">${P.cd}</b>초 뒤 ${nxt ? '마쳐요' : '다음 장으로 넘어가요'}</span><button data-a="psstay">머무르기</button></div>` : '';
+    return `${dlg}${top}<div class="pss-body">${body}</div>
+      <div class="pss-nav trio"><button data-a="psgo" data-v="-1"${P.i ? '' : ' disabled'}>이전</button>
+        <button class="pss-pray${on ? ' on' : ''}${ready ? ' ready' : ''}" data-a="${it.topic ? 'psxtra' : 'pspray'}" data-v="${it.topic || ''}" aria-pressed="${on}">${ico(on ? ICON.check : TICON.hands)} 기도했어요</button>
+        <button data-a="psgo" data-v="1">${nxt ? '마침' : '다음'}</button>${cd}</div></div>`;
   }
   // 기도를 열며가 끝남(누르거나 때가 됨): 첫 장으로
   function psOpenDone(ps) {
     if (!ps || S.ps !== ps || !ps.open) return;
     KoidePrayOpen.stop(); Object.assign(ps, { open: false, left: ps.dur, cd: 0, stay: false, held: false, pt0: Date.now() });
-    render(); const b = document.querySelector('.ps-body'); if (b) b.scrollTop = 0; psTick(); psScroll();
+    render(); const b = document.querySelector('.pss'); if (b) b.scrollTop = 0; psTick(); psScroll();
   }
   // 한 장에 머무는 시간: 줄어드는 고리와 숫자. 다 되면 '기도했어요'가 부드럽게 반짝인다(공동체와 같게)
   //  '자동으로 넘기기'를 켰으면 3초 세고 기도한 것으로 세어 넘어간다. '머무르기'를 누르면 그 장에서는 멈춘다
@@ -1784,17 +1775,17 @@ button.knot { cursor: pointer; }
         clearInterval(psTimer); psMark(); return psGo(1);
       }
       ps.left = Math.max(0, ps.left - 1);
-      const t = document.getElementById('ps-time'), bar = document.querySelector('.ps-ring .bar');
+      const t = document.getElementById('ps-time'), bar = document.querySelector('.pss-ring .bar');
       if (t) t.textContent = fmtTime(ps.left);
       if (bar) bar.setAttribute('stroke-dashoffset', (276.5 * (1 - ps.left / ps.dur)).toFixed(1));
       if (!ps.left) {
         if (ps.flow && !ps.stay) { ps.cd = 3; return psRender(); }
-        clearInterval(psTimer); const b = document.querySelector('.ps-nav .pray-btn'); if (b && !b.classList.contains('on')) b.classList.add('ready');
+        clearInterval(psTimer); const b = document.querySelector('.pss-pray'); if (b && !b.classList.contains('on')) b.classList.add('ready');
       }
     }, 1000);
   }
   // 읽던 자리를 지키며 다시 그린다
-  const psRender = () => { const b = document.querySelector('.ps-body'), y = b ? b.scrollTop : 0; render(); const n = document.querySelector('.ps-body'); if (n) n.scrollTop = y; };
+  const psRender = () => { const b = document.querySelector('.pss'), y = b ? b.scrollTop : 0; render(); const n = document.querySelector('.pss'); if (n) n.scrollTop = y; };
   // 지금 장을 기도한 것으로 센다(넘기면 기도한 것): 기도제목 장은 아직 안 한 것만 기록하고(이미 한 것은 그대로), 하나님 나라 장은 함께 기도한 것
   function psMark() {
     const ps = S.ps, c = ps.list[ps.i];
@@ -1803,7 +1794,7 @@ button.knot { cursor: pointer; }
   // 장 넘기기: 시간을 처음부터 다시 센다
   function psGo(d) {
     const ps = S.ps; ps.i = Math.max(0, ps.i + d); Object.assign(ps, { left: ps.dur, cd: 0, stay: false, held: false, pt0: Date.now() });
-    render(); const b = document.querySelector('.ps-body'); if (b) b.scrollTop = 0; psTick(); psScroll();
+    render(); const b = document.querySelector('.pss'); if (b) b.scrollTop = 0; psTick(); psScroll();
   }
   // 저절로 내려 보기(자동으로 넘기기를 켰을 때): 화면보다 긴 장만. 처음 몇 초는 머물고, 시간의 70%가 될 때까지 천천히 끝까지 내린 뒤 남은 시간은 맨 아래에 둔다(공동체와 같게)
   //  손가락·마우스 휠·키보드로 화면을 만지면 그 장에서는 멈춘다
@@ -1814,14 +1805,14 @@ button.knot { cursor: pointer; }
     const hold = Math.min(8, ps.dur * .1) * 1000, end = ps.dur * 700;
     const step = () => {
       if (S.ps !== ps || ps.open || ps.held) return;
-      const P = document.querySelector('.ps-body'); if (!P) return;
+      const P = document.querySelector('.pss'); if (!P) return;
       const t = Date.now() - ps.pt0, max = P.scrollHeight - P.clientHeight;
       if (max > 4 && t > hold) P.scrollTop = Math.round(max * Math.min(1, (t - hold) / (end - hold)));
       if (t < end) psRaf = requestAnimationFrame(step);
     };
     psRaf = requestAnimationFrame(step);
   }
-  ['touchstart', 'wheel', 'mousedown', 'keydown'].forEach(e => document.addEventListener(e, ev => { if (S.ps && (e === 'keydown' || (ev.target.closest && ev.target.closest('.ps-body')))) S.ps.held = true; }, { passive: true }));
+  ['touchstart', 'wheel', 'mousedown', 'keydown'].forEach(e => document.addEventListener(e, ev => { if (S.ps && (e === 'keydown' || (ev.target.closest && ev.target.closest('.pss')))) S.ps.held = true; }, { passive: true }));
   // 닫기(버튼·뒤로 가기): 타이머와 기도를 열며를 멈추고 화면에서 내린다. 이후 아무것도 바뀌지 않게
   function psStop() { clearInterval(psTimer); cancelAnimationFrame(psRaf); KoidePrayOpen.stop(); S.ps = null; musicOff(); }
   function prayTab() {
@@ -1857,6 +1848,9 @@ button.knot { cursor: pointer; }
       ${canSave ? '' : '<div class="toast" role="alert">이 브라우저에서는 저장할 수 없어요. 개인 정보 보호 모드를 끄고 열어 주세요.</div>'}`;
     document.documentElement.style.overflow = S.ps || S.done || S.vsheet || S.cut || S.recSheet || S.kc || S.share || a2hsOn() || S.gbig || S.wopen != null ? 'hidden' : '';
     document.querySelectorAll('textarea.field').forEach(autosize);
+    // 다시 그리면 칩 줄이 맨 앞으로 돌아가니, 고른 칩이 화면 밖이면 가운데로 보이게 한다
+    const fOn = document.querySelector('.tgt-filter .chip.on');
+    if (fOn) fOn.parentElement.scrollLeft = fOn.offsetLeft - (fOn.parentElement.clientWidth - fOn.offsetWidth) / 2;
     if (S.cordNew) { document.querySelectorAll('.cord-seg.pull animate').forEach(a => { try { a.beginElement(); } catch (e) { /* 무시 */ } }); S.cordNew = null; }
     mount3d();
     pilotBand();
@@ -1908,7 +1902,7 @@ button.knot { cursor: pointer; }
           if (t.startsWith('new:')) { const n = t.slice(4).slice(0, 12), had = people().find(p => p.name === n); t = 'p:' + (had ? had.id : (made[n] || (made[n] = (() => { const p = { id: uid(), name: n, up: now() }; if (pr) p.practice = true; D.people.push(p); return p.id; })()))); }
           D.items.push(Object.assign({ id: uid(), text: x.text, target: t, created: TODAY(), done: null, up: now() }, pr ? { practice: true } : {}));
         });
-        grpReveal([...new Set(D.items.slice(-parts.length).map(i => i.target))]);
+        filterReveal([...new Set(D.items.slice(-parts.length).map(i => i.target))]);
         S.preview = null; S.draft = null; save(); a2hsDue(); pilotTwo();
         return toast(parts.length + '개를 내 기도에 더했어요' + (Object.keys(made).length ? ` · 새 사람 ${Object.keys(made).join(', ')}` : ''));
       }
@@ -1917,8 +1911,7 @@ button.knot { cursor: pointer; }
       case 'setopen': S.setOpen = !S.setOpen; return render();
       case 'helpq': S.helpQ = S.helpQ === Number(v) ? null : Number(v); return render();
       case 'helpgo': S.helpQ = null; if (v !== 'keep') return go(v); S.gEdit = false; S.gbig = false; S.wopen = null; S.tab = 'keep'; render(); return window.scrollTo(0, 0);
-      case 'grpfold': { const f = foldGet(); foldSet(f.includes(v) ? f.filter(t => t !== v) : [...f, v]); return render(); }
-      case 'grpmore': S.grpMore.add(v); return render();
+      case 'tgtfilter': S.tgtFilter = v; S.tgtOpen = null; return render();
       case 'tgtopen': S.tgtOpen = S.tgtOpen === v ? null : v; return render();
       case 'tgtpick': { const i = D.items.find(x => x.id === v); S.tgtOpen = null; if (i && i.target !== b.dataset.t) { i.target = b.dataset.t; i.up = now(); save(); } return render(); }
       // 대상 고르기 중에 사람을 더하면 그 기도제목의 대상으로 바로 정해요
@@ -1949,7 +1942,7 @@ button.knot { cursor: pointer; }
         // 기도를 열며(기본 켜짐): 첫 장 앞에 한 장. 몇 초 뒤 저절로, 또는 누르면 첫 장으로
         if (PS.open !== false) { const ps = S.ps; ps.open = true; KoidePrayOpen.begin(() => psOpenDone(ps)); }
         if (PS.dur === 60 && PS.flow) KoidePilot.done('n-ps');
-        render(); const b = document.querySelector('.ps-body'); if (b) b.scrollTop = 0; psTick(); return;
+        render(); const b = document.querySelector('.pss'); if (b) b.scrollTop = 0; psTick(); return;
       }
       case 'psopening': PS.open = PS.open === false; savePs(); return render();
       case 'psskip': return psOpenDone(S.ps);
