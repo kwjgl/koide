@@ -5480,7 +5480,12 @@ try { const p = JSON.parse(localStorage.getItem('koide-pref') || '{}'), d = docu
   document.addEventListener('focusout', hideTypingSoon);
 
   // 홈 화면 앱: 화면 파일을 기기에 남겨 두는 도우미(sw.js). https나 내 컴퓨터(localhost)에서만 된다
-  if ('serviceWorker' in navigator && (location.protocol === 'https:' || location.hostname === 'localhost')) navigator.serviceWorker.register('sw.js').catch(() => { /* 없어도 앱은 그대로 */ });
+  if ('serviceWorker' in navigator && (location.protocol === 'https:' || location.hostname === 'localhost')) {
+    navigator.serviceWorker.register('sw.js').catch(() => { /* 없어도 앱은 그대로 */ });
+    // 화면 파일은 남겨 둔 사본으로 바로 연다. 새 버전을 받아 두면 다음에 열 때 바뀐다고 알려 준다(처음 설치할 때는 말하지 않는다)
+    const hadSw = !!navigator.serviceWorker.controller;
+    navigator.serviceWorker.addEventListener('controllerchange', () => { if (hadSw) toast('새 버전을 받아 두었어요. 앱을 다시 열면 바뀌어요.'); });
+  }
 
   // 시작하다 막히면 "불러오는 중"에 멈춰 있지 않고 다시 해 보기 버튼을 보여 준다
   boot().catch(e => { S.view = 'error'; S.err = e; render(); });

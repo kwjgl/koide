@@ -2195,7 +2195,12 @@ button.knot { cursor: pointer; }
     loadMe();
   })();
   document.addEventListener('visibilitychange', () => { if (!document.hidden && D.vault && D.vault.on && !D.vault.paused) sync(); });
-  if ('serviceWorker' in navigator && (location.protocol === 'https:' || location.hostname === 'localhost')) navigator.serviceWorker.register('sw.js').catch(() => {});
+  if ('serviceWorker' in navigator && (location.protocol === 'https:' || location.hostname === 'localhost')) {
+    navigator.serviceWorker.register('sw.js').catch(() => {});
+    // 화면 파일은 남겨 둔 사본으로 바로 연다. 새 버전을 받아 두면 다음에 열 때 바뀐다고 알려 준다(처음 설치할 때는 말하지 않는다)
+    const hadSw = !!navigator.serviceWorker.controller;
+    navigator.serviceWorker.addEventListener('controllerchange', () => { if (hadSw) toast('새 버전을 받아 두었어요. 앱을 다시 열면 바뀌어요.'); });
+  }
 })();
 </script>
 </body>

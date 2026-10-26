@@ -2395,6 +2395,13 @@ function groupsDaily_() {
   try { withLock_(() => { tidyGroups_(); pr.setProperty('GROUPS_TIDY', t); }); } catch (e) { /* 바쁘면 다음에 */ }
 }
 function dailyTidy() { groupsDaily_(); }
+// 한동안 아무도 안 쓰면 서버가 잠들어 첫 사람이 10~20초를 기다린다. 5분마다 시트를 한 번 열어 깨워 둔다(구글이 꼭 지켜 주지는 않는다).
+//  편집기에서 setupKeepWarm을 한 번 실행하면 시간 트리거가 걸린다(이미 있으면 그대로)
+function keepWarm() { ss_().getId(); }
+function setupKeepWarm() {
+  if (ScriptApp.getProjectTriggers().some(t => t.getHandlerFunction() === 'keepWarm')) return;
+  ScriptApp.newTrigger('keepWarm').timeBased().everyMinutes(5).create();
+}
 
 // 노트로 옮기기용 읽기: 이 모임에서 내가 볼 수 있는 기도제목(내 것 전부 + 다른 사람이 모임에 공개한 것)을 글·대상·쓴 달로. 같은 글은 한 번만.
 //  서버는 노트에 아무것도 쓰지 않는다. 화면이 받아서 그 휴대폰의 노트에 더한다
