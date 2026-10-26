@@ -5,3 +5,8 @@
 /correction_*.json
 /prepare_month_assets.py
 /prepare_september.py
+
+# graphify: 컴퓨터마다 다른 설정 파일
+graphify-out/.graphify_python
+graphify-out/.graphify_root
+graphify-out/cache/last_query_stamp
