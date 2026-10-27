@@ -1071,6 +1071,27 @@ body.pop-open { overflow: hidden; }
 .ch-todos { display: flex; flex-wrap: wrap; gap: .3em; }
 .ch-todo { font-size: .76em; font-weight: 600; color: var(--warn); background: var(--warn-soft); border-radius: 999px; padding: .15em .6em; }
 .ch-todo.warn { color: var(--ink-2); background: var(--surface-2); }
+/* 앱 관리자 보기: 카드는 넓으면 나란히, 숫자는 네 칸, 더하기는 점선 칸 */
+.aa-sum { color: var(--ink-2); font-size: .9em; margin: 2px 0 14px; }
+.aa-grid { display: grid; gap: 14px; grid-template-columns: repeat(auto-fill, minmax(min(100%, 320px), 1fr)); align-items: start; }
+.aa-card, .aa-form { margin: 0; gap: .85em; }
+.aa-card.stopped { opacity: .65; }
+.aa-head { display: flex; align-items: center; gap: .5em; min-width: 0; }
+.aa-head b { font-size: 1.05em; }
+.aa-head .link { margin-left: auto; }
+.aa-codes { display: flex; flex-wrap: wrap; gap: 6px; }
+.aa-code { font-family: ui-monospace, 'SFMono-Regular', Menlo, monospace; font-size: .85em; letter-spacing: .08em; padding: .2em .65em; border-radius: 8px; background: var(--accent-soft); color: var(--accent); font-weight: 600; }
+.aa-stats { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 6px; margin: 0; }
+.aa-stats div { background: var(--surface-2); border-radius: 10px; padding: .55em .3em; text-align: center; min-width: 0; }
+.aa-stats dt { font-size: .7em; color: var(--ink-2); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.aa-stats dd { margin: .1em 0 0; font-weight: 600; font-size: 1.15em; font-variant-numeric: tabular-nums; }
+.aa-err { margin: 0; font-size: .85em; color: var(--warn); }
+.aa-ver { margin: 0; font-size: .78em; color: var(--ink-2); }
+.aa-ver:empty { display: none; }
+.aa-add { display: flex; align-items: center; justify-content: center; gap: .4em; min-height: 150px; border: 1.5px dashed var(--line-strong); border-radius: 16px; background: transparent; color: var(--accent); font: inherit; font-weight: 600; cursor: pointer; }
+.aa-add span { font-size: 1.4em; line-height: 1; }
+.aa-add:hover, .aa-add:focus-visible { background: var(--surface); border-color: var(--accent); }
+.aa-foot { margin-top: 22px; }
 .folds { padding-top: 0; padding-bottom: 0; }
 .fold + .fold { border-top: 1px solid var(--line); }
 .fold > .mrow { border-top: 0; }
@@ -1855,34 +1876,40 @@ try { const p = JSON.parse(localStorage.getItem('koide-pref') || '{}'), d = docu
         <button class="choice" data-act="pickstart" data-v="note"><b>기도 노트만 쓰기</b><small class="choice-sub">나만 보는 기도 노트예요. 나중에 기도 노트의 '우리 교회 공동체에 연결하기'로 언제든 공동체에 들어갈 수 있어요.</small></button>
       </div>
       <p class="hint">초대 링크를 받았다면 그 링크로 열면 소그룹이 미리 골라져 있어요.</p>`,
-    // 앱 관리자 보기: 교회(와 테스트 공간)마다 서버 상태와 숫자. 이름·기도제목은 오지 않는다
+    // 앱 관리자 보기: 교회(와 테스트 공간)마다 코드, 서버 상태와 숫자. 이름·기도제목은 오지 않는다. 넓은 화면에서는 카드가 나란히, 더하기는 카드 옆 점선 칸
     appadmin: () => {
-      const A = S.aa, head = '<p class="eyebrow">앱 관리자</p><h1>교회 전체 보기</h1>', back = '<button class="link" data-act="aaback">앱으로 돌아가기</button>';
+      const A = S.aa, back = '<button class="link" data-act="aaback">앱으로 돌아가기</button>';
+      const head = `<div class="page-top"><div><p class="eyebrow">앱 관리자</p><h1>교회 전체 보기</h1></div>${A && !A.err ? back : ''}</div>`;
       if (!A) return head + '<p class="loading">교회 서버들에 묻는 중…</p>';
       if (A.err) return `${head}<p class="hint">${esc(A.err)}</p>${back}`;
       const E = S.aaEdit;
       // 더하기·고치기 칸(기본 서버의 교회 탭에 적는다). 이름표는 처음에만 정한다. 저장이 안 되면 쓰던 값(E.draft)을 그대로 둔다
-      const form = (c = {}) => { const v = (E && E.draft) || c; return `<form class="card plain-form" data-form="aasave">
+      const form = (c = {}) => { const v = (E && E.draft) || c; return `<form class="card plain-form aa-form" data-form="aasave">
           <h2>${c.id ? esc(c.name) + ' 고치기' : '교회·테스트 공간 더하기'}</h2>
           <label class="f" for="aa-name">이름</label><input id="aa-name" class="field" name="name" maxlength="30" required value="${esc(v.name || '')}">
           ${c.id ? '' : `<label class="f" for="aa-id">이름표</label><input id="aa-id" class="field" name="id" maxlength="20" required pattern="[A-Za-z0-9_-]+" autocapitalize="characters" placeholder="예) B, TEST" value="${esc(v.id || '')}"><p class="hint">영어·숫자로. 한 번 정하면 바꿀 수 없어요. 그 교회 서버의 CHURCH_ID에 같은 값을 넣어요.</p>`}
           <label class="f" for="aa-kind">종류</label><select id="aa-kind" class="field" name="kind"><option${v.kind === '테스트' ? '' : ' selected'}>교회</option><option${v.kind === '테스트' ? ' selected' : ''}>테스트</option></select>
           <label class="f" for="aa-codes">코드</label><input id="aa-codes" class="field" name="codes" required value="${esc(v.codes || '')}" placeholder="예) KOIDE24, 코이데"><p class="hint">쉼표로 여럿 쓸 수 있어요. 대소문자·띄어쓰기·-는 가리지 않아요.</p>
           <label class="f" for="aa-url">서버 주소</label><input id="aa-url" class="field" name="url" required inputmode="url" value="${esc(v.url || '')}" placeholder="https://script.google.com/macros/s/…/exec">
+          <p class="hint">그 교회 시트의 Apps Script › 배포 › 배포 관리에서 웹 앱 URL을 복사해 붙여 넣어요. /exec로 끝나는 주소예요.</p>
           <label class="f" for="aa-memo">메모</label><input id="aa-memo" class="field" name="memo" maxlength="60" value="${esc(v.memo || '')}">
           ${c.id ? `<label class="check"><input type="checkbox" name="stopped"${v.stopped ? ' checked' : ''}> 멈춤 · 이 코드로 새로 들어올 수 없어요</label>` : ''}
           <p class="hint">그 교회 서버의 스크립트 속성에 HUB_SECRET(기본 서버와 같은 값)과 CHURCH_ID(이름표)를 넣어야 이어져요. 테스트 공간이면 AUTO_APPROVE에 예를 넣어요.</p>
           <div class="actions"><button class="btn small" type="submit" ${S.busy ? 'disabled' : ''}>저장</button><button class="btn small ghost" type="button" data-act="aaedit" data-v="">취소</button></div></form>`; };
-      const card = c => { const st = c.status, old = st && String(st.version).slice(0, 10) < NEED_SERVER;
+      const stat = (l, n) => `<div><dt>${l}</dt><dd>${n}</dd></div>`;
+      const card = c => { const st = c.status, old = st && String(st.version).slice(0, 10) < NEED_SERVER, bad = !st || old || (st && st.errors);
         if (E && E.orig === c.id) return form(c);
-        return `<section class="card ch-dept${c.stopped ? ' closed' : ''}"><span class="row"><b>${esc(c.name)}</b>${c.kind === '테스트' ? '<span class="own-tag">테스트</span>' : ''}${c.stopped ? '<span class="own-tag">멈춤</span>' : ''}<span class="ops-dot${!st || old || st.errors ? ' bad' : ''}" aria-hidden="true"></span><button class="link" data-act="aaedit" data-v="${esc(c.id)}" style="margin-left:auto">고치기</button></span>
-          <small>코드 ${esc(c.codes || '없음')} · 코드로 들어온 사람 ${c.came}${c.memo ? ' · ' + esc(c.memo) : ''}</small>
-          <small>${st ? `서버 ${esc(st.version)} · 부서 ${st.depts} · 연결 ${st.linked}${st.auto ? ' · 바로 연결' : ''} · 최근 7일 오류 ${st.errors}` : '서버에 묻지 못했어요: ' + esc(c.err)}</small>
-          <span class="ch-todos">${st && st.asks ? `<span class="ch-todo">승인 기다림 ${st.asks}</span>` : ''}${old ? '<span class="ch-todo warn">새 버전으로 배포 필요</span>' : ''}${st && !st.opened ? '<span class="ch-todo">이번 달 아직 안 열림</span>' : ''}</span></section>`; };
+        return `<section class="card aa-card${c.stopped ? ' stopped' : ''}">
+          <div class="aa-head"><span class="ops-dot${bad ? ' bad' : ''}" title="${bad ? '살펴볼 것이 있어요' : '잘 이어져 있어요'}"></span><b>${esc(c.name)}</b>${c.kind === '테스트' ? '<span class="own-tag">테스트</span>' : ''}${c.stopped ? '<span class="own-tag">멈춤</span>' : ''}<button class="link" data-act="aaedit" data-v="${esc(c.id)}">고치기</button></div>
+          <div class="aa-codes">${String(c.codes || '').split(',').map(x => x.trim()).filter(Boolean).map(x => `<span class="aa-code">${esc(x)}</span>`).join('') || '<span class="hint">코드 없음</span>'}</div>
+          ${st ? `<dl class="aa-stats">${stat('부서', st.depts)}${stat('연결', st.linked)}${stat('코드로 온 사람', c.came)}${stat('7일 오류', st.errors)}</dl>` : `<p class="aa-err">서버에 묻지 못했어요 · ${esc(c.err)}</p>`}
+          ${(st && st.asks) || old || (st && !st.opened) || (st && st.auto) ? `<div class="ch-todos">${st && st.asks ? `<span class="ch-todo">승인 기다림 ${st.asks}</span>` : ''}${old ? '<span class="ch-todo">새 버전으로 배포 필요</span>' : ''}${st && !st.opened ? '<span class="ch-todo warn">이번 달 기도제목 아직 없음</span>' : ''}${st && st.auto ? '<span class="ch-todo warn">승인 없이 바로 연결</span>' : ''}</div>` : ''}
+          <p class="aa-ver">${st ? '서버 ' + esc(st.version) : ''}${c.memo ? (st ? ' · ' : '') + esc(c.memo) : ''}</p></section>`; };
+      const L = A.churches, nT = L.filter(c => c.kind === '테스트').length, came = L.reduce((n, c) => n + (c.came || 0), 0);
       return `${head}
-        <div class="ch-grid">${A.churches.length ? A.churches.map(card).join('') : '<p class="hint">아직 등록한 교회가 없어요.</p>'}</div>
-        ${E && !E.orig ? form() : '<button class="btn ghost wide" data-act="aaedit" data-v="new">교회·테스트 공간 더하기</button>'}
-        <p class="hint">기본 서버 ${esc(A.version)} · 내 카카오ID ${esc(A.me)}</p>${back}`;
+        <p class="aa-sum">교회 ${L.length - nT}곳 · 테스트 공간 ${nT}곳 · 코드로 들어온 사람 ${came}명</p>
+        <div class="aa-grid">${L.map(card).join('')}${E && !E.orig ? form() : '<button class="aa-add" data-act="aaedit" data-v="new"><span aria-hidden="true">+</span> 교회·테스트 공간 더하기</button>'}</div>
+        <p class="hint aa-foot">기본 서버 ${esc(A.version)} · 내 카카오ID ${esc(A.me)}</p>`;
     },
     dept: () => `${steps(1)}<p class="eyebrow">처음 한 번만 확인할게요</p><h1>어느 부서인가요?</h1>
       <div class="choices">${(S.depts || []).map(d => `<button class="choice" data-act="pickdept" data-v="${esc(d.id)}">${esc(d.name)}</button>`).join('')}</div>
