@@ -1548,34 +1548,34 @@ try { const p = JSON.parse(localStorage.getItem('koide-pref') || '{}'), d = docu
       const canSplit = () => { const t = $('#add-t'); return !!t && splitDraft(t.value).length > 0; };
       return [
         // ① 써 보기: 글 칸은 비추지 않는다(직접 쓰지 않으니 키보드가 열리지 않는다)
-        { mode: 'tap', target: () => tabBtn('mine'), text: '기도제목은 여기서 써요. 내 기도를 눌러요.' },
+        { mode: 'tap', target: () => tabBtn('mine'), text: '여기서 기도제목을 써요. 내 기도를 눌러 보세요.' },
         { mode: 'tap', target: () => $('[data-act=sample]'), wait: onMine, done: () => ev.sample && canSplit(),
           text: '예시로 연습해 볼게요. 예시 넣어 보기를 눌러요.' },
         { mode: 'tap', target: () => [$('#add-t'), $('[data-act=split]')], inert: () => $('#add-t'), wait: onMine, skip: () => !!S.preview, done: () => !!S.preview, text: '예시가 들어갔어요. 대상별로 정리하기를 눌러요.',
           bounce: () => S.preview || canSplit() ? '' : '예시 넣어 보기를 먼저 눌러요.' },
         { mode: 'tap', target: () => $('.preview'), wait: () => S.tab === 'mine' && S.preview, done: () => ev.added, back: () => !S.preview && !ev.added,
-          text: '정리된 목록이에요. 빼야 할 줄은 ×를 눌러요. 괜찮으면 추가하기를 눌러요.' },
+          text: '대상별로 정리됐네요. 추가하기를 눌러 보세요.' },
         // 추가한 뒤 어떻게 들어갔는지 먼저 보여 준다(목록 전체를 비춘다)
         { mode: 'next', target: () => $('.edit-list'), wait: () => S.tab === 'mine' && added().length > 0 && added().every(i => !i.pending),
-          text: `이렇게 들어갔어요. 대상마다 한 줄씩 나뉘어 ${scopeName(staffMe() ? 'dept' : 'room')}로 들어갔어요. 대상이나 글을 고치고 싶으면 여기서 바로 고쳐요.` },
+          text: '대상별로 기도제목 카드가 하나씩 들어갔어요. 카드마다 수정할 수 있어요.' },
         { mode: 'tap', target: scopeBtn, wait: () => S.tab === 'mine' && added().length > 0 && added().every(i => !i.pending), done: () => ev.scoped, timeout: 40000,
-          text: `누가 볼지 여기서 바꿔요. 누를 때마다 ${scopeName('room')} → ${scopeName('leader')} → ${w.only} 순서로 바뀌어요. 한 번 눌러 봐요. 나중에 언제든 다시 바꿀 수 있어요.` },
+          text: '공개 범위를 바꿀 수 있어요. 한번 눌러 보세요.' },
         // ② 기도해 보기
-        { mode: 'tap', target: () => tabBtn('pray'), text: '이제 함께 기도해 봐요. 기도하기를 눌러요.' },
+        { mode: 'tap', target: () => tabBtn('pray'), text: '함께 기도해 볼까요? 기도하기를 눌러 보세요.' },
         { mode: 'tap', target: () => $('[data-act=psstart]'), wait: () => S.tab === 'pray' && !S.ps, skip: () => !!S.ps, done: () => !!S.ps,
-          text: '기도 시작을 눌러요. 시간이나 음악은 나중에 마음대로 골라도 돼요.' },
+          text: '기도 시작을 누르면 한 장씩 넘기며 기도할 수 있어요.' },
         { mode: 'tap', target: () => $('.pss-pray:not([disabled])'), wait: () => S.ps && !S.ps.open && !S.ps.done, timeout: 20000, waitText: '기도를 여는 중이에요', waitStyle: 'pill',
-          done: () => !!S.ps && (S.ps.prayed.length > 0 || S.ps.extra.length > 0), text: '기도하고 나서 기도했어요를 눌러요.' },
+          done: () => !!S.ps && (S.ps.prayed.length > 0 || S.ps.extra.length > 0), text: '기도한 뒤, 기도했어요를 눌러 보세요.' },
         // 계속을 누르면 안내를 접어 두고, 기도하기를 마칠 때까지 기다렸다 이어 간다
-        { mode: 'next', nextLabel: '계속', then: () => !S.ps, text: '이렇게 한 장씩 넘기며 기도해요. 이제 \'기도했어요\'를 계속 눌러 기도하기를 마쳐 보세요.' },
+        { mode: 'next', nextLabel: '계속', then: () => !S.ps, text: '기도했어요를 계속 눌러 기도하기를 마쳐 보세요.' },
         // ③ 둘러보기
         { mode: 'next', target: homeSpot, before: () => { if (S.tab !== 'home') goTab('home'); }, wait: () => S.tab === 'home' && !S.ps,
-          text: `이번 달 화면이에요. 이번 주에 기도한 ${w.one}마다 끈에 매듭이 지어져요. (나만 보여요)` },
+          text: `이번 달 화면에서 기도한 ${w.one}마다 끈에 매듭이 생겨요. (나만 보여요)` },
         // 이달의 그림도 따로 비춘다(휴대폰에서는 끈과 멀리 떨어져 있어 한 번에 못 비춘다)
         { mode: 'next', target: () => $('.art-card'), skip: () => !$('.art-card'), wait: () => S.tab === 'home' && !S.ps,
-          text: '기도할수록 이달의 그림이 하나씩 채워져요. 기도한 날마다 주인공이 놓이고, 이번 달 처음 기도한 곳이 생기면 소품이 늘어요. (나만 보여요)' },
+          text: '기도할수록 그림의 주인공과 소품이 늘어나요. (나만 보여요)' },
         { mode: 'next', target: () => tabBtn('history'), text: '지난달 기도제목과 응답을 다시 볼 수 있어요.' },
-        { mode: 'next', target: () => tabBtn('more'), text: '화면 설정, 사용법, 홈 화면에 두기가 여기 있어요.' },
+        { mode: 'next', target: () => tabBtn('more'), text: '화면 설정이나 사용법 등이 있어요.' },
         // ④ 마무리: 연습한 예시를 치우고 빈 쓰기 칸을 비춘다. 칸은 눌리지 않고, 키보드도 우리가 열지 않는다
         { mode: 'next', target: () => $('#add-t'), nextLabel: '시작하기', wait: onMine, before: clearTrial,
           text: '이제 내 기도제목을 직접 쓰러 가 볼까요?' }
