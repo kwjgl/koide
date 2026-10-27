@@ -248,6 +248,7 @@ const ACTIONS = {
   prayText: body => { auth_(body.token); return read_('prayText').map(r => ({ topic: r.topic, kind: r.kind, order: Number(r.order) || 0, text: String(r.text), ref: String(r.ref || ''), status: r.status || '' })); },
   prayTextSave: body => { const c = staffOrAdmin_(body); return withLock_(() => prayTextSave_(c, body)); },
   // 카카오톡이 없는 분: 리더가 일회용 코드를 만들고(codeMake), 그분은 코드로 들어온다(codeLogin, 로그인 없이 부를 수 있는 일)
+  //  (2026-10-27) 앱 화면에서는 뺐다(첫 화면의 '코드로 들어오기'와 리더의 코드 만들기). 앞으로 받을 교회 코드와 헷갈려서. 이미 코드로 들어온 연결은 그대로 쓰도록 서버에는 남겨 둔다
   codeMake: body => { const c = leaderOrAdmin_(body); return withLock_(() => codeMake_(c, body)); },
   codeLogin: body => withLock_(() => codeLogin_(body)),
   noteGet: body => noteGet_(auth_(body.token)),

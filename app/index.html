@@ -298,14 +298,6 @@ body.wbig-open { overflow: hidden; }
 .wl-once { text-align: center; word-break: keep-all; }
 .wl-play { display: inline-flex; align-items: center; justify-content: center; gap: .45em; }
 .wl-play svg { width: 1.1em; height: 1.1em; }
-.wl-or { display: flex; align-items: center; gap: .8em; margin: 6px 0 0; color: var(--ink-2); font-size: .8em; }
-.wl-or::before, .wl-or::after { content: ''; flex: 1; border-top: 1px solid var(--line); }
-.wl-alt { display: flex; flex-direction: column; gap: 8px; }
-.wl-alt-btn { display: grid; grid-template-columns: 1fr auto; align-items: center; column-gap: .6em; padding: .75em .9em; border: 1px solid var(--line); border-radius: 12px; background: var(--page); color: var(--ink); text-align: left; text-decoration: none; font: inherit; cursor: pointer; }
-.wl-alt-btn b { font-weight: 600; font-size: .95em; }
-.wl-alt-btn small { grid-column: 1; color: var(--ink-2); font-size: .8em; }
-.wl-alt-btn svg { grid-column: 2; grid-row: 1 / span 2; color: var(--ink-2); }
-.wl-alt-btn:hover { border-color: var(--line-strong); }
 .wl-feat { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 14px; }
 .wl-feat li { display: flex; gap: 12px; align-items: flex-start; }
 .wl-ico { flex: none; width: 38px; height: 38px; border-radius: 50%; background: var(--accent-soft); color: var(--accent); display: grid; place-items: center; }
@@ -326,12 +318,6 @@ body.wbig-open { overflow: hidden; }
 /* 코이데 소개 */
 /* 코이데 소개 영상: 화면 전체, 테마색을 따른다. 자막은 늘 나온다 */
 .note-link { display: inline-flex; margin-top: 10px; }
-.code-mk { border-top: 1px solid var(--line); padding-top: .8em; display: flex; flex-direction: column; gap: .5em; }
-.code-row { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
-.code-row .field { flex: 1 1 8em; min-width: 0; }
-.code-out { display: flex; flex-direction: column; align-items: center; gap: 4px; padding: .9em; border-radius: 14px; background: var(--accent-soft); }
-.code-out b { font-family: ui-monospace, 'SFMono-Regular', Menlo, monospace; font-size: 1.6em; letter-spacing: .12em; color: var(--accent); }
-.code-out small { color: var(--ink-2); font-size: .8em; text-align: center; }
 .pt-topics { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 10px; }
 .pt-row { display: flex; flex-direction: column; gap: 6px; padding-top: 8px; border-top: 1px solid var(--line); }
 .pt-row:first-of-type { border-top: 0; }
@@ -1743,10 +1729,6 @@ try { const p = JSON.parse(localStorage.getItem('koide-pref') || '{}'), d = docu
         : `<button class="kakao" data-act="login">${ICON.bubble}카카오로 시작하기</button>
           <p class="hint wl-once">처음 한 번만 로그인하면 돼요.<br>초대 링크를 받았다면 그 링크로 열어 주세요.</p>${iosSafari() ? '<p class="hint">아이폰에서 \'접속 정보를 확인해 주세요\'가 나오면, 카톡 채팅방에서 이 링크를 눌러 열거나 설정 → iCloud → 비공개 릴레이를 끄고 다시 해 주세요.</p>' : ''}`}
         <button class="btn ghost wl-play" data-act="ividw"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M8 5.5v13l10.5-6.5z" fill="currentColor"/></svg>코이데 소개 영상</button>
-        <p class="wl-or"><span>다른 방법</span></p>
-        <div class="wl-alt">
-          <button class="wl-alt-btn" data-act="codestart"><b>코드로 들어오기</b><small>카카오톡이 없으면 리더에게 받은 코드로</small>${ICON.chevR}</button>
-        </div>
       </section>
       <ul class="wl-feat">
         <li><span class="wl-ico">${ICON.people}</span><div><b>기도제목을 나눠요</b><span>달마다 기도제목을 올리고, 우리 공동체의 기도제목을 한곳에서 봐요.</span></div></li>
@@ -1775,12 +1757,6 @@ try { const p = JSON.parse(localStorage.getItem('koide-pref') || '{}'), d = docu
           <button class="btn wide" type="submit" ${S.busy ? 'disabled' : ''}>동의하고 함께하기 신청</button></form>
         <button class="link" data-act="tonote">나중에 할게요</button>`;
     },
-    // 카카오톡이 없는 분: 리더에게 받은 일회용 코드로 들어온다(리더가 그 사람 이름으로 만들어서 따로 승인하지 않는다)
-    code: () => `<p class="eyebrow">카카오톡 없이</p><h1>코드로 들어오기</h1><p>리더에게 받은 8자리 코드를 넣어 주세요.</p>
-      <form data-form="codelogin"><input id="cd-a" class="field" required maxlength="12" autocomplete="one-time-code" autocapitalize="characters" spellcheck="false" placeholder="예) K7PQ-2M9X" aria-label="입장 코드">
-        <button class="btn wide" type="submit" style="margin-top:12px">들어가기</button></form>
-      <p class="hint">코드는 한 번만 쓸 수 있고 7일 동안 유효해요. 휴대폰을 바꾸면 리더에게 새 코드를 받아요.</p>
-      <button class="link" data-act="codeback">뒤로</button>`,
     dept: () => `${steps(1)}<p class="eyebrow">처음 한 번만 확인할게요</p><h1>어느 부서인가요?</h1>
       <div class="choices">${(S.depts || []).map(d => `<button class="choice" data-act="pickdept" data-v="${esc(d.id)}">${esc(d.name)}</button>`).join('')}</div>
       ${connecting() ? '<button class="link" data-act="tonote">기도 노트로 돌아가기</button>' : ''}`,
@@ -3193,20 +3169,7 @@ try { const p = JSON.parse(localStorage.getItem('koide-pref') || '{}'), d = docu
             <div class="actions" style="margin-top:8px"><button class="btn small" data-act="approve" data-v="${esc(q.kakaoId)}">승인</button><button class="btn small ghost" data-act="reject" data-v="${esc(q.kakaoId)}">거절</button></div></div>`).join('')
           : '<p class="hint">확인할 신청이 없어요.</p>'}
         ${S.op ? '' : `<ul class="items">${P.families.map(f => `<li style="grid-template-columns:1fr auto"><span>${esc(f.name)}</span><span>${f.linked.length ? f.linked.map(l => `${esc(l.person)}${l.kakaoId !== '' && l.person !== me.person ? ` <button class="link danger" data-act="unlink" data-v="${esc(l.kakaoId)}">해제</button>` : ''}`).join(', ') : '<span class="hint">아직 연결 없음</span>'}</span></li>`).join('')}</ul>`}`}
-        <p class="hint">휴대폰을 잃어버렸거나 ${solo() ? '이름' : '가정'}을 잘못 고른 사람만 해제해요.</p>
-        ${S.op || !P ? '' : codeMaker(P)}</section>`;
-  }
-  // 카카오톡이 없는 분의 입장 코드: 그 사람(가정과 이름)을 골라 만들고, 한 번만 보여 준다
-  function codeMaker(P) {
-    const C = S.codeMk || {}, fam = P.families.find(f => f.id === C.fam) || P.families[0];
-    if (!fam) return '';
-    const names = fam.name.split(' · ');
-    return `<div class="code-mk"><p class="label">카카오톡이 없는 분</p><p class="hint">그분 이름으로 일회용 코드를 만들어 직접(문자·전화·만나서) 알려 주세요. 코드로 들어오면 따로 승인하지 않아도 연결돼요.</p>
-      ${C.made ? `<div class="code-out"><b>${esc(C.made.code)}</b><small>${esc(C.made.family)} · ${esc(C.made.person)} 님 · ${esc(C.made.until)}까지 한 번</small></div>
-        <p class="hint">첫 화면의 "코드로 들어오기"에 넣으면 돼요. 이 화면을 닫으면 코드를 다시 볼 수 없어요.</p><button class="link" data-act="codeagain">다른 분 코드 만들기</button>`
-      : `<div class="code-row"><select class="field" data-codefam="1" aria-label="${esc(words().one)}">${P.families.map(f => `<option value="${esc(f.id)}"${f.id === fam.id ? ' selected' : ''}>${esc(f.name)}</option>`).join('')}</select>
-        ${names.length > 1 ? `<select class="field" data-codeperson="1" aria-label="이름">${names.map(n => `<option${n === C.person ? ' selected' : ''}>${esc(n)}</option>`).join('')}</select>` : ''}
-        <button class="btn small" data-act="codemake"${S.busy ? ' disabled' : ''}>코드 만들기</button></div>`}</div>`;
+        <p class="hint">휴대폰을 잃어버렸거나 ${solo() ? '이름' : '가정'}을 잘못 고른 사람만 해제해요.</p></section>`;
   }
   // 우리 가정 정보: 이름과 자녀(태어난 순서). 자녀 이름을 넣어 두면 기도제목의 대상이 이름으로 붙는다
   function famInfoCard() {
@@ -4865,19 +4828,7 @@ try { const p = JSON.parse(localStorage.getItem('koide-pref') || '{}'), d = docu
         catch (err) { oops(err.code === 'bad' && /모르는 요청/.test(err.message) ? { message: '서버를 새 버전으로 배포하면 저장할 수 있어요.' } : err); }
         S.busy = false; return render();
       }
-      case 'codestart': S.view = 'code'; render(); { const f = $('#cd-a'); if (f) f.focus(); } return;
-      case 'codeback': S.view = 'login'; return render();
       case 'tonote': try { localStorage.removeItem(CONNECT); } catch (err) { /* 무시 */ } location.href = 'note.html' + (DEMO_LINK ? '?demo' : ''); return;
-      case 'codeagain': S.codeMk = {}; return render();
-      case 'codemake': {
-        const P = S.pending, C = S.codeMk || {}, fam = P.families.find(f => f.id === C.fam) || P.families[0];
-        const person = C.person && fam.name.split(' · ').includes(C.person) ? C.person : fam.name.split(' · ')[0];
-        if (!confirm(`${person} 님의 입장 코드를 만들까요? 예전에 만든 코드가 있으면 더는 쓸 수 없어요.`)) return;
-        S.busy = true; render();
-        try { const r = await api('codeMake', { familyId: fam.id, person }); S.codeMk = { fam: fam.id, person, made: r }; }
-        catch (err) { oops(err.code === 'bad' && /모르는 요청/.test(err.message) ? { message: '서버를 새 버전으로 배포하면 만들 수 있어요.' } : err); }
-        S.busy = false; return render();
-      }
       case 'note': location.href = 'note.html' + (DEMO_LINK ? '?demo' : ''); return;
       case 'ivid': {
         const w = words(), k = sceneKey(S.month.month), sc = SCENES[k], all = sc.props.length;
@@ -5347,8 +5298,6 @@ try { const p = JSON.parse(localStorage.getItem('koide-pref') || '{}'), d = docu
     if (t.dataset.demoas !== undefined) { const v = t.value; t.value = ''; return v && demoSwitch(v); }
     if (S.mv && t.dataset.mv) { S.mv[t.dataset.mv] = t.value; if (t.dataset.mv === 'deptId') S.mv.roomId = ''; return render(); }
     if (S.mv && t.dataset.mvmap) { S.mv.map[t.dataset.mvmap] = t.value; return; }
-    if (t.dataset.codefam) { S.codeMk = { fam: t.value }; return render(); }
-    if (t.dataset.codeperson) { S.codeMk = Object.assign(S.codeMk || {}, { person: t.value }); return; }
     if (t.dataset.ptdate && S.pt) { S.pt.date = t.value || dayStr(); return render(); }
     if (t.dataset.imp) { const [fi, ii] = t.dataset.imp.split('.').map(Number); S.imp.families[fi].items[ii].target = t.value; return; }
     // 연도 개편: 리더·코리더 고르기, 날짜(바뀌는 달을 바꾸면 안내 날짜도 2주·1주 전으로 다시 맞춘다)
@@ -5423,13 +5372,6 @@ try { const p = JSON.parse(localStorage.getItem('koide-pref') || '{}'), d = docu
       try { S.tog = await api('togetherSave', Object.assign({ text: x, target: t }, f.dataset.v ? { id: f.dataset.v } : {})); S.month.together = S.tog.list; S.togEdit = null; toast(f.dataset.v ? '고쳤어요.' : '더했어요.'); }
       catch (err) { oops(err); }
       S.busy = false; return render();
-    }
-    if (f.dataset.form === 'codelogin') {
-      const v = ($('#cd-a').value || '').trim(); if (!v) return;
-      try { const r = await api('codeLogin', { code: v }); setToken(r.token, r.uid); }
-      catch (err) { return toast(err.code === 'bad' && /모르는 요청/.test(err.message || '') ? '아직 코드로 들어올 수 없어요. 관리자에게 알려 주세요.' : err.message || '들어오지 못했어요.'); }
-      if (backToNote()) return;
-      S.view = 'loading'; render(); return refreshMe();
     }
     if (f.dataset.form === 'typename') {
       const n = ($('#tn-a') || {}).value.trim(); if (!n) return;
