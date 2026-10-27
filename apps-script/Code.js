@@ -102,7 +102,7 @@ const FIRST_DEPT = { id: 'D1', name: '청장년부', group: '사랑방', unit: '
 // ── 요청 받기 ─────────────────────────────────────────────
 
 // 서버 코드를 고칠 때마다 바꾼다. 웹 앱 주소를 열면 보여서, 새 버전으로 배포됐는지 확인할 수 있다
-const VERSION = '2026-11-12 교회 코드';
+const VERSION = '2026-11-13 첫 관리자 초대';
 function doGet() {
   return ContentService.createTextOutput('코이데 서버가 켜져 있어요. (버전: ' + VERSION + ')');
 }
@@ -131,6 +131,7 @@ const ACTIONS = {
   ticketLogin: ticketLogin_,
   hubKnows: hubKnows_,
   appStatus: appStatus_,
+  hubOpsInvite: hubOpsInvite_,
   me: body => meInfo_(who_(body)),
   // 앱을 열 때 한 번에: 나 + (연결됐으면 이번 달, 연결 전이면 부서와 사랑방 목록). 서버와 두 번 이야기하던 것을 한 번으로
   start: body => {
@@ -323,6 +324,15 @@ function hubKnows_(body) {
   hubCheck_('knows|' + k + '|' + body.at, body.sig, body.at);
   const l = read_('links').find(x => String(x.kakaoId) === k && (x.status === '연결' || x.status === '요청'));
   return { known: !!l || opsRows_(k).length > 0 };
+}
+// 첫 관리자 초대(앱 관리자 보기): 전체 관리자 초대 링크 값을 만든다. 전체 관리자가 아직 없는 새 교회·테스트 공간을 시트를 열지 않고 꾸리려고. 7일 안에 한 번
+function hubOpsInvite_(body) {
+  hubCheck_('invite|' + body.at, body.sig, body.at);
+  return withLock_(() => {
+    const token = newToken_() + newToken_().slice(0, 4);
+    append_('opsAdmins', { kakaoId: '', name: '', scope: '전체', status: '초대', token, at: new Date(), by: '앱 관리자' });
+    return { token, until: fmtDay_(new Date(Date.now() + 7 * 864e5)) };
+  });
 }
 // 앱 관리자 보기(기본 서버)가 묻는 이 교회의 상태: 숫자와 버전만. 이름·기도제목은 보내지 않는다
 function appStatus_(body) {
