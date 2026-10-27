@@ -1234,6 +1234,63 @@ try { const p = JSON.parse(localStorage.getItem('koide-pref') || '{}'), d = docu
   const readCache = () => { try { return JSON.parse(localStorage.getItem(CACHE)); } catch (e) { return null; } };
   const writeCache = () => { try { localStorage.setItem(CACHE, JSON.stringify({ me: S.me, month: S.month })); } catch (e) { /* 무시 */ } };
 
+  // ── 교회 코드(결정 기록 2026-10-27): 카카오 로그인은 기본 서버(CFG.HUB_URL, apps-script/hub)가 하고, 교회 코드가 있어야 들어온다 ──
+  //  코드가 맞으면 기본 서버가 서명한 확인증으로 그 교회 서버(테스트 코드면 테스트 서버)에 로그인하고, 그 서버 주소를 기기에 적어 둔다(config.js가 읽는다).
+  //  한 번 들어간 사람은 기본 서버가 기억해서 다시 로그인해도 코드를 묻지 않는다. 기본 서버가 없거나(예전 설정) 데모면 예전처럼 교회 서버 하나로 로그인한다
+  const HUB = !DEMO && !!CFG.HUB_URL, HUB_TOKEN = 'koide-hub-token', CHURCH_URL = 'koide-church-url', CHURCH_CODE = 'koide-church-code', CODE_IN = 'koide-church-in', APPADMIN = 'koide-appadmin';
+  const lsGet = k => { try { return localStorage.getItem(k); } catch (e) { return null; } };
+  const lsSet = (k, v) => { try { v == null ? localStorage.removeItem(k) : localStorage.setItem(k, v); } catch (e) { /* 이번만 */ } };
+  // 초대 링크에 교회 코드를 붙인다(새 기기에서 열면 코드 칸이 채워져 있다). 코드로 들어온 기기만 안다
+  const churchQ = () => { const c = HUB && lsGet(CHURCH_CODE); return c ? '&church=' + encodeURIComponent(c) : ''; };
+  async function hubApi(action, data) {
+    const body = Object.assign({ action, token: lsGet(HUB_TOKEN) }, data || {});
+    const slow = setTimeout(() => { const l = $('.loading'); if (l) l.textContent = '서버를 깨우는 중이에요. 처음에는 20초쯤 걸릴 수 있어요…'; }, 4000);
+    const ctl = new AbortController(), stop = setTimeout(() => ctl.abort(), 60000);
+    let res;
+    try { res = await (await fetch(CFG.HUB_URL, { method: 'POST', body: JSON.stringify(body), signal: ctl.signal })).json(); }
+    catch (e) { throw { code: 'net', message: '서버가 답하지 않아요. 잠시 뒤 다시 해 주세요.' }; }
+    finally { clearTimeout(slow); clearTimeout(stop); }
+    if (!res.ok) {
+      if (res.code === 'login') { lsSet(HUB_TOKEN, null); S.view = 'login'; render(); }
+      throw res;
+    }
+    return res.data;
+  }
+  // 카카오 로그인 뒤: 갈 교회를 기본 서버에 묻는다. 모르면 교회 코드를 받는다
+  async function toChurch() {
+    if (lsGet(APPADMIN)) return openAppAdmin();
+    S.view = 'loading'; render();
+    let w; try { w = await hubApi('where'); } catch (e) { if (e.code === 'login') return; S.view = 'error'; S.err = e; return render(); }
+    if (w.church) return enterChurchServer(w);
+    S.cc = { code: lsGet(CODE_IN) || '' }; S.view = 'ccode'; render();
+    if (S.cc.code) peekCode(S.cc.code);
+  }
+  async function peekCode(v) {
+    S.busy = true; render();
+    try { S.cc.peek = await hubApi('peek', { code: v }); } catch (e) { if (e.code !== 'login') toast(e.message); }
+    S.busy = false; render();
+  }
+  // 그 교회 서버로: 서버 주소를 적고, 확인증으로 로그인한 뒤 평소처럼 연다
+  async function enterChurchServer(w) {
+    lsSet(CHURCH_URL, w.church.url); CFG.API_URL = w.church.url; lsSet(CODE_IN, null);
+    S.view = 'loading'; render();
+    try { const r = await api('ticketLogin', { ticket: w.ticket }); setToken(r.token, r.uid); }
+    catch (e) { if (e.code === 'login') return; S.view = 'error'; S.err = e.code === 'bad' && /모르는 요청/.test(e.message || '') ? { message: '이 교회의 서버를 새 버전으로 배포해야 들어올 수 있어요. 교회 관리자에게 알려 주세요.' } : e; return render(); }
+    if (backToNote()) return;
+    return refreshMe();
+  }
+  // 앱 관리자 보기(?appadmin): 기본 서버로 로그인한 앱 관리자만. 교회마다 서버 상태와 숫자만 본다
+  async function openAppAdmin() {
+    lsSet(APPADMIN, null); S.aa = null; S.view = 'appadmin'; render(); window.scrollTo(0, 0);
+    try { S.aa = await hubApi('admin'); } catch (e) { if (e.code === 'login') return; S.aa = { err: e.message }; }
+    render();
+  }
+  function appAdminBack() {
+    lsSet(APPADMIN, null); S.aa = null;
+    if (getToken()) { S.view = 'loading'; render(); return refreshMe(); }
+    S.view = 'login'; return render();
+  }
+
   // 화면 상태
   const S = { openItems: new Set(), openFams: new Set(), view: 'loading', me: null, depts: null, rooms: null, pick: {}, month: null, tab: 'home', pending: null, busy: false };
 
@@ -1316,6 +1373,16 @@ try { const p = JSON.parse(localStorage.getItem('koide-pref') || '{}'), d = docu
     if (q.get('opsjoin')) { try { localStorage.setItem(OPS_JOIN, q.get('opsjoin')); } catch (e) { /* 이번만 */ } q.delete('opsjoin'); history.replaceState(null, '', location.pathname + (q.toString() ? '?' + q.toString().replace(/=(&|$)/g, '$1') : '')); }
     if (q.has('connect')) { try { localStorage.setItem(CONNECT, '1'); } catch (e) { /* 이번만 */ } q.delete('connect'); history.replaceState(null, '', location.pathname + (q.toString() ? '?' + q.toString().replace(/=(&|$)/g, '$1') : '')); }
     if (q.get('join')) { try { localStorage.setItem(JOIN, q.get('join')); } catch (e) { /* 이번만 */ } q.delete('join'); history.replaceState(null, '', location.pathname + (q.toString() ? '?' + q.toString().replace(/=(&|$)/g, '$1') : '')); }
+    // 교회 코드가 붙은 초대 링크(?church=코드): 코드 칸을 미리 채워 둔다. 앱 관리자 보기(?appadmin)
+    if (q.get('church')) { lsSet(CODE_IN, q.get('church')); q.delete('church'); history.replaceState(null, '', location.pathname + (q.toString() ? '?' + q.toString().replace(/=(&|$)/g, '$1') : '')); }
+    if (q.has('appadmin')) { if (HUB) lsSet(APPADMIN, '1'); q.delete('appadmin'); history.replaceState(null, '', location.pathname + (q.toString() ? '?' + q.toString().replace(/=(&|$)/g, '$1') : '')); }
+    // 교회 코드: 카카오에서 돌아오면 기본 서버로 로그인하고 갈 교회를 정한다
+    if (q.get('code') && HUB) {
+      history.replaceState(null, '', location.pathname);
+      try { const r = await hubApi('login', { code: q.get('code'), redirectUri: CFG.REDIRECT_URI || '' }); lsSet(HUB_TOKEN, r.token); }
+      catch (e) { oops(e); S.view = 'login'; return render(); }
+      return toChurch();
+    }
     if (q.get('code')) {
       try { const r = await api('login', { code: q.get('code'), redirectUri: CFG.REDIRECT_URI || '' }); setToken(r.token, r.uid); }
       catch (e) { oops(e); }
@@ -1339,6 +1406,9 @@ try { const p = JSON.parse(localStorage.getItem('koide-pref') || '{}'), d = docu
     if (TUT && !getToken()) {
       try { const r = await api('login', { code: 'demo:연습', redirectUri: '' }); setToken(r.token, r.uid); } catch (e) { return tutFail(); }
     }
+    if (HUB && lsGet(APPADMIN)) { if (lsGet(HUB_TOKEN)) return openAppAdmin(); S.view = 'login'; return render(); }
+    // 기본 서버에는 로그인했는데 아직 교회에 들어가지 않았으면(코드를 넣다 앱을 닫음 등) 이어서
+    if (HUB && !getToken() && lsGet(HUB_TOKEN)) return toChurch();
     if (!getToken()) { S.view = 'login'; return render(); }
     // 지난번 화면이 기억돼 있으면 먼저 보여 주고, 서버에서 새로 받아 조용히 바꾼다
     const c = readCache();
@@ -1727,7 +1797,7 @@ try { const p = JSON.parse(localStorage.getItem('koide-pref') || '{}'), d = docu
           <button class="choice" data-act="login" data-v="최운영">데모: 최운영으로 들어가기 (운영 지원 · 가정 없음)</button></div>
           <p class="hint">데모 모드에서는 카카오 대신 이 버튼으로 사람을 골라 들어가요.</p>`
         : `<button class="kakao" data-act="login">${ICON.bubble}카카오로 시작하기</button>
-          <p class="hint wl-once">처음 한 번만 로그인하면 돼요.<br>초대 링크를 받았다면 그 링크로 열어 주세요.</p>${iosSafari() ? '<p class="hint">아이폰에서 \'접속 정보를 확인해 주세요\'가 나오면, 카톡 채팅방에서 이 링크를 눌러 열거나 설정 → iCloud → 비공개 릴레이를 끄고 다시 해 주세요.</p>' : ''}`}
+          <p class="hint wl-once">${HUB && lsGet(APPADMIN) ? '앱 관리자 보기는 카카오로 한 번 더 로그인해요.' : '처음 한 번만 로그인하면 돼요.<br>초대 링크를 받았다면 그 링크로 열어 주세요.'}</p>${HUB && lsGet(APPADMIN) ? '<button class="link" data-act="aaback">앱으로 돌아가기</button>' : ''}${iosSafari() ? '<p class="hint">아이폰에서 \'접속 정보를 확인해 주세요\'가 나오면, 카톡 채팅방에서 이 링크를 눌러 열거나 설정 → iCloud → 비공개 릴레이를 끄고 다시 해 주세요.</p>' : ''}`}
         <button class="btn ghost wl-play" data-act="ividw"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M8 5.5v13l10.5-6.5z" fill="currentColor"/></svg>코이데 소개 영상</button>
       </section>
       <ul class="wl-feat">
@@ -1756,6 +1826,35 @@ try { const p = JSON.parse(localStorage.getItem('koide-pref') || '{}'), d = docu
           ${groupConsent(P)}
           <button class="btn wide" type="submit" ${S.busy ? 'disabled' : ''}>동의하고 함께하기 신청</button></form>
         <button class="link" data-act="tonote">나중에 할게요</button>`;
+    },
+    // 교회 코드(카카오 로그인 뒤, 처음 한 번): 코드가 없으면 코이데를 쓸 수 없다. 맞는 코드면 교회 이름을 보여 주고 묻는다
+    ccode: () => {
+      const C = S.cc || {}, P = C.peek;
+      if (P) return `<p class="eyebrow">교회 코드 ${esc(C.code.toUpperCase())}</p><h1>${esc(P.name)}${P.kind === '테스트' ? ' <span class="own-tag">테스트</span>' : ''}</h1>
+        <p>${P.kind === '테스트' ? '코이데를 미리 써 보는 테스트 공간이에요. 교회의 진짜 기도제목과는 따로예요.' : '이 교회가 맞나요? 들어가면 다음부터는 코드 없이 열려요.'}</p>
+        <button class="btn wide" data-act="ccjoin" ${S.busy ? 'disabled' : ''}>맞아요, 들어가기</button>
+        <button class="link" data-act="ccagain">코드 다시 넣기</button>`;
+      return `<p class="eyebrow">처음 한 번만</p><h1>교회 코드를 넣어 주세요</h1>
+        <p>코이데는 교회 코드가 있어야 쓸 수 있어요.</p>
+        <form data-form="churchcode"><input id="cc-a" class="field" required maxlength="20" autocapitalize="characters" autocomplete="off" spellcheck="false" aria-label="교회 코드" value="${esc(C.code || '')}">
+          <button class="btn wide" type="submit" style="margin-top:12px" ${S.busy ? 'disabled' : ''}>다음</button></form>
+        <p class="hint">코드는 교회나 코이데를 소개해 준 분에게 받아요.</p>
+        <button class="link" data-act="logout">다른 카카오 계정으로 로그인</button>`;
+    },
+    // 앱 관리자 보기: 교회(와 테스트 공간)마다 서버 상태와 숫자. 이름·기도제목은 오지 않는다
+    appadmin: () => {
+      const A = S.aa, head = '<p class="eyebrow">앱 관리자</p><h1>교회 전체 보기</h1>', back = '<button class="link" data-act="aaback">앱으로 돌아가기</button>';
+      if (!A) return head + '<p class="loading">교회 서버들에 묻는 중…</p>';
+      if (A.err) return `${head}<p class="hint">${esc(A.err)}</p>${back}`;
+      const card = c => { const st = c.status, old = st && String(st.version).slice(0, 10) < NEED_SERVER;
+        return `<section class="card ch-dept${c.stopped ? ' closed' : ''}"><span class="row"><b>${esc(c.name)}</b>${c.kind === '테스트' ? '<span class="own-tag">테스트</span>' : ''}${c.stopped ? '<span class="own-tag">멈춤</span>' : ''}<span class="ops-dot${!st || old || st.errors ? ' bad' : ''}" aria-hidden="true"></span></span>
+          <small>코드 ${esc(c.codes || '없음')} · 코드로 들어온 사람 ${c.came}${c.memo ? ' · ' + esc(c.memo) : ''}</small>
+          <small>${st ? `서버 ${esc(st.version)} · 부서 ${st.depts} · 연결 ${st.linked}${st.auto ? ' · 바로 연결' : ''} · 최근 7일 오류 ${st.errors}` : '서버에 묻지 못했어요: ' + esc(c.err)}</small>
+          <span class="ch-todos">${st && st.asks ? `<span class="ch-todo">승인 기다림 ${st.asks}</span>` : ''}${old ? '<span class="ch-todo warn">새 버전으로 배포 필요</span>' : ''}${st && !st.opened ? '<span class="ch-todo">이번 달 아직 안 열림</span>' : ''}</span></section>`; };
+      return `${head}<p class="hint">교회마다 서버가 따로예요. 숫자와 서버 상태만 보이고, 이름과 기도제목은 오지 않아요.</p>
+        <div class="ch-grid">${A.churches.length ? A.churches.map(card).join('') : '<p class="hint">아직 등록한 교회가 없어요.</p>'}</div>
+        <section class="card"><h2>교회·테스트 공간 더하기</h2><p class="hint">기본 서버 시트의 '교회' 탭에 한 줄을 더해요(이름표, 이름, 종류: 교회 또는 테스트, 코드: 쉼표로 여럿, 서버 주소). 그 교회 서버의 스크립트 속성에는 HUB_SECRET과 CHURCH_ID(이름표)를 넣고, 테스트 공간이면 AUTO_APPROVE에 예를 넣어요. 상태에 멈춤을 쓰면 코드로 들어올 수 없어요.</p></section>
+        <p class="hint">기본 서버 ${esc(A.version)} · 내 카카오ID ${esc(A.me)}</p>${back}`;
     },
     dept: () => `${steps(1)}<p class="eyebrow">처음 한 번만 확인할게요</p><h1>어느 부서인가요?</h1>
       <div class="choices">${(S.depts || []).map(d => `<button class="choice" data-act="pickdept" data-v="${esc(d.id)}">${esc(d.name)}</button>`).join('')}</div>
@@ -3642,7 +3741,7 @@ try { const p = JSON.parse(localStorage.getItem('koide-pref') || '{}'), d = docu
   async function loadChurchAnalysis() { S.canErr = ''; try { S.can = await api('churchAnalysis'); } catch (e) { S.can = null; S.canErr = e.code === 'bad' ? '서버를 새 버전으로 배포하면 볼 수 있어요.' : e.message; } render(); }
   function churchView() {
     const ct = S.churchTab || 'home';
-    const head = `${S.home ? `<button class="link back" data-act="tab" data-v="more">${ICON.chevL}더보기</button>` : ''}<div class="page-top"><div><p class="eyebrow">전체 관리자</p><h1>교회 전체</h1></div></div>
+    const head = `${S.home ? `<button class="link back" data-act="tab" data-v="more">${ICON.chevL}더보기</button>` : ''}<div class="page-top"><div><p class="eyebrow">전체 관리자</p><h1>교회 전체</h1></div>${HUB ? '<a class="link" href="./?appadmin">앱 관리자 보기 ›</a>' : ''}</div>
       <div class="seg2 admin-seg three" role="tablist" aria-label="교회 전체">${[['home', '한눈에'], ['survey', '의견과 설문'], ['analysis', '분석']].map(([k, l]) => `<button class="${ct === k ? 'on' : ''}" role="tab" aria-selected="${ct === k}" data-act="churchtab" data-v="${k}">${l}</button>`).join('')}</div>`;
     if (ct === 'analysis') return head + analysisView(true);
     if (ct === 'survey') return head + surveyAdminView();
@@ -3785,7 +3884,7 @@ try { const p = JSON.parse(localStorage.getItem('koide-pref') || '{}'), d = docu
     if (await X.saveBlob(blob, `koide-weave-${d.id}.png`, d.name)) toast('그림을 저장했어요');
   }
   const myGroups = () => (S.me && S.me.groups) || [];
-  const groupUrl = t => (CFG.REDIRECT_URI || location.origin + location.pathname) + (DEMO_LINK ? '?demo&' : '?') + 'gjoin=' + t;
+  const groupUrl = t => (CFG.REDIRECT_URI || location.origin + location.pathname) + (DEMO_LINK ? '?demo&' : '?') + 'gjoin=' + t + churchQ();
   // splash: 모임 전환 화면을 쓴다(함께하는 곳 메뉴, 기도 노트에서 열었을 때). 모임 자료가 올 때까지 보이고, 10초가 넘으면 그만 기다리고 오류 안내로
   async function enterGroup(id, splash) {
     const sp = window.koideSplash, g0 = myGroups().find(x => x.id === id);
@@ -3903,7 +4002,7 @@ try { const p = JSON.parse(localStorage.getItem('koide-pref') || '{}'), d = docu
     if (S.adminTab === 'analysis') all.push(loadAnalysis());
     return Promise.allSettled(all);
   }
-  const opsInviteUrl = t => (CFG.REDIRECT_URI || location.origin + location.pathname) + (DEMO_LINK ? '?demo&' : '?') + 'opsjoin=' + t;
+  const opsInviteUrl = t => (CFG.REDIRECT_URI || location.origin + location.pathname) + (DEMO_LINK ? '?demo&' : '?') + 'opsjoin=' + t + churchQ();
   // 운영 관리자 카드: 이 부서를 맡은 사람, 아직 쓰지 않은 초대, 초대 링크 만들기
   function opsAdminCard() {
     const L = S.church && S.church.opsList;
@@ -4258,7 +4357,7 @@ try { const p = JSON.parse(localStorage.getItem('koide-pref') || '{}'), d = docu
   // 기도 노트에서 '우리 교회 공동체에 연결하기'를 눌러 왔다는 표시(초대 링크 없이 부서·소그룹을 골라 신청)
   const CONNECT = 'koide-connect';
   const connecting = () => { try { return !!localStorage.getItem(CONNECT); } catch (e) { return false; } };
-  const inviteUrl = t => (CFG.REDIRECT_URI || location.origin + location.pathname) + (DEMO_LINK ? '?demo&' : '?') + 'join=' + t;
+  const inviteUrl = t => (CFG.REDIRECT_URI || location.origin + location.pathname) + (DEMO_LINK ? '?demo&' : '?') + 'join=' + t + churchQ();
   // QR 그림은 관리자가 볼 때만 앱 안의 vendor/qrcode.js(MIT, Kazuhiko Arase)를 불러 만든다
   const loadQR = () => window.qrcode ? Promise.resolve() : new Promise((ok, bad) => { const s = document.createElement('script'); s.src = 'vendor/qrcode.js'; s.onload = ok; s.onerror = bad; document.head.appendChild(s); });
   const qrOf = url => { const q = qrcode(0, 'M'); q.addData(url); q.make(); return q; };
@@ -4766,9 +4865,17 @@ try { const p = JSON.parse(localStorage.getItem('koide-pref') || '{}'), d = docu
     switch (b.dataset.act) {
       case 'menu': S.menu = S.menu === v ? null : v; $('#topbar').innerHTML = topHtml(); return;
       case 'login': return kakaoLogin(v);
+      case 'ccagain': S.cc = { code: '' }; render(); { const f = $('#cc-a'); if (f) f.focus(); } return;
+      case 'ccjoin': {
+        S.busy = true; render();
+        let w; try { w = await hubApi('join', { code: S.cc.code }); } catch (err) { S.busy = false; if (err.code !== 'login') { toast(err.message); render(); } return; }
+        lsSet(CHURCH_CODE, S.cc.code.trim().toUpperCase()); S.busy = false; S.cc = null;
+        return enterChurchServer(w);
+      }
+      case 'aaback': return appAdminBack();
       case 'retry': S.view = 'loading'; render(); return refreshMe();
       case 'demoreset': window.koideDemo && window.koideDemo.reset(); setToken(null); location.replace(location.pathname + location.search); return;
-      case 'logout': try { await api('logout'); } catch (err) { /* 이미 끝난 로그인 */ } setToken(null); S.view = 'login'; S.tab = 'home'; S.pending = null; S.hist = null; S.histTab = null;
+      case 'logout': try { if (getToken()) await api('logout'); } catch (err) { /* 이미 끝난 로그인 */ } setToken(null); lsSet(HUB_TOKEN, null); S.cc = null; S.view = 'login'; S.tab = 'home'; S.pending = null; S.hist = null; S.histTab = null;
         // 한 기기를 여럿이 쓰면 앞사람이 보던 화면·쓰던 글이 다음 사람에게 남지 않게
         S.op = null; S.grp = null; S.home = null; S.ops = null; S.rost = null; S.mv = null; S.before = null; try { localStorage.removeItem(OP_KEY); } catch (err) { /* 무시 */ }
         Object.assign(S, { famEdit: null, famMsg: '', a2hs: false, homeView: null, ex: null, draft: '', draftTgt: '', todayId: null, shareId: null, menu: null, imp: null, preview: null, tgtOpen: null, delAsk: null }); S.openItems.clear(); S.openFams.clear();
@@ -5372,6 +5479,10 @@ try { const p = JSON.parse(localStorage.getItem('koide-pref') || '{}'), d = docu
       try { S.tog = await api('togetherSave', Object.assign({ text: x, target: t }, f.dataset.v ? { id: f.dataset.v } : {})); S.month.together = S.tog.list; S.togEdit = null; toast(f.dataset.v ? '고쳤어요.' : '더했어요.'); }
       catch (err) { oops(err); }
       S.busy = false; return render();
+    }
+    if (f.dataset.form === 'churchcode') {
+      const v = ($('#cc-a').value || '').trim(); if (!v) return;
+      S.cc = { code: v }; return peekCode(v);
     }
     if (f.dataset.form === 'typename') {
       const n = ($('#tn-a') || {}).value.trim(); if (!n) return;
