@@ -15,7 +15,7 @@
  *   APP_ADMINS           앱 관리자의 카카오ID(쉼표로 여럿). 앱 관리자 보기에서 '내 카카오ID'로 확인할 수 있다
  */
 
-const HUB_VERSION = '2026-10-27 교회 코드';
+const HUB_VERSION = '2026-10-27 교회 코드 · 카카오 까닭';
 const HUB_DAYS = 30, TICKET_MIN = 5;
 
 // 시트 이름과 칸(첫 줄에 그대로 쓰인다)
@@ -64,13 +64,18 @@ const HUB_ACTIONS = {
 
 // ── ① 카카오 로그인 ─────────────────────────────────────────
 function login_(body) {
-  const p = props_();
+  // 설정값 앞뒤에 빈칸이 들어가도 되게 다듬는다(붙여 넣다 들어가기 쉽다)
+  const p = {}; Object.entries(props_()).forEach(([k, v]) => { p[k] = String(v).trim(); });
   if (!body.code) throw fail_('bad', '카카오 로그인 정보가 없어요.');
   if (p.REDIRECT_URI && body.redirectUri !== p.REDIRECT_URI) throw fail_('bad', '등록되지 않은 주소에서 로그인했어요.');
   const payload = { grant_type: 'authorization_code', client_id: p.KAKAO_REST_KEY, redirect_uri: body.redirectUri, code: body.code };
   if (p.KAKAO_CLIENT_SECRET) payload.client_secret = p.KAKAO_CLIENT_SECRET;
   const tok = UrlFetchApp.fetch('https://kauth.kakao.com/oauth/token', { method: 'post', payload, muteHttpExceptions: true });
-  if (tok.getResponseCode() !== 200) throw fail_('kakao', '카카오 로그인을 확인하지 못했어요. 다시 해 주세요.');
+  // 카카오가 거절한 까닭(예: KOE010 Client Secret이 다름, KOE320 로그인 정보를 이미 씀)을 함께 보여 준다. 비밀 값은 들어 있지 않다
+  if (tok.getResponseCode() !== 200) {
+    let why = ''; try { const j = JSON.parse(tok.getContentText()); why = [j.error_code, j.error, j.error_description].filter(Boolean).join(' · '); } catch (e) { /* 까닭 없이 */ }
+    throw fail_('kakao', '카카오 로그인을 확인하지 못했어요. 다시 해 주세요.' + (why ? ' (' + why + ')' : ''));
+  }
   const access = JSON.parse(tok.getContentText()).access_token;
   const res = UrlFetchApp.fetch('https://kapi.kakao.com/v2/user/me', { headers: { Authorization: 'Bearer ' + access }, muteHttpExceptions: true });
   if (res.getResponseCode() !== 200) throw fail_('kakao', '카카오 사용자 정보를 받지 못했어요.');
