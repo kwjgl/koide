@@ -1152,6 +1152,8 @@ body.pop-open { overflow: hidden; }
 .staff-rows > li.open > .st-row { padding-bottom: .6em; }
 .serve-who { margin: .4em 0 0; }
 .choice-sub { display: block; font-size: .8em; color: var(--ink-2); margin-top: .15em; }
+.start-pick .choice { padding-block: .95em; line-height: 1.45; }
+.start-pick .choice-sub { margin-top: .35em; }
 /* 작은 글씨 안에 또 작은 글씨가 들어가 겹쳐 작아지는 곳 */
 .chip-btn small, .edit-foot .state, .edit-foot .link { font-size: .93em; }
 .ps-list li span:last-child { font-size: .85em; }
@@ -1277,6 +1279,7 @@ try { const p = JSON.parse(localStorage.getItem('koide-pref') || '{}'), d = docu
     try { const r = await api('ticketLogin', { ticket: w.ticket }); setToken(r.token, r.uid); }
     catch (e) { if (e.code === 'login') return; S.view = 'error'; S.err = e.code === 'bad' && /모르는 요청/.test(e.message || '') ? { message: '이 교회의 서버를 새 버전으로 배포해야 들어올 수 있어요. 교회 관리자에게 알려 주세요.' } : e; return render(); }
     if (backToNote()) return;
+    lsSet('koide-church-name', w.church.name); S.pickStart = true;
     return refreshMe();
   }
   // 앱 관리자 보기(?appadmin): 기본 서버로 로그인한 앱 관리자만. 교회마다 서버 상태와 숫자만 본다
@@ -1470,17 +1473,21 @@ try { const p = JSON.parse(localStorage.getItem('koide-pref') || '{}'), d = docu
       }
       if (!S.me.link) {
         // 초대 링크(소그룹·부서)나 '공동체에 연결하기'로 오지 않았으면 혼자 시작한 사람: 기도 노트가 첫 화면이다
-        if (!r.join && !connecting()) { if (window.koideSpace) window.koideSpace.going('note'); location.replace('note.html' + (SC ? location.search : DEMO_LINK ? '?demo' : '')); return; }
-        // 부서를 모르는 예전 서버면 사랑방 목록을 부서 하나로 본다
-        S.depts = r.depts || [Object.assign({ id: '', name: '' }, DEPT0, { rooms: r.rooms || await api('rooms') })];
-        S.pick = {};
-        if (S.depts.length === 1) pickDept(S.depts[0].id); else S.view = 'dept';
-        // 초대 링크로 왔으면 그 부서(와 사랑방)를 미리 고른다. 막힌 링크면 알리고 직접 고르게
-        const J = r.join;
-        if (J && J.bad) { toast('이 초대 링크는 더 이상 쓰지 않아요. 직접 골라 주세요.'); try { localStorage.removeItem(JOIN); } catch (e) { /* 무시 */ } }
-        else if (J && S.depts.some(d => d.id === J.deptId)) {
-          pickDept(J.deptId);
-          if (J.roomId && S.rooms.some(x => x.id === J.roomId)) { S.pick.roomId = J.roomId; S.view = 'family'; }
+        //  (2026-10-27) 교회 코드로 막 들어온 사람은 공동체로 시작할지, 기도 노트만 쓸지 먼저 고른다(startpick). 한 번만 묻는다
+        if (!r.join && !connecting() && S.pickStart) { S.pickStart = false; S.view = 'startpick'; }
+        else if (!r.join && !connecting()) { if (window.koideSpace) window.koideSpace.going('note'); location.replace('note.html' + (SC ? location.search : DEMO_LINK ? '?demo' : '')); return; }
+        else {
+          // 부서를 모르는 예전 서버면 사랑방 목록을 부서 하나로 본다
+          S.depts = r.depts || [Object.assign({ id: '', name: '' }, DEPT0, { rooms: r.rooms || await api('rooms') })];
+          S.pick = {};
+          if (S.depts.length === 1) pickDept(S.depts[0].id); else S.view = 'dept';
+          // 초대 링크로 왔으면 그 부서(와 사랑방)를 미리 고른다. 막힌 링크면 알리고 직접 고르게
+          const J = r.join;
+          if (J && J.bad) { toast('이 초대 링크는 더 이상 쓰지 않아요. 직접 골라 주세요.'); try { localStorage.removeItem(JOIN); } catch (e) { /* 무시 */ } }
+          else if (J && S.depts.some(d => d.id === J.deptId)) {
+            pickDept(J.deptId);
+            if (J.roomId && S.rooms.some(x => x.id === J.roomId)) { S.pick.roomId = J.roomId; S.view = 'family'; }
+          }
         }
       }
       else if (join) { try { localStorage.removeItem(JOIN); } catch (e) { /* 무시 */ } }
@@ -1841,6 +1848,13 @@ try { const p = JSON.parse(localStorage.getItem('koide-pref') || '{}'), d = docu
         <p class="hint">코드는 교회나 코이데를 소개해 준 분에게 받아요.</p>
         <button class="link" data-act="logout">다른 카카오 계정으로 로그인</button>`;
     },
+    // 어떻게 시작할까요(교회 코드로 막 들어왔고 초대 링크가 없을 때 한 번): 공동체로(부서·소그룹을 골라 연결 신청) 또는 기도 노트만
+    startpick: () => `<p class="eyebrow">${esc(lsGet('koide-church-name') || '처음 한 번만')}</p><h1>어떻게 시작할까요?</h1>
+      <div class="choices start-pick">
+        <button class="choice" data-act="pickstart" data-v="community"><b>공동체로 시작</b><small class="choice-sub">부서와 소그룹을 고르고 리더에게 연결을 신청해요. 소그룹 사람들과 기도제목을 나누고 함께 기도해요.</small></button>
+        <button class="choice" data-act="pickstart" data-v="note"><b>기도 노트만 쓰기</b><small class="choice-sub">나만 보는 기도 노트예요. 나중에 기도 노트의 '우리 교회 공동체에 연결하기'로 언제든 공동체에 들어갈 수 있어요.</small></button>
+      </div>
+      <p class="hint">초대 링크를 받았다면 그 링크로 열면 소그룹이 미리 골라져 있어요.</p>`,
     // 앱 관리자 보기: 교회(와 테스트 공간)마다 서버 상태와 숫자. 이름·기도제목은 오지 않는다
     appadmin: () => {
       const A = S.aa, head = '<p class="eyebrow">앱 관리자</p><h1>교회 전체 보기</h1>', back = '<button class="link" data-act="aaback">앱으로 돌아가기</button>';
@@ -4873,6 +4887,9 @@ try { const p = JSON.parse(localStorage.getItem('koide-pref') || '{}'), d = docu
         return enterChurchServer(w);
       }
       case 'aaback': return appAdminBack();
+      case 'pickstart':
+        if (v === 'note') { if (window.koideSpace) window.koideSpace.going('note'); location.replace('note.html'); return; }
+        lsSet(CONNECT, '1'); S.view = 'loading'; render(); return refreshMe();
       case 'retry': S.view = 'loading'; render(); return refreshMe();
       case 'demoreset': window.koideDemo && window.koideDemo.reset(); setToken(null); location.replace(location.pathname + location.search); return;
       case 'logout': try { if (getToken()) await api('logout'); } catch (err) { /* 이미 끝난 로그인 */ } setToken(null); lsSet(HUB_TOKEN, null); S.cc = null; S.view = 'login'; S.tab = 'home'; S.pending = null; S.hist = null; S.histTab = null;
