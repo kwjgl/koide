@@ -15,7 +15,7 @@
  *   APP_ADMINS           앱 관리자의 카카오ID(쉼표로 여럿). 앱 관리자 보기에서 '내 카카오ID'로 확인할 수 있다
  */
 
-const HUB_VERSION = '2026-10-27 교회 코드 · 카카오 까닭';
+const HUB_VERSION = '2026-10-27 교회 코드 · 들어가기·초대';
 const HUB_DAYS = 30, TICKET_MIN = 5;
 
 // 시트 이름과 칸(첫 줄에 그대로 쓰인다)
@@ -61,7 +61,16 @@ const HUB_ACTIONS = {
   },
   admin: adminView_,
   // 앱 관리자 보기에서 교회(테스트 공간) 더하기·고치기. 지우기는 없다(사람 탭이 이름표를 가리킨다). 쓰지 않으면 상태를 멈춤으로
-  churchSave: churchSave_
+  churchSave: churchSave_,
+  // 앱 관리자가 코드 없이 그 교회로 들어가 본다. 사람 탭은 바꾸지 않는다(다시 로그인하면 원래 교회로)
+  enter: body => {
+    const a = auth_(body.token);
+    if (!isAdmin_(a)) throw fail_('forbidden', '앱 관리자만 할 수 있어요.');
+    const c = read_('churches').find(x => x.id === String(body.id || '') && x.url);
+    if (!c) throw fail_('bad', '교회를 찾지 못했어요.');
+    return goTo_(a, c);
+  },
+  invite: inviteFirst_
 };
 
 // ── ① 카카오 로그인 ─────────────────────────────────────────
@@ -139,6 +148,20 @@ function adminView_(body) {
     return { id: c.id, name: c.name, kind: kindOf_(c), codes: String(c.codes || ''), url: c.url, stopped: String(c.status).trim() === '멈춤', memo: String(c.memo || ''),
       came: people.filter(m => m.church === c.id).length, status: st, err };
   }) };
+}
+
+// 첫 관리자 초대 링크(앱 관리자만): 그 교회 서버에 전체 관리자 초대를 만들게 하고, 앱 주소에 초대 값과 그 교회 코드를 붙여 돌려준다.
+//  받은 사람은 링크로 열어 카카오 로그인 → 코드 확인 → 그 교회의 전체 관리자가 된다
+function inviteFirst_(body) {
+  const a = auth_(body.token);
+  if (!isAdmin_(a)) throw fail_('forbidden', '앱 관리자만 할 수 있어요.');
+  const c = read_('churches').find(x => x.id === String(body.id || '') && x.url);
+  if (!c) throw fail_('bad', '교회를 찾지 못했어요.');
+  const at = Date.now(), r = UrlFetchApp.fetchAll([post_(c.url, { action: 'hubOpsInvite', at, sig: sign_('invite|' + at) })])[0];
+  let j; try { j = JSON.parse(r.getContentText()); } catch (e) { throw fail_('bad', '그 교회 서버가 답하지 않아요. 서버 주소를 확인해 주세요.'); }
+  if (!j.ok) throw fail_('bad', /모르는 요청/.test(j.message || '') ? '그 교회 서버를 새 버전으로 배포해야 초대 링크를 만들 수 있어요.' : j.message);
+  const code = String(c.codes || '').split(',')[0].trim(), base = String(props_().REDIRECT_URI || '').trim();
+  return { link: base + '?opsjoin=' + encodeURIComponent(j.data.token) + (code ? '&church=' + encodeURIComponent(code) : ''), until: j.data.until };
 }
 
 // 교회 더하기·고치기(앱 관리자만). orig가 있으면 그 이름표의 줄을 고친다(이름표는 바꾸지 않는다)
