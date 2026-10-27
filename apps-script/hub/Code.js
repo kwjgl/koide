@@ -15,7 +15,7 @@
  *   APP_ADMINS           앱 관리자의 카카오ID(쉼표로 여럿). 앱 관리자 보기에서 '내 카카오ID'로 확인할 수 있다
  */
 
-const HUB_VERSION = '2026-10-27 교회 코드';
+const HUB_VERSION = '2026-10-27 교회 코드 · 카카오 까닭';
 const HUB_DAYS = 30, TICKET_MIN = 5;
 
 // 시트 이름과 칸(첫 줄에 그대로 쓰인다)
@@ -59,18 +59,25 @@ const HUB_ACTIONS = {
     });
     return goTo_(a, c);
   },
-  admin: adminView_
+  admin: adminView_,
+  // 앱 관리자 보기에서 교회(테스트 공간) 더하기·고치기. 지우기는 없다(사람 탭이 이름표를 가리킨다). 쓰지 않으면 상태를 멈춤으로
+  churchSave: churchSave_
 };
 
 // ── ① 카카오 로그인 ─────────────────────────────────────────
 function login_(body) {
-  const p = props_();
+  // 설정값 앞뒤에 빈칸이 들어가도 되게 다듬는다(붙여 넣다 들어가기 쉽다)
+  const p = {}; Object.entries(props_()).forEach(([k, v]) => { p[k] = String(v).trim(); });
   if (!body.code) throw fail_('bad', '카카오 로그인 정보가 없어요.');
   if (p.REDIRECT_URI && body.redirectUri !== p.REDIRECT_URI) throw fail_('bad', '등록되지 않은 주소에서 로그인했어요.');
   const payload = { grant_type: 'authorization_code', client_id: p.KAKAO_REST_KEY, redirect_uri: body.redirectUri, code: body.code };
   if (p.KAKAO_CLIENT_SECRET) payload.client_secret = p.KAKAO_CLIENT_SECRET;
   const tok = UrlFetchApp.fetch('https://kauth.kakao.com/oauth/token', { method: 'post', payload, muteHttpExceptions: true });
-  if (tok.getResponseCode() !== 200) throw fail_('kakao', '카카오 로그인을 확인하지 못했어요. 다시 해 주세요.');
+  // 카카오가 거절한 까닭(예: KOE010 Client Secret이 다름, KOE320 로그인 정보를 이미 씀)을 함께 보여 준다. 비밀 값은 들어 있지 않다
+  if (tok.getResponseCode() !== 200) {
+    let why = ''; try { const j = JSON.parse(tok.getContentText()); why = [j.error_code, j.error, j.error_description].filter(Boolean).join(' · '); } catch (e) { /* 까닭 없이 */ }
+    throw fail_('kakao', '카카오 로그인을 확인하지 못했어요. 다시 해 주세요.' + (why ? ' (' + why + ')' : ''));
+  }
   const access = JSON.parse(tok.getContentText()).access_token;
   const res = UrlFetchApp.fetch('https://kapi.kakao.com/v2/user/me', { headers: { Authorization: 'Bearer ' + access }, muteHttpExceptions: true });
   if (res.getResponseCode() !== 200) throw fail_('kakao', '카카오 사용자 정보를 받지 못했어요.');
@@ -129,9 +136,33 @@ function adminView_(body) {
     let st = null, err = '';
     try { const j = JSON.parse(res[i].getContentText()); if (j.ok) st = j.data; else err = j.message || j.code; }
     catch (e) { err = '서버가 답하지 않아요(' + res[i].getResponseCode() + ')'; }
-    return { id: c.id, name: c.name, kind: kindOf_(c), codes: String(c.codes || ''), stopped: String(c.status).trim() === '멈춤', memo: String(c.memo || ''),
+    return { id: c.id, name: c.name, kind: kindOf_(c), codes: String(c.codes || ''), url: c.url, stopped: String(c.status).trim() === '멈춤', memo: String(c.memo || ''),
       came: people.filter(m => m.church === c.id).length, status: st, err };
   }) };
+}
+
+// 교회 더하기·고치기(앱 관리자만). orig가 있으면 그 이름표의 줄을 고친다(이름표는 바꾸지 않는다)
+function churchSave_(body) {
+  const a = auth_(body.token);
+  if (!isAdmin_(a)) throw fail_('forbidden', '앱 관리자만 바꿀 수 있어요.');
+  const id = String(body.orig || body.id || '').trim(), name = String(body.name || '').trim().slice(0, 30);
+  const kind = body.kind === '테스트' ? '테스트' : '교회', url = String(body.url || '').trim(), memo = String(body.memo || '').trim().slice(0, 60);
+  const codes = String(body.codes || '').split(',').map(x => x.trim()).filter(Boolean);
+  if (!/^[A-Za-z0-9_-]{1,20}$/.test(id)) throw fail_('bad', '이름표는 영어·숫자로 20자까지 써 주세요.');
+  if (!name) throw fail_('bad', '이름을 써 주세요.');
+  if (!/^https:\/\/script\.google\.com\/(a\/macros\/[^/]+|macros)\/s\/[^/]+\/exec$/.test(url)) throw fail_('bad', '서버 주소는 Apps Script 웹 앱 주소(https://script.google.com/macros/s/…/exec)로 넣어 주세요.');
+  if (!codes.length) throw fail_('bad', '코드를 하나 이상 써 주세요.');
+  if (codes.some(c => normCode_(c).length < 3)) throw fail_('bad', '코드는 3글자 이상으로 써 주세요.');
+  return withLock_(() => {
+    const L = read_('churches'), row = L.find(c => c.id === id);
+    if (body.orig ? !row : row) throw fail_('bad', body.orig ? '고칠 교회를 찾지 못했어요.' : '같은 이름표가 이미 있어요.');
+    const taken = {}; L.filter(c => c.id !== id).forEach(c => String(c.codes).split(',').map(normCode_).filter(Boolean).forEach(k => { taken[k] = c.name; }));
+    const dup = codes.find(c => taken[normCode_(c)]);
+    if (dup) throw fail_('bad', `코드 ${dup}는 ${taken[normCode_(dup)]}에서 쓰고 있어요.`);
+    const o = { id, name, kind, codes: codes.join(', '), url, status: body.stopped ? '멈춤' : '', memo };
+    if (row) update_('churches', Object.assign(row, o)); else append_('churches', o);
+    return adminView_(body);
+  });
 }
 
 // ── 서명 ────────────────────────────────────────────────
