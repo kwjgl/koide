@@ -1284,12 +1284,12 @@ try { const p = JSON.parse(localStorage.getItem('koide-pref') || '{}'), d = docu
   }
   // 앱 관리자 보기(?appadmin): 기본 서버로 로그인한 앱 관리자만. 교회마다 서버 상태와 숫자만 본다
   async function openAppAdmin() {
-    lsSet(APPADMIN, null); S.aa = null; S.view = 'appadmin'; render(); window.scrollTo(0, 0);
+    lsSet(APPADMIN, null); S.aa = null; S.aaEdit = null; S.view = 'appadmin'; render(); window.scrollTo(0, 0);
     try { S.aa = await hubApi('admin'); } catch (e) { if (e.code === 'login') return; S.aa = { err: e.message }; }
     render();
   }
   function appAdminBack() {
-    lsSet(APPADMIN, null); S.aa = null;
+    lsSet(APPADMIN, null); S.aa = null; S.aaEdit = null;
     if (getToken()) { S.view = 'loading'; render(); return refreshMe(); }
     S.view = 'login'; return render();
   }
@@ -1860,14 +1860,28 @@ try { const p = JSON.parse(localStorage.getItem('koide-pref') || '{}'), d = docu
       const A = S.aa, head = '<p class="eyebrow">앱 관리자</p><h1>교회 전체 보기</h1>', back = '<button class="link" data-act="aaback">앱으로 돌아가기</button>';
       if (!A) return head + '<p class="loading">교회 서버들에 묻는 중…</p>';
       if (A.err) return `${head}<p class="hint">${esc(A.err)}</p>${back}`;
+      const E = S.aaEdit;
+      // 더하기·고치기 칸(기본 서버의 교회 탭에 적는다). 이름표는 처음에만 정한다. 저장이 안 되면 쓰던 값(E.draft)을 그대로 둔다
+      const form = (c = {}) => { const v = (E && E.draft) || c; return `<form class="card plain-form" data-form="aasave">
+          <h2>${c.id ? esc(c.name) + ' 고치기' : '교회·테스트 공간 더하기'}</h2>
+          <label class="f" for="aa-name">이름</label><input id="aa-name" class="field" name="name" maxlength="30" required value="${esc(v.name || '')}">
+          ${c.id ? '' : `<label class="f" for="aa-id">이름표</label><input id="aa-id" class="field" name="id" maxlength="20" required pattern="[A-Za-z0-9_-]+" autocapitalize="characters" placeholder="예) B, TEST" value="${esc(v.id || '')}"><p class="hint">영어·숫자로. 한 번 정하면 바꿀 수 없어요. 그 교회 서버의 CHURCH_ID에 같은 값을 넣어요.</p>`}
+          <label class="f" for="aa-kind">종류</label><select id="aa-kind" class="field" name="kind"><option${v.kind === '테스트' ? '' : ' selected'}>교회</option><option${v.kind === '테스트' ? ' selected' : ''}>테스트</option></select>
+          <label class="f" for="aa-codes">코드</label><input id="aa-codes" class="field" name="codes" required value="${esc(v.codes || '')}" placeholder="예) KOIDE24, 코이데"><p class="hint">쉼표로 여럿 쓸 수 있어요. 대소문자·띄어쓰기·-는 가리지 않아요.</p>
+          <label class="f" for="aa-url">서버 주소</label><input id="aa-url" class="field" name="url" required inputmode="url" value="${esc(v.url || '')}" placeholder="https://script.google.com/macros/s/…/exec">
+          <label class="f" for="aa-memo">메모</label><input id="aa-memo" class="field" name="memo" maxlength="60" value="${esc(v.memo || '')}">
+          ${c.id ? `<label class="check"><input type="checkbox" name="stopped"${v.stopped ? ' checked' : ''}> 멈춤 · 이 코드로 새로 들어올 수 없어요</label>` : ''}
+          <p class="hint">그 교회 서버의 스크립트 속성에 HUB_SECRET(기본 서버와 같은 값)과 CHURCH_ID(이름표)를 넣어야 이어져요. 테스트 공간이면 AUTO_APPROVE에 예를 넣어요.</p>
+          <div class="actions"><button class="btn small" type="submit" ${S.busy ? 'disabled' : ''}>저장</button><button class="btn small ghost" type="button" data-act="aaedit" data-v="">취소</button></div></form>`; };
       const card = c => { const st = c.status, old = st && String(st.version).slice(0, 10) < NEED_SERVER;
-        return `<section class="card ch-dept${c.stopped ? ' closed' : ''}"><span class="row"><b>${esc(c.name)}</b>${c.kind === '테스트' ? '<span class="own-tag">테스트</span>' : ''}${c.stopped ? '<span class="own-tag">멈춤</span>' : ''}<span class="ops-dot${!st || old || st.errors ? ' bad' : ''}" aria-hidden="true"></span></span>
+        if (E && E.orig === c.id) return form(c);
+        return `<section class="card ch-dept${c.stopped ? ' closed' : ''}"><span class="row"><b>${esc(c.name)}</b>${c.kind === '테스트' ? '<span class="own-tag">테스트</span>' : ''}${c.stopped ? '<span class="own-tag">멈춤</span>' : ''}<span class="ops-dot${!st || old || st.errors ? ' bad' : ''}" aria-hidden="true"></span><button class="link" data-act="aaedit" data-v="${esc(c.id)}" style="margin-left:auto">고치기</button></span>
           <small>코드 ${esc(c.codes || '없음')} · 코드로 들어온 사람 ${c.came}${c.memo ? ' · ' + esc(c.memo) : ''}</small>
           <small>${st ? `서버 ${esc(st.version)} · 부서 ${st.depts} · 연결 ${st.linked}${st.auto ? ' · 바로 연결' : ''} · 최근 7일 오류 ${st.errors}` : '서버에 묻지 못했어요: ' + esc(c.err)}</small>
           <span class="ch-todos">${st && st.asks ? `<span class="ch-todo">승인 기다림 ${st.asks}</span>` : ''}${old ? '<span class="ch-todo warn">새 버전으로 배포 필요</span>' : ''}${st && !st.opened ? '<span class="ch-todo">이번 달 아직 안 열림</span>' : ''}</span></section>`; };
-      return `${head}<p class="hint">교회마다 서버가 따로예요. 숫자와 서버 상태만 보이고, 이름과 기도제목은 오지 않아요.</p>
+      return `${head}
         <div class="ch-grid">${A.churches.length ? A.churches.map(card).join('') : '<p class="hint">아직 등록한 교회가 없어요.</p>'}</div>
-        <section class="card"><h2>교회·테스트 공간 더하기</h2><p class="hint">기본 서버 시트의 '교회' 탭에 한 줄을 더해요(이름표, 이름, 종류: 교회 또는 테스트, 코드: 쉼표로 여럿, 서버 주소). 그 교회 서버의 스크립트 속성에는 HUB_SECRET과 CHURCH_ID(이름표)를 넣고, 테스트 공간이면 AUTO_APPROVE에 예를 넣어요. 상태에 멈춤을 쓰면 코드로 들어올 수 없어요.</p></section>
+        ${E && !E.orig ? form() : '<button class="btn ghost wide" data-act="aaedit" data-v="new">교회·테스트 공간 더하기</button>'}
         <p class="hint">기본 서버 ${esc(A.version)} · 내 카카오ID ${esc(A.me)}</p>${back}`;
     },
     dept: () => `${steps(1)}<p class="eyebrow">처음 한 번만 확인할게요</p><h1>어느 부서인가요?</h1>
@@ -4887,6 +4901,7 @@ try { const p = JSON.parse(localStorage.getItem('koide-pref') || '{}'), d = docu
         return enterChurchServer(w);
       }
       case 'aaback': return appAdminBack();
+      case 'aaedit': S.aaEdit = !v ? null : v === 'new' ? {} : { orig: v }; render(); { const f = $('#aa-name'); if (f) f.focus(); } return;
       case 'pickstart':
         if (v === 'note') { if (window.koideSpace) window.koideSpace.going('note'); location.replace('note.html'); return; }
         lsSet(CONNECT, '1'); S.view = 'loading'; render(); return refreshMe();
@@ -5495,6 +5510,13 @@ try { const p = JSON.parse(localStorage.getItem('koide-pref') || '{}'), d = docu
       S.busy = true; render();
       try { S.tog = await api('togetherSave', Object.assign({ text: x, target: t }, f.dataset.v ? { id: f.dataset.v } : {})); S.month.together = S.tog.list; S.togEdit = null; toast(f.dataset.v ? '고쳤어요.' : '더했어요.'); }
       catch (err) { oops(err); }
+      S.busy = false; return render();
+    }
+    if (f.dataset.form === 'aasave') {
+      const d = new FormData(f), body = { orig: (S.aaEdit || {}).orig || '', stopped: d.get('stopped') === 'on' };
+      ['id', 'name', 'kind', 'codes', 'url', 'memo'].forEach(k => { body[k] = String(d.get(k) || '').trim(); });
+      S.aaEdit = Object.assign({}, S.aaEdit, { draft: body }); S.busy = true; render();
+      try { S.aa = await hubApi('churchSave', body); S.aaEdit = null; toast('저장했어요.'); } catch (err) { if (err.code !== 'login') toast(err.message); }
       S.busy = false; return render();
     }
     if (f.dataset.form === 'churchcode') {

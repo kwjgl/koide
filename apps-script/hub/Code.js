@@ -59,7 +59,9 @@ const HUB_ACTIONS = {
     });
     return goTo_(a, c);
   },
-  admin: adminView_
+  admin: adminView_,
+  // 앱 관리자 보기에서 교회(테스트 공간) 더하기·고치기. 지우기는 없다(사람 탭이 이름표를 가리킨다). 쓰지 않으면 상태를 멈춤으로
+  churchSave: churchSave_
 };
 
 // ── ① 카카오 로그인 ─────────────────────────────────────────
@@ -134,9 +136,33 @@ function adminView_(body) {
     let st = null, err = '';
     try { const j = JSON.parse(res[i].getContentText()); if (j.ok) st = j.data; else err = j.message || j.code; }
     catch (e) { err = '서버가 답하지 않아요(' + res[i].getResponseCode() + ')'; }
-    return { id: c.id, name: c.name, kind: kindOf_(c), codes: String(c.codes || ''), stopped: String(c.status).trim() === '멈춤', memo: String(c.memo || ''),
+    return { id: c.id, name: c.name, kind: kindOf_(c), codes: String(c.codes || ''), url: c.url, stopped: String(c.status).trim() === '멈춤', memo: String(c.memo || ''),
       came: people.filter(m => m.church === c.id).length, status: st, err };
   }) };
+}
+
+// 교회 더하기·고치기(앱 관리자만). orig가 있으면 그 이름표의 줄을 고친다(이름표는 바꾸지 않는다)
+function churchSave_(body) {
+  const a = auth_(body.token);
+  if (!isAdmin_(a)) throw fail_('forbidden', '앱 관리자만 바꿀 수 있어요.');
+  const id = String(body.orig || body.id || '').trim(), name = String(body.name || '').trim().slice(0, 30);
+  const kind = body.kind === '테스트' ? '테스트' : '교회', url = String(body.url || '').trim(), memo = String(body.memo || '').trim().slice(0, 60);
+  const codes = String(body.codes || '').split(',').map(x => x.trim()).filter(Boolean);
+  if (!/^[A-Za-z0-9_-]{1,20}$/.test(id)) throw fail_('bad', '이름표는 영어·숫자로 20자까지 써 주세요.');
+  if (!name) throw fail_('bad', '이름을 써 주세요.');
+  if (!/^https:\/\/script\.google\.com\/(a\/macros\/[^/]+|macros)\/s\/[^/]+\/exec$/.test(url)) throw fail_('bad', '서버 주소는 Apps Script 웹 앱 주소(https://script.google.com/macros/s/…/exec)로 넣어 주세요.');
+  if (!codes.length) throw fail_('bad', '코드를 하나 이상 써 주세요.');
+  if (codes.some(c => normCode_(c).length < 3)) throw fail_('bad', '코드는 3글자 이상으로 써 주세요.');
+  return withLock_(() => {
+    const L = read_('churches'), row = L.find(c => c.id === id);
+    if (body.orig ? !row : row) throw fail_('bad', body.orig ? '고칠 교회를 찾지 못했어요.' : '같은 이름표가 이미 있어요.');
+    const taken = {}; L.filter(c => c.id !== id).forEach(c => String(c.codes).split(',').map(normCode_).filter(Boolean).forEach(k => { taken[k] = c.name; }));
+    const dup = codes.find(c => taken[normCode_(c)]);
+    if (dup) throw fail_('bad', `코드 ${dup}는 ${taken[normCode_(dup)]}에서 쓰고 있어요.`);
+    const o = { id, name, kind, codes: codes.join(', '), url, status: body.stopped ? '멈춤' : '', memo };
+    if (row) update_('churches', Object.assign(row, o)); else append_('churches', o);
+    return adminView_(body);
+  });
 }
 
 // ── 서명 ────────────────────────────────────────────────
