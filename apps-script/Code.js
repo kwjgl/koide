@@ -14,6 +14,9 @@
  *   KAKAO_REST_KEY       카카오 개발자 앱의 REST API 키
  *   KAKAO_CLIENT_SECRET  (선택) 카카오 로그인 보안의 Client Secret
  *   REDIRECT_URI         카카오에 등록한 앱 주소. 예: https://아이디.github.io/pray-for/app/
+ *   HUB_SECRET           (교회 코드) 기본 서버(apps-script/hub)와 같은 서명 값. 넣어야 교회 코드로 들어올 수 있다
+ *   CHURCH_ID            (교회 코드) 기본 서버의 교회 목록에 적은 이 교회의 이름표. 다른 교회로 받은 확인증을 막는다
+ *   AUTO_APPROVE         (테스트 서버만) '예'면 연결 요청을 승인 없이 바로 연결한다
  */
 
 const TZ = 'Asia/Seoul';
@@ -99,7 +102,7 @@ const FIRST_DEPT = { id: 'D1', name: '청장년부', group: '사랑방', unit: '
 // ── 요청 받기 ─────────────────────────────────────────────
 
 // 서버 코드를 고칠 때마다 바꾼다. 웹 앱 주소를 열면 보여서, 새 버전으로 배포됐는지 확인할 수 있다
-const VERSION = '2026-11-11 설문 진행 따라가기';
+const VERSION = '2026-11-12 교회 코드';
 function doGet() {
   return ContentService.createTextOutput('코이데 서버가 켜져 있어요. (버전: ' + VERSION + ')');
 }
@@ -124,6 +127,10 @@ function doPost(e) {
 // 화면에서 부르는 일들. 로그인과 사랑방 목록을 빼고는 모두 연결이 승인된 사람만 쓸 수 있다
 const ACTIONS = {
   login: login_,
+  // 교회 코드(apps-script/hub): 기본 서버가 카카오로 확인하고 서명한 확인증으로 로그인한다. 기본 서버가 묻는 일 둘(이 사람을 아는지, 앱 상태)은 같은 서명으로만 답한다
+  ticketLogin: ticketLogin_,
+  hubKnows: hubKnows_,
+  appStatus: appStatus_,
   me: body => meInfo_(who_(body)),
   // 앱을 열 때 한 번에: 나 + (연결됐으면 이번 달, 연결 전이면 부서와 사랑방 목록). 서버와 두 번 이야기하던 것을 한 번으로
   start: body => {
@@ -248,6 +255,7 @@ const ACTIONS = {
   prayText: body => { auth_(body.token); return read_('prayText').map(r => ({ topic: r.topic, kind: r.kind, order: Number(r.order) || 0, text: String(r.text), ref: String(r.ref || ''), status: r.status || '' })); },
   prayTextSave: body => { const c = staffOrAdmin_(body); return withLock_(() => prayTextSave_(c, body)); },
   // 카카오톡이 없는 분: 리더가 일회용 코드를 만들고(codeMake), 그분은 코드로 들어온다(codeLogin, 로그인 없이 부를 수 있는 일)
+  //  (2026-10-27) 앱 화면에서는 뺐다(첫 화면의 '코드로 들어오기'와 리더의 코드 만들기). 앞으로 받을 교회 코드와 헷갈려서. 이미 코드로 들어온 연결은 그대로 쓰도록 서버에는 남겨 둔다
   codeMake: body => { const c = leaderOrAdmin_(body); return withLock_(() => codeMake_(c, body)); },
   codeLogin: body => withLock_(() => codeLogin_(body)),
   noteGet: body => noteGet_(auth_(body.token)),
@@ -274,10 +282,56 @@ function login_(body) {
   const u = JSON.parse(res.getContentText());
   const kakaoId = String(u.id);
   const nick = (u.properties && u.properties.nickname) || (u.kakao_account && u.kakao_account.profile && u.kakao_account.profile.nickname) || '';
-  // 앱의 로그인 표시: 무작위 값은 화면에만 주고, 시트에는 바꾼 값(해시)만 둔다
+  return newSession_(kakaoId, nick);
+}
+// 앱의 로그인 표시: 무작위 값은 화면에만 주고, 시트에는 바꾼 값(해시)만 둔다
+function newSession_(kakaoId, nick) {
   const token = Utilities.getUuid() + Utilities.getUuid();
   append_('sessions', { hash: hash_(token), kakaoId, nick, expires: new Date(Date.now() + SESSION_DAYS * 864e5) });
   return { token, nick, uid: noteUid_(kakaoId) };
+}
+
+// ── 교회 코드(결정 기록 2026-10-27): 교회마다 서버(시트)가 따로이고, 카카오 로그인과 '코드 → 교회' 목록은 기본 서버(apps-script/hub)가 맡는다 ──
+//  두 서버의 설정(스크립트 속성)에 같은 HUB_SECRET을 넣는다. 기본 서버가 서명한 것만 믿는다.
+//  CHURCH_ID: 기본 서버 목록의 이 교회 이름표. 넣어 두면 다른 교회로 받은 확인증으로는 들어오지 못한다
+//  AUTO_APPROVE='예': 테스트 서버처럼 승인해 줄 리더가 없는 곳. 연결 요청이 바로 연결된다
+function hubSign_(msg) {
+  const secret = props_().HUB_SECRET;
+  if (!secret) throw fail_('bad', '이 서버는 아직 교회 코드로 들어올 수 없어요. 관리자에게 알려 주세요.');
+  return Utilities.base64EncodeWebSafe(Utilities.computeHmacSha256Signature(msg, secret));
+}
+function hubCheck_(msg, sig, at) {
+  if (!sig || hubSign_(msg) !== String(sig)) throw fail_('forbidden', '서명이 맞지 않아요.');
+  if (at !== undefined && !(Math.abs(Date.now() - Number(at)) < 5 * 60e3)) throw fail_('forbidden', '시간이 지난 요청이에요.');
+}
+// 확인증: 내용(JSON을 base64로).서명. 5분 동안만 쓴다
+function ticketLogin_(body) {
+  const t = String(body.ticket || ''), dot = t.lastIndexOf('.');
+  if (dot < 1) throw fail_('login', '다시 로그인해 주세요.');
+  const msg = t.slice(0, dot);
+  hubCheck_(msg, t.slice(dot + 1));
+  const x = JSON.parse(Utilities.newBlob(Utilities.base64DecodeWebSafe(msg)).getDataAsString());
+  if (x.typ !== 'ticket' || !x.kakaoId) throw fail_('login', '다시 로그인해 주세요.');
+  if (!(Number(x.exp) > Date.now())) throw fail_('login', '확인이 늦어졌어요. 다시 로그인해 주세요.');
+  const id = props_().CHURCH_ID;
+  if (id && x.church !== id) throw fail_('forbidden', '다른 교회의 코드로 들어왔어요. 다시 로그인해 주세요.');
+  return newSession_(String(x.kakaoId), String(x.nick || ''));
+}
+// 새 휴대폰처럼 기본 서버가 이 사람의 교회를 모를 때: 이 서버에 연결됐거나(요청 중 포함) 운영 관리자인지만 답한다
+function hubKnows_(body) {
+  const k = String(body.kakaoId || '');
+  hubCheck_('knows|' + k + '|' + body.at, body.sig, body.at);
+  const l = read_('links').find(x => String(x.kakaoId) === k && (x.status === '연결' || x.status === '요청'));
+  return { known: !!l || opsRows_(k).length > 0 };
+}
+// 앱 관리자 보기(기본 서버)가 묻는 이 교회의 상태: 숫자와 버전만. 이름·기도제목은 보내지 않는다
+function appStatus_(body) {
+  hubCheck_('status|' + body.at, body.sig, body.at);
+  const m = month_(), p = props_(), links = read_('links');
+  const depts = depts_().filter(d => deptOpen_(d));
+  const errs = read_('errors').filter(e => Date.parse(e.at) > Date.now() - 7 * 864e5);
+  return { version: VERSION, depts: depts.length, linked: links.filter(l => l.status === '연결').length, asks: links.filter(l => l.status === '요청').length,
+    month: m, opened: p['OPENED_' + m] || '', errors: errs.length, lastError: errs.length ? errs[errs.length - 1].at : '', auto: yes_(p.AUTO_APPROVE) };
 }
 
 function logout_(body) {
@@ -399,7 +453,10 @@ function requestLink_(body) {
     }
     // 예시 데이터를 지울 때 기억해 둔 관리자는 승인해 줄 사람이 없으니, 고른 가정에 바로 연결하고 그 가정을 관리자로 만든다
     const next = String(props_().NEXT_ADMIN || '').split(',').filter(Boolean), first = next.indexOf(w.kakaoId) >= 0;
-    append_('links', { kakaoId: w.kakaoId, nick: w.nick, familyId, person, status: first ? '연결' : '요청', requestedAt: today_(), approvedBy: first ? '처음 관리자' : '', lastSeen: today_() });
+    // 테스트 서버(AUTO_APPROVE): 승인 없이 바로 연결하고, 새로 신청한 가정도 바로 활동으로
+    const auto = !first && yes_(props_().AUTO_APPROVE);
+    append_('links', { kakaoId: w.kakaoId, nick: w.nick, familyId, person, status: first || auto ? '연결' : '요청', requestedAt: today_(), approvedBy: first ? '처음 관리자' : auto ? '바로 연결(테스트)' : '', lastSeen: today_() });
+    if (auto) { const fam = read_('families').find(f => f.id === familyId); if (fam && fam.status === '승인 대기') { fam.status = '활동'; update_('families', fam); } }
     if (first) {
       const fam = read_('families').find(f => f.id === familyId);
       Object.assign(fam, { status: '활동', admin: '예' }); update_('families', fam);
