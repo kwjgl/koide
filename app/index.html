@@ -1498,6 +1498,8 @@ try { const p = JSON.parse(localStorage.getItem('koide-pref') || '{}'), d = docu
         if (S.me.link && S.me.link.status === '연결') S.month = r.month || await api('month');
         S.view = 'app'; return enterGroup(go, window.koideSplash && window.koideSplash.mode === 'group');
       }
+      // 이미 연결(또는 요청)된 사람의 기기에 남은 초대 값은 지우기만 하고, 화면은 아래에서 평소처럼 정한다
+      if (S.me.link && join) { try { localStorage.removeItem(JOIN); } catch (e) { /* 무시 */ } }
       if (!S.me.link) {
         // 초대 링크(소그룹·부서)나 '공동체에 연결하기'로 오지 않았으면 혼자 시작한 사람: 기도 노트가 첫 화면이다
         //  (2026-10-27) 교회 코드로 막 들어온 사람은 공동체로 시작할지, 기도 노트만 쓸지 먼저 고른다(startpick). 한 번만 묻는다
@@ -1517,7 +1519,6 @@ try { const p = JSON.parse(localStorage.getItem('koide-pref') || '{}'), d = docu
           }
         }
       }
-      else if (join) { try { localStorage.removeItem(JOIN); } catch (e) { /* 무시 */ } }
       else if (S.me.link.status === '요청') S.view = 'wait';
       else if (S.grp) { /* 모임 화면을 보는 중이면 내 소그룹 화면은 돌아갈 때 쓴다 */ S.home = r.month || S.home; }
       else { const m = r.month || await api('month'); if (!waiting) S.month = m; S.view = 'app'; trackOpen(); }
@@ -1932,8 +1933,7 @@ try { const p = JSON.parse(localStorage.getItem('koide-pref') || '{}'), d = docu
       <div class="choices">${(S.depts || []).map(d => `<button class="choice" data-act="pickdept" data-v="${esc(d.id)}">${esc(d.name)}</button>`).join('')}</div>
       ${connecting() ? '<button class="link" data-act="tonote">기도 노트로 돌아가기</button>' : ''}`,
     room: () => `${steps(1)}<p class="eyebrow">${dept().name ? esc(dept().name) : '처음 한 번만 확인할게요'}</p><h1>어느 ${esc(grp())}인가요?</h1>
-      <div class="choices">${(S.rooms || []).map(r => `<button class="choice" data-act="pickroom" data-v="${esc(r.id)}">${esc(r.name)}</button>`).join('')}</div>
-      ${dept().hasStaff || (dept().staff || []).length ? '<button class="choice new" data-act="staffstart">목사님·장로님으로 들어가기</button>' : ''}
+      <div class="choices">${(S.rooms || []).map(r => `<button class="choice" data-act="pickroom" data-v="${esc(r.id)}">${esc(r.name)}</button>`).join('')}${dept().hasStaff || (dept().staff || []).length ? '<button class="choice new" data-act="staffstart">목사님·장로님으로 들어가기</button>' : ''}</div>
       ${S.depts && S.depts.length > 1 ? '<button class="link" data-act="back" data-v="dept">뒤로</button>' : connecting() ? '<button class="link" data-act="tonote">기도 노트로 돌아가기</button>' : ''}`,
     staffpick: () => `${steps(2)}<p class="eyebrow">${esc(dept().name || '')}</p><h1>어느 분이세요?</h1>
       <div class="choices">${(dept().staff || []).map(s => `<button class="choice" data-act="pickstaff" data-v="${esc(s.id)}">${esc(s.label)}<small class="choice-sub">${esc(s.name)}</small></button>`).join('')}</div>
@@ -1945,7 +1945,7 @@ try { const p = JSON.parse(localStorage.getItem('koide-pref') || '{}'), d = docu
       <form data-form="typename"><input id="tn-a" class="field" required maxlength="10" autocomplete="name" aria-label="내 이름" value="${esc(S.pick.person || '')}">
         <p class="hint">${S.pick.staff ? '교역자 목록에 있는 이름과 같게 써요.' : `${esc(grp())} 명단에 있는 이름과 같게 써요.${solo() ? '' : ' 가정이면 남편이나 아내 중 내 이름이에요.'}`} 다른 분들의 이름은 보이지 않아요.</p>
         <button class="btn wide" type="submit" style="margin-top:12px">다음</button></form>
-      ${S.pick.staff ? '' : `<button class="choice new" data-act="newfam">${solo() ? '처음 왔어요 · 새로 신청' : '새로 온 가정이에요 · 새 가정 신청'}</button>`}
+      ${S.pick.staff ? '' : `<div class="choices"><button class="choice new" data-act="newfam">${solo() ? '처음 왔어요(새로 신청)' : '새로 온 가정이에요(새 가정 신청)'}</button></div>`}
       <button class="link" data-act="back" data-v="room">뒤로</button>`; },
     family: () => { const r = S.rooms.find(x => x.id === S.pick.roomId);
       return `${steps(2)}<p class="eyebrow">${esc(r.name)}</p><h1>${solo() ? '내 이름을 골라 주세요' : '우리 가정을 골라 주세요'}</h1>
@@ -4913,6 +4913,8 @@ try { const p = JSON.parse(localStorage.getItem('koide-pref') || '{}'), d = docu
   //  앱을 누른 때부터 재면 아이폰이 앱을 띄우는 시간에 다 써 버려서 시작 화면이 거의 보이지 않았다
   // 시작 화면(splash.js): 처음 켤 때, 기도 노트에서 넘어올 때 고른 화면을 닫는다
   function hideSplash() { if (window.koideSplash) window.koideSplash.hide(); }
+  // 시작 화면이 걷히면 따라 하기 자동 시작을 한 번 더 본다(걷히기 전에 그린 화면에서는 건너뛰었다)
+  addEventListener('koide-unboot', () => TourC.maybe());
   function paint() { const a = document.activeElement; if (a && $('#main').contains(a) && a.matches('textarea, input')) return; render(); }
   function save(call, done) {
     waiting++; setSaved('저장 중…');
