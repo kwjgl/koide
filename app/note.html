@@ -1370,13 +1370,11 @@ button.knot { cursor: pointer; }
   }
   function moreView() {
     const nick = (noteMe() || {}).nick;
+    const linked = inCommunity();
     return `<header class="top"><div><p class="eyebrow">${nick ? esc(nick) : '코이데 기도 노트'}</p><h1>더보기</h1></div></header>
-      <div class="n-two"><div class="n-main"><p class="more-h">함께하는 곳</p>
-      <section class="card">${inCommunity() ? `<p class="plain">기도 노트는 혼자 쓰는 곳이에요. 교회 사랑방과 함께 기도하는 곳은 같은 앱의 공동체예요. 노트의 기도제목을 사랑방이나 모임에 나누고 싶으면 노트에서 "나누기"를 눌러요. 모임은 해외선교팀처럼 잠깐 모이는 임시 공간이라 끝나는 날(최대 1년)에 기록과 함께 사라져요. 남기고 싶은 기도제목은 내 기도 노트로 옮겨 두세요.</p>
-        <a class="btn ghost small" style="align-self:flex-start;text-decoration:none;display:inline-flex;align-items:center" href="index.html${QS}">코이데 공동체로</a>`
-        : `<p class="plain">교회 사랑방과 함께 기도하려면 공동체에 연결해요. 리더에게 초대 링크를 받았으면 그 링크를 열면 돼요. 링크가 없으면 부서와 사랑방을 골라 연결을 신청할 수 있어요.</p>
-        <a class="btn ghost small" style="align-self:flex-start;text-decoration:none;display:inline-flex;align-items:center" href="index.html${DEMO_LINK ? '?demo&connect' : '?connect'}">우리 교회 공동체에 연결하기</a>`}</section>
+      <div class="n-two"><div class="n-main">
       <p class="more-h">나</p>
+      <section class="card mrows"><a class="mrow" style="text-decoration:none;color:inherit" href="${linked ? 'index.html' + QS : 'index.html' + (DEMO_LINK ? '?demo&connect' : '?connect')}"><span><b>${linked ? '코이데 공동체' : '우리 교회 공동체에 연결하기'}</b><small>${linked ? '사랑방·모임과 함께 기도제목을 나누는 곳이에요' : '사랑방과 함께 기도해요'}</small></span><span aria-hidden="true">›</span></a></section>
       <section class="card"><p class="label">내가 기도하는 사람들</p>
         ${people().length ? `<ul class="people">${people().map(p => `<li><span>${esc(p.name)}</span><span><button class="link quiet" data-a="renperson" data-v="${p.id}">이름 바꾸기</button> <button class="link quiet" data-a="delperson" data-v="${p.id}">빼기</button></span></li>`).join('')}</ul>` : '<p class="hint">가족, 친구처럼 늘 기도하는 사람을 더해 두면 기도제목의 대상으로 고를 수 있고, 오늘 화면에 끈이 생겨요.</p>'}
         <button class="btn ghost small" data-a="addperson" style="align-self:flex-start">+ 사람 더하기</button></section>
