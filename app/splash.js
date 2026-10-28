@@ -118,7 +118,8 @@
   if (mode === 'group') inner = groupInner(q.get('gn'), q.get('gl'));
   const st = document.createElement('style'); st.textContent = css; document.head.appendChild(st);
   // 바탕 그림(glass·classic)은 시작 화면이 걷힐 때 함께 보인다. 시작 화면이 없으면 바로
-  const unboot = () => document.documentElement.classList.remove('booting');
+  //  걷힐 때 앱에 알린다(앱이 그 사이 그린 화면은 booting이라 따라 하기 자동 시작을 건너뛰었다)
+  const unboot = () => { const de = document.documentElement, was = de.classList.contains('booting'); de.classList.remove('booting'); if (was) window.dispatchEvent(new Event('koide-unboot')); };
   if (!inner) unboot();
   if (inner) me.insertAdjacentHTML('afterend', `<div id="splash" class="splash" aria-hidden="true">${inner}</div>`);
   window.SPLASH_AT = performance.now();
