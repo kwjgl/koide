@@ -82,6 +82,8 @@
 
   // 링크로 켰거나 내 사랑방이 시범 중이면 함께함(내가 끝낸 기기는 빼고)
   const on = () => !!(O && !ST.off && (ST.on || ST.room));
+  // 내 사랑방이 시범 중이라 함께하는지(링크 시범은 아님). 기도 노트는 이 사람에게만 띠를 숨긴다(공동체 앱에서 띠를 보니까)
+  const isRoom = () => !!(O && !ST.off && ST.room);
   const total = () => KEYS.length;
   const count = () => KEYS.filter(k => ST.done[k]).length;
   // 설문에 실어 보낼 해 본 항목 키(시범에 함께하지 않으면 null)
@@ -130,11 +132,15 @@
   // 설문 카드가 사라진 뒤처럼 화면을 다시 그리지 않고 띠만 다시 붙일 때
   const remount = () => { if (last && last[0] && last[0].isConnected) mount(last[0], last[1], last[2]); };
 
-  // 더보기에 넣는 두 줄(.mrow): 띠 보이기/숨기기, 시범 끝내기. 시범에 함께하지 않으면 없다
+  // 더보기에 넣는 두 줄(.mrow): 띠 보이기/숨기기, 시범 끝내기. 시범에 함께하지 않으면 없다.
+  //  기도 노트에서 사랑방 시범인 사람은 띠가 없어서(나의 배지가 대신한다) 띠 보이기/숨기기 줄은 두지 않고 시범 끝내기만 둔다
   function moreRows() {
     if (!on()) return '';
+    const bandless = O.where === 'note' && isRoom();
+    const end = `<button type="button" class="mrow" data-pl="off"><span><b>시범 끝내기</b><small>${bandless ? '시범에 함께하는 것을 이 기기에서 끝내요. 나의 배지는 그대로예요' : '해 볼 일 띠와 체크를 이 기기에서 지워요'}</small></span></button>`;
+    if (bandless) return end;
     return `<button type="button" class="mrow" data-pl="show"><span><b>시범에서 해 볼 일</b><small>${ST.hide ? '띠를 숨겨 두었어요. 누르면 다시 보여요' : '화면 위에 띠가 보여요. 누르면 숨겨요'} · ${count()}/${total()}</small></span></button>
-      <button type="button" class="mrow" data-pl="off"><span><b>시범 끝내기</b><small>해 볼 일 띠와 체크를 이 기기에서 지워요</small></span></button>`;
+      ${end}`;
   }
 
   document.addEventListener('click', e => {
@@ -167,5 +173,5 @@
 .pl-task.done .pl-box{background:var(--accent);border-color:var(--accent)}`;
   document.head.appendChild(css);
 
-  window.KoidePilot = { init, room, on, done, keys, count, total, mount, remount, moreRows, LISTS, KEYS };
+  window.KoidePilot = { init, room, on, isRoom, done, keys, count, total, mount, remount, moreRows, LISTS, KEYS };
 })();

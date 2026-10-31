@@ -78,11 +78,6 @@ html.iv-open { overflow: hidden; }
 .iv-th { margin: 0; font-weight: 600; display: flex; align-items: center; gap: .5em; }
 .iv-heart { color: #C8A24A; }
 .iv-name { fill: var(--ink-2); font-size: 13px; font-weight: 600; }
-.iv-year { width: 100%; max-width: 420px; height: auto; overflow: visible; }
-.iv-strand { fill: none; stroke: var(--accent-mid); stroke-linecap: round; stroke-dasharray: 1; stroke-dashoffset: 1; animation: iv-draw .9s var(--d) ease-out forwards; }
-.iv-gold { fill: none; stroke: #C8A24A; stroke-width: 3; stroke-linecap: round; }
-.iv-bead { fill: var(--accent); }
-.iv-mon { fill: var(--ink-2); font-size: 11px; }
 .iv-flow { display: flex; align-items: center; justify-content: center; gap: 12px; }
 .iv-box, .iv-dev { padding: .7em 1.1em; border: 1px solid var(--line); border-radius: 14px; background: var(--surface); font-weight: 600; }
 .iv-box.hl { border-color: var(--accent); color: var(--accent); }
