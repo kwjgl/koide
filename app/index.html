@@ -549,7 +549,8 @@ body.praying .tabs { display: none; }
 .name-note { margin-top: 1.6em; word-break: keep-all; }
 .label { font-size: .74em; margin: 0; letter-spacing: .03em; }
 h3 { font-size: 1.02em; font-weight: 600; margin: 0; }
-.card > .items, .card .items { margin: 0; gap: .6em; }
+/* 항목 사이(1em)를 줄 사이보다 넓게 벌려 어디까지가 기도제목 하나인지 끊어 읽히게 한다 */
+.card > .items, .card .items { margin: 0; gap: 1em; }
 .items > li.item { display: flex; gap: .6em; align-items: flex-start; }
 .item.s-leader { border-left: 3px solid var(--leader); padding-left: .6em; }
 .item.s-family { background: var(--private); border-radius: 10px; padding: .45em .6em; }
@@ -557,7 +558,7 @@ h3 { font-size: 1.02em; font-weight: 600; margin: 0; }
 .items .tgt { flex: none; font-size: .72em; font-weight: 600; padding: .25em .65em; border-radius: 999px; background: var(--surface-2); color: var(--ink-2); border: 1px solid var(--line); margin-top: .15em; white-space: nowrap; }
 .today .tgt { background: var(--surface); }
 .items > li.item.grp { flex-wrap: wrap; }
-.sub { list-style: none; margin: 0; padding: 0; flex: 1 1 12em; min-width: 0; display: flex; flex-direction: column; gap: .45em; }
+.sub { list-style: none; margin: 0; padding: 0; flex: 1 1 12em; min-width: 0; display: flex; flex-direction: column; gap: .7em; }
 .sub > li { display: flex; gap: .45em; }
 .sub > li::before { content: "·"; color: var(--ink-2); font-weight: 700; }
 .sub > li.s-leader { border-left: 3px solid var(--leader); padding-left: .6em; }
@@ -567,9 +568,17 @@ h3 { font-size: 1.02em; font-weight: 600; margin: 0; }
 .item-foot { display: flex; flex-wrap: wrap; align-items: center; gap: .2em .9em; }
 .new-dot { display: inline-block; width: .45em; height: .45em; border-radius: 50%; background: var(--accent); vertical-align: .2em; margin-right: .4em; }
 .sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
-.txt { margin: 0; line-height: 1.55; overflow-wrap: anywhere; }
+/* 한국어는 낱말 중간에서 줄을 바꾸지 않는다(keep-all). 띄어쓰기 없이 긴 글(링크 등)만 anywhere로 끊는다 */
+.txt { margin: 0; line-height: 1.55; word-break: keep-all; overflow-wrap: anywhere; }
 .txt.clamp { display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; }
 .more-txt { background: none; border: 0; padding: .1em 0; font-size: .74em; font-weight: 600; color: var(--accent); cursor: pointer; align-self: flex-start; min-height: 28px; }
+/* 휴대폰: 대상 칩을 글 위로 올린다. 칩 폭만큼 글 칸이 좁아지지 않고, 모든 글이 같은 왼쪽 줄에서 시작한다.
+   (미리보기 목록은 오른쪽에 빼기 버튼이 있어 그대로 옆에 둔다) */
+@media (max-width: 639px) {
+  .items > li.item:not(:has(.rm-x)) { flex-direction: column; gap: .3em; }
+  .items > li.item:not(:has(.rm-x)) .tgt { margin-top: 0; }
+  .items > li.item.grp:not(:has(.rm-x)) .sub { flex: none; width: 100%; }
+}
 /* 태블릿·PC는 긴 문장도 접지 않고 전부 보여준다 (휴대폰만 3줄 접기) */
 @media (min-width: 640px) { .txt.clamp { display: block; -webkit-line-clamp: unset; overflow: visible; } .more-txt { display: none; } }
 .b-scope { font-size: .72em; font-weight: 600; display: inline-flex; gap: .25em; align-items: center; }
