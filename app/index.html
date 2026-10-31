@@ -549,15 +549,19 @@ body.praying .tabs { display: none; }
 .name-note { margin-top: 1.6em; word-break: keep-all; }
 .label { font-size: .74em; margin: 0; letter-spacing: .03em; }
 h3 { font-size: 1.02em; font-weight: 600; margin: 0; }
-.card > .items, .card .items { margin: 0; gap: .6em; }
+/* 항목 사이(1em)를 줄 사이보다 넓게 벌려 어디까지가 기도제목 하나인지 끊어 읽히게 한다 */
+.card > .items, .card .items { margin: 0; gap: 1em; }
 .items > li.item { display: flex; gap: .6em; align-items: flex-start; }
 .item.s-leader { border-left: 3px solid var(--leader); padding-left: .6em; }
 .item.s-family { background: var(--private); border-radius: 10px; padding: .45em .6em; }
 .today .item.s-family { background: var(--surface); }
 .items .tgt { flex: none; font-size: .72em; font-weight: 600; padding: .25em .65em; border-radius: 999px; background: var(--surface-2); color: var(--ink-2); border: 1px solid var(--line); margin-top: .15em; white-space: nowrap; }
 .today .tgt { background: var(--surface); }
+/* 지금 함께 기도할 가정: 한 가정을 천천히 읽는 자리라 글을 키우고 줄과 항목 사이를 넉넉히 */
+.card.today .txt { font-size: 1.08em; line-height: 1.7; }
+.card.today .items { gap: 1.15em; }
 .items > li.item.grp { flex-wrap: wrap; }
-.sub { list-style: none; margin: 0; padding: 0; flex: 1 1 12em; min-width: 0; display: flex; flex-direction: column; gap: .45em; }
+.sub { list-style: none; margin: 0; padding: 0; flex: 1 1 12em; min-width: 0; display: flex; flex-direction: column; gap: .7em; }
 .sub > li { display: flex; gap: .45em; }
 .sub > li::before { content: "·"; color: var(--ink-2); font-weight: 700; }
 .sub > li.s-leader { border-left: 3px solid var(--leader); padding-left: .6em; }
@@ -566,11 +570,20 @@ h3 { font-size: 1.02em; font-weight: 600; margin: 0; }
 .item-body { min-width: 0; flex: 1; display: flex; flex-direction: column; gap: .2em; }
 .item-foot { display: flex; flex-wrap: wrap; align-items: center; gap: .2em .9em; }
 .new-dot { display: inline-block; width: .45em; height: .45em; border-radius: 50%; background: var(--accent); vertical-align: .2em; margin-right: .4em; }
+
 .sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
-.txt { margin: 0; line-height: 1.55; overflow-wrap: anywhere; }
-.txt.clamp { display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; }
+/* 한국어는 낱말 중간에서 줄을 바꾸지 않는다(keep-all). 띄어쓰기 없이 긴 글(링크 등)만 anywhere로 끊는다 */
+.txt { margin: 0; line-height: 1.55; word-break: keep-all; overflow-wrap: anywhere; }
+/* 휴대폰 목록은 2줄까지만 보여 훑어보기 쉽게 하고, 더 보기로 펼친다. 지금 함께 기도할 가정 카드는 접지 않는다 */
+.txt.clamp { display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
 .more-txt { background: none; border: 0; padding: .1em 0; font-size: .74em; font-weight: 600; color: var(--accent); cursor: pointer; align-self: flex-start; min-height: 28px; }
-/* 태블릿·PC는 긴 문장도 접지 않고 전부 보여준다 (휴대폰만 3줄 접기) */
+/* 대상 칩은 글 첫머리에 붙인다(itemBody의 .tgt-in). 칩이 따로 줄이나 칸을 차지하지 않고, 둘째 줄부터는 글이 카드 왼쪽 끝까지 쓴다.
+   한 대상에 여럿인 묶음은 칩을 위에 두고 아래로 늘어놓는다. (미리보기 목록은 오른쪽에 빼기 버튼이 있어 칩을 옆에 둔 그대로) */
+.txt .tgt-in { display: inline-block; margin: 0 .45em 0 0; padding: .1em .6em; line-height: 1.4; vertical-align: .08em; }
+.items > li.item.grp { flex-direction: column; gap: .3em; }
+.items > li.item.grp > .tgt { align-self: flex-start; margin-top: 0; }
+.items > li.item.grp .sub { flex: none; width: 100%; }
+/* 태블릿·PC는 긴 문장도 접지 않고 전부 보여준다 (휴대폰만 2줄 접기) */
 @media (min-width: 640px) { .txt.clamp { display: block; -webkit-line-clamp: unset; overflow: visible; } .more-txt { display: none; } }
 .b-scope { font-size: .72em; font-weight: 600; display: inline-flex; gap: .25em; align-items: center; }
 .b-scope.leader { color: var(--leader); }
@@ -1998,23 +2011,25 @@ try { const p = JSON.parse(localStorage.getItem('koide-pref') || '{}'), d = docu
 
   // 이번 달: 우리 가정 + 사랑방 가정마다 기도제목과 "기도했어요"
   const todayLabel = () => { const d = new Date(); return (d.getMonth() + 1) + '월 ' + d.getDate() + '일 ' + '일월화수목금토'[d.getDay()]; };
-  // 기도제목 줄(시안과 같게): 같은 대상은 칩 하나 아래로 묶고, 휴대폰에서는 3줄까지 보이고 '더 보기'로 펼친다.
+  // 기도제목 줄(시안과 같게): 같은 대상은 칩 하나 아래로 묶고, 휴대폰에서는 2줄까지 보이고 '더 보기'로 펼친다.
   //  새 기도제목은 글 앞 작은 점, 공개 범위는 리더·목사님(보라 띠)·우리 가정만(회색 바탕 + 자물쇠)
   const SCOPE_ICON = { room: ICON.room, dept: ICON.room, leader: ICON.people, family: ICON.lock };
   //  famId가 있으면(사랑방 가정 카드) 글의 '더 보기'가 그 가정 카드 전체를 펼친다: 4개 넘는 항목과 접힌 글까지 한 번에
-  function itemBody(i, clamp, famId) {
+  function itemBody(i, clamp, famId, tgt) {
     const open = !famId && S.openItems.has(i.id);
     const dot = i.isNew ? '<i class="new-dot" title="이번 달 새 기도제목"></i><span class="sr">새 기도제목: </span>' : '';
     const tog = !clamp ? '' : famId ? `<button class="more-txt" data-act="famtoggle" data-id="${esc(famId)}" aria-expanded="false">더 보기</button>`
       : `<button class="more-txt" data-act="itemtoggle" data-id="${esc(i.id)}" aria-expanded="${open}">${open ? '접기' : '더 보기'}</button>`;
     // 기본 공개(사랑방 공개, 교역자의 부서 공개)는 표시하지 않는다
     const scope = i.scope === 'leader' || i.scope === 'family' ? `<span class="b-scope ${i.scope}">${SCOPE_ICON[i.scope]}${scopeName(i.scope)}</span>` : '';
-    return `<div class="item-body"><p class="txt${clamp && !open ? ' clamp' : ''}">${dot}${esc(i.text)}${i.ended ? '<span class="end-tag">마침</span>' : ''}</p>${tog || scope ? `<div class="item-foot">${scope}${tog}</div>` : ''}</div>`;
+    // tgt가 있으면 대상 칩을 글 첫머리에 붙인다(칩이 따로 칸을 차지하지 않고, 둘째 줄부터 글이 왼쪽 끝까지 쓴다)
+    const lead = tgt ? `<span class="tgt tgt-in">${esc(tgt)}</span>` : '';
+    return `<div class="item-body"><p class="txt${clamp && !open ? ' clamp' : ''}">${lead}${dot}${esc(i.text)}${i.ended ? '<span class="end-tag">마침</span>' : ''}</p>${tog || scope ? `<div class="item-foot">${scope}${tog}</div>` : ''}</div>`;
   }
   function itemList(items, clamp, famId) {
     const groups = [];
     items.filter(i => !i.pending).forEach(i => { const g = groups.find(x => x.target === i.target); g ? g.items.push(i) : groups.push({ target: i.target, items: [i] }); });
-    return `<ul class="items">${groups.map(g => g.items.length === 1 ? `<li class="item s-${g.items[0].scope}"><span class="tgt">${esc(g.target)}</span>${itemBody(g.items[0], clamp, famId)}</li>`
+    return `<ul class="items">${groups.map(g => g.items.length === 1 ? `<li class="item s-${g.items[0].scope}">${itemBody(g.items[0], clamp, famId, g.target)}</li>`
       : `<li class="item grp"><span class="tgt">${esc(g.target)}</span><ul class="sub">${g.items.map(i => `<li class="s-${i.scope}">${itemBody(i, clamp, famId)}</li>`).join('')}</ul></li>`).join('')}</ul>`;
   }
   // 기도했어요: 오늘 횟수(N/3)를 함께. 하루 3번이 되면 '오늘은 여기까지'
@@ -2353,7 +2368,7 @@ try { const p = JSON.parse(localStorage.getItem('koide-pref') || '{}'), d = docu
   // 사랑방: 달을 고르면 그 달에 우리 가정이 있던 사랑방의 기도제목(사랑방 공개, 그때 리더였으면 리더·목사님 항목까지).
   //  우리 가정: 달마다 우리 가정 기도제목 전부. 과거 기록은 그때 함께한 사람에게만 보인다(서버가 고른다)
   const monthLabel = (m, now) => (m.slice(0, 4) !== now.slice(0, 4) ? m.slice(0, 4) + '년 ' : '') + Number(m.slice(5)) + '월';
-  // 지난 기록도 이번 달 카드와 같은 모양(대상별로 묶고 긴 글은 3줄까지). 지난 항목엔 id가 없어서 '더 보기'용으로 붙여 준다
+  // 지난 기록도 이번 달 카드와 같은 모양(대상별로 묶고 긴 글은 휴대폰에서 2줄까지). 지난 항목엔 id가 없어서 '더 보기'용으로 붙여 준다
   //  이번 달처럼 4개까지만 보이고 나머지는 '더 보기'로 펼친다
   function histItems(its, key) {
     if (!its.length) return '<p class="hint">이 달에는 올린 기도제목이 없어요.</p>';
