@@ -1,4 +1,4 @@
-// 코이데 소개 영상: 앱 안에서 재생하는 1분 30초 남짓의 움직이는 소개. 영상 파일 없이 앱의 그림(매듭, 기도의 끈, 이달의 그림)으로 장면을 만든다.
+// 코이데 소개 영상: 앱 안에서 재생하는 1분 20초 남짓의 움직이는 소개. 영상 파일 없이 앱의 그림(매듭, 기도의 끈, 이달의 그림)으로 장면을 만든다.
 //  화면 전체를 다시 그려도 끊기지 않게 body에 따로 붙인 판에서 스스로 돈다. 글자 자막이 늘 나오고 소리는 없다(예배당·모임에서도 틀 수 있게).
 //  누르면 멈춤, 옆 버튼으로 장면 넘기기, 마지막 장면에서 멈춘다. 움직임 줄이기를 켠 기기에서는 장면마다 다 된 모습으로 바로 보인다
 //  공동체 화면(더보기 › 코이데 소개, 로그인 전 첫 화면)과 기도 노트(더보기)가 함께 쓴다. 모양은 intro-video.css
@@ -36,19 +36,6 @@ window.KoideIntroVideo = (() => {
     }
     return `<svg class="iv-cord" viewBox="0 0 ${W} ${Y + (names ? 56 : 44)}" aria-hidden="true">${s}</svg>`;
   }
-  // 기도 서랍의 올해의 실타래(평면으로): 달마다 한 가닥, 기도한 날만큼 굵게. 응답받은 기도는 매듭, 감사는 금실
-  function yearCord() {
-    const W = 340, H = 150, wid = [3, 5, 4, 7, 6, 8, 5, 9, 7, 10, 8, 11], knots = { 3: 1, 7: 2, 10: 1 }, gold = [1, 5, 9, 11];
-    let s = '';
-    wid.forEach((w, k) => {
-      const x = 22 + k * (W - 44) / 11, t = .2 + k * .28;
-      s += `<path class="iv-strand" pathLength="1" style="--d:${t}s;stroke-width:${w}px" d="M${x} ${H - 18}C${x - 6} ${H * .62} ${x + 6} ${H * .36} ${x} 16"/>`;
-      if (gold.includes(k)) s += `<path class="iv-gold iv-show" ${d(t + 1.8)} d="${[.42, .5, .58].map(f => `M${x - w / 2 - 3} ${H * f + 3}l${w + 6} -7`).join('')}"/>`;
-      for (let n = 0; n < (knots[k] || 0); n++) s += `<circle class="iv-bead iv-pop" ${d(t + 1.2 + n * .3)} cx="${x}" cy="${H * (.3 + n * .2)}" r="${w / 2 + 3}"/>`;
-      s += `<text class="iv-mon iv-in" ${d(t)} x="${x}" y="${H}" text-anchor="middle">${k + 1}</text>`;
-    });
-    return `<svg class="iv-year" viewBox="0 0 ${W} ${H + 4}" aria-hidden="true">${s}</svg>`;
-  }
   const PHONE = (inner, cls = '') => `<div class="iv-phone ${cls}">${inner}</div>`;
   const LOCK = '<svg viewBox="0 0 24 24" aria-hidden="true"><rect x="5" y="10.5" width="14" height="10" rx="2"/><path d="M8 10.5V8a4 4 0 0 1 8 0v2.5"/></svg>';
   const CHECK = '<svg viewBox="0 0 16 16" aria-hidden="true"><path d="M3.5 8.5l3 3 6-7"/></svg>';
@@ -85,8 +72,6 @@ window.KoideIntroVideo = (() => {
           <div class="iv-thanks iv-in" ${d(2.9)}><p class="iv-th-h">감사와 응답</p><p class="iv-th iv-in" ${d(3.5)}><span class="iv-heart">♥</span>엄마가 다시 일어나셨어요</p></div></div>` },
       { ch: 'me', dur: 7000, cap: '내가 기도하는 사람들도 끈으로 이어져요.',
         html: cord({ tie: [.6, 1.4, 2.2, 3, 3.8, 4.6], names: ['나', '엄마', '아빠', '지우', '친구', '교회'] }) },
-      { ch: 'me', dur: 7000, cap: '한 해가 한 가닥씩 쌓여요. 응답은 매듭으로, 감사는 금실로.',
-        html: `<p class="iv-sub iv-in" ${d(.1)}>기도 서랍 · 올해의 실타래</p>${yearCord()}` },
       { ch: 'me', dur: 6000, cap: `나누고 싶은 기도는 ${g}에 나누고, 다른 기기에서도 동기화할 수 있어요.`,
         html: `<div class="iv-flow"><span class="iv-box iv-in" ${d(.3)}>내 기도 노트</span><span class="iv-arrow iv-in" ${d(.9)}>→</span><span class="iv-box hl iv-in" ${d(1.3)}>우리 ${homeName}</span></div>
           <div class="iv-flow"><span class="iv-dev iv-in" ${d(2.4)}>휴대폰</span><span class="iv-sync iv-pop" ${d(3)}>${LOCK}</span><span class="iv-dev iv-in" ${d(2.7)}>PC</span></div>` },

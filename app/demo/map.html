@@ -68,7 +68,7 @@ html, body { margin: 0; height: 100%; overflow: hidden; overscroll-behavior: non
 <script>
 /* ── 장면 목록: 칸을 더하려면 여기에 한 줄 더하면 돼요 ──
    row/col: 놓을 자리(가로 col, 세로 row). page: index(공동체) | note(기도 노트). as: 데모 사람(없으면 로그인 전). at: 열 화면
-   (index: home mine pray history more status admin church meet login connect wait … / note: today note pray look keep more) */
+   (index: home mine pray history more status admin church meet login connect wait … / note: today note pray look more) */
 const SCENES = [
   // 역할에 따라 더해지는 화면 (맨 위 줄)
   { id: 'r-status', row: 0, col: 2, title: '사랑방 현황', who: '김도윤 · 2-20 리더', page: 'index', as: '김도윤', at: 'status' },
@@ -90,8 +90,7 @@ const SCENES = [
   { id: 'n-note', row: 2, col: 2, title: '내 기도', who: '나의 기도 노트', page: 'note', as: '새사람', at: 'note' },
   { id: 'n-pray', row: 2, col: 3, title: '기도하기', who: '나의 기도 노트', page: 'note', as: '새사람', at: 'pray' },
   { id: 'n-look', row: 2, col: 4, title: '지난 기록', who: '나의 기도 노트', page: 'note', as: '새사람', at: 'look' },
-  { id: 'n-keep', row: 2, col: 5, title: '기도 서랍', who: '나의 기도 노트', page: 'note', as: '새사람', at: 'keep' },
-  { id: 'n-more', row: 2, col: 6, title: '더보기', who: '나의 기도 노트', page: 'note', as: '새사람', at: 'more' }
+  { id: 'n-more', row: 2, col: 5, title: '더보기', who: '나의 기도 노트', page: 'note', as: '새사람', at: 'more' }
 ];
 const ROWS = [
   { row: 0, col: 2, label: '역할에 따라 더해지는 화면', sub: '리더 · 목사님 · 부서 관리자 · 전체 관리자' },
@@ -103,7 +102,7 @@ const ARROWS = [
   ['first', 'connect', '공동체에 연결하기'], ['connect', 'wait', '신청'], ['wait', 'c-home', '승인되면'],
   ['c-home', 'c-mine'], ['c-mine', 'c-pray'], ['c-pray', 'c-history'], ['c-history', 'c-more'],
   ['first', 'n-today', '기도 노트로 바로'],
-  ['n-today', 'n-note'], ['n-note', 'n-pray'], ['n-pray', 'n-look'], ['n-look', 'n-keep'], ['n-keep', 'n-more'],
+  ['n-today', 'n-note'], ['n-note', 'n-pray'], ['n-pray', 'n-look'], ['n-look', 'n-more'],
   ['n-today', 'c-home', '오가기', true],
   ['c-more', 'r-status', '역할에 따라'], ['c-more', 'r-meet'], ['c-more', 'r-pastor'], ['c-more', 'r-dept'], ['c-more', 'r-church']
 ];
