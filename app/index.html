@@ -576,6 +576,13 @@ h3 { font-size: 1.02em; font-weight: 600; margin: 0; }
 .txt { margin: 0; line-height: 1.55; word-break: keep-all; overflow-wrap: anywhere; }
 /* 휴대폰 목록은 2줄까지만 보여 훑어보기 쉽게 하고, 더 보기로 펼친다. 지금 함께 기도할 가정 카드는 접지 않는다 */
 .txt.clamp { display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+/* 접힌 글의 '더 보기'를 둘째 줄 끝에 끼워 넣는다(글은 그 앞에서 …로 끝나고, 따로 줄을 차지하지 않는다).
+   오른쪽에 높이(전체 - 한 줄)만큼 빈 띄움(::before)을 세우고 그 아래로 단추를 띄워 마지막 줄에 앉힌다. 글 끝을 배경색으로 덮지 않아 디자인 스타일과 어두운 화면에서도 그대로다 */
+.fold { display: flex; }
+.fold > .txt { flex: 1; min-width: 0; }
+.fold > .txt.clamp { cursor: pointer; }
+.txt.clamp::before { content: ''; float: right; height: calc(100% - 1.55em); }
+.more-in { float: right; clear: both; margin-left: .5em; padding: 0; border: 0; background: none; font: inherit; font-size: .9em; line-height: calc(1.55em / .9); font-weight: 600; color: var(--accent); cursor: pointer; }
 .more-txt { background: none; border: 0; padding: .1em 0; font-size: .74em; font-weight: 600; color: var(--accent); cursor: pointer; align-self: flex-start; min-height: 28px; }
 /* 대상 칩은 글 첫머리에 붙인다(itemBody의 .tgt-in). 칩이 따로 줄이나 칸을 차지하지 않고, 둘째 줄부터는 글이 카드 왼쪽 끝까지 쓴다.
    한 대상에 여럿인 묶음은 칩을 위에 두고 아래로 늘어놓는다. (미리보기 목록은 오른쪽에 빼기 버튼이 있어 칩을 옆에 둔 그대로) */
@@ -584,7 +591,7 @@ h3 { font-size: 1.02em; font-weight: 600; margin: 0; }
 .items > li.item.grp > .tgt { align-self: flex-start; margin-top: 0; }
 .items > li.item.grp .sub { flex: none; width: 100%; }
 /* 태블릿·PC는 긴 문장도 접지 않고 전부 보여준다 (휴대폰만 2줄 접기) */
-@media (min-width: 640px) { .txt.clamp { display: block; -webkit-line-clamp: unset; overflow: visible; } .more-txt { display: none; } }
+@media (min-width: 640px) { .txt.clamp { display: block; -webkit-line-clamp: unset; overflow: visible; } .txt.clamp::before { content: none; } .more-txt, .more-in { display: none; } }
 .b-scope { font-size: .72em; font-weight: 600; display: inline-flex; gap: .25em; align-items: center; }
 .b-scope.leader { color: var(--leader); }
 .b-scope.family { color: var(--ink-2); }
@@ -2014,17 +2021,20 @@ try { const p = JSON.parse(localStorage.getItem('koide-pref') || '{}'), d = docu
   // 기도제목 줄(시안과 같게): 같은 대상은 칩 하나 아래로 묶고, 휴대폰에서는 2줄까지 보이고 '더 보기'로 펼친다.
   //  새 기도제목은 글 앞 작은 점, 공개 범위는 리더·목사님(보라 띠)·우리 가정만(회색 바탕 + 자물쇠)
   const SCOPE_ICON = { room: ICON.room, dept: ICON.room, leader: ICON.people, family: ICON.lock };
-  //  famId가 있으면(사랑방 가정 카드) 글의 '더 보기'가 그 가정 카드 전체를 펼친다: 4개 넘는 항목과 접힌 글까지 한 번에
+  //  접힌 글(휴대폰 2줄)은 둘째 줄 끝의 '더 보기'나 글을 누르면 그 항목만 펼친다. 카드 아래 '펼치기 · N개'(moreBtn)는 4개 넘는 항목만 펼친다
   function itemBody(i, clamp, famId, tgt) {
-    const open = !famId && S.openItems.has(i.id);
+    const open = S.openItems.has(i.id), fold = clamp && !open;
     const dot = i.isNew ? '<i class="new-dot" title="이번 달 새 기도제목"></i><span class="sr">새 기도제목: </span>' : '';
-    const tog = !clamp ? '' : famId ? `<button class="more-txt" data-act="famtoggle" data-id="${esc(famId)}" aria-expanded="false">더 보기</button>`
-      : `<button class="more-txt" data-act="itemtoggle" data-id="${esc(i.id)}" aria-expanded="${open}">${open ? '접기' : '더 보기'}</button>`;
+    // 펼친 글은 아래 한 줄에 '접기'를 둔다(접힌 글의 '더 보기'는 따로 줄을 차지하지 않고 글 안 둘째 줄 끝에 붙는다)
+    const tog = clamp && open ? `<button class="more-txt" data-act="itemtoggle" data-id="${esc(i.id)}" aria-expanded="true">접기</button>` : '';
     // 기본 공개(사랑방 공개, 교역자의 부서 공개)는 표시하지 않는다
     const scope = i.scope === 'leader' || i.scope === 'family' ? `<span class="b-scope ${i.scope}">${SCOPE_ICON[i.scope]}${scopeName(i.scope)}</span>` : '';
     // tgt가 있으면 대상 칩을 글 첫머리에 붙인다(칩이 따로 칸을 차지하지 않고, 둘째 줄부터 글이 왼쪽 끝까지 쓴다)
     const lead = tgt ? `<span class="tgt tgt-in">${esc(tgt)}</span>` : '';
-    return `<div class="item-body"><p class="txt${clamp && !open ? ' clamp' : ''}">${lead}${dot}${esc(i.text)}${i.ended ? '<span class="end-tag">마침</span>' : ''}</p>${tog || scope ? `<div class="item-foot">${scope}${tog}</div>` : ''}</div>`;
+    const txt = `${lead}${dot}${esc(i.text)}${i.ended ? '<span class="end-tag">마침</span>' : ''}`;
+    // 접힌 글: '더 보기' 단추를 글 맨 앞에 두고 CSS(.fold)가 둘째 줄 끝으로 띄운다. 2줄 안에 들어가면 render 끝에서 접기와 단추를 걷어 낸다
+    const body = fold ? `<div class="fold"><p class="txt clamp" data-act="itemtoggle" data-id="${esc(i.id)}"><button class="more-in" data-act="itemtoggle" data-id="${esc(i.id)}" aria-expanded="false">더 보기</button>${txt}</p></div>` : `<p class="txt">${txt}</p>`;
+    return `<div class="item-body">${body}${tog || scope ? `<div class="item-foot">${scope}${tog}</div>` : ''}</div>`;
   }
   function itemList(items, clamp, famId) {
     const groups = [];
@@ -2050,13 +2060,15 @@ try { const p = JSON.parse(localStorage.getItem('koide-pref') || '{}'), d = docu
   }
   // pick: 회원 홈(이름을 누르면 '지금 함께 기도할 가정'으로 올라온다, 기도했어요는 그 카드에서만).
   //  목사님·장로님이 사랑방을 들여다보는 화면에는 그 카드가 없어서 가정마다 기도했어요를 둔다
+  // 카드 아래 '펼치기 · N개'(가정 카드·지난 기록 카드): 4개 넘는 항목이 있을 때만 두고 남은 항목을 펼친다. 펼치면 '접기'.
+  //  글을 펼치는 일은 하지 않는다(접힌 글은 항목마다 그 자리에서 펼친다)
+  const moreBtn = (id, open, more) => more <= 0 ? '' : open ? `<button class="link" data-act="famtoggle" data-id="${esc(id)}" aria-expanded="true">접기</button>`
+    : `<button class="link" data-act="famtoggle" data-id="${esc(id)}" aria-expanded="false">펼치기 · ${more}개</button>`;
   function famCard(f, staff) {
-    // 펼치면 모든 항목을 접지 않고 다 보여 주고, 맨 아래 '접기' 하나로 다시 접는다
-    const its = f.items.filter(i => !i.pending), open = S.openFams.has(f.id), more = its.length - 4;
+    // 펼치면 남은 항목까지 다 보여 주고(글은 그대로 2줄로 접힌다), 맨 아래 '접기' 하나로 다시 4개로 줄인다
+    const its = f.items.filter(i => !i.pending), open = S.openFams.has(f.id);
     return `<article class="card"><div class="fam-head"><h3>${staff ? esc(f.name) : `<button class="fam-pick" data-act="cordpick" data-v="${esc(f.id)}" aria-label="${esc(f.name)}, 누르면 지금 함께 기도할 ${words().one} 카드에 올라와요" title="지금 함께 기도할 ${words().one}으로 보기"><span>${esc(f.name)}</span>${ICON.up}</button>`}</h3>${staff ? prayBtn(f, true) : ''}</div>
-      ${its.length ? (open ? itemList(its, false) : itemList(its.slice(0, 4), true, f.id)) : '<p class="hint">아직 올린 기도제목이 없어요.</p>'}
-      ${open ? `<button class="link" data-act="famtoggle" data-id="${esc(f.id)}" aria-expanded="true">접기</button>`
-        : more > 0 ? `<button class="link" data-act="famtoggle" data-id="${esc(f.id)}" aria-expanded="false">더 보기 · ${more}개</button>` : ''}</article>`;
+      ${its.length ? itemList(open ? its : its.slice(0, 4), true, f.id) + moreBtn(f.id, open, its.length - 4) : '<p class="hint">아직 올린 기도제목이 없어요.</p>'}</article>`;
   }
   // ── 홈 화면에 두기(13장 홈 화면 앱) ──
   // 홈 화면 앱으로 열었으면 나오지 않는다. 처음 무언가를 남긴 뒤(기도했어요, 기도제목 저장)에 한 번 권하고,
@@ -2372,9 +2384,9 @@ try { const p = JSON.parse(localStorage.getItem('koide-pref') || '{}'), d = docu
   //  이번 달처럼 4개까지만 보이고 나머지는 '더 보기'로 펼친다
   function histItems(its, key) {
     if (!its.length) return '<p class="hint">이 달에는 올린 기도제목이 없어요.</p>';
-    const id = 'h-' + key, open = S.openFams.has(id), more = its.length - 4;
-    return itemList((open ? its : its.slice(0, 4)).map((i, k) => Object.assign({}, i, { id: id + '-' + k })), true)
-      + (more > 0 ? `<button class="link" data-act="famtoggle" data-id="${esc(id)}" aria-expanded="${open}">${open ? '접기' : '더 보기 · ' + more + '개'}</button>` : '');
+    const id = 'h-' + key, open = S.openFams.has(id);
+    // 가정 카드와 같게: 접힌 글은 항목마다 그 자리에서, 남은 항목은 카드 아래 '펼치기 · N개'로 펼친다
+    return itemList((open ? its : its.slice(0, 4)).map((i, k) => Object.assign({}, i, { id: id + '-' + k })), true, id) + moreBtn(id, open, its.length - 4);
   }
   // ── 이달의 그림 모으기 (설계서 4장, 3차) ──────────────────────────
   // 나만 보는 그림: 기도한 날마다 주인공 하나, 새 가정을 위해 처음 기도할 때마다 소품 하나, 같은 날 한 번 더 기도하면 하트.
@@ -4850,7 +4862,8 @@ try { const p = JSON.parse(localStorage.getItem('koide-pref') || '{}'), d = docu
       const fade = () => tb2.classList.toggle('below', tb2.scrollTop + tb2.clientHeight < tb2.scrollHeight - 2);
       fade(); tb2.addEventListener('scroll', fade, { passive: true });
     }
-    document.querySelectorAll('.txt.clamp').forEach(p => { if (p.scrollHeight <= p.clientHeight + 2) { p.classList.remove('clamp'); const b = p.parentElement.querySelector('.more-txt'); if (b) { const f = b.parentElement; b.remove(); if (!f.children.length) f.remove(); } } });
+    // 2줄 안에 다 들어가는 글(태블릿·PC는 접지 않아 늘 그렇다)은 접기를 풀고, 글 안 '더 보기'와 누르기를 걷어 낸다
+    document.querySelectorAll('.txt.clamp').forEach(p => { if (p.scrollHeight <= p.clientHeight + 2) { p.classList.remove('clamp'); p.removeAttribute('data-act'); const m = p.querySelector('.more-in'); if (m) m.remove(); const b = p.parentElement.querySelector('.more-txt'); if (b) { const f = b.parentElement; b.remove(); if (!f.children.length) f.remove(); } } });
     // 하단 바: 글자 없이 아이콘만(이름은 화면 제목과 aria-label로). 표 보기·가져오기는 연 곳의 탭을 켠다
     const on = tabOn();
     if (app && !S.op) $('#tabs').innerHTML = TABS.map(([k, l, ic]) => `<button class="${k === 'pray' ? 'pray-tab ' : ''}${on === k ? 'on' : ''}" data-act="tab" data-v="${k}" aria-label="${l}" title="${l}" ${on === k ? 'aria-current="page"' : ''}>${ic}</button>`).join('');
