@@ -255,16 +255,20 @@ button.knot { cursor: pointer; }
 .mp-name { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .an-track { height: 10px; background: var(--surface-2); border-radius: 0 4px 4px 0; }
 .an-fill { display: block; height: 100%; background: var(--accent); border-radius: 0 4px 4px 0; }
-/* 나의 배지: 동그라미 + 이름. 칸 나누기(grid)와 flex만 쓴다(float · 줄 자르기 없음). 못 받은 다음 배지는 점선 */
-.bdgs { display: grid; grid-template-columns: repeat(auto-fill, minmax(72px, 1fr)); gap: 12px 6px; }
-.bdg { display: flex; flex-direction: column; align-items: center; gap: .4em; padding: 2px 0; min-height: 44px; font: inherit; color: var(--ink); background: none; border: 0; cursor: pointer; text-align: center; }
-.bdg-n { font-size: .76em; line-height: 1.3; word-break: keep-all; }
-.bdg-c { display: grid; place-items: center; flex: none; width: 52px; height: 52px; border-radius: 50%; color: var(--accent); background: var(--accent-soft); border: 1.5px solid var(--accent-mid); }
-.bdg-c svg { width: 26px; height: 26px; }
-.bdg-c.big { width: 72px; height: 72px; }
-.bdg-c.big svg { width: 36px; height: 36px; }
-.bdg.next .bdg-c, .bdg-c.next { color: var(--ink-2); background: none; border: 1.5px dashed var(--line-strong); }
-.bdg.next .bdg-n { color: var(--ink-2); }
+/* 나의 배지: 둥근 네모 칸(56px) 안에 그림 + 아래에 이름. 칸 나누기(grid)와 flex만 쓴다(float · 줄 자르기 없음).
+   처음부터 모두 보인다. 받은 것은 색이 있고(칸 바탕 --accent-soft), 안 한 것(.off)은 칸 바탕이 중립색이고 그림만 색 없이 흐리다 */
+.bdgs { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 14px 6px; }
+@media (min-width: 600px) { .bdgs { grid-template-columns: repeat(auto-fill, minmax(88px, 1fr)); } }
+.bdg { display: flex; flex-direction: column; align-items: center; gap: .45em; padding: 2px 0; min-height: 44px; font: inherit; color: var(--ink); background: none; border: 0; cursor: pointer; text-align: center; }
+.bdg-n { font-size: .76em; line-height: 1.3; word-break: keep-all; overflow-wrap: anywhere; }
+.bdg-c { display: grid; place-items: center; flex: none; width: 56px; height: 56px; border-radius: 22%; color: var(--accent); background: var(--accent-soft); }
+.bdg-c svg { width: 28px; height: 28px; }
+.bdg-c img { display: block; width: 100%; height: 100%; object-fit: contain; }
+.bdg-c.big { width: 80px; height: 80px; }
+.bdg-c.big svg { width: 40px; height: 40px; }
+.bdg.off .bdg-c, .bdg-c.off { background: var(--surface-2); }
+.bdg.off .bdg-c > *, .bdg-c.off > * { filter: grayscale(1); opacity: .45; }
+.bdg.off .bdg-n { color: var(--ink-2); }
 .bdg-sheet { align-items: center; text-align: center; }
 /* 아래 탭 */
 .ic { width: 1em; height: 1em; fill: none; stroke: currentColor; stroke-width: 1.5; stroke-linecap: round; stroke-linejoin: round; flex: none; }
@@ -987,6 +991,7 @@ button.knot { cursor: pointer; }
   if (!QUIET) KoidePilot.init({ where: 'note', demo: DEMO, home: () => HOME_APP, rerender: () => render(), feedback: () => { S.fb = null; go('fb'); } });
   // 홈 화면 앱으로 열었으면 '홈 화면에' 배지를 받은 것(시범이 아니어도)
   if (!QUIET && HOME_APP) earn('a-home');
+  if (!QUIET && (PREF.mode || (PREF.accent && PREF.accent !== 'green') || (PREF.style && PREF.style !== 'flat') || PREF.big)) earn('a-style'); // 나의 배지: 이미 화면 설정을 바꿔 둔 기기
   // 사랑방 시범인 사람(공동체 앱에서 띠를 본다)은 can=false로 불러서 띠를 붙이지 않고 남은 띠도 거둔다. 링크 시범인 사람은 그대로 보인다
   const pilotBand = () => KoidePilot.mount($('#root > .wrap'), 'header.top', !QUIET && !S.ps && !KoideGuide.running() && !KoidePilot.isRoom());
   // 같은 사람(나 또는 내가 기도하는 사람)을 위한 기도제목이 두 개 이상인지
@@ -1083,7 +1088,7 @@ button.knot { cursor: pointer; }
   }
   // ── 지난 기록 아래쪽(달력·감사와 응답·오래 이어 온 기도 다음): 돌아보기(올해 기도한 모습)와 나의 배지(노트에서 해 본 일 · 이어 온 날) ──
   //  돌아보기는 이 노트의 기록(기도한 날 · 기도제목 · 감사)에서 바로 셈하고 따로 저장하는 것은 없다. 원칙(설계서 1장 · 5장): 0은 보여 주지 않고(없으면 칸 · 줄 · 카드를 통째로 뺀다),
-  //  견주기 · 순위 · 연속 기록 · 등급 · 잃을 수 있는 것은 두지 않는다. 나의 배지는 받은 것만 나오고 못 받은 것은 빈칸 · 흐린 칸이 없다(다음에 해 볼 것 하나만 점선으로)
+  //  견주기 · 순위 · 연속 기록 · 등급 · 잃을 수 있는 것은 두지 않는다. 나의 배지만 예외: 처음부터 모두 보이고 안 한 것은 색 없이 흐리게 보인다(사용자 결정 2026-10-31, 배지는 기도의 양이 아니라 앱을 배우는 일이라 안내가 된다)
   function reflectHtml() {
     const y = TODAY().slice(0, 4), P = prays().filter(p => p.d.startsWith(y)), tg = new Map(D.items.map(i => [i.id, i.target]));
     const days = new Set(P.map(p => p.d)).size, who = new Set(P.map(p => tg.get(p.item)).filter(t => t && t.startsWith('p:'))).size;
@@ -1096,12 +1101,14 @@ button.knot { cursor: pointer; }
       ${tiles.length ? `<div class="stats" style="--n:${tiles.length}">${tiles.map(([n, l]) => `<div><b>${n}</b><span>${l}</span></div>`).join('')}</div>` : ''}
       ${rows.length ? `<ul class="mp-bars" aria-label="${y}년 달마다 기도한 날">${rows.map(([m, n]) => `<li><span class="mp-name">${m}월</span><span class="an-track"><span class="an-fill" style="width:${Math.round(n / mmax * 100)}%"></span></span><b>${n}일</b></li>`).join('')}</ul>` : ''}</section>`;
   }
-  // 나의 배지: 노트에서 해 볼 일을 하나씩 해 보면 생기는 작은 동그라미(동그라미 안에 그림, 아래에 짧은 이름). 누르면 작은 창이 열린다
+  // 나의 배지: 노트에서 해 볼 일을 하나씩 해 보면 색이 들어오는 작은 둥근 네모 칸(칸 안에 그림, 아래에 짧은 이름). 처음부터 모두 보이고, 안 한 것은 색 없이 흐리다. 누르면 작은 창이 열린다
   //  · 써 보기 배지(tut): 노트의 기록에서 바로 알아낸다(예전부터 써 온 사람은 이미 해 본 일이 배지로 나온다). 기록에 남지 않는 일(기도하기 · 홈 화면 · 의견 보내기 · 동기화 켜기)만
   //    이 노트의 기록 D.badge({ 키: 'yyyy-mm-dd' })에 받은 날을 남긴다(earn). 카카오 계정마다 따로이고, 동기화 · 기록 저장하기에 함께 가며 합칠 때는 이른 날이 남는다. 키 이름은 시범 '해 볼 일'과 같다(n-/a-)
   //  · 기념 배지(m-): 1년 이어 온 기도 · 노트와 함께한 1년. 그날이 오면 생긴다. 처음 쓴 날 · 처음 기도 · 처음 감사 · 처음 응답은 써 보기 배지와 같은 일이라 한 배지에 날짜를 붙였다
-  //  at(): 받지 못했으면 null, 받았는데 날짜를 모르면 '', 아니면 'yyyy-mm-dd'. can(): 다음에 해 볼 것으로 내밀어도 되는 기기인지(홈 화면은 휴대폰만, 동기화는 잠금이 되는 주소만)
-  //  나열 순서는 배우는 길(쉬운 것부터). 받은 것은 이 순서대로, 못 받은 것은 맨 앞 하나만 보인다
+  //  at(): 받지 못했으면 null, 받았는데 날짜를 모르면 '', 아니면 'yyyy-mm-dd'. can(): 이 기기에서 해 볼 수 있는 일인지(홈 화면은 휴대폰만, 동기화는 잠금이 되는 주소만). 안 되는 기기에서도 배지는 보이고,
+  //  창에서 noCan 글을 더해 알려 준다(홈 화면은 방법 안내 창을 그대로 열고(guideOnly), 동기화는 해 보기 없이 닫기만). when: 기념 배지가 언제 생기는지
+  //  나열 순서는 배우는 길(쉬운 것부터). 받았든 안 받았든 이 순서 그대로 모두 늘어놓는다
+  //  모임 만들기(n-group): 노트에서 내 모임을 만들면 받는다(만들기 성공 때 earn). 서버가 알려 준 내 모임 목록(noteMe)에 모임장인 모임이 이미 있으면 그것도 받은 것으로 센다(모임은 끝나면 사라지므로 loadMe에서 한 번 earn으로 남긴다)
   // 받은 날을 노트 기록에 남긴다(장면 · 연습 페이지에서는 남기지 않는다). 이미 있으면 그대로(처음 받은 날)
   function earn(k) { if (QUIET || D.badge[k]) return; D.badge[k] = TODAY(); save(); }
   // 두 기록(이 기기 · 동기화로 온 것 · 백업 파일)의 받은 날을 합친다: 키마다 이른 날을 남긴다. 옛 기록(badge 없음)도 안전하다
@@ -1116,6 +1123,8 @@ button.knot { cursor: pointer; }
   const BADGES = [
     { k: 'n-first', tut: 1, ic: 'pen', name: '첫 기도제목', mean: '기도제목을 처음 노트에 적었어요.', todo: '내 기도에서 기도제목을 한 줄 써 보세요. 한 줄이면 충분해요.',
       at: () => minOf(realItems().map(i => i.created)) },
+    { k: 'n-people', tut: 1, ic: 'addp', name: '기도하는 사람', mean: '내가 기도하는 사람을 처음 더했어요.', todo: '더보기 › 나 › 내가 기도하는 사람들에서 엄마 · 친구처럼 기도하는 사람을 더해 보세요.',
+      at: () => { if (D.badge['n-people']) return D.badge['n-people']; const P = people().filter(p => !p.practice); if (!P.length) return null; const ids = new Set(P.map(p => 'p:' + p.id)); return minOf(realItems().filter(i => ids.has(i.target)).map(i => i.created)) || ''; } },
     { k: 'n-today', tut: 1, ic: 'sun', name: '첫 기도', mean: '노트에서 처음 기도했어요.', todo: '오늘 화면에서 기도제목 하나를 위해 기도하고 기도했어요를 눌러 보세요.',
       at: () => minOf(prays().map(x => x.d)) },
     { k: 'n-thanks', tut: 1, ic: 'heart', name: '첫 감사', mean: '감사한 것을 처음 남겼어요.', todo: '오늘 화면에서 오늘 감사한 것을 한 줄 남겨 보세요.',
@@ -1124,49 +1133,85 @@ button.knot { cursor: pointer; }
       at: () => { const g = {}; realItems().filter(i => i.target === 'me' || i.target.startsWith('p:')).sort((p, q) => p.created.localeCompare(q.created)).forEach(i => { (g[i.target] = g[i.target] || []).push(i.created); }); return minOf(Object.values(g).filter(l => l.length > 1).map(l => l[1])); } },
     { k: 'n-ps', tut: 1, ic: 'hands', name: '기도하기', mean: '기도하기로 한 장씩 기도해 봤어요.', todo: '기도하기에서 기도 시작을 눌러 한 장씩 기도해 보세요.',
       at: () => D.badge['n-ps'] || null },
-    { k: 'n-sync', tut: 1, ic: 'sync', name: '이어 두기', mean: '다른 기기에서도 이어 볼 수 있게 동기화를 켰어요.', todo: '더보기 › 동기화를 켜면 휴대폰을 바꿔도 노트가 이어져요.', can: () => canLock(),
+    { k: 'n-kingdom', tut: 1, ic: 'crown', name: '하나님 나라', mean: '기도하기에서 하나님 나라를 위해 기도했어요.', todo: '기도하기에서 하나님 나라를 켜고 한 장씩 기도해 보세요.',
+      at: () => D.badge['n-kingdom'] || null },
+    { k: 'a-style', tut: 1, ic: 'palette', name: '내 화면', mean: '화면 모드 · 색 테마 · 디자인 · 큰 글씨를 내게 맞게 바꿨어요.', todo: '더보기 › 앱 설정 › 화면 설정에서 내게 편한 모양으로 바꿔 보세요.',
+      at: () => D.badge['a-style'] || null },
+    { k: 'n-sync', tut: 1, ic: 'sync', name: '이어 두기', mean: '동기화를 켜거나 기록 저장하기로 노트를 지켜 두었어요.', todo: '더보기 › 동기화를 켜거나 기록 저장하기로 노트를 파일에 남겨 두세요. 휴대폰을 바꿔도 노트를 이어 갈 수 있어요.', can: () => canLock(), guideOnly: 1,
+      noCan: '이 주소에서는 동기화를 켤 수 없어요. 대신 기록 저장하기로 노트를 지킬 수 있어요.',
       at: () => D.badge['n-sync'] || (D.vault && D.vault.on ? (D.vault.last ? dkey(new Date(D.vault.last)) : '') : null) },
-    { k: 'a-home', tut: 1, ic: 'home', name: '홈 화면에', mean: '코이데를 휴대폰 홈 화면에 두었어요.', todo: '휴대폰 홈 화면에 두면 아이콘을 눌러 바로 열 수 있어요.', can: () => HOME_APP || A2HS_ASK,
+    { k: 'a-home', tut: 1, ic: 'home', name: '홈 화면에', mean: '코이데를 휴대폰 홈 화면에 두었어요.', todo: '휴대폰 홈 화면에 두면 아이콘을 눌러 바로 열 수 있어요.', can: () => HOME_APP || A2HS_ASK, guideOnly: 1,
+      noCan: '컴퓨터라면 휴대폰에서 노트를 열어 해 보세요. 방법은 해 보기 ›에서 볼 수 있어요.',
       at: () => D.badge['a-home'] || null },
+    { k: 'n-group', tut: 1, ic: 'group', name: '모임 만들기', mean: '내 모임을 처음 만들었어요.', todo: '더보기 › 내 모임에서 잠깐 함께 기도할 모임을 만들어 보세요.',
+      at: () => D.badge['n-group'] || (((noteMe() || {}).groups || []).some(g => g.role === '모임장') ? '' : null) },
+    { k: 'n-weave', tut: 1, ic: 'net', name: '함께 짠 그물', mean: '모임이 함께 짠 그물을 이 노트에 담아 두었어요.', todo: '모임이 끝날 즈음 모임 화면에서 그물 담기를 누르면 이 노트에 걸려요.',
+      can: () => ((noteMe() || {}).groups || []).some(g => !g.wait), noCan: '먼저 더보기 › 내 모임에서 모임을 만들거나 들어가 보세요.',
+      at: () => D.badge['n-weave'] || (weaves().length ? minOf(weaves().map(w => w.at)) || '' : null) },
     { k: 'n-answer', tut: 1, ic: 'check', name: '응답의 기록', mean: '응답받은 기도를 감사 기록으로 남겼어요.', todo: '응답받은 기도가 있으면 내 기도에서 마치기를 누르고 응답받았어요로 남겨 보세요.',
       at: () => minOf(D.thanks.filter(x => x.date && x.kind === 'answer').map(x => x.date)) },
-    { k: 'm-year', ic: 'star', name: '1년 이어 온 기도', mean: '한 기도제목을 1년 동안 이어 왔어요.',
+    { k: 'n-entrust', tut: 1, ic: 'lay', name: '내려놓기', mean: '응답을 기다리며 기도제목을 하나님께 맡겨 두었어요.', todo: '기도제목을 마칠 때 "맡겨 둘게요"를 고를 수 있어요. 응답이 아니어도 내려놓는 것도 기도예요.',
+      at: () => D.badge['n-entrust'] || minOf(realItems().filter(i => i.done && i.done.how !== 'answer' && i.done.date).map(i => i.done.date)) },
+    { k: 'm-year', ic: 'star', name: '1년 이어 온 기도', mean: '한 기도제목을 1년 동안 이어 왔어요.', when: '한 기도제목을 1년 이어 오면 생겨요.',
       at: () => { const Y = yearItems(); return Y.length ? Y[0].a : null; }, body: () => { const Y = yearItems(); return Y.length ? { tg: Y[0].i.target, text: Y[0].i.text } : null; } },
-    { k: 'm-note', ic: 'book', name: '노트와 함께 1년', mean: '기도 노트와 함께한 지 1년이에요.',
+    { k: 'm-note', ic: 'book', name: '노트와 함께 1년', mean: '기도 노트와 함께한 지 1년이에요.', when: '기도 노트를 시작한 지 1년이 되면 생겨요.',
       at: () => { const s = noteStart(), a = s ? addMonthsStr(s, 12) : ''; return a && a <= TODAY() ? a : null; } }
   ];
-  // 배지 그림: 노트에 있는 그림(ICON)을 쓰고, 없는 다섯(감사 · 사람 · 홈 화면 · 의견 · 기념)만 같은 굵기(24칸, 선 1.8)로 더했다
+  // 배지 그림: 노트에 있는 그림(ICON)을 쓰고, 없는 열(감사 · 사람 · 홈 화면 · 사람 더하기 · 왕관 · 팔레트 · 모임 · 그물 · 내려놓기 · 별 · 기념)만 같은 굵기(24칸, 선 1.8)로 더했다
   const bico = n => {
     const s = d => '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">' + d + '</svg>';
     return ({ pen: ICON.pen, sun: ICON.sun, hands: ICON.hands, book: ICON.book, sync: ICON.sync, check: ICON.check,
       people: s('<circle cx="9" cy="8" r="3"/><path d="M3.5 19c0-3 2.5-5 5.5-5s5.5 2 5.5 5"/><circle cx="17" cy="9" r="2.4"/><path d="M16 14.2c3 0 5 1.8 5 4.8"/>'),
       heart: s('<path d="M12 20s-7-4.4-7-10a4 4 0 0 1 7-2.6A4 4 0 0 1 19 10c0 5.6-7 10-7 10z"/>'),
       home: s('<path d="M4 11l8-7 8 7"/><path d="M6 10v9h12v-9"/><path d="M10 19v-5h4v5"/>'),
+      addp: s('<circle cx="10" cy="8" r="3.2"/><path d="M4 19.5c0-3.2 2.7-5.2 6-5.2s6 2 6 5.2"/><path d="M19 6.5v6M16 9.5h6"/>'),
+      crown: s('<path d="M4.5 17.5L3.5 8.5l4.6 3.8L12 5.5l3.9 6.8 4.6-3.8-1 9z"/><path d="M5.5 21h13"/>'),
+      palette: s('<path d="M12 4a8 8 0 1 0 0 16c1.4 0 2-.9 2-1.8 0-1.2-1-1.4-1-2.5 0-1 .8-1.7 1.9-1.7H17a3 3 0 0 0 3-3C20 7 16.4 4 12 4z"/><circle cx="8" cy="11" r=".9"/><circle cx="11" cy="7.8" r=".9"/><circle cx="15.2" cy="8.5" r=".9"/>'),
+      net: s('<path d="M12 3l9 9-9 9-9-9z"/><path d="M7.5 7.5l9 9M16.5 7.5l-9 9M12 3v18M3 12h18"/>'),
+      lay: s('<path d="M12 3v9M8.5 8.5L12 12l3.5-3.5"/><path d="M4 14.5h16c0 3.8-3.5 6.5-8 6.5s-8-2.7-8-6.5z"/>'),
+      group: s('<circle cx="12" cy="6" r="2.4"/><circle cx="5.5" cy="17" r="2.4"/><circle cx="18.5" cy="17" r="2.4"/><path d="M10.9 8.1L6.6 14.9M13.1 8.1l4.3 6.8M8 17h8"/>'),
       star: s('<path d="M12 3.5l2.6 5.3 5.9.9-4.3 4.1 1 5.8-5.2-2.8-5.2 2.8 1-5.8-4.3-4.1 5.9-.9z"/>') })[n] || '';
   };
+  // 배지 그림 파일: app/img/badges/<key>.webp(코덱스 삽화, 원본은 art/badges). koide에 올릴 때 이 폴더도 함께 옮긴다. 끄면(false) 선 아이콘으로 돌아간다
+  //  true면 선 아이콘 대신 그림 파일을 쓰고, 안 한 배지는 같은 그림에 CSS(.off)로 색을 뺀다
+  const BADGE_ART = true;
+  const bimg = b => BADGE_ART ? `<img src="img/badges/${b.k}.webp" alt="" loading="lazy">` : bico(b.ic);
+  // 모두 보인다: 받은 배지는 색이 있고, 안 한 배지는 같은 모양이 색 없이 흐리다(.off). 숫자(3/10)나 자물쇠는 없다
   function badgeHtml() {
-    const L = BADGES.map(b => [b, b.at()]), got = L.filter(x => x[1] != null).map(x => x[0]), nxt = L.find(x => x[0].tut && x[1] == null && (!x[0].can || x[0].can()));
-    const cell = (b, on) => `<button class="bdg${on ? '' : ' next'}" data-a="bdg" data-v="${b.k}" aria-label="${on ? esc(b.name) : '다음에 해 볼 것: ' + esc(b.name)}"><span class="bdg-c" aria-hidden="true">${bico(b.ic)}</span><span class="bdg-n">${on ? esc(b.name) : '다음에 해 볼 것'}</span></button>`;
+    const cell = b => { const on = b.at() != null;
+      return `<button class="bdg${on ? '' : ' off'}" data-a="bdg" data-v="${b.k}" aria-label="${esc(b.name)}${on ? '' : ', 아직 못 받았어요'}"><span class="bdg-c" aria-hidden="true">${bimg(b)}</span><span class="bdg-n">${esc(b.name)}</span></button>`; };
     return `<section class="card"><p class="label">나의 배지</p>
-      <div class="bdgs">${got.map(b => cell(b, true)).join('')}${nxt ? cell(nxt[0], false) : ''}</div>
-      ${got.length ? '' : '<p class="hint">해 보는 일마다 배지가 하나씩 생겨요. 점선 동그라미를 눌러 보세요.</p>'}</section>`;
+      <div class="bdgs">${BADGES.map(cell).join('')}</div>
+      ${BADGES.every(b => b.at() == null) ? '<p class="hint">해 보는 일마다 배지에 색이 들어와요. 배지를 눌러 보세요.</p>' : ''}</section>`;
   }
-  // 배지를 누르면 열리는 작은 창: 받은 배지는 뜻과 받은 날, 다음에 해 볼 것은 할 일 한 문장과 해 보기 단추
+  // 배지를 누르면 열리는 작은 창: 받은 배지는 뜻과 받은 날. 안 한 써 보기 배지는 할 일 한 문장과 해 보기 단추, 안 한 기념 배지는 언제 생기는지(닫기만)
   function bdgSheet() {
     const b = BADGES.find(x => x.k === S.bdg); if (!b) return '';
     const at = b.at(), on = at != null, bd = on && b.body ? b.body() : null;
+    const can = !b.can || b.can(), doable = !on && b.tut && (can || b.guideOnly);
+    const text = on ? b.mean : b.tut ? b.todo + (can || !b.noCan ? '' : ' ' + b.noCan) : b.when;
     return `<div class="sheet-back" data-a="bdgclose"><section class="sheet bdg-sheet" role="dialog" aria-modal="true" aria-labelledby="bd-t" data-stop>
-      <span class="bdg-c big${on ? '' : ' next'}" aria-hidden="true">${bico(b.ic)}</span>
+      <span class="bdg-c big${on ? '' : ' off'}" aria-hidden="true">${bimg(b)}</span>
       <h2 id="bd-t">${esc(b.name)}</h2>
-      <p class="plain">${esc(on ? b.mean : b.todo)}</p>
+      <p class="plain">${esc(text)}</p>
       ${bd ? `<p class="plain">${bd.tg ? `<span class="tag">${esc(targetName(bd.tg))}</span>` : ''}${esc(bd.text)}</p>` : ''}
       ${on ? `<p class="hint">${at ? dayLabel(at) + '에 받았어요' : '받았어요'}</p><button class="btn wide" data-a="bdgclose">닫기</button>`
-        : `<button class="btn wide" data-a="bdggo" data-v="${b.k}">해 보기 ›</button><button class="btn ghost wide" data-a="bdgclose">나중에 할게요</button>`}</section></div>`;
+        : doable ? `<button class="btn wide" data-a="bdggo" data-v="${b.k}">해 보기 ›</button><button class="btn ghost wide" data-a="bdgclose">나중에 할게요</button>`
+        : `<button class="btn wide" data-a="bdgclose">닫기</button>`}</section></div>`;
   }
   // 해 보기: 그 일을 하는 화면으로 보낸다(글을 쓰는 일은 쓰는 칸에 커서까지)
   function bdgGo(k) {
     if (k === 'a-home') { S.a2hs = true; return render(); }
-    const to = ({ 'n-first': ['note', '#it-text'], 'n-two': ['note', '#it-text'], 'n-answer': ['note'], 'n-today': ['today'], 'n-thanks': ['today', '#th-in'], 'n-ps': ['pray'], 'n-sync': ['sync'] })[k] || ['today'];
+    if (k === 'n-group') { // 더보기 › 내 모임. 자리가 남아 있으면 만들기 창까지 연다
+      const M = noteMe(); if (M && (M.groups || []).length + (M.linked ? 1 : 0) < PLACES) S.gNew = true;
+      go('more'); const f = $('#gc-n') || $('#my-groups'); if (f) { f.scrollIntoView({ block: 'center' }); if (f.id === 'gc-n') f.focus(); } return;
+    }
+    if (k === 'n-people' || k === 'a-style' || k === 'n-weave') { // 더보기의 그 카드로: 기도하는 사람들 / 화면 설정(펼쳐서) / 내 모임
+      if (k === 'a-style') S.setOpen = true;
+      go('more'); const f = $(k === 'n-people' ? '#my-people' : k === 'a-style' ? '[data-a=setopen]' : '#my-groups'); if (f) f.scrollIntoView({ block: 'center' }); return;
+    }
+    if (k === 'n-kingdom') { PS.world = true; savePs(); } // 기도하기에서 하나님 나라가 켜진 채로 열린다
+    const to = ({ 'n-first': ['note', '#it-text'], 'n-two': ['note', '#it-text'], 'n-answer': ['note'], 'n-entrust': ['note'], 'n-kingdom': ['pray'], 'n-today': ['today'], 'n-thanks': ['today', '#th-in'], 'n-ps': ['pray'], 'n-sync': ['sync'] })[k] || ['today'];
     go(to[0]);
     const f = to[1] && $(to[1]); if (f) { f.scrollIntoView({ block: 'center' }); f.focus(); }
   }
@@ -1233,7 +1278,7 @@ button.knot { cursor: pointer; }
     D.weaves = D.weaves.filter(x => x.id !== w.id);
     D.weaves.push({ id: w.id, name: String(w.name || '').slice(0, 16), from: w.from || '', to: w.to || '', n: Math.max(2, Math.min(20, Math.round(w.n) || 2)),
       pairs: w.pairs.filter(p => Array.isArray(p) && p.length === 3).map(p => [p[0] | 0, p[1] | 0, Math.max(1, Math.min(3, p[2] | 0 || 1))]), at: TODAY(), up: Date.now() });
-    save(); S.tab = 'weaves'; S.wpage = 0; S.wopen = null; return true;
+    earn('n-weave'); save(); S.tab = 'weaves'; S.wpage = 0; S.wopen = null; return true;
   }
   // 그물 크게 보기의 동그란 단추 그림
   const GI = {
@@ -1307,7 +1352,7 @@ button.knot { cursor: pointer; }
       <div class="n-two"><div class="n-main">
       <p class="more-h">나</p>
       <section class="card mrows"><a class="mrow" style="text-decoration:none;color:inherit" href="${linked ? 'index.html' + QS : 'index.html' + (DEMO_LINK ? '?demo&connect' : '?connect')}"><span><b>${linked ? '코이데 공동체' : '우리 교회 공동체에 연결하기'}</b><small>${linked ? '사랑방·모임과 함께 기도제목을 나누는 곳이에요' : '사랑방과 함께 기도해요'}</small></span><span aria-hidden="true">›</span></a></section>
-      <section class="card"><p class="label">내가 기도하는 사람들</p>
+      <section class="card" id="my-people"><p class="label">내가 기도하는 사람들</p>
         ${people().length ? `<ul class="people">${people().map(p => `<li><span>${esc(p.name)}</span><span><button class="link quiet" data-a="renperson" data-v="${p.id}">이름 바꾸기</button> <button class="link quiet" data-a="delperson" data-v="${p.id}">빼기</button></span></li>`).join('')}</ul>` : '<p class="hint">가족, 친구처럼 늘 기도하는 사람을 더해 두면 기도제목의 대상으로 고를 수 있고, 오늘 화면에 끈이 생겨요.</p>'}
         <button class="btn ghost small" data-a="addperson" style="align-self:flex-start">+ 사람 더하기</button></section>
       ${syncRow()}
@@ -1331,7 +1376,7 @@ button.knot { cursor: pointer; }
     ['기도제목은 어떻게 써요?', ['내 기도의 "새 기도제목 쓰기" 칸에 한 줄에 하나씩 써요.', '줄 앞에 "엄마ㅡ"처럼 이름을 쓰고 ㅡ를 붙이면 그 사람을 위한 기도제목이 돼요.', '대상별로 정리하기를 누르고, 미리보기에서 괜찮으면 추가하기를 눌러요.'], '내 기도로 가기', 'note'],
     ['오늘 화면의 세 개는 뭐예요?', ['오늘 기도할 제목을 하루에 세 개만 골라 보여 줘요. 그날은 바뀌지 않아요.', '오래 기도하지 않은 것부터 나와요. 기도하고 기도했어요를 눌러요.'], '오늘로 가기', 'today'],
     ['기도의 끈은 뭐예요?', ['오늘 화면의 끈은 내가 기도하는 사람마다 매듭이 하나씩이에요.', '이번 주(주일부터) 그 사람을 위해 기도하면 매듭이 지어지고, 매주 주일에 새로 시작해요. 더보기에서 사람을 더하면 끈이 생겨요.'], '오늘로 가기', 'today'],
-    ['지난 기록에서는 무엇을 볼 수 있어요?', ['달마다 기도한 날 달력과 감사·응답, 마친 기도를 볼 수 있어요.', '달력과 감사 아래 돌아보기에는 올해 기도한 날, 기억한 사람, 감사와 응답 기록, 달마다 기도한 날이 모여요. 그 아래 나의 배지에는 노트에서 해 본 일과 기도제목을 1년 이어 온 날이 하나씩 모이고, 다음에 해 볼 것은 점선 동그라미 하나로만 알려 줘요.', '나만 보는 기록이에요. 비어 있는 날이 있어도 괜찮아요.'], '지난 기록 열기', 'look'],
+    ['지난 기록에서는 무엇을 볼 수 있어요?', ['달마다 기도한 날 달력과 감사·응답, 마친 기도를 볼 수 있어요.', '달력과 감사 아래 돌아보기에는 올해 기도한 날, 기억한 사람, 감사와 응답 기록, 달마다 기도한 날이 모여요. 그 아래 나의 배지에는 노트에서 해 볼 일과 기념일이 처음부터 모두 보여요. 해 보면 그 배지에 색이 들어오고, 색이 없는 배지를 누르면 어떻게 하는지 알려 줘요.', '나만 보는 기록이에요. 비어 있는 날이 있어도 괜찮아요.'], '지난 기록 열기', 'look'],
     ['휴대폰을 바꿔도 이어지게 하려면?', ['기도 노트는 이 휴대폰에만 있어요. 더보기 › 동기화를 켜면 카카오 로그인과 비밀 문구로 잠가서 맡겨 둬요.', '새 휴대폰에서는 같은 카카오로 로그인한 뒤 더보기 › 동기화를 켜고 같은 비밀 문구를 넣으면 맡겨 둔 기록이 합쳐져요.', '비밀 문구를 잊을 때를 위해 복구용 낱말도 만들어 두세요. 둘 다 잃으면 되살릴 수 없어요.'], '동기화로 가기', 'sync']
   ];
   function helpView() {
@@ -1419,7 +1464,9 @@ button.knot { cursor: pointer; }
   const noteMe = () => { try { return JSON.parse(localStorage.getItem(ME_KEY) || 'null'); } catch (e) { return null; } };
   async function loadMe() {
     try { const r = await api('me'); const m = { groups: r.groups || [], linked: !!(r.link && r.link.status === '연결'), nick: r.nick || '', tour: r.tourDone === true };
-      try { localStorage.setItem(ME_KEY, JSON.stringify(m)); } catch (e) { /* 이번만 */ } render(); return r; }
+      try { localStorage.setItem(ME_KEY, JSON.stringify(m)); } catch (e) { /* 이번만 */ }
+      if (m.groups.some(g => g.role === '모임장')) earn('n-group'); // 나의 배지: 이미 모임을 만든 사람. 모임은 끝나면 사라지니 받은 날을 노트 기록에 남긴다
+      render(); return r; }
     catch (e) { return null; }
   }
   // 모임 이름과 남은 날(gn, gl)을 함께 넘기면 공동체 앱이 모임 전환 화면에 바로 보여 준다(모르면 생략)
@@ -1443,7 +1490,7 @@ button.knot { cursor: pointer; }
   // 더보기 › 내 모임: 모임 사람들과 함께 기도하는 자율 모임. 모임 화면은 공동체의 모임 화면을 쓴다(열면 그리로 갔다가 돌아온다)
   function groupsCard() {
     const M = noteMe(), G = (M && M.groups) || [], lead = G.some(g => g.role === '모임장'), used = (M && M.linked ? 1 : 0) + G.length, full = used >= PLACES, E = S.gNew;
-    return `<section class="card"><div class="row"><p class="label" style="margin:0">내 모임</p>${M ? `<small class="hint">${used}/${PLACES}곳</small>` : ''}</div>
+    return `<section class="card" id="my-groups"><div class="row"><p class="label" style="margin:0">내 모임</p>${M ? `<small class="hint">${used}/${PLACES}곳</small>` : ''}</div>
       <p class="hint">잠깐 모여 서로를 위해 기도하는 곳이에요(해외선교팀처럼). 끝나는 날이 있고, 이 노트와는 따로예요.</p>
       ${!M ? '<p class="hint">모임 목록을 불러오는 중이에요…</p>' : G.length ? '<div class="mlist">' + G.map(g => g.wait
         ? `<div class="mrow" aria-disabled="true"><span><b>${esc(g.name)}</b><small>모임장의 승인을 기다려요</small></span></div>`
@@ -1719,7 +1766,7 @@ button.knot { cursor: pointer; }
   function psMark() {
     const ps = S.ps, c = ps.list[ps.i];
     earn('n-ps'); // 나의 배지: 기도하기에서 처음 기도했어요를 누른 때
-    if (c.topic) { if (!ps.extra.includes(c.topic)) ps.extra.push(c.topic); } else c.ids.filter(id => !prayedToday(id)).forEach(id => togglePray(id));
+    if (c.topic) { if (c.topic !== KP.PRAY_THANKS.k) earn('n-kingdom'); if (!ps.extra.includes(c.topic)) ps.extra.push(c.topic); } else c.ids.filter(id => !prayedToday(id)).forEach(id => togglePray(id));
   }
   // 장 넘기기: 시간을 처음부터 다시 센다
   function psGo(d) {
@@ -1795,7 +1842,7 @@ button.knot { cursor: pointer; }
   function go(t) { S.tab = t; S.tgtOpen = null; render(); window.scrollTo(0, 0); }
   function addPerson() {
     const n = (prompt('기도할 사람의 이름') || '').trim().slice(0, 12); if (!n) return null;
-    const p = { id: uid(), name: n, up: now() }; D.people.push(p); save(); return p;
+    const p = { id: uid(), name: n, up: now() }; D.people.push(p); save(); earn('n-people'); return p;
   }
 
   // ── 누르기 ─────────────────────────────────────────────────────────────
@@ -1853,7 +1900,7 @@ button.knot { cursor: pointer; }
         const i = D.items.find(x => x.id === S.done), how = S.doneHow || 'answer', note = how === 'answer' ? ($('#dn-note').value || '').trim() : '';
         i.done = { date: TODAY(), how }; i.up = now();
         if (how === 'answer') D.thanks.push({ id: uid(), date: TODAY(), text: note || '응답받았어요', item: i.id, kind: 'answer', up: now() });
-        save(); S.done = null; if (how === 'answer') KoidePilot.done('n-answer'); return toast(how === 'answer' ? '감사 기록으로 남겼어요' : '맡겨 두었어요');
+        save(); S.done = null; if (how === 'answer') KoidePilot.done('n-answer'); else earn('n-entrust'); return toast(how === 'answer' ? '감사 기록으로 남겼어요' : '맡겨 두었어요');
       }
       case 'share': S.share = v; return render();
       case 'shareclose': S.share = null; return render();
@@ -1897,9 +1944,9 @@ button.knot { cursor: pointer; }
         if (!confirm(`${p.name} 님을 뺄까요?${n ? ` 이 사람을 위한 기도제목 ${n}개는 "나"로 옮겨요.` : ''}`)) return;
         D.items.forEach(i => { if (i.target === 'p:' + v) { i.target = 'me'; i.up = now(); } }); p.del = true; p.up = now(); save(); return render();
       }
-      case 'mode': setPref('mode', v === 'system' ? '' : v); KoidePilot.done('c-style'); return render();
-      case 'accent': setPref('accent', v); KoidePilot.done('c-style'); return render();
-      case 'style': setPref('style', v); KoidePilot.done('c-style'); return render();
+      case 'mode': setPref('mode', v === 'system' ? '' : v); KoidePilot.done('c-style'); earn('a-style'); return render();
+      case 'accent': setPref('accent', v); KoidePilot.done('c-style'); earn('a-style'); return render();
+      case 'style': setPref('style', v); KoidePilot.done('c-style'); earn('a-style'); return render();
       case 'lookm': S.lookM = v; return render();
       case 'bdg': S.bdg = v; return render();
       case 'bdgclose': S.bdg = null; return render();
@@ -1913,7 +1960,7 @@ button.knot { cursor: pointer; }
         if (!weaves().length) S.tab = 'more'; if (G3.weaves) { G3.weaves.dispose(); G3.weaves = null; } return toast('그물을 지웠어요');
       }
       case 'looktab': S.lookTab = v; return render();
-      case 'big': setPref('big', !PREF.big); return render();
+      case 'big': setPref('big', !PREF.big); earn('a-style'); return render();
       // 소개 영상은 '나' 장(기도 노트)부터. 공동체에 연결돼 있으면 이 기기에 남은 공동체 화면에서 소그룹 이름을 가져온다
       case 'ivid': {
         let c = null; try { c = JSON.parse(localStorage.getItem(DEMO_LINK ? 'koide-demo-cache' : 'koide-cache') || 'null'); } catch (err) { /* 없음 */ }
@@ -1962,11 +2009,11 @@ button.knot { cursor: pointer; }
         const text = JSON.stringify(Object.assign({ app: 'koide-note', saved: new Date().toISOString() }, D, { vault: null }), null, 1), fname = `코이데-기도노트-${TODAY()}.json`;
         const download = () => {
           const u = URL.createObjectURL(new Blob([text], { type: 'application/json' })), l = document.createElement('a'); l.href = u; l.download = fname; document.body.appendChild(l); l.click(); l.remove(); setTimeout(() => URL.revokeObjectURL(u), 1000);
-          toast('기록을 저장했어요');
+          earn('n-sync'); toast('기록을 저장했어요');
         };
         let file = null; try { file = new File([text], fname, { type: 'application/json' }); } catch (err) { /* 파일을 만들 수 없는 브라우저 */ }
         if (file && navigator.canShare && navigator.canShare({ files: [file] })) {
-          navigator.share({ files: [file], title: '코이데 기도 노트' }).then(() => toast('기록을 저장했어요'), err => { if (!err || err.name !== 'AbortError') download(); });
+          navigator.share({ files: [file], title: '코이데 기도 노트' }).then(() => { earn('n-sync'); toast('기록을 저장했어요'); }, err => { if (!err || err.name !== 'AbortError') download(); });
           return;
         }
         return download();
@@ -2001,7 +2048,7 @@ button.knot { cursor: pointer; }
       if (pf && !p) return pf.focus();
       const months = Number(($('#gc-m') || {}).value) || 3; S.gMonths = months;
       S.gBusy = true; render();
-      api('groupCreate', { name: n, person: p, months }).then(r => { S.gNew = false; location.href = groupUrl(r.id); },
+      api('groupCreate', { name: n, person: p, months }).then(r => { S.gNew = false; earn('n-group'); location.href = groupUrl(r.id); }, // 나의 배지: 모임 만들기
         err => { S.gBusy = false; render(); toast(err.code === 'bad' && /모르는 요청/.test(err.message || '') ? '서버를 새 버전으로 배포하면 모임을 만들 수 있어요.' : (err.message || '모임을 만들지 못했어요')); });
       return;
     }
