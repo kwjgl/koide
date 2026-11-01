@@ -405,7 +405,7 @@ button.knot { cursor: pointer; }
 .mrow .chev { display: inline-block; color: var(--ink-2); transition: transform .2s; }
 .mrow[aria-expanded="true"] .chev { transform: rotate(90deg); }
 @media (prefers-reduced-motion: no-preference) { .today-item, .card { transition: background .2s, border-color .2s; } }
-/* 기도의 순례길: 오늘 카드 · 순례길 화면(전체 화면 겹침) · 이야기 창. 화면 틀 색은 기존 색 변수만 쓰고, 땅 그림 26색은 지도(app/pilgrim) 안에서만 쓴다 */
+/* 기도의 순례길: 오늘 카드 · 순례길 화면(전체 화면 겹침) · 이야기 창. 화면 틀 색은 기존 색 변수만 쓰고, 땅 그림 33색은 지도(app/pilgrim) 안에서만 쓴다 */
 .sr-only { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
 .pg-card .link { min-height: 44px; align-self: flex-start; }
 .pg-walk { margin: 0; background: var(--warm-soft); color: var(--warm); border-radius: 10px; padding: .35em .7em; font-size: .86em; font-weight: 600; }
@@ -417,8 +417,10 @@ button.knot { cursor: pointer; }
 .pg-bar { display: flex; align-items: center; gap: 4px; background: var(--surface); border-bottom: 1px solid var(--line); padding: max(8px, env(safe-area-inset-top)) 12px 8px; }
 .pg-title { font-family: var(--f-display); font-size: 1.1em; }
 .pg-back { margin: 8px 12px 0; background: var(--warm-soft); color: var(--warm); border-radius: 10px; padding: .35em .7em; font-size: .86em; font-weight: 600; text-align: center; }
+.pg-routes { flex: none; padding: 8px 12px; background: var(--surface); border-bottom: 1px solid var(--line); }
+.pg-routes .chip { min-height: 44px; }
 .pg-scroll { flex: 1; overflow: auto; padding-bottom: 180px; }
-.pg-map { position: relative; width: calc(128px * var(--s)); height: calc(272px * var(--s)); margin: 12px auto; }
+.pg-map { position: relative; width: calc(128px * var(--s)); height: calc(var(--rows) * 16px * var(--s)); margin: 12px auto; }
 .pg-map canvas { width: 100%; height: 100%; }
 .pg-tag { position: absolute; transform: translateX(-50%); font: inherit; font-size: .74em; font-weight: 600; line-height: 1.3; padding: 1px 6px; background: var(--surface); color: var(--ink); border: 2px solid var(--ink); white-space: nowrap; cursor: pointer; }
 button.pg-tag::before { content: ''; position: absolute; inset: -10px; }
@@ -437,6 +439,7 @@ button.pg-tag::before { content: ''; position: absolute; inset: -10px; }
 .pg-end { top: 50%; bottom: auto; transform: translateY(-50%); cursor: default; display: flex; flex-direction: column; gap: .6em; padding-top: 22px; }
 .pg-end .txt { padding-right: 0; }
 .pg-end .pg-road { margin: 0; max-width: none; }
+.pg-end .pg-road.open { opacity: 1; color: var(--ink); } /* 다음 길이 열렸다는 알림은 흐리지 않고 점선만 둔다 */
 @media (prefers-reduced-motion: reduce) { .pg-next.on { animation: none; } }
 </style>
 <link rel="stylesheet" href="intro-video.css">
@@ -543,8 +546,18 @@ button.pg-tag::before { content: ''; position: absolute; inset: -10px; }
     const PGS = { pilgrimstart: [[], 0, []], pilgrim: [[9, 7, 5, 3], 10, ['p0']], pilgrimtoday: [[9, 7, 5, 3], 10, ['p0', 'p4']], pilgrimrest: [[14, 12, 10, 9, 8, 7], 15, ['p0', 'p4']],
       pilgrimmid: [[15, 13, 12, 10, 9, 7, 5, 2], 16, ['p0', 'p4', 'p7']], pilgrimend: [[20, 19, 17, 16, 14, 13, 11, 10, 8, 6, 4, 3], 21, ['p0', 'p4', 'p7', 'p10']],
       pilgrimbadge: [[20, 19, 17, 16, 14, 13, 11, 10, 8, 6, 4, 3], 21, ['p0', 'p4', 'p7', 'p10', 'p12', 'end']] };
+    // at=wild…: 광야의 길 장면. 아브라함의 길 12일을 먼저 걷고 이어서 광야의 길을 걷는다(걸은 날은 모두 회사 일 기도제목으로, 어제부터 거슬러 이어지는 날)
+    //  wildopen 아브라함의 길 마지막 날(열림 장면) · wildstart 광야 시작 · wildsea 홍해 한가운데 · wildmid 엘림 지나 중간 · wildtoday 오늘 카드(광야) · wildrest 쉬는 중 · wildend 다 걸음 · wildbadge 지난 기록의 나의 배지 · wildlist 지나온 길 목록
+    const wd = (n, from = 1) => Array.from({ length: n }, (_, i) => from + i), PA = ['p0', 'p4', 'p7', 'p10', 'p12', 'end'], WK = ['w0', 'w7', 'w14', 'w20', 'w27', 'w34', 'w40'];
+    const PGW = { wildopen: [wd(12, 0), PA.slice(0, 5)], wildstart: [wd(12), PA], wildsea: [wd(19), [...PA, 'w0']], wildmid: [wd(34), [...PA, ...WK.slice(0, 4)]], wildtoday: [wd(17), [...PA, 'w0']],
+      wildrest: [wd(21, 6), [...PA, 'w0', 'w7']], wildend: [wd(52), [...PA, ...WK.slice(0, 6)]], wildbadge: [wd(52), [...PA, ...WK, 'wend']], wildlist: [wd(26), [...PA, ...WK.slice(0, 3)]] };
+    if (PGW[SC.at] && ['wildmid', 'wildlist'].includes(SC.at)) { // 응답으로 마친 기도제목 하나를 더 둬서, 아브라함의 길(그 12일 중)과 광야의 길(day 5)에 돌이 따로 서게 한다
+      items.push(it('si11', 'me', '새 학기에 좋은 친구를 만나도록', 60, { date: day(SC.at === 'wildmid' ? 30 : 20), how: 'answer' }));
+      thanks.push({ id: 'st6', date: day(SC.at === 'wildmid' ? 30 : 20), text: '좋은 친구를 만나게 해 주셨어요', item: 'si11', kind: 'answer', up: 1 });
+    }
     let pilgrim;
-    if (PGS[SC.at]) { const [w, st, seen] = PGS[SC.at]; prays.length = 0; w.forEach(n => prays.push({ d: day(n), item: 'si1', up: 1 })); pilgrim = { start: day(st), days: [], seen: Object.fromEntries(seen.map(k => [k, day(0)])) }; }
+    if (PGW[SC.at]) { const [w, seen] = PGW[SC.at]; prays.length = 0; w.forEach(n => prays.push({ d: day(n), item: 'si1', up: 1 })); pilgrim = { start: day(Math.max(...w) + 1), days: [], seen: Object.fromEntries(seen.map(k => [k, day(0)])) }; }
+    else if (PGS[SC.at]) { const [w, st, seen] = PGS[SC.at]; prays.length = 0; w.forEach(n => prays.push({ d: day(n), item: 'si1', up: 1 })); pilgrim = { start: day(st), days: [], seen: Object.fromEntries(seen.map(k => [k, day(0)])) }; }
     return { v: 2, started: true, name: '', nameUp: 0, people, items, prays, thanks, today: null, mode: '', vault: null, weaves, pilgrim };
   }
   if (SC) { try { localStorage.setItem(KEY, JSON.stringify(sceneNote())); } catch (e) { /* 무시 */ } }
@@ -768,7 +781,7 @@ button.pg-tag::before { content: ''; position: absolute; inset: -10px; }
   const dayDiff = (a, b) => { const f = k => { const [y, m, d] = k.split('-').map(Number); return new Date(y, m - 1, d); }; return Math.round((f(b) - f(a)) / 864e5); };
   function togglePray(id) {
     const t = TODAY(), hadToday = prays().some(x => x.d === t), p = D.prays.find(x => x.item === id && x.d === t), it = D.items.find(i => i.id === id);
-    const pk0 = pgK(), pgRest = pgCalc().rest; // 순례길: 기도하기 전 걸은 구간과 쉬는 중이었는지
+    const r0 = pgCur(), pk0 = pgK(r0), pgRest = pgCalc(r0).rest; // 순례길: 기도하기 전 오늘 카드의 길에서 걸은 구간과 쉬는 중이었는지
     const wasAll = cordAll(), opener = document.activeElement;
     // 30일 넘게 기도하지 못한 사람(남이 아니라 'p:' 사람만)을 오늘 처음 기도하면 그 사람 매듭 위에 작은 해. 지금까지 기도한 적이 없으면 해당 없음
     let rise = -1;
@@ -781,7 +794,7 @@ button.pg-tag::before { content: ''; position: absolute; inset: -10px; }
     if (!p || p.off) { if (S.tab === 'today') KoidePilot.done('n-today'); }
     if (p) { p.off = !p.off; p.up = now(); } else D.prays.push({ d: t, item: id, up: now() });
     save();
-    const pk1 = pgK(); if (pk1 > pk0) S.pgStep = { from: pk0, to: pk1, rest: pgRest }; else if (pk1 < pk0) S.pgStep = null; // 새로 한 구간 걸었으면 오늘 카드에서 걷는다
+    const r1 = pgCur(), pk1 = pgK(r1); if (r1 === r0 && pk1 > pk0) S.pgStep = { route: r0, from: pk0, to: pk1, rest: pgRest }; else if (r1 === r0 && pk1 < pk0) S.pgStep = null; // 새로 한 구간 걸었으면 오늘 카드에서 걷는다
     // 팔복 카드가 같은 때 뜨면 해와 비 카드와 아래 글은 이번엔 건너뛴다(해와 비는 다음에 다시 뜰 수 있게 보여 준 것으로 적지 않는다)
     const newDay = !hadToday && prays().some(x => x.d === t), tied = !wasAll && cordAll();
     if (rise > 0) setTimeout(() => window.KoideSunrain.rise({ idx: rise }), 80);
@@ -1013,20 +1026,95 @@ button.pg-tag::before { content: ''; position: absolute; inset: -10px; }
   }
   // ── 기도의 순례길(맛보기: 아브라함의 길 12구간, 결정 기록 2026-10-31) ─────────────────────────
   //  기도한 날 하루 = 한 구간. 걸은 구간·장소·쉼터·돌은 저장하지 않고 그때그때 셈하고, 저장하는 것은 D.pilgrim 셋뿐이다:
-  //   start(이 기능이 이 노트에서 처음 열린 날, 이 날부터 센다) · days(걸은 날, 오늘 앞의 날은 한 번 적으면 지우지 않는다) · seen(본 이야기: p장소번호·end → 날짜)
-  //  연속 기록·"n/12" 같은 숫자는 어디에도 두지 않는다. 쉬어도 뒤로 가지 않는다. 그림 규격은 docs/pilgrim-art.md
-  const PG_N = 12;
-  const PG_PLACES = { // 장소 번호(= 걸은 구간 수) → 지도 이름표 · 대화창 이름표 · 글(쉬운 풀이) · 장절
-    0: { tag: '하란', name: '하란 · 떠나는 곳', text: '부르신 말씀만 듣고, 갈 곳을 모른 채 길을 떠났어요.', ref: '창세기 12:1~4' },
-    4: { tag: '세겜', name: '세겜 · 모레의 큰 나무', text: '낯선 땅에 닿자 먼저 제단을 쌓고 예배했어요.', ref: '창세기 12:6~7' },
-    7: { tag: '벧엘', name: '벧엘 · 장막과 제단', text: '장막을 치고 제단을 쌓아 하나님을 부르며 예배했어요.', ref: '창세기 12:8' },
-    10: { tag: '헤브론', name: '헤브론 · 마므레의 큰 나무', text: '마므레의 큰 나무 곁에 머물며 또 제단을 쌓았어요.', ref: '창세기 13:18' },
-    12: { tag: '별이 가득한 밤', name: '별이 가득한 밤', text: '밤하늘의 별처럼 자손이 많아질 거라는 약속을 들었어요.', ref: '창세기 15:5' }
-  };
-  const PG_AT = [0, 4, 7, 10, 12]; // 장소가 있는 구간 수
+  //   start(이 기능이 이 노트에서 처음 열린 날, 이 날부터 센다) · days(걸은 날, 오늘 앞의 날은 한 번 적으면 지우지 않는다) · seen(본 이야기: 길 앞머리+장소 번호(p0·w7…)·다 걸음 장면 키 → 날짜)
+  //  길은 PG_ROUTES 표 하나로 설명한다(길마다 따로 저장하지 않고 걸은 날을 길 순서대로 앞에서부터 잘라 센다). 연속 기록·"n/12" 같은 숫자는 어디에도 두지 않는다. 쉬어도 뒤로 가지 않는다. 그림 규격은 docs/pilgrim-art.md
   // 조사 문제를 피하려고 장소 사이 글줄은 낱말마다 고정 문구로 둔다
-  const PG_SUB = { 1: '하란을 떠나 세겜으로 가는 길이에요.', 2: '하란을 떠나 세겜으로 가는 길이에요.', 3: '하란을 떠나 세겜으로 가는 길이에요.', 5: '세겜을 지나 벧엘로 가는 길이에요.', 6: '세겜을 지나 벧엘로 가는 길이에요.', 8: '벧엘을 지나 헤브론으로 가는 길이에요.', 9: '벧엘을 지나 헤브론으로 가는 길이에요.', 11: '헤브론을 지나 별이 가득한 밤으로 가는 길이에요.' };
-  const PG_ARRIVE = { 4: '세겜에 닿았어요. 다음은 벧엘이에요.', 7: '벧엘에 닿았어요. 다음은 헤브론이에요.', 10: '헤브론에 닿았어요. 다음은 별이 가득한 밤이에요.' };
+  const PG_T = 16; // 칸 한 변(도트)
+  const pgFill = o => { const r = {}; Object.keys(o).forEach(k => { const [a, b] = k.split('~').map(Number); for (let i = a; i <= b; i++) r[i] = o[k]; }); return r; }; // '1~6': 글 → { 1: 글, … 6: 글 }
+  const PG_ROUTES = {
+    abraham: {
+      id: 'abraham', name: '아브라함의 길', off: 0, n: 12, pre: 'p', endKey: 'end', cols: 8, rows: 17, art: 'main', // off 앞 길들의 구간 수 합 · pre 본 이야기 키 앞머리 · art 어느 그림 묶음
+      at: [0, 4, 7, 10, 12], // 장소가 있는 구간 수
+      places: { // 장소 번호(= 걸은 구간 수) → 지도 이름표 · 대화창 이름표 · 글(쉬운 풀이) · 장절
+        0: { tag: '하란', name: '하란 · 떠나는 곳', text: '부르신 말씀만 듣고, 갈 곳을 모른 채 길을 떠났어요.', ref: '창세기 12:1~4' },
+        4: { tag: '세겜', name: '세겜 · 모레의 큰 나무', text: '낯선 땅에 닿자 먼저 제단을 쌓고 예배했어요.', ref: '창세기 12:6~7' },
+        7: { tag: '벧엘', name: '벧엘 · 장막과 제단', text: '장막을 치고 제단을 쌓아 하나님을 부르며 예배했어요.', ref: '창세기 12:8' },
+        10: { tag: '헤브론', name: '헤브론 · 마므레의 큰 나무', text: '마므레의 큰 나무 곁에 머물며 또 제단을 쌓았어요.', ref: '창세기 13:18' },
+        12: { tag: '별이 가득한 밤', name: '별이 가득한 밤', text: '밤하늘의 별처럼 자손이 많아질 거라는 약속을 들었어요.', ref: '창세기 15:5' }
+      },
+      sub: { 1: '하란을 떠나 세겜으로 가는 길이에요.', 2: '하란을 떠나 세겜으로 가는 길이에요.', 3: '하란을 떠나 세겜으로 가는 길이에요.', 5: '세겜을 지나 벧엘로 가는 길이에요.', 6: '세겜을 지나 벧엘로 가는 길이에요.', 8: '벧엘을 지나 헤브론으로 가는 길이에요.', 9: '벧엘을 지나 헤브론으로 가는 길이에요.', 11: '헤브론을 지나 별이 가득한 밤으로 가는 길이에요.' },
+      arrive: { 4: '세겜에 닿았어요. 다음은 벧엘이에요.', 7: '벧엘에 닿았어요. 다음은 헤브론이에요.', 10: '헤브론에 닿았어요. 다음은 별이 가득한 밤이에요.' },
+      end: { title: '아브라함의 길을 다 걸었어요', text: '기도한 날 하루하루가 모여 길이 되었어요. 수고하셨어요.', ref: '나의 배지에 ‘아브라함의 길’이 생겼어요.', open: '광야의 길이 열렸어요. 다음에 기도하는 날부터 걸어요.' }, // 다 걸음 장면 · open 다음 길이 열렸다는 줄
+      startLine: '하란에서 길을 시작해요. 다음은 세겜이에요.', doneLine: '아브라함의 길을 다 걸었어요. 별 아래에서 쉬어 가요.', doneBand: '오늘 아브라함의 길을 다 걸었어요',
+      // 마디 13개 [열, 행]. 번호 = 걸은 구간 수. 길은 마디 사이를 "가로 먼저, 세로 나중"으로 이어 걷는다
+      nodes: [[3, 15], [5, 15], [5, 13], [5, 10], [2, 9], [2, 8], [5, 7], [5, 5], [5, 4], [2, 4], [2, 2], [4, 1], [6, 1]],
+      gate: [3, 16], // 하란 문 칸도 길로 쳐서 아래로 이어 준다
+      // 장소(마디 번호): 0 하란(성문) · 4 세겜(큰 나무+제단) · 7 벧엘(장막+제단) · 10 헤브론(큰 나무+제단) · 12 별이 가득한 밤(별)
+      obj: [['wall', 2, 16], ['gate', 3, 16], ['wall', 4, 16], ['well', 6, 14],
+        ['tree', 1, 8], ['tree', 0, 9], ['altar', 1, 9], ['tent', 6, 6], ['altar', 6, 5], ['tree', 7, 8],
+        ['tree', 1, 1], ['tree', 0, 2], ['altar', 1, 2], ['star', 5, 0], ['star', 7, 0], ['star', 7, 2]],
+      big: [], deco: [],
+      water: { kind: 'river', row: 11, ford: 5 }, // 물 띠(강 한 줄 · 징검다리 열). 광야는 { kind: 'sea', rows, cor }
+      scatter: [['grass', 0, .22], ['hill', .9, 1]], // [그림 이름, 해시 최솟값(이 값보다 크고), 최댓값(이 값보다 작을 때)]: 길·소품·물 띠가 아닌 칸에 흩어 놓는다
+      // 장소 이름표 자리(타일 좌표: 가운데 x, 위 y). 소품과 겹치지 않게 맞춘 값
+      label: { 0: [1.4, 15.1], 4: [1.3, 10.0], 7: [6.4, 7.0], 10: [1.0, 3.1], 12: [5.9, 2.15] },
+      fog: ['#E9DDBF', '#273150'], // 앞길 안개 색(팔레트의 모래 색, 낮 · 밤)
+      miniUp: 1, // 작은 지도(오늘 카드)에서 순례자 위로 몇 줄을 보여 줄지(3줄 중)
+      pillar: null, badge: 'p-abraham', next: 'wild'
+    },
+    wild: {
+      id: 'wild', name: '광야의 길', off: 12, n: 40, pre: 'w', endKey: 'wend', cols: 8, rows: 46, art: 'wild', // 아브라함의 길 12일 뒤부터 센다
+      at: [0, 7, 14, 20, 27, 34, 40],
+      places: {
+        0: { tag: '라암셋', name: '라암셋 · 떠나는 곳', text: '종살이하던 땅을 떠나 길을 나섰어요.', ref: '출애굽기 12:37' },
+        7: { tag: '홍해', name: '홍해 · 마른 길', text: '바다 가운데로 마른 길이 열렸어요.', ref: '출애굽기 14:21~22' },
+        14: { tag: '마라', name: '마라 · 쓴 물', text: '쓴 물이 단물로 바뀌었어요.', ref: '출애굽기 15:23~25' },
+        20: { tag: '엘림', name: '엘림 · 샘과 종려나무', text: '샘 열두 곳과 종려나무 곁에서 쉬었어요.', ref: '출애굽기 15:27' },
+        27: { tag: '신 광야', name: '신 광야 · 하늘의 만나', text: '아침마다 하늘에서 만나가 내렸어요.', ref: '출애굽기 16:14~15' },
+        34: { tag: '르비딤', name: '르비딤 · 바위의 물', text: '바위에서 물이 솟아났어요.', ref: '출애굽기 17:6' },
+        40: { tag: '시내산', name: '시내산 · 말씀을 받은 곳', text: '산 아래 머물며 하나님의 말씀을 받았어요.', ref: '출애굽기 19~20장' }
+      },
+      sub: pgFill({ '1~6': '라암셋을 떠나 홍해로 가는 길이에요.', '8~13': '홍해를 건너 마라로 가는 길이에요.', '15~19': '마라를 지나 엘림으로 가는 길이에요.', '21~26': '엘림을 떠나 신 광야로 가는 길이에요.', '28~33': '신 광야를 지나 르비딤으로 가는 길이에요.', '35~39': '르비딤을 지나 시내산으로 가는 길이에요.' }),
+      arrive: { 7: '홍해에 닿았어요. 다음은 마라예요.', 14: '마라에 닿았어요. 다음은 엘림이에요.', 20: '엘림에 닿았어요. 다음은 신 광야예요.', 27: '신 광야에 닿았어요. 다음은 르비딤이에요.', 34: '르비딤에 닿았어요. 다음은 시내산이에요.' },
+      end: { title: '광야의 길을 다 걸었어요', text: '기도한 날 하루하루가 모여 긴 길이 되었어요. 수고하셨어요.', ref: '나의 배지에 ‘광야의 길’이 생겼어요.', soon: '다음 길 · 곧 열려요' },
+      startLine: '라암셋에서 길을 시작해요. 다음은 홍해예요.', doneLine: '광야의 길을 다 걸었어요. 시내산 아래에서 쉬어 가요.', doneBand: '오늘 광야의 길을 다 걸었어요',
+      // 마디 41개 [열, 행]. 행 0이 맨 위(시내산), 45가 맨 아래(라암셋). 홍해(행 34~36)는 열 3의 바닷길로만 건넌다
+      nodes: [[3, 44], [3, 42], [5, 42], [5, 40], [2, 40], [2, 38], [3, 37], [3, 35], [3, 33], [5, 33], [5, 31], [2, 31], [2, 29], [4, 29], [4, 27], [6, 27], [6, 25], [3, 25], [3, 23], [5, 23], [5, 21], [2, 21], [2, 19], [4, 19], [6, 19], [6, 17], [3, 17], [3, 15], [6, 15], [6, 13], [3, 13], [3, 11], [1, 11], [1, 9], [3, 9], [5, 9], [5, 7], [2, 7], [2, 5], [4, 5], [4, 2]],
+      gate: [3, 45], // 라암셋 문 칸도 길로 쳐서 아래로 이어 준다
+      // 장소(마디 번호): 0 라암셋(문) · 7 홍해(바닷길 한가운데) · 14 마라(쓴 물) · 20 엘림(샘·종려나무) · 27 신 광야(만나·메추라기) · 34 르비딤(물이 솟는 바위) · 40 시내산(돌판)
+      obj: [['gate', 3, 45], ['camp', 6, 43], ['camp', 0, 41], ['camp', 7, 31], ['bitter', 3, 27], ['branch', 3, 28], ['camp', 1, 24],
+        ['spring', 6, 21], ['spring', 6, 22], ['palm', 7, 20], ['palm', 6, 20], ['palm', 7, 22], ['palm', 7, 23], ['camp', 0, 20],
+        ['quail', 5, 16], ['quail', 1, 17], ['quail', 7, 18], ['manna', 2, 14], ['manna', 4, 14], ['manna', 5, 14], ['manna', 4, 16], ['manna', 2, 13],
+        ['rock', 3, 8], ['camp', 6, 11], ['tablets', 3, 2], ['camp', 6, 3]],
+      big: [['sinai', 3, 0, 2, 2]], // 시내산(2×2칸, 왼쪽 위 칸 기준)
+      deco: [['oasis', 7, 21], ['oasis', 5, 20], ['oasis', 6, 23], ['oasis', 4, 22]],
+      water: { kind: 'sea', rows: [34, 35, 36], cor: 3 }, // 홍해: 가로 끝까지 바다 세 줄, 가운데 열 3은 바닷길, 열 2·4는 물벽
+      scatter: [['rock', .86, 1]],
+      label: { 0: [1.4, 44.1], 7: [1.2, 34.9], 14: [6.0, 28.1], 20: [2.6, 22.1], 27: [1.4, 15.05], 34: [1.5, 8.1], 40: [6.0, 1.1] },
+      fog: ['#E6CFA5', '#2D2C4A'],
+      miniUp: 2, // 작은 지도는 순례자를 맨 아래 줄에 두고 앞길 두 줄을 보여 준다(기둥이 보이게)
+      pillar: { ahead: { full: 3, mini: 1 } }, // 구름기둥·불기둥이 순례자보다 몇 칸 앞 길 위에 서는지(큰 지도 · 작은 지도 3줄)
+      badge: 'p-wild', next: null
+    }
+  };
+  const pgCell = (c, r) => c + ',' + r;
+  // 길 칸 목록(마디 사이를 가로→세로로 걸은 칸의 순서) · 마디가 그 목록 안에서 몇째인지 · 길 칸 · 소품이 앉은 칸 · 물 띠 행을 길마다 한 번 만든다
+  function pgBuild(R) {
+    R.path = []; R.idx = [0];
+    R.nodes.forEach((n, i) => {
+      if (!i) { R.path.push(n.slice()); return; }
+      let [x, y] = R.nodes[i - 1]; const [tx, ty] = n;
+      while (x !== tx) { x += Math.sign(tx - x); R.path.push([x, y]); }
+      while (y !== ty) { y += Math.sign(ty - y); R.path.push([x, y]); }
+      R.idx.push(R.path.length - 1);
+    });
+    R.road = new Set([...R.path.map(p => pgCell(p[0], p[1])), pgCell(R.gate[0], R.gate[1])]);
+    R.occ = new Set(R.obj.map(o => pgCell(o[1], o[2])));
+    R.big.forEach(([, c, r, w, h]) => { for (let dx = 0; dx < w; dx++) for (let dy = 0; dy < h; dy++) R.occ.add(pgCell(c + dx, r + dy)); }); // 큰 그림은 가로세로 칸을 모두 차지한다
+    R.deco.forEach(d => R.occ.add(pgCell(d[1], d[2])));
+    R.wrows = new Set(R.water.kind === 'river' ? [R.water.row] : R.water.rows);
+  }
+  Object.values(PG_ROUTES).forEach(pgBuild);
   function pgDay(k) { return typeof k === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(k); } // (migrate가 맨 처음 부르니 const가 아니라 함수로 둔다)
   // 저장된 모양을 바로잡는다(객체가 아니면 없음). start를 여기서 채우지 않는다: 남의 기록·백업에도 쓰여서, 채우면 합칠 때 시작일이 늦어진다
   function pgNorm(p) {
@@ -1055,50 +1143,44 @@ button.pg-tag::before { content: ''; position: absolute; inset: -10px; }
     if (T >= P.start && prays().some(p => p.d === T)) s.add(T);
     return [...s].sort();
   }
-  const pgK = () => Math.min(pgWalked().length, PG_N);
-  function pgCalc() {
-    const W = pgWalked(), K = Math.min(W.length, PG_N), T = TODAY(), last = W[W.length - 1] || '', today = last === T, finished = K >= PG_N;
+  // 길 하나의 셈. 걸은 날(W)을 길 순서대로 앞에서부터 잘라(off, n) 센다
+  function pgCalc(id) {
+    const R = PG_ROUTES[id], W = pgWalked(), T = TODAY(), w = W.slice(R.off, R.off + R.n), K = w.length, last = w[K - 1] || '';
+    const today = K >= 1 && last === T, finished = K >= R.n;
     // 쉼: 마지막으로 걸은 날 뒤 사흘 넘게(4일째 빈 날부터) 기도가 없을 때. 아직 한 번도 안 걸었으면 쉬지 않는다
     const rest = !finished && K >= 1 && !today && dayDiff(last, T) >= 4;
     // 쉬었다 돌아온 날: 저장하지 않고 날짜로 셈하니 그날만 보인다
-    const back = today && W.length >= 2 && W.length <= PG_N && dayDiff(W[W.length - 2], T) >= 4;
-    const place = PG_AT.filter(n => n <= K).pop(), next = PG_AT.find(n => n > K);
+    const back = today && K >= 2 && dayDiff(w[K - 2], T) >= 4;
+    const place = R.at.filter(n => n <= K).pop(), next = R.at.find(n => n > K);
     let line;
-    if (finished) line = '아브라함의 길을 다 걸었어요. 별 아래에서 쉬어 가요.';
+    if (finished) line = R.doneLine;
     else if (rest) line = '길가 장막에서 쉬고 있어요. 기도하면 다시 걸어요.';
-    else if (K === 0) line = '하란에서 길을 시작해요. 다음은 세겜이에요.';
-    else line = PG_ARRIVE[K] || PG_SUB[K];
-    return { W, K, today, last, finished, doneDate: W[PG_N - 1] || null, rest, back, place, next, line };
+    else if (K === 0) line = R.startLine;
+    else line = R.arrive[K] || R.sub[K];
+    return { R, W, w, K, today, last, finished, doneDate: finished ? w[R.n - 1] : null, rest, back, place, next, line };
   }
-  // ── 순례길 지도: 8열 × 17행 칸(한 칸 16도트), 아래가 하란이고 위가 끝. 칸 그림은 app/pilgrim(규격 docs/pilgrim-art.md) ──
-  const PG_COLS = 8, PG_ROWS = 17, PG_T = 16, PG_RIVER = 11;
-  // 마디 13개 [열, 행]. 번호 = 걸은 구간 수. 길은 마디 사이를 "가로 먼저, 세로 나중"으로 이어 걷는다
-  const PG_NODES = [[3, 15], [5, 15], [5, 13], [5, 10], [2, 9], [2, 8], [5, 7], [5, 5], [5, 4], [2, 4], [2, 2], [4, 1], [6, 1]];
-  // 장소(마디 번호): 0 하란(성문) · 4 세겜(큰 나무+제단) · 7 벧엘(장막+제단) · 10 헤브론(큰 나무+제단) · 12 별이 가득한 밤(별)
-  const PG_OBJ = [['wall', 2, 16], ['gate', 3, 16], ['wall', 4, 16], ['well', 6, 14],
-    ['tree', 1, 8], ['tree', 0, 9], ['altar', 1, 9], ['tent', 6, 6], ['altar', 6, 5], ['tree', 7, 8],
-    ['tree', 1, 1], ['tree', 0, 2], ['altar', 1, 2], ['star', 5, 0], ['star', 7, 0], ['star', 7, 2]];
-  // 장소 이름표 자리(타일 좌표: 가운데 x, 위 y). 소품과 겹치지 않게 맞춘 값
-  const PG_LABEL = { 0: [1.4, 15.1], 4: [1.3, 10.0], 7: [6.4, 7.0], 10: [1.0, 3.1], 12: [5.9, 2.15] };
-  // 길 칸 목록(마디 사이를 가로→세로로 걸은 칸의 순서)과 마디가 그 목록 안에서 몇째인지
-  const PG_PATH = [], PG_IDX = [0];
-  PG_NODES.forEach((n, i) => {
-    if (!i) { PG_PATH.push(n.slice()); return; }
-    let [x, y] = PG_NODES[i - 1]; const [tx, ty] = n;
-    while (x !== tx) { x += Math.sign(tx - x); PG_PATH.push([x, y]); }
-    while (y !== ty) { y += Math.sign(ty - y); PG_PATH.push([x, y]); }
-    PG_IDX.push(PG_PATH.length - 1);
-  });
-  const PG_GATE = [3, 16]; // 하란 문 칸도 길로 쳐서 아래로 이어 준다
-  const pgCell = (c, r) => c + ',' + r;
-  const PG_ROAD = new Set([...PG_PATH.map(p => pgCell(p[0], p[1])), pgCell(PG_GATE[0], PG_GATE[1])]);
-  const PG_OCC = new Set(PG_OBJ.map(o => pgCell(o[1], o[2])));
-  // 낮 → 밤 색 바꾸기(26색, docs/pilgrim-art.md 3장). 마지막 셋(불꽃·불빛·불 속)은 밤에도 그대로
-  const PG_NIGHT = 'E9DDBF→273150 DDCDA6→222B47 BFC793→283A48 A5B27A→22323F F6EED8→3B415E D9C69E→2E3450 A9CBD3→1B2A48 D3E6E8→2B4170 DCC89B→2F375A C7B083→283050 8A6A48→3B3340 8FA06A→2D4350 6F8250→233541 B3C086→3A5262 B9B4A8→4A4F6B D8D3C6→5E6484 8E897E→353A55 E8D5B2→4C4A62 5B4A3A→14121A B06A4C→5A3F4C E3B48C→8A6F68 C8946C→6A5560 C0782C→6B4A33'.split(' ').map(x => x.split('→').map(h => parseInt(h, 16)));
-  const PG_SAND = ['#E9DDBF', '#273150']; // 앞길 안개 색(팔레트의 모래 색, 낮 · 밤)
-  const PG = { ready: false, fail: false, p: null, walk: null, base: {}, work: null, typeT: 0 };
+  const pgK = id => pgCalc(id).K;
+  // 오늘 카드가 보여 주는 길: 앞 길을 다 걸은 '다음 날'부터 다음 길(끝낸 날은 앞 길의 마지막 구간이라 앞 길 그대로, 축하 띠가 남는다)
+  function pgCur() {
+    let id = 'abraham';
+    for (;;) { const R = PG_ROUTES[id], c = pgCalc(id); if (c.finished && c.doneDate < TODAY() && R.next && PG_ROUTES[R.next]) id = R.next; else return id; }
+  }
+  // 순례길 화면을 열 때 보여 줄 길: 다 걸었는데 이야기(끝 장면 포함)를 아직 다 못 본 길이 있으면 그 길을 먼저(축하를 건너뛰지 않게), 아니면 오늘 카드의 길
+  function pgEnter() {
+    const P = D.pilgrim, pend = P && Object.values(PG_ROUTES).find(R => pgCalc(R.id).finished && (!P.seen[R.endKey] || R.at.some(a => !P.seen[R.pre + a])));
+    S.pgRoute = pend ? pend.id : pgCur();
+  }
+  // 지나온 길 목록에 보일 길: 첫 길은 늘, 다음 길은 앞 길을 다 걸은 날부터
+  const pgOpened = id => { const prev = Object.values(PG_ROUTES).find(r => r.next === id); return !prev || pgCalc(prev.id).finished; };
+  const PG = { ready: false, fail: false, p: null, walk: null, base: {}, work: {}, typeT: 0 };
   const pgHash = (c, r) => { const x = Math.sin((c * 12.9898 + r * 78.233) * 1.7) * 43758.5453; return x - Math.floor(x); };
   const pgDark = () => { const m = document.documentElement.dataset.mode; return m === 'dark' || (m !== 'light' && !!(window.matchMedia && matchMedia('(prefers-color-scheme: dark)').matches)); };
+  // 지금 큰 화면에서 보는 길(S.pgRoute) · 길 하나의 그림 묶음(낮 · 밤): art 'main'은 sprites.json 맨 위, 'wild'는 "wild"
+  const pgBad = R => PG.fail || (R.art === 'wild' && PG.wildFail); // 그 길의 그림을 못 불러왔는지
+  const pgR = () => PG_ROUTES[S.pgRoute] || PG_ROUTES.abraham;
+  const pgArt = (R, dark) => { const A = dark ? PG.night : PG.day, M = R.art === 'wild' ? 'wild' : null; return { A, tiles: M ? A.wild.tiles : A.tiles, objs: M ? A.wild.objects : A.objects, T: M ? PG.spr.wild.tiles : PG.spr.tiles, O: M ? PG.spr.wild.objects : PG.spr.objects }; };
+  // 낮 → 밤 색 바꾸기(33색: 아브라함의 길 26색 + 광야의 길 7색, docs/pilgrim-art.md 3장 · 7-1). 불꽃·불빛·불 속 색은 표에 없어 밤에도 그대로
+  const PG_NIGHT = 'E9DDBF→273150 DDCDA6→222B47 BFC793→283A48 A5B27A→22323F F6EED8→3B415E D9C69E→2E3450 A9CBD3→1B2A48 D3E6E8→2B4170 DCC89B→2F375A C7B083→283050 8A6A48→3B3340 8FA06A→2D4350 6F8250→233541 B3C086→3A5262 B9B4A8→4A4F6B D8D3C6→5E6484 8E897E→353A55 E8D5B2→4C4A62 5B4A3A→14121A B06A4C→5A3F4C E3B48C→8A6F68 C8946C→6A5560 C0782C→6B4A33 E6CFA5→2D2C4A D8BB8C→27263F C4876A→4A3A50 9E6650→3A2D42 7FB0C2→18284A F7F5EF→8C93B0 DAD8D2→6E7594'.split(' ').map(x => x.split('→').map(h => parseInt(h, 16)));
   function pgNight(cv) { // 낮 그림의 색을 하나씩 밤 색으로 바꾼 새 그림
     const o = document.createElement('canvas'); o.width = cv.width; o.height = cv.height;
     const x = o.getContext('2d'), im = cv.getContext('2d').getImageData(0, 0, cv.width, cv.height), d = im.data, m = new Map();
@@ -1119,62 +1201,82 @@ button.pg-tag::before { content: ''; position: absolute; inset: -10px; }
     }
     return out;
   }
-  // 그림 불러오기(한 번만). 못 불러오면(파일 없음, file:// 로 열어 읽기가 막힘) PG.fail: 지도 자리에 안내 한 줄만 나온다
+  // 그림 불러오기(한 번만). 못 불러오면(파일 없음, file:// 로 열어 읽기가 막힘) PG.fail: 지도 자리에 안내 한 줄만 나온다.
+  //  광야의 길 그림(sprites.json의 "wild")만 못 불러오면 PG.wildFail: 아브라함의 길은 그대로 쓰고 광야의 길 지도 자리에만 안내가 나온다
   function pgLoad() {
     if (PG.p) return PG.p;
     const img = src => new Promise((ok, no) => { const i = new Image(); i.onload = () => ok(i); i.onerror = no; i.src = src; });
     const cp = i => { const c = document.createElement('canvas'); c.width = i.width; c.height = i.height; c.getContext('2d').drawImage(i, 0, 0); return c; };
-    return (PG.p = fetch('pilgrim/sprites.json').then(r => { if (!r.ok) throw new Error('sprites'); return r.json(); }).then(spr =>
-      Promise.all([img('pilgrim/' + spr.hero.file), img('pilgrim/' + spr.tiles.file), img('pilgrim/' + spr.objects.file)]).then(([h, t, o]) => {
+    return (PG.p = fetch('pilgrim/sprites.json').then(r => { if (!r.ok) throw new Error('sprites'); return r.json(); }).then(spr => {
+      const main = Promise.all([img('pilgrim/' + spr.hero.file), img('pilgrim/' + spr.tiles.file), img('pilgrim/' + spr.objects.file)]).then(([h, t, o]) => {
         PG.spr = spr; PG.day = { hero: cp(h), tiles: cp(t), objects: cp(o) };
         PG.night = { hero: pgNight(PG.day.hero), tiles: pgNight(PG.day.tiles), objects: pgNight(PG.day.objects) };
-        PG.lamp = pgLamps(PG.day.hero); PG.ready = true;
-      })).catch(() => { PG.fail = true; }));
+        PG.lamp = pgLamps(PG.day.hero);
+      });
+      const wild = !spr.wild ? Promise.reject(new Error('wild')) : Promise.all([img('pilgrim/' + spr.wild.tiles.file), img('pilgrim/' + spr.wild.objects.file)]);
+      return Promise.all([main, wild.then(w => w, () => { PG.wildFail = true; return null; })]).then(([, w]) => {
+        if (w) { const d = { tiles: cp(w[0]), objects: cp(w[1]) }; PG.day.wild = d; PG.night.wild = { tiles: pgNight(d.tiles), objects: pgNight(d.objects) }; }
+        PG.ready = true;
+      });
+    }).catch(() => { PG.fail = true; }));
   }
   const pgPut = (ctx, sheet, col, row, x, y, flip) => {
     if (flip) { ctx.save(); ctx.translate(x + PG_T, y); ctx.scale(-1, 1); ctx.drawImage(sheet, col * PG_T, row * PG_T, PG_T, PG_T, 0, 0, PG_T, PG_T); ctx.restore(); }
     else ctx.drawImage(sheet, col * PG_T, row * PG_T, PG_T, PG_T, x, y, PG_T, PG_T);
   };
-  // 땅 + 길 + 소품(낮·밤마다 한 번 그려 두고 다시 쓴다). 순서: ① 모래 ② 강·풀·언덕 ③ 길 ④ 소품. 길·언덕·소품은 투명 배경이라 모래 위에 얹는다
-  function pgBase(dark) {
-    if (PG.base[dark]) return PG.base[dark];
-    const A = dark ? PG.night : PG.day, T = PG.spr.tiles, O = PG.spr.objects, cv = document.createElement('canvas');
-    cv.width = PG_COLS * PG_T; cv.height = PG_ROWS * PG_T; const ctx = cv.getContext('2d'); ctx.imageSmoothingEnabled = false;
-    const pick = (list, h) => list[h < .5 ? 0 : 1];
-    for (let r = 0; r < PG_ROWS; r++) for (let c = 0; c < PG_COLS; c++) {
+  const pgPutBig = (ctx, sheet, b, x, y) => ctx.drawImage(sheet, b.x * PG_T, b.y * PG_T, b.w * PG_T, b.h * PG_T, x, y, b.w * PG_T, b.h * PG_T); // 큰 그림(칸 단위 { x, y, w, h })
+  // 땅 + 길 + 소품(길 · 낮·밤마다 한 번 그려 두고 다시 쓴다). 순서: ① 모래 ② 물 띠·풀·언덕·바위 ③ 길 ④ 소품. 길·언덕·소품은 투명 배경이라 모래 위에 얹는다
+  function pgBase(R, dark) {
+    const key = R.id + dark; if (PG.base[key]) return PG.base[key];
+    const { A, tiles, objs, T, O } = pgArt(R, dark), cv = document.createElement('canvas');
+    cv.width = R.cols * PG_T; cv.height = R.rows * PG_T; const ctx = cv.getContext('2d'); ctx.imageSmoothingEnabled = false;
+    const pick = (list, h) => list[h < .5 ? 0 : 1], W = R.water;
+    for (let r = 0; r < R.rows; r++) for (let c = 0; c < R.cols; c++) {
       const x = c * PG_T, y = r * PG_T, h = pgHash(c, r), s = pick(T.sand, pgHash(c + 40, r + 9));
-      pgPut(ctx, A.tiles, s[0], s[1], x, y); // 풀·언덕 칸도 모래를 먼저 깐 위에 얹는다(그림 가장자리가 투명해도 모래가 비친다)
-      if (r === PG_RIVER) { const f = c === 5 ? T.ford : T.river; pgPut(ctx, A.tiles, Array.isArray(f) ? f[0] : f, Array.isArray(f) ? f[1] : 0, x, y); continue; }
-      const k = pgCell(c, r); if (PG_ROAD.has(k) || PG_OCC.has(k)) continue;
-      if (h < .22) { const g = pick(T.grass, pgHash(c + 7, r + 71)); pgPut(ctx, A.tiles, g[0], g[1], x, y); }
-      else if (h > .9) pgPut(ctx, A.tiles, T.hill[0], T.hill[1], x, y);
+      pgPut(ctx, tiles, s[0], s[1], x, y); // 풀·언덕 칸도 모래를 먼저 깐 위에 얹는다(그림 가장자리가 투명해도 모래가 비친다)
+      if (R.wrows.has(r)) {
+        if (W.kind === 'river') { const f = c === W.ford ? T.ford : T.river; pgPut(ctx, tiles, Array.isArray(f) ? f[0] : f, Array.isArray(f) ? f[1] : 0, x, y); }
+        else { // 바다 띠: 가로 끝까지 바다를 먼저 깔고, 가운데 열에 바닷길과 양옆 물벽을 얹는다(물벽 가장자리가 투명해도 바다가 비친다)
+          pgPut(ctx, tiles, T.sea[0], T.sea[1], x, y);
+          const t = c === W.cor ? T.seabed : c === W.cor - 1 ? T.wallL : c === W.cor + 1 ? T.wallR : null; if (t) pgPut(ctx, tiles, t[0], t[1], x, y);
+        }
+        continue;
+      }
+      const k = pgCell(c, r); if (R.road.has(k) || R.occ.has(k)) continue;
+      const sc = R.scatter.find(([, lo, hi]) => (!lo || h > lo) && h < hi);
+      if (sc) { const v = T[sc[0]], t = Array.isArray(v[0]) ? pick(v, pgHash(c + 7, r + 71)) : v; pgPut(ctx, tiles, t[0], t[1], x, y); }
     }
-    const road = (c, r) => PG_ROAD.has(pgCell(c, r)) ? 1 : 0;
-    PG_ROAD.forEach(k => {
-      const [c, r] = k.split(',').map(Number); if (r === PG_RIVER) return;
-      pgPut(ctx, A.tiles, road(c, r - 1) + road(c + 1, r) * 2 + road(c, r + 1) * 4 + road(c - 1, r) * 8, T.path.row, c * PG_T, r * PG_T);
+    R.deco.forEach(([n, c, r]) => pgPut(ctx, tiles, T[n][0], T[n][1], c * PG_T, r * PG_T));
+    const road = (c, r) => R.road.has(pgCell(c, r)) ? 1 : 0;
+    R.road.forEach(k => {
+      const [c, r] = k.split(',').map(Number); if (R.wrows.has(r)) return; // 물 띠 안의 길은 징검다리·바닷길 그림이 이미 있다
+      pgPut(ctx, A.tiles, road(c, r - 1) + road(c + 1, r) * 2 + road(c, r + 1) * 4 + road(c - 1, r) * 8, PG.spr.tiles.path.row, c * PG_T, r * PG_T);
     });
-    PG_OBJ.slice().sort((a, b) => a[2] - b[2]).forEach(([n, c, r]) => pgPut(ctx, A.objects, O[n], 0, c * PG_T, r * PG_T));
-    return (PG.base[dark] = cv);
+    R.obj.slice().sort((a, b) => a[2] - b[2]).forEach(([n, c, r]) => pgPut(ctx, objs, O[n], 0, c * PG_T, r * PG_T));
+    R.big.forEach(([n, c, r]) => pgPutBig(ctx, objs, O[n], c * PG_T, r * PG_T));
+    return (PG.base[key] = cv);
   }
-  // 쉼터 장막 자리: 마디의 위 · 왼쪽 · 오른쪽 · 아래 순으로 비어 있는 첫 칸(길·소품·강이 아닌 곳)
-  function pgTentCell(k) {
-    const [c, r] = PG_NODES[k];
-    return [[c, r - 1], [c - 1, r], [c + 1, r], [c, r + 1]].find(([x, y]) => x >= 0 && x < PG_COLS && y >= 0 && y < PG_ROWS && y !== PG_RIVER && !PG_ROAD.has(pgCell(x, y)) && !PG_OCC.has(pgCell(x, y))) || null;
+  // 쉼터 장막 자리: 마디의 위 · 왼쪽 · 오른쪽 · 아래 순으로 비어 있는 첫 칸(길·소품·물이 아닌 곳). 없으면 장막 없이 앉는다
+  function pgTentCell(R, k) {
+    const [c, r] = R.nodes[k];
+    return [[c, r - 1], [c - 1, r], [c + 1, r], [c, r + 1]].find(([x, y]) => x >= 0 && x < R.cols && y >= 0 && y < R.rows && !R.wrows.has(y) && !R.road.has(pgCell(x, y)) && !R.occ.has(pgCell(x, y))) || null;
   }
   // 에벤에셀 돌: 응답받았어요로 마친 기도제목마다 하나, 그날 걷던 구간의 길가 빈 칸에 선다(같은 노트면 늘 같은 자리)
-  function pgStones() {
-    const P = D.pilgrim, T = TODAY(); if (!P || !P.start) return [];
+  function pgStones(id) {
+    const R = PG_ROUTES[id], P = D.pilgrim, T = TODAY(); if (!P || !P.start) return [];
     const W = pgWalked(), taken = new Set(), out = [];
-    const lab = new Set(); PG_AT.forEach(n => { const [x, y] = PG_LABEL[n]; for (let c = Math.floor(x - 1.2); c <= Math.ceil(x + 1.2); c++) lab.add(pgCell(c, Math.floor(y))); });
+    const lab = new Set(); R.at.forEach(n => { const [x, y] = R.label[n]; for (let c = Math.floor(x - 1.2); c <= Math.ceil(x + 1.2); c++) lab.add(pgCell(c, Math.floor(y))); });
     const list = D.items.filter(i => i.done && i.done.how === 'answer' && i.done.date >= P.start && i.done.date <= T).sort((a, b) => a.done.date.localeCompare(b.done.date) || String(a.id).localeCompare(String(b.id)));
     list.forEach(i => {
-      const m = Math.min(W.filter(d => d <= i.done.date).length, PG_N), seg = m === 0 ? 0 : m - 1;
-      const cells = PG_PATH.slice(PG_IDX[seg], PG_IDX[seg + 1] + 1), cand = [];
+      // 돌은 그날까지 걸은 날 수(gm)로 길을 가른다: 다 걸은 길에는 그때 세운 돌만 남고, 그 뒤 응답은 다음 길에 선다(마지막 길은 끝까지)
+      const gm = W.filter(d => d <= i.done.date).length;
+      if (gm === 0 ? R.off !== 0 : !(gm > R.off && (gm <= R.off + R.n || !R.next))) return;
+      const m = Math.min(Math.max(gm - R.off, 0), R.n), seg = m === 0 ? 0 : m - 1;
+      const cells = R.path.slice(R.idx[seg], R.idx[seg + 1] + 1), cand = [];
       for (const reach of [1, 2]) {
         cells.forEach(([c, r]) => { for (let dc = -reach; dc <= reach; dc++) for (let dr = -reach; dr <= reach; dr++) {
           const x = c + dc, y = r + dr, k = pgCell(x, y);
-          if ((dc || dr) && x >= 0 && x < PG_COLS && y >= 0 && y < PG_ROWS && y !== PG_RIVER && !PG_ROAD.has(k) && !PG_OCC.has(k) && !lab.has(k) && !taken.has(k) && !cand.some(q => q[0] === x && q[1] === y)) cand.push([x, y]);
+          if ((dc || dr) && x >= 0 && x < R.cols && y >= 0 && y < R.rows && !R.wrows.has(y) && !R.road.has(k) && !R.occ.has(k) && !lab.has(k) && !taken.has(k) && !cand.some(q => q[0] === x && q[1] === y)) cand.push([x, y]);
         } });
         if (cand.length) break;
       }
@@ -1188,13 +1290,13 @@ button.pg-tag::before { content: ''; position: absolute; inset: -10px; }
     return out;
   }
   const pgDisc = (ctx, cx, cy, r) => { for (let dy = -r; dy < r; dy += 2) { const h = Math.floor(Math.sqrt(Math.max(0, r * r - (dy + 1) * (dy + 1))) / 2) * 2; if (h > 0) ctx.fillRect(cx - h, cy + dy, h * 2, 2); } };
-  // 한 장면 그리기(128 × 272 도트). o = { dark, lights(불빛 점 칸 수), stones, tent(칸), hx, hy(순례자 도트 자리), dir, frame, rest, fog }
-  //  ⑤ 불빛 점 · 돌 ⑥ 쉼터 장막 → 순례자 ⑦ 앞길 안개(순례자보다 위쪽 행만) ⑧ 등불 둘레 빛
+  // 한 장면 그리기(길 크기 그대로: 가로 cols × 세로 rows 칸). o = { R, dark, pi(순례자가 선 길 칸 번호), lights(불빛 점 칸 수), stones, tent(칸), hx, hy(순례자 도트 자리), dir, frame, rest, fog, mini(작은 지도) }
+  //  ⑤ 불빛 점 · 돌 ⑥ 쉼터 장막 → 순례자 ⑦ 앞길 안개(순례자보다 위쪽 행만) ⑦' 구름기둥·불기둥(광야만) ⑧ 등불 둘레 빛
   function pgCompose(ctx, o) {
-    const A = o.dark ? PG.night : PG.day, O = PG.spr.objects, H = PG.spr.hero; ctx.imageSmoothingEnabled = false;
-    ctx.globalAlpha = 1; ctx.drawImage(pgBase(o.dark), 0, 0);
+    const R = o.R, A = o.dark ? PG.night : PG.day, O = PG.spr.objects, H = PG.spr.hero; ctx.imageSmoothingEnabled = false;
+    ctx.globalAlpha = 1; ctx.drawImage(pgBase(R, o.dark), 0, 0);
     for (let i = 0; i < o.lights; i++) { // ⑤
-      const [c, r] = PG_PATH[i], x = c * PG_T, y = r * PG_T;
+      const [c, r] = R.path[i], x = c * PG_T, y = r * PG_T;
       ctx.globalAlpha = o.dark ? .45 : .35; ctx.fillStyle = '#FFD66B'; ctx.fillRect(x + 6, y + 6, 4, 4);
       ctx.globalAlpha = 1; ctx.fillStyle = o.dark ? '#FFD66B' : '#F2A93B'; ctx.fillRect(x + 7, y + 7, 2, 2);
     }
@@ -1204,9 +1306,14 @@ button.pg-tag::before { content: ''; position: absolute; inset: -10px; }
     pgPut(ctx, A.hero, col, 0, o.hx, o.hy, flip);
     if (o.fog) { // ⑦
       const hr = Math.round(o.hy / PG_T);
-      ctx.fillStyle = PG_SAND[o.dark ? 1 : 0];
-      for (let r = 0; r < hr; r++) { ctx.globalAlpha = Math.min(.62, .12 * (hr - r)); ctx.fillRect(0, r * PG_T, PG_COLS * PG_T, PG_T); }
+      ctx.fillStyle = R.fog[o.dark ? 1 : 0];
+      for (let r = 0; r < hr; r++) { ctx.globalAlpha = Math.min(.62, .12 * (hr - r)); ctx.fillRect(0, r * PG_T, R.cols * PG_T, PG_T); }
       ctx.globalAlpha = 1;
+    }
+    if (R.pillar && o.pi < R.path.length - 1) { // ⑦' 구름기둥(밝은 화면) · 불기둥(어두운 화면): 순례자보다 몇 칸 앞 길 위에 서고, 마지막 칸(시내산)에 닿으면 사라진다
+      const [pc, pr] = R.path[Math.min(o.pi + (o.mini ? R.pillar.ahead.mini : R.pillar.ahead.full), R.path.length - 1)], W = PG.spr.wild.objects;
+      if (o.dark) { ctx.fillStyle = '#FFD66B'; [[22, .08], [12, .12]].forEach(([r, a]) => { ctx.globalAlpha = a; pgDisc(ctx, pc * PG_T + 8, (pr - 1) * PG_T + 16, r); }); ctx.globalAlpha = 1; }
+      pgPutBig(ctx, A.wild.objects, W[o.dark ? 'fire' : 'cloud'], pc * PG_T, (pr - 1) * PG_T);
     }
     const L = PG.lamp[col] || [8, 8], lx = o.hx + (flip ? PG_T - L[0] : L[0]), ly = o.hy + L[1]; // ⑧
     ctx.fillStyle = '#FFD66B';
@@ -1214,40 +1321,41 @@ button.pg-tag::before { content: ''; position: absolute; inset: -10px; }
     ctx.globalAlpha = 1;
   }
   // 지금 모습(서 있는 순례자)을 그리는 값
-  function pgStand(c) {
-    const [nc, nr] = PG_NODES[c.K];
-    return { dark: pgDark(), lights: PG_IDX[c.K], stones: pgStones(), tent: c.rest ? pgTentCell(c.K) : null, hx: nc * PG_T, hy: nr * PG_T, dir: 'down', frame: 0, rest: c.rest, fog: !c.finished };
+  function pgStand(R, c) {
+    const [nc, nr] = R.nodes[c.K];
+    return { R, dark: pgDark(), pi: R.idx[c.K], lights: R.idx[c.K], stones: pgStones(R.id), tent: c.rest ? pgTentCell(R, c.K) : null, hx: nc * PG_T, hy: nr * PG_T, dir: 'down', frame: 0, rest: c.rest, fog: !c.finished };
   }
-  // 작은 지도(오늘 카드): 세로 3칸만, 순례자가 가운데 줄쯤 오게
-  const pgMiniY = hy => Math.max(0, Math.min(PG_ROWS - 3, Math.round(hy / PG_T) - 1));
+  // 작은 지도(오늘 카드): 세로 3칸만, 순례자가 아래쪽 줄(miniUp 줄만큼 위를 보여 준다)에 오게
+  const pgMiniY = (R, hy) => Math.max(0, Math.min(R.rows - 3, Math.round(hy / PG_T) - R.miniUp));
   function pgPaintMini(cv, o) {
-    if (!PG.work) { PG.work = document.createElement('canvas'); PG.work.width = PG_COLS * PG_T; PG.work.height = PG_ROWS * PG_T; }
-    pgCompose(PG.work.getContext('2d'), o);
+    const R = o.R, w = PG.work[R.id] || (PG.work[R.id] = Object.assign(document.createElement('canvas'), { width: R.cols * PG_T, height: R.rows * PG_T }));
+    pgCompose(w.getContext('2d'), Object.assign({}, o, { mini: true }));
     const x = cv.getContext('2d'); x.imageSmoothingEnabled = false; x.clearRect(0, 0, cv.width, cv.height);
-    x.drawImage(PG.work, 0, pgMiniY(o.hy) * PG_T, cv.width, cv.height, 0, 0, cv.width, cv.height);
+    x.drawImage(w, 0, pgMiniY(R, o.hy) * PG_T, cv.width, cv.height, 0, 0, cv.width, cv.height);
   }
   function pgPaintAll() {
     if (!PG.ready) return;
-    const st = pgStand(pgCalc());
     document.querySelectorAll('canvas[data-pg]').forEach(cv => {
+      const R = PG_ROUTES[cv.dataset.route]; if (!R || pgBad(R)) return;
+      const st = pgStand(R, pgCalc(R.id));
       if (cv.dataset.pg === 'full') pgCompose(cv.getContext('2d'), st);
       else if (!PG.walk) pgPaintMini(cv, st);
     });
   }
   if (window.matchMedia) { const q = matchMedia('(prefers-color-scheme: dark)'); if (q.addEventListener) q.addEventListener('change', pgPaintAll); }
   // 걷기: 오늘 화면의 작은 지도에서 순례자가 길 칸을 따라 한 칸씩 걷는다. requestAnimationFrame 하나만 돌고 끝나면 멈춘다
-  function pgWalkStart(from, to, rest, delay) {
-    const steps = PG_IDX[to] - PG_IDX[from]; if (steps <= 0) return pgPaintAll();
-    const dur = Math.max(500, Math.min(1400, steps * 220)), wait = (rest ? 260 : 0) + (delay || 0), c = pgCalc();
-    const stones = pgStones(), dark = pgDark();
+  function pgWalkStart(R, from, to, rest, delay) {
+    const steps = R.idx[to] - R.idx[from]; if (steps <= 0) return pgPaintAll();
+    const dur = Math.max(500, Math.min(1400, steps * 220)), wait = (rest ? 260 : 0) + (delay || 0), c = pgCalc(R.id);
+    const stones = pgStones(R.id), dark = pgDark();
     PG.walk = { t0: 0 };
     const tick = ts => {
       if (!PG.walk) return;
       const cvs = document.querySelectorAll('canvas[data-pg="mini"]'); if (!PG.walk.t0) PG.walk.t0 = ts;
       const el = ts - PG.walk.t0 - wait;
       if (!cvs.length || el >= dur) { PG.walk = null; return pgPaintAll(); }
-      const f = Math.max(0, el) / dur * steps, i = Math.min(steps - 1, Math.floor(f)), t = f - i, a = PG_PATH[PG_IDX[from] + i], b = PG_PATH[PG_IDX[from] + i + 1];
-      const o = { dark, lights: PG_IDX[from] + i, stones, tent: el < 0 && rest ? pgTentCell(from) : null, hx: Math.round((a[0] + (b[0] - a[0]) * t) * PG_T), hy: Math.round((a[1] + (b[1] - a[1]) * t) * PG_T),
+      const f = Math.max(0, el) / dur * steps, i = Math.min(steps - 1, Math.floor(f)), t = f - i, a = R.path[R.idx[from] + i], b = R.path[R.idx[from] + i + 1];
+      const o = { R, dark, pi: R.idx[from] + i, lights: R.idx[from] + i, stones, tent: el < 0 && rest ? pgTentCell(R, from) : null, hx: Math.round((a[0] + (b[0] - a[0]) * t) * PG_T), hy: Math.round((a[1] + (b[1] - a[1]) * t) * PG_T),
         dir: b[0] > a[0] ? 'right' : b[0] < a[0] ? 'left' : b[1] < a[1] ? 'up' : 'down', frame: Math.floor(Math.max(0, el) / 140), rest: el < 0 && !!rest, fog: !c.finished };
       cvs.forEach(cv => pgPaintMini(cv, o));
       requestAnimationFrame(tick);
@@ -1256,61 +1364,64 @@ button.pg-tag::before { content: ''; position: absolute; inset: -10px; }
   }
   // ── 오늘 화면의 순례길 카드 · 순례길 화면(전체 화면 겹침 S.pg) · 이야기 창 ──────────────────────
   //  render()가 화면을 통째로 다시 만드니, 상태는 모두 S/PG에 두고 render 끝의 mountPilgrim()이 캔버스와 크기를 다시 칠한다
-  //  S.pg 순례길 화면이 열림 · S.pgDlg 이야기 창 { i 장소 번호, n 나온 글자 수, again 다시 보기 } · S.pgEnd 다 걸음 장면 · S.pgStone 열린 돌(기도제목 id) · S.pgY 지도 스크롤 · S.pgStep 걷기 { from, to, rest }
-  const pgDlgNew = (i, again) => ({ i, n: calm() ? PG_PLACES[i].text.length : 0, again });
+  //  S.pg 순례길 화면이 열림 · S.pgRoute 큰 화면에서 보는 길 · S.pgDlg 이야기 창 { i 장소 번호, n 나온 글자 수, again 다시 보기 } · S.pgEnd 다 걸음 장면 · S.pgStone 열린 돌(기도제목 id) · S.pgY 지도 스크롤 · S.pgStep 걷기 { route, from, to, rest }
+  const pgDlgNew = (i, again) => ({ i, n: calm() ? pgR().places[i].text.length : 0, again });
   // 다음에 보여 줄 이야기: 닿았는데 아직 안 본 가장 앞 장소 → 다 걸음 장면
-  function pgNext() {
-    const c = pgCalc(), P = D.pilgrim; S.pgDlg = null; S.pgEnd = false; if (!P) return;
-    const n = PG_AT.find(a => c.K >= a && !P.seen['p' + a]);
-    if (n != null) S.pgDlg = pgDlgNew(n, false); else if (c.finished && !P.seen.end) S.pgEnd = true;
+  function pgNext(R) {
+    R = R || pgR(); const c = pgCalc(R.id), P = D.pilgrim; S.pgDlg = null; S.pgEnd = false; if (!P) return;
+    const n = R.at.find(a => c.K >= a && !P.seen[R.pre + a]);
+    if (n != null) S.pgDlg = pgDlgNew(n, false); else if (c.finished && !P.seen[R.endKey]) S.pgEnd = true;
   }
   function pgDlgClose() {
-    const d = S.pgDlg; if (!d) return; clearInterval(PG.typeT);
-    if (!d.again && D.pilgrim && !D.pilgrim.seen['p' + d.i]) { D.pilgrim.seen['p' + d.i] = TODAY(); save(); }
-    if (d.again) S.pgDlg = null; else pgNext();
+    const d = S.pgDlg, R = pgR(); if (!d) return; clearInterval(PG.typeT);
+    if (!d.again && D.pilgrim && !D.pilgrim.seen[R.pre + d.i]) { D.pilgrim.seen[R.pre + d.i] = TODAY(); save(); }
+    if (d.again) S.pgDlg = null; else pgNext(R);
   }
-  function pgEndClose() { if (D.pilgrim && !D.pilgrim.seen.end) { D.pilgrim.seen.end = TODAY(); save(); } S.pgEnd = false; }
+  function pgEndClose() { const k = pgR().endKey; if (D.pilgrim && !D.pilgrim.seen[k]) { D.pilgrim.seen[k] = TODAY(); save(); } S.pgEnd = false; }
   function pgCardHtml() {
     if (TUT) return ''; // 따라 하기 연습 페이지에는 두지 않는다(말풍선이 오늘 화면 카드를 비춘다)
-    const c = pgCalc();
-    const band = c.finished ? (c.doneDate === TODAY() ? '오늘 아브라함의 길을 다 걸었어요' : '') : c.back ? '쉬어 가셨네요. 다시 걸어요.' : c.today ? '오늘 한 구간 걸었어요' : '';
-    return `<section class="card pg-card" aria-label="순례길"><p class="label">순례길 · 아브라함의 길</p>
+    const R = PG_ROUTES[pgCur()], c = pgCalc(R.id);
+    const band = c.finished ? (c.doneDate === TODAY() ? R.doneBand : '') : c.back ? '쉬어 가셨네요. 다시 걸어요.' : c.today ? '오늘 한 구간 걸었어요' : '';
+    return `<section class="card pg-card" aria-label="순례길"><p class="label">순례길 · ${R.name}</p>
       ${band ? `<p class="pg-walk"><span aria-hidden="true">🏮</span> ${band}</p>` : ''}
-      <div class="pg-mini"><canvas data-pg="mini" width="${PG_COLS * PG_T}" height="${3 * PG_T}" role="img" aria-label="${esc(c.line)}"></canvas></div>
+      <div class="pg-mini"><canvas data-pg="mini" data-route="${R.id}" width="${R.cols * PG_T}" height="${3 * PG_T}" role="img" aria-label="${esc(c.line)}"></canvas></div>
       <p class="plain pg-line">${esc(c.line)}</p>
       <button class="link" data-a="pgopen">순례길 보기 ›</button></section>`;
   }
   function pgHtml() {
-    const c = pgCalc(), P = D.pilgrim, stones = pgStones();
-    const tags = PG_AT.map(n => { const [x, y] = PG_LABEL[n], pos = `left:calc(${x}*${PG_T}px*var(--s));top:calc(${y}*${PG_T}px*var(--s))`;
-      return c.K >= n ? `<button class="pg-tag" data-a="pgtag" data-v="${n}" style="${pos}">${PG_PLACES[n].tag}</button>` : `<span class="pg-tag far" aria-hidden="true" style="${pos}">${PG_PLACES[n].tag}</span>`; }).join('');
+    const R = pgR(), c = pgCalc(R.id), P = D.pilgrim, stones = pgStones(R.id), routes = Object.values(PG_ROUTES).filter(r => pgOpened(r.id));
+    const tags = R.at.map(n => { const [x, y] = R.label[n], pos = `left:calc(${x}*${PG_T}px*var(--s));top:calc(${y}*${PG_T}px*var(--s))`;
+      return c.K >= n ? `<button class="pg-tag" data-a="pgtag" data-v="${n}" style="${pos}">${R.places[n].tag}</button>` : `<span class="pg-tag far" aria-hidden="true" style="${pos}">${R.places[n].tag}</span>`; }).join('');
     const stoneBtns = stones.map(s => `<button class="pg-stone" data-a="pgstone" data-v="${esc(s.id)}" aria-label="에벤에셀 돌, ${short(s.date)}" style="left:calc(${s.col + .5}*${PG_T}px*var(--s));top:calc(${s.row + .5}*${PG_T}px*var(--s))"></button>`).join('');
-    const d = S.pgDlg, pl = d && PG_PLACES[d.i], len = pl ? pl.text.length : 0;
+    const d = S.pgDlg, pl = d && R.places[d.i], len = pl ? pl.text.length : 0;
     const dlg = d ? `<div class="pg-dlg" role="dialog" aria-modal="true" aria-label="${esc(pl.name)}" data-a="pgnext"><span class="nm">${esc(pl.name)}</span>
         <p class="sr-only">${esc(pl.text)} ${esc(pl.ref)}</p>
         <p class="txt" aria-hidden="true"><span id="pg-txt">${esc(pl.text.slice(0, d.n))}</span><span id="pg-rest" class="rest">${esc(pl.text.slice(d.n))}</span></p>
         <p class="ref" aria-hidden="true">${esc(pl.ref)}</p>
         <button class="pg-next${d.n >= len ? ' on' : ''}" id="pg-nx" data-a="pgnext" aria-label="다음">▼</button></div>` : '';
-    const end = S.pgEnd ? `<div class="pg-dlg pg-end" role="dialog" aria-modal="true" aria-labelledby="pge-t"><span class="nm" id="pge-t">아브라함의 길을 다 걸었어요</span>
-        <p class="txt">기도한 날 하루하루가 모여 길이 되었어요. 수고하셨어요.</p>
-        <p class="ref">나의 배지에 ‘아브라함의 길’이 생겼어요.</p>
-        <button class="btn wide" data-a="pgendclose">닫기</button></div>` : '';
+    const nx = R.next && PG_ROUTES[R.next], E = R.end;
+    const end = S.pgEnd ? `<div class="pg-dlg pg-end" role="dialog" aria-modal="true" aria-labelledby="pge-t"><span class="nm" id="pge-t">${E.title}</span>
+        <p class="txt">${E.text}</p>
+        <p class="ref">${E.ref}</p>
+        ${nx ? `<p class="pg-road open">${E.open}</p>` : ''}
+        ${nx ? `<button class="btn wide" data-a="pgendgo">${nx.name} 보기</button><button class="btn ghost wide" data-a="pgendclose">닫기</button>` : '<button class="btn wide" data-a="pgendclose">닫기</button>'}</div>` : '';
     const st = S.pgStone && stones.find(s => s.id === S.pgStone);
     const sheet = st ? `<div class="sheet-back" data-a="pgstoneclose"><section class="sheet" role="dialog" aria-modal="true" aria-labelledby="pgs-t" data-stop>
         <h2 id="pgs-t">에벤에셀 돌 · ${short(st.date)}</h2>
         <p class="plain">${esc(st.text)}</p>
         <p class="hint">여기까지 도우셨어요 (삼상 7:12)</p>
         <button class="btn wide" id="pgs-x" data-a="pgstoneclose">닫기</button></section></div>` : '';
-    return `<div class="pg" role="dialog" aria-modal="true" aria-label="아브라함의 길">
-      <div class="pg-bar"><button class="icon-btn" data-a="pgclose" aria-label="오늘 화면으로 돌아가기">‹</button><b class="pg-title">아브라함의 길</b></div>
+    return `<div class="pg" role="dialog" aria-modal="true" aria-label="${R.name}">
+      <div class="pg-bar"><button class="icon-btn" data-a="pgclose" aria-label="오늘 화면으로 돌아가기">‹</button><b class="pg-title">${R.name}</b></div>
+      ${routes.length > 1 ? `<div class="pg-routes chips" role="group" aria-label="지나온 길">${routes.map(r => { const fin = pgCalc(r.id).finished, on = r.id === R.id; return `<button class="chip${on ? ' on' : ''}" data-a="pgroute" data-v="${r.id}" aria-pressed="${on}"${fin ? ` aria-label="${r.name}, 다 걸었어요"` : ''}>${r.name}${fin ? ' <span aria-hidden="true">✓</span>' : ''}</button>`; }).join('')}</div>` : ''}
       ${c.back ? '<p class="pg-back"><span aria-hidden="true">🏮</span> 쉬어 가셨네요. 다시 걸어요.</p>' : ''}
-      <div class="pg-scroll">${c.finished ? '<div class="pg-road">다음 길 · 광야의 길 · 곧 열려요</div>' : ''}
-        <div class="pg-map" style="--s:3" role="group" aria-label="아브라함의 길 지도"><canvas data-pg="full" width="${PG_COLS * PG_T}" height="${PG_ROWS * PG_T}" role="img" aria-label="${esc('지도: ' + c.line)}"></canvas>${tags}${stoneBtns}</div></div>
+      <div class="pg-scroll">${c.finished && !nx ? `<div class="pg-road">${E.soon}</div>` : ''}
+        <div class="pg-map" style="--s:3;--rows:${R.rows}" role="group" aria-label="${R.name} 지도"><canvas data-pg="full" data-route="${R.id}" width="${R.cols * PG_T}" height="${R.rows * PG_T}" role="img" aria-label="${esc('지도: ' + c.line)}"></canvas>${tags}${stoneBtns}</div></div>
       ${dlg}${end}</div>${sheet}`;
   }
   // 이야기 글을 한 글자씩(render 없이 글자만 바꾼다). 움직임 줄이기면 처음부터 전부 보인다
   function pgType() {
-    clearInterval(PG.typeT); const d = S.pgDlg; if (!d) return; const t = PG_PLACES[d.i].text;
+    clearInterval(PG.typeT); const d = S.pgDlg; if (!d) return; const t = pgR().places[d.i].text;
     const paint = () => { const a = document.getElementById('pg-txt'), b = document.getElementById('pg-rest'), n = document.getElementById('pg-nx'); if (a) a.textContent = t.slice(0, d.n); if (b) b.textContent = t.slice(d.n); if (n) n.classList.toggle('on', d.n >= t.length); };
     if (d.n >= t.length) return;
     PG.typeT = setInterval(() => { if (S.pgDlg !== d) return clearInterval(PG.typeT); d.n = Math.min(t.length, d.n + 1); paint(); if (d.n >= t.length) clearInterval(PG.typeT); }, 40);
@@ -1318,7 +1429,7 @@ button.pg-tag::before { content: ''; position: absolute; inset: -10px; }
   // 순례길 화면의 지도는 정수 배로만 키운다(도트가 흐려지지 않게, 2~4배). 오늘 카드의 작은 지도는 카드 폭에 꽉 차게 CSS로 맞춘다
   function pgScale() {
     const sc = document.querySelector('.pg-scroll'), mp = document.querySelector('.pg-map');
-    if (sc && mp) mp.style.setProperty('--s', Math.max(2, Math.min(4, Math.floor(sc.clientWidth / (PG_COLS * PG_T)))));
+    if (sc && mp) mp.style.setProperty('--s', Math.max(2, Math.min(4, Math.floor(sc.clientWidth / (pgR().cols * PG_T)))));
   }
   const PG_FAIL = '<p class="hint" style="padding:12px;line-height:1.5">순례길 그림을 불러오지 못했어요. 잠시 뒤 다시 열어 주세요.</p>';
   function mountPilgrim() {
@@ -1332,7 +1443,9 @@ button.pg-tag::before { content: ''; position: absolute; inset: -10px; }
     }
     if (!mini.length && !full) { if (walkOk) S.pgStep = null; return; }
     const run = () => {
-      if (PG.fail) { document.querySelectorAll('.pg-mini').forEach(m => { m.innerHTML = PG_FAIL; }); const mp = document.querySelector('.pg-map'); if (mp) mp.innerHTML = PG_FAIL; return; }
+      // 그림을 못 불러온 길의 지도 자리에는 안내 한 줄만 둔다(다른 길은 그대로 그린다)
+      mini.forEach(cv => { if (pgBad(PG_ROUTES[cv.dataset.route])) cv.closest('.pg-mini').innerHTML = PG_FAIL; });
+      if (full && pgBad(pgR())) document.querySelector('.pg-map').innerHTML = PG_FAIL;
       pgScale();
       const st = walkOk && S.pgStep; if (walkOk) S.pgStep = null;
       // 그날 처음 걷는 순간, 작은 지도가 탭 막대 위 화면 안에 다 안 보이면 지도 아래 끝이 탭 막대 바로 위에 오게 스크롤한 뒤 걷는다
@@ -1341,15 +1454,15 @@ button.pg-tag::before { content: ''; position: absolute; inset: -10px; }
         const tb = document.querySelector('.tabs'), mr = mini[0].getBoundingClientRect(), lim = tb ? tb.getBoundingClientRect().top : innerHeight, dy = mr.bottom + 8 - lim;
         if (dy > 0 && mr.height > 0) { const by = Math.min(dy, mr.top - 8); if (by > 0) { scrollBy({ top: by, behavior: calm() ? 'auto' : 'smooth' }); if (!calm()) delay = 500; } }
       }
-      if (st && mini.length && !calm() && !PG.walk) pgWalkStart(st.from, st.to, st.rest, delay);
+      if (st && mini.length && !calm() && !PG.walk && !pgBad(PG_ROUTES[st.route])) pgWalkStart(PG_ROUTES[st.route], st.from, st.to, st.rest, delay);
       pgPaintAll();
-      const sc = document.querySelector('.pg-scroll'), mp = document.querySelector('.pg-map');
-      if (sc && mp) {
+      const sc = document.querySelector('.pg-scroll'), mp = document.querySelector('.pg-map'), R = pgR();
+      if (sc && mp && !pgBad(R)) { // (그림을 못 불러와 안내 한 줄만 있을 때는 맨 위 그대로 둔다)
         const s = Number(mp.style.getPropertyValue('--s')) || 3;
         const top = mp.offsetTop - sc.offsetTop; // 스크롤 칸 안에서 지도가 시작하는 자리
-        if (S.pgY == null) { sc.scrollTop = Math.max(0, top + (PG_NODES[pgK()][1] * PG_T + PG_T / 2) * s - sc.clientHeight * .4); 
+        if (S.pgY == null) { sc.scrollTop = Math.max(0, top + (R.nodes[pgK(R.id)][1] * PG_T + PG_T / 2) * s - sc.clientHeight * .4);
           // 위 가장자리에 이름표가 반쯤 걸쳐 잘려 보이면 그 이름표 위로 맞춘다
-                    const edge = (sc.scrollTop - top) / (PG_T * s), cut = PG_AT.map(n => PG_LABEL[n][1]).find(y => edge > y - .05 && edge < y + .95);
+          const edge = (sc.scrollTop - top) / (PG_T * s), cut = R.at.map(n => R.label[n][1]).find(y => edge > y - .05 && edge < y + .95);
           if (cut != null) sc.scrollTop = Math.max(0, top + (cut - .3) * PG_T * s);
           S.pgY = sc.scrollTop; } else sc.scrollTop = S.pgY;
         sc.addEventListener('scroll', () => { S.pgY = sc.scrollTop; }, { passive: true });
@@ -1361,7 +1474,7 @@ button.pg-tag::before { content: ''; position: absolute; inset: -10px; }
   function todayView() {
     const set = todaySet(), all = open(), done = set.filter(i => prayedToday(i.id)).length;
     const head = `<header class="top"><div><p class="eyebrow">오늘의 기도</p><h1>${dateLabel(TODAY())} 기도제목</h1></div></header>`;
-    if (!all.length) return head + `<section class="card empty"><h2>아직 기도제목이 없어요</h2><p class="hint">나와 가족, 친구, 교회를 위한 기도제목을 써 보세요. 이 휴대폰에만 저장돼요.</p><button class="btn" data-a="tab" data-v="note">기도제목 쓰기</button></section>` + (pgK() >= 1 ? pgCardHtml() : '') + thanksQuick();
+    if (!all.length) return head + `<section class="card empty"><h2>아직 기도제목이 없어요</h2><p class="hint">나와 가족, 친구, 교회를 위한 기도제목을 써 보세요. 이 휴대폰에만 저장돼요.</p><button class="btn" data-a="tab" data-v="note">기도제목 쓰기</button></section>` + (pgK(pgCur()) >= 1 ? pgCardHtml() : '') + thanksQuick();
     return head + `<div class="t-grid"><div class="t-main"><section class="card"><div class="row"><p class="label">오늘 기도할 제목</p><span class="hint">${done} / ${set.length}</span></div>
       ${set.map(i => { const on = prayedToday(i.id); return `<div class="today-item${on ? ' on' : ''}"><p><span class="tag">${esc(targetName(i.target))}</span>${esc(i.text)}</p>
         <div class="row"><span class="days">${daysSince(i.created)}일째 기도하고 있어요</span><button class="pray-btn${on ? ' on' : ''}" data-a="pray" data-v="${i.id}" aria-pressed="${on}">${on ? ICON.check + '기도했어요' : '기도했어요'}</button></div></div>`; }).join('')}
@@ -1496,7 +1609,7 @@ button.pg-tag::before { content: ''; position: absolute; inset: -10px; }
   // 나의 배지: 노트에서 해 볼 일을 하나씩 해 보면 색이 들어오는 작은 둥근 네모 칸(칸 안에 그림, 아래에 짧은 이름). 처음부터 모두 보이고, 안 한 것은 색 없이 흐리다. 누르면 작은 창이 열린다
   //  · 써 보기 배지(tut): 노트의 기록에서 바로 알아낸다(예전부터 써 온 사람은 이미 해 본 일이 배지로 나온다). 기록에 남지 않는 일(기도하기 · 홈 화면 · 의견 보내기 · 동기화 켜기)만
   //    이 노트의 기록 D.badge({ 키: 'yyyy-mm-dd' })에 받은 날을 남긴다(earn). 카카오 계정마다 따로이고, 동기화 · 기록 저장하기에 함께 가며 합칠 때는 이른 날이 남는다. 키 이름은 시범 '해 볼 일'과 같다(n-/a-)
-  //  · 기념 배지(m-): 1년 이어 온 기도 · 노트와 함께한 1년. 그날이 오면 생긴다. 아브라함의 길(p-)은 순례길을 끝까지 걸은 날 생긴다. 처음 쓴 날 · 처음 기도 · 처음 감사 · 처음 응답은 써 보기 배지와 같은 일이라 한 배지에 날짜를 붙였다
+  //  · 기념 배지(m-): 1년 이어 온 기도 · 노트와 함께한 1년. 그날이 오면 생긴다. 아브라함의 길 · 광야의 길(p-)은 그 길을 끝까지 걸은 날 생긴다. 처음 쓴 날 · 처음 기도 · 처음 감사 · 처음 응답은 써 보기 배지와 같은 일이라 한 배지에 날짜를 붙였다
   //  at(): 받지 못했으면 null, 받았는데 날짜를 모르면 '', 아니면 'yyyy-mm-dd'. can(): 이 기기에서 해 볼 수 있는 일인지(홈 화면은 휴대폰만, 동기화는 잠금이 되는 주소만). 안 되는 기기에서도 배지는 보이고,
   //  창에서 noCan 글을 더해 알려 준다(홈 화면은 방법 안내 창을 그대로 열고(guideOnly), 동기화는 해 보기 없이 닫기만). when: 기념 배지가 언제 생기는지
   //  나열 순서는 배우는 길(쉬운 것부터). 받았든 안 받았든 이 순서 그대로 모두 늘어놓는다
@@ -1549,9 +1662,12 @@ button.pg-tag::before { content: ''; position: absolute; inset: -10px; }
     { k: 'm-note', ic: 'book', name: '노트와 함께 1년', mean: '기도 노트와 함께한 지 1년이에요.', when: '기도 노트를 시작한 지 1년이 되면 생겨요.',
       at: () => { const s = noteStart(), a = s ? addMonthsStr(s, 12) : ''; return a && a <= TODAY() ? a : null; } },
     // 순례길을 끝까지 걸은 날(12번째 걸은 날)에 생긴다. 받은 날은 걸은 날 기록에서 셈한다
-    { k: 'p-abraham', ic: 'road', noArt: true, // 삽화가 아직 없어 선 아이콘(road)을 쓴다
+    { k: 'p-abraham', ic: 'road',
       name: '아브라함의 길', mean: '기도한 날을 모아 아브라함의 길을 끝까지 걸었어요.', when: '기도한 날 12일을 모아 아브라함의 길을 끝까지 걸으면 생겨요.',
-      at: () => pgCalc().doneDate }
+      at: () => pgCalc('abraham').doneDate },
+    { k: 'p-wild', ic: 'wild', // 광야의 길 40구간(기도한 날 40일)을 다 걸은 날 생긴다
+      name: '광야의 길', mean: '기도한 날을 모아 광야의 길을 끝까지 걸었어요.', when: '아브라함의 길을 걸은 뒤, 기도한 날 40일을 더 모아 광야의 길을 끝까지 걸으면 생겨요.',
+      at: () => pgCalc('wild').doneDate }
   ];
   // 배지 그림: 노트에 있는 그림(ICON)을 쓰고, 없는 열(감사 · 사람 · 홈 화면 · 사람 더하기 · 왕관 · 팔레트 · 모임 · 그물 · 내려놓기 · 별 · 기념)만 같은 굵기(24칸, 선 1.8)로 더했다
   const bico = n => {
@@ -1560,6 +1676,7 @@ button.pg-tag::before { content: ''; position: absolute; inset: -10px; }
       people: s('<circle cx="9" cy="8" r="3"/><path d="M3.5 19c0-3 2.5-5 5.5-5s5.5 2 5.5 5"/><circle cx="17" cy="9" r="2.4"/><path d="M16 14.2c3 0 5 1.8 5 4.8"/>'),
       heart: s('<path d="M12 20s-7-4.4-7-10a4 4 0 0 1 7-2.6A4 4 0 0 1 19 10c0 5.6-7 10-7 10z"/>'),
       home: s('<path d="M4 11l8-7 8 7"/><path d="M6 10v9h12v-9"/><path d="M10 19v-5h4v5"/>'),
+      wild: s('<path d="M12 21v-9"/><path d="M8.5 12c-2 0-3-1.6-3-3.2S7 6 8.7 6c.4-1.8 1.8-3 3.3-3s2.9 1.2 3.3 3c1.7 0 3.2 1.2 3.2 2.8S17.5 12 15.5 12z"/>'),
       road: s('<path d="M6 20c0-4 5-4 5-8s-4-4-4-7"/><path d="M13 20c0-3 5-4 5-8"/><circle cx="16" cy="6" r="1.4"/>'),
       addp: s('<circle cx="10" cy="8" r="3.2"/><path d="M4 19.5c0-3.2 2.7-5.2 6-5.2s6 2 6 5.2"/><path d="M19 6.5v6M16 9.5h6"/>'),
       crown: s('<path d="M4.5 17.5L3.5 8.5l4.6 3.8L12 5.5l3.9 6.8 4.6-3.8-1 9z"/><path d="M5.5 21h13"/>'),
@@ -1772,9 +1889,9 @@ button.pg-tag::before { content: ''; position: absolute; inset: -10px; }
   const HELP = [
     ['기도제목은 어떻게 써요?', ['내 기도의 "새 기도제목 쓰기" 칸에 한 줄에 하나씩 써요.', '줄 앞에 "엄마ㅡ"처럼 이름을 쓰고 ㅡ를 붙이면 그 사람을 위한 기도제목이 돼요.', '대상별로 정리하기를 누르고, 미리보기에서 괜찮으면 추가하기를 눌러요.'], '내 기도로 가기', 'note'],
     ['오늘 화면의 세 개는 뭐예요?', ['오늘 기도할 제목을 하루에 세 개만 골라 보여 줘요. 그날은 바뀌지 않아요.', '오래 기도하지 않은 것부터 나와요. 기도하고 기도했어요를 눌러요.'], '오늘로 가기', 'today'],
-    ['기도의 순례길은 뭐예요?', ['오늘 화면의 순례길 카드는 기도한 날마다 아브라함의 길을 한 구간씩 걷는 작은 지도예요. 하루에 여러 번 기도해도 한 구간이에요.', '며칠 쉬어도 뒤로 가지 않고, 순례자가 길가에서 쉬었다가 기도하면 다시 걸어요. 응답받았어요로 마친 기도는 그날 걷던 길가에 돌로 서요.', '장소에 처음 닿으면 이야기가 한 번 나오고, 12구간을 다 걸으면 나의 배지에 아브라함의 길이 생겨요. 나만 보는 노트라 남과 견주지 않아요.'], '오늘로 가기', 'today'],
+    ['기도의 순례길은 뭐예요?', ['오늘 화면의 순례길 카드는 기도한 날마다 길을 한 구간씩 걷는 작은 지도예요(처음 길은 아브라함의 길). 하루에 여러 번 기도해도 한 구간이에요.', '며칠 쉬어도 뒤로 가지 않고, 순례자가 길가에서 쉬었다가 기도하면 다시 걸어요. 응답받았어요로 마친 기도는 그날 걷던 길가에 돌로 서요.', '장소에 처음 닿으면 이야기가 한 번 나오고, 길을 다 걸으면 나의 배지가 생겨요. 아브라함의 길을 다 걸으면 광야의 길이 이어서 열리고, 순례길 화면 위의 지나온 길 단추로 다 걸은 길을 다시 볼 수 있어요. 나만 보는 노트라 남과 견주지 않아요.'], '오늘로 가기', 'today'],
     ['기도의 끈은 뭐예요?', ['오늘 화면의 끈은 내가 기도하는 사람마다 매듭이 하나씩이에요.', '이번 주(주일부터) 그 사람을 위해 기도하면 매듭이 지어지고, 매주 주일에 새로 시작해요. 더보기에서 사람을 더하면 끈이 생겨요.'], '오늘로 가기', 'today'],
-    ['지난 기록에서는 무엇을 볼 수 있어요?', ['달마다 기도한 날 달력과 감사·응답, 마친 기도를 볼 수 있어요.', '달력과 감사 아래 돌아보기에는 올해 기도한 날, 기억한 사람, 감사와 응답 기록, 달마다 기도한 날이 모여요. 그 아래 나의 배지에는 노트에서 해 볼 일과 기념일(아브라함의 길을 다 걸은 날 포함)이 처음부터 모두 보여요. 해 보면 그 배지에 색이 들어오고, 색이 없는 배지를 누르면 어떻게 하는지 알려 줘요.', '나만 보는 기록이에요. 비어 있는 날이 있어도 괜찮아요.'], '지난 기록 열기', 'look'],
+    ['지난 기록에서는 무엇을 볼 수 있어요?', ['달마다 기도한 날 달력과 감사·응답, 마친 기도를 볼 수 있어요.', '달력과 감사 아래 돌아보기에는 올해 기도한 날, 기억한 사람, 감사와 응답 기록, 달마다 기도한 날이 모여요. 그 아래 나의 배지에는 노트에서 해 볼 일과 기념일(아브라함의 길 · 광야의 길을 다 걸은 날 포함)이 처음부터 모두 보여요. 해 보면 그 배지에 색이 들어오고, 색이 없는 배지를 누르면 어떻게 하는지 알려 줘요.', '나만 보는 기록이에요. 비어 있는 날이 있어도 괜찮아요.'], '지난 기록 열기', 'look'],
     ['휴대폰을 바꿔도 이어지게 하려면?', ['기도 노트는 이 휴대폰에만 있어요. 더보기 › 동기화를 켜면 카카오 로그인과 비밀 문구로 잠가서 맡겨 둬요.', '새 휴대폰에서는 같은 카카오로 로그인한 뒤 더보기 › 동기화를 켜고 같은 비밀 문구를 넣으면 맡겨 둔 기록이 합쳐져요.', '비밀 문구를 잊을 때를 위해 복구용 낱말도 만들어 두세요. 둘 다 잃으면 되살릴 수 없어요.'], '동기화로 가기', 'sync']
   ];
   function helpView() {
@@ -2259,11 +2376,13 @@ button.pg-tag::before { content: ''; position: absolute; inset: -10px; }
     switch (a) {
       case 'menu': S.menu = S.menu === v ? null : v; return render();
       // 기도의 순례길: 오늘 카드의 '순례길 보기', 이야기 창, 이름표, 돌
-      case 'pgopen': S.menu = null; S.pg = true; S.pgY = null; S.pgStep = null; S.pgStone = null; pgLoad(); pgNext(); return render();
+      case 'pgopen': S.menu = null; S.pg = true; pgEnter(); S.pgY = null; S.pgStep = null; S.pgStone = null; pgLoad(); pgNext(); return render();
       case 'pgclose': S.pg = false; S.pgDlg = null; S.pgEnd = false; S.pgStone = null; clearInterval(PG.typeT); return render();
       case 'pgtag': S.pgDlg = pgDlgNew(Number(v), true); return render();
-      case 'pgnext': { const d = S.pgDlg; if (!d) return; const len = PG_PLACES[d.i].text.length; if (d.n < len) { d.n = len; clearInterval(PG.typeT); return render(); } pgDlgClose(); return render(); }
+      case 'pgnext': { const d = S.pgDlg; if (!d) return; const len = pgR().places[d.i].text.length; if (d.n < len) { d.n = len; clearInterval(PG.typeT); return render(); } pgDlgClose(); return render(); }
       case 'pgendclose': pgEndClose(); return render();
+      case 'pgendgo': { const nx = pgR().next; pgEndClose(); if (!nx) return render(); S.pgRoute = nx; S.pgY = null; S.pgStone = null; pgNext(PG_ROUTES[nx]); return render(); } // 다음 길 보기: 그 길의 첫 이야기가 이어서 나온다
+      case 'pgroute': if (!PG_ROUTES[v]) return; clearInterval(PG.typeT); S.pgRoute = v; S.pgY = null; S.pgStone = null; pgNext(PG_ROUTES[v]); return render(); // 지나온 길 바꿔 보기(오늘 카드가 보여 주는 길은 그대로)
       case 'pgstone': S.pgStone = v; return render();
       case 'pgstoneclose': S.pgStone = null; return render();
       case 'mvopen': S.menu = null; return mvOpen(v);
@@ -2558,8 +2677,8 @@ button.pg-tag::before { content: ''; position: absolute; inset: -10px; }
   // 모임 화면의 '내 기도 노트로 옮기기'로 오면(?move=모임ID) 옮길 기도제목 고르는 창을 바로 연다
   { const q = new URLSearchParams(location.search), mid = q.get('move'); if (mid) { q.delete('move'); history.replaceState(null, '', location.pathname + (q.toString() ? '?' + q.toString().replace(/=(&|$)/g, '$1') : '')); if (!SC) setTimeout(() => mvOpen(mid), 0); } }
   pgEnsure(); // 순례길 시작일(TODAY·dkey가 만들어진 뒤라야 한다)
-  // 순례길 장면: 오늘 카드에서 시작하는 것(pilgrimtoday · pilgrimrest)과 지난 기록(pilgrimbadge)이 아니면 순례길 화면을 바로 연다
-  if (SC && /^pilgrim/.test(SC.at)) { if (SC.at === 'pilgrimbadge') S.tab = 'look'; else if (!['pilgrimtoday', 'pilgrimrest'].includes(SC.at)) { S.pg = true; pgLoad(); pgNext(); } }
+  // 순례길 장면: 오늘 카드에서 시작하는 것(pilgrimtoday · pilgrimrest · wildtoday · wildrest)과 지난 기록(pilgrimbadge · wildbadge)이 아니면 순례길 화면을 바로 연다
+  if (SC && /^(pilgrim|wild)/.test(SC.at)) { if (['pilgrimbadge', 'wildbadge'].includes(SC.at)) S.tab = 'look'; else if (!['pilgrimtoday', 'pilgrimrest', 'wildtoday', 'wildrest'].includes(SC.at)) { S.pg = true; pgEnter(); pgLoad(); pgNext(); } }
   render();
   // 연습 페이지는 데모 띠가 없어 진짜 노트처럼 보인다. 6초 안에 안내가 시작되지 않으면 갇히지 않게 진짜 노트로 돌려보낸다
   if (TUT) setTimeout(() => { if (!NoteGuide.begun()) tutFail(); }, 6000);

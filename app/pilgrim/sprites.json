@@ -64,5 +64,75 @@
     "well": 5,
     "star": 6,
     "stone": 7
+  },
+  "wild": {
+    "tiles": {
+      "file": "wild-tiles.png",
+      "sand": [
+        [
+          0,
+          0
+        ],
+        [
+          1,
+          0
+        ]
+      ],
+      "rock": [
+        2,
+        0
+      ],
+      "oasis": [
+        3,
+        0
+      ],
+      "sea": [
+        4,
+        0
+      ],
+      "seabed": [
+        5,
+        0
+      ],
+      "wallL": [
+        6,
+        0
+      ],
+      "wallR": [
+        7,
+        0
+      ]
+    },
+    "objects": {
+      "file": "wild-objects.png",
+      "gate": 0,
+      "bitter": 1,
+      "branch": 2,
+      "spring": 3,
+      "palm": 4,
+      "manna": 5,
+      "quail": 6,
+      "rock": 7,
+      "camp": 8,
+      "tablets": 9,
+      "sinai": {
+        "x": 0,
+        "y": 1,
+        "w": 2,
+        "h": 2
+      },
+      "cloud": {
+        "x": 2,
+        "y": 1,
+        "w": 1,
+        "h": 2
+      },
+      "fire": {
+        "x": 3,
+        "y": 1,
+        "w": 1,
+        "h": 2
+      }
+    }
   }
 }
