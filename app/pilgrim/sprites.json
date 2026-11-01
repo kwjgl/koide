@@ -1,0 +1,68 @@
+{
+  "tile": 16,
+  "hero": {
+    "file": "hero.png",
+    "down": [
+      0,
+      1
+    ],
+    "up": [
+      2,
+      3
+    ],
+    "left": [
+      4,
+      5
+    ],
+    "rest": 6
+  },
+  "tiles": {
+    "file": "tiles.png",
+    "sand": [
+      [
+        0,
+        0
+      ],
+      [
+        1,
+        0
+      ]
+    ],
+    "grass": [
+      [
+        2,
+        0
+      ],
+      [
+        3,
+        0
+      ]
+    ],
+    "hill": [
+      4,
+      0
+    ],
+    "river": [
+      5,
+      0
+    ],
+    "ford": [
+      6,
+      0
+    ],
+    "path": {
+      "row": 1
+    }
+  },
+  "objects": {
+    "file": "objects.png",
+    "gate": 0,
+    "wall": 1,
+    "tree": 2,
+    "tent": 3,
+    "altar": 4,
+    "well": 5,
+    "star": 6,
+    "stone": 7
+  }
+}
