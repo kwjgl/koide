@@ -409,9 +409,9 @@ button.knot { cursor: pointer; }
 .sr-only { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
 .pg-card .link { min-height: 44px; align-self: flex-start; }
 .pg-walk { margin: 0; background: var(--warm-soft); color: var(--warm); border-radius: 10px; padding: .35em .7em; font-size: .86em; font-weight: 600; }
-.pg-mini { align-self: stretch; display: flex; justify-content: center; line-height: 0; }
+.pg-mini { align-self: stretch; display: block; line-height: 0; }
 .pg-mini canvas, .pg-map canvas { display: block; image-rendering: pixelated; border-radius: 10px; box-shadow: 0 0 0 1px var(--line); }
-.pg-mini canvas { width: calc(128px * var(--s, 2)); height: calc(64px * var(--s, 2)); }
+.pg-mini canvas { width: 100%; height: auto; aspect-ratio: 2 / 1; } /* 카드 안쪽 폭에 꽉 채운다(정수 배가 아니어도 pixelated로 또렷하게) */
 .pg-line { font-size: .92em; }
 .pg { position: fixed; inset: 0; z-index: 25; background: var(--page); display: flex; flex-direction: column; }
 .pg-bar { display: flex; align-items: center; gap: 4px; background: var(--surface); border-bottom: 1px solid var(--line); padding: max(8px, env(safe-area-inset-top)) 12px 8px; }
@@ -1315,9 +1315,8 @@ button.pg-tag::before { content: ''; position: absolute; inset: -10px; }
     if (d.n >= t.length) return;
     PG.typeT = setInterval(() => { if (S.pgDlg !== d) return clearInterval(PG.typeT); d.n = Math.min(t.length, d.n + 1); paint(); if (d.n >= t.length) clearInterval(PG.typeT); }, 40);
   }
-  // 지도는 정수 배로만 키운다(도트가 흐려지지 않게): 순례길 화면 2~4배, 오늘 카드 2~3배
+  // 순례길 화면의 지도는 정수 배로만 키운다(도트가 흐려지지 않게, 2~4배). 오늘 카드의 작은 지도는 카드 폭에 꽉 차게 CSS로 맞춘다
   function pgScale() {
-    document.querySelectorAll('.pg-mini').forEach(m => m.style.setProperty('--s', Math.max(2, Math.min(3, Math.floor(m.clientWidth / (PG_COLS * PG_T)) || 2))));
     const sc = document.querySelector('.pg-scroll'), mp = document.querySelector('.pg-map');
     if (sc && mp) mp.style.setProperty('--s', Math.max(2, Math.min(4, Math.floor(sc.clientWidth / (PG_COLS * PG_T)))));
   }
@@ -1356,13 +1355,13 @@ button.pg-tag::before { content: ''; position: absolute; inset: -10px; }
   function todayView() {
     const set = todaySet(), all = open(), done = set.filter(i => prayedToday(i.id)).length;
     const head = `<header class="top"><div><p class="eyebrow">오늘의 기도</p><h1>${dateLabel(TODAY())} 기도제목</h1></div></header>`;
-    if (!all.length) return head + `<section class="card empty"><h2>아직 기도제목이 없어요</h2><p class="hint">나와 가족, 친구, 교회를 위한 기도제목을 써 보세요. 이 휴대폰에만 저장돼요.</p><button class="btn" data-a="tab" data-v="note">기도제목 쓰기</button></section>` + (pgK() >= 1 ? pgCardHtml() : '') + thanksQuick();
+    if (!all.length) return head + `<section class="card empty"><h2>아직 기도제목이 없어요</h2><p class="hint">나와 가족, 친구, 교회를 위한 기도제목을 써 보세요. 이 휴대폰에만 저장돼요.</p><button class="btn" data-a="tab" data-v="note">기도제목 쓰기</button></section>` + thanksQuick() + (pgK() >= 1 ? pgCardHtml() : '');
     return head + `<div class="t-grid"><div class="t-main"><section class="card"><div class="row"><p class="label">오늘 기도할 제목</p><span class="hint">${done} / ${set.length}</span></div>
       ${set.map(i => { const on = prayedToday(i.id); return `<div class="today-item${on ? ' on' : ''}"><p><span class="tag">${esc(targetName(i.target))}</span>${esc(i.text)}</p>
         <div class="row"><span class="days">${daysSince(i.created)}일째 기도하고 있어요</span><button class="pray-btn${on ? ' on' : ''}" data-a="pray" data-v="${i.id}" aria-pressed="${on}">${on ? ICON.check + '기도했어요' : '기도했어요'}</button></div></div>`; }).join('')}
       ${done === set.length ? `<p class="hint">오늘 기도할 제목을 다 기도했어요.${all.length > set.length ? ' 다른 기도제목도 함께 기도해 볼까요?' : ''}</p>` : ''}
-      <button class="btn ghost" data-a="psopen" data-v="${done === set.length ? 'all' : 'today'}">${done === set.length && all.length > set.length ? '모든 기도제목으로 기도하기' : '한 장씩 기도하기'}</button></section>${pgCardHtml()}</div>
-      <div class="t-side">${cordHtml()}${thanksQuick()}</div></div>`;
+      <button class="btn ghost" data-a="psopen" data-v="${done === set.length ? 'all' : 'today'}">${done === set.length && all.length > set.length ? '모든 기도제목으로 기도하기' : '한 장씩 기도하기'}</button></section></div>
+      <div class="t-side">${cordHtml()}${thanksQuick()}${pgCardHtml()}</div></div>`;
   }
   // ── 시범 설문(survey.js): 시작한 지 3·7·14일째에 오늘 화면이 그려진 1.5초 뒤 팝업 카드(앱을 연 뒤 한 번만). 로그인하지 않았거나 장면 주소, 안내·기도하기·다른 창이 떠 있으면 없다 ──
   //  시작한 날 = 기도제목·기도한 날·감사 기록 중 가장 이른 날(아직 없으면 survey.js가 이 기기에서 처음 연 날로 센다). 보내는 숫자는 사용자가 켰을 때만, 기도 내용은 없다
