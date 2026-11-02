@@ -134,5 +134,75 @@
         "h": 2
       }
     }
+  },
+  "land": {
+    "tiles": {
+      "file": "land-tiles.png",
+      "ground": [
+        [
+          0,
+          0
+        ],
+        [
+          1,
+          0
+        ]
+      ],
+      "wheat": [
+        2,
+        0
+      ],
+      "vine": [
+        3,
+        0
+      ],
+      "river": [
+        4,
+        0
+      ],
+      "riverbed": [
+        5,
+        0
+      ],
+      "wallL": [
+        6,
+        0
+      ],
+      "wallR": [
+        7,
+        0
+      ]
+    },
+    "objects": {
+      "file": "land-objects.png",
+      "acacia": 0,
+      "stones": 1,
+      "olive": 2,
+      "trellis": 3,
+      "horn": 4,
+      "tabernacle": 5,
+      "sheaf": 6,
+      "fence": 7,
+      "rubble": 8,
+      "camp": 9,
+      "jericho": {
+        "x": 0,
+        "y": 1,
+        "w": 3,
+        "h": 3
+      },
+      "jerichoFallen": {
+        "x": 3,
+        "y": 1,
+        "w": 3,
+        "h": 3
+      },
+      "ark": {
+        "x": 6,
+        "y": 1,
+        "w": 1,
+        "h": 1
+      }
+    }
   }
 }
