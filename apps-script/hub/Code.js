@@ -5,25 +5,27 @@
  *  ① 카카오 로그인: 카카오 code를 확인하고 기본 서버 로그인 표시(서명한 값, 시트에 남기지 않음)를 내준다
  *  ② 교회 코드: 코드 → 교회 서버. 코드가 맞으면 그 교회 서버가 믿는 확인증(5분)을 서명해 준다. 코드가 없으면 코이데를 쓸 수 없다
  *  ③ 앱 관리자 보기: 교회마다 서버 버전·오류·연결 수. 기도제목과 이름은 오지 않는다
+ * 디다코(결정 기록 2026-11-05)도 같은 카카오 로그인·교회 코드를 쓴다. 요청에 app: 'didako'가 있으면 교회의 '디다코 서버 주소'로 보내고 디다코 확인증(typ 'didako-ticket')을 준다
  * 새 구글 시트를 하나 만들고 "확장 프로그램 > Apps Script"에 이 파일을 붙여 넣은 뒤 setup을 한 번 실행한다. 순서는 apps-script/hub/README.md
  *
  * 스크립트 속성(프로젝트 설정 > 스크립트 속성):
  *   KAKAO_REST_KEY       카카오 개발자 앱의 REST API 키(교회 서버와 같은 카카오 앱)
  *   KAKAO_CLIENT_SECRET  (선택) 카카오 로그인 보안의 Client Secret
- *   REDIRECT_URI         카카오에 등록한 앱 주소. 예: https://koide.koinobia.com/app/
+ *   REDIRECT_URI         카카오에 등록한 앱 주소. 예: https://koide.koinobia.com/app/ · 디다코도 쓰면 쉼표로 더한다(첫 주소가 코이데, 초대 링크의 바탕이 된다)
  *   HUB_SECRET           서명 값. 아무도 모르는 긴 글자(40자 이상). 모든 교회 서버의 HUB_SECRET에도 같은 값을 넣는다
  *   APP_ADMINS           앱 관리자의 카카오ID(쉼표로 여럿). 앱 관리자 보기에서 '내 카카오ID'로 확인할 수 있다
  */
 
-const HUB_VERSION = '2026-10-27 교회 코드 · 들어가기·초대';
+const HUB_VERSION = '2026-11-05 교회 코드 · 디다코 노트 서버';
 const HUB_DAYS = 30, TICKET_MIN = 5;
 
 // 시트 이름과 칸(첫 줄에 그대로 쓰인다)
 //  교회: 코드는 여럿이면 쉼표로. 종류는 교회 / 테스트. 상태가 '멈춤'이면 코드로 들어올 수 없고 앱 관리자 보기에만 나온다.
 //   이름표는 그 교회 서버의 CHURCH_ID와 같게 쓴다(같은 서버에 코드를 바꿔 달아도 이어지게 코드와 따로 둔다)
+//   디다코 서버 주소는 맨 끝 칸(비어 있으면 그 교회는 디다코 노트를 아직 쓰지 않는다)
 //  사람: 누가 어느 교회로 들어갔는지(카카오ID와 교회 이름표만). 다시 로그인하거나 휴대폰을 바꾸면 코드 없이 그 교회로 간다
 const HUB_SCHEMA = {
-  churches: ['교회', [['id', '이름표'], ['name', '이름'], ['kind', '종류'], ['codes', '코드'], ['url', '서버 주소'], ['status', '상태'], ['memo', '메모']]],
+  churches: ['교회', [['id', '이름표'], ['name', '이름'], ['kind', '종류'], ['codes', '코드'], ['url', '서버 주소'], ['status', '상태'], ['memo', '메모'], ['didako', '디다코 서버 주소']]],
   members: ['사람', [['kakaoId', '카카오ID'], ['church', '교회 이름표'], ['at', '들어간 날']]]
 };
 
@@ -46,18 +48,24 @@ function doPost(e) {
 const HUB_ACTIONS = {
   login: login_,
   // 이 사람이 갈 교회(아는 교회가 없으면 church: null → 화면이 코드를 묻는다)
-  where: body => { const a = auth_(body.token); return Object.assign(whereOf_(a), { admin: isAdmin_(a) }); },
-  // 코드 확인만(교회 이름을 보여 주고 "이 교회가 맞나요?"를 묻는다)
-  peek: body => { const a = auth_(body.token), c = byCode_(a, body.code); return { name: c.name, kind: kindOf_(c) }; },
-  // 코드로 들어가기: 사람 탭에 적고 확인증을 준다
+  //  app: 'didako'면 그 교회의 디다코 서버로(디다코 칸이 비어 있으면 church: null, notYet: { name }). 없거나 'koide'면 지금과 같다
+  where: body => { const a = auth_(body.token); return Object.assign(whereOf_(a, appOf_(body)), { admin: isAdmin_(a) }); },
+  // 코드 확인만(교회 이름을 보여 주고 "이 교회가 맞나요?"를 묻는다). 디다코에서는 그 교회가 디다코를 쓰는지(didako)도 알려 준다
+  peek: body => {
+    const a = auth_(body.token), c = byCode_(a, body.code), out = { name: c.name, kind: kindOf_(c) };
+    if (appOf_(body) === 'didako') out.didako = !!didakoOf_(c);
+    return out;
+  },
+  // 코드로 들어가기: 사람 탭에 적고 확인증을 준다. 디다코에서 그 교회가 디다코를 안 쓰면 사람 탭도 바꾸지 않는다
   join: body => {
-    const a = auth_(body.token), c = byCode_(a, body.code);
+    const a = auth_(body.token), c = byCode_(a, body.code), app = appOf_(body);
+    if (app === 'didako' && !didakoOf_(c)) throw notYet_();
     withLock_(() => {
       const old = read_('members').filter(m => m.kakaoId === a.kakaoId);
       if (old.length) { old[0].church = c.id; old[0].at = new Date(); update_('members', old[0]); }
       else append_('members', { kakaoId: a.kakaoId, church: c.id, at: new Date() });
     });
-    return goTo_(a, c);
+    return goTo_(a, c, app);
   },
   admin: adminView_,
   // 앱 관리자 보기에서 교회(테스트 공간) 더하기·고치기. 지우기는 없다(사람 탭이 이름표를 가리킨다). 쓰지 않으면 상태를 멈춤으로
@@ -66,9 +74,10 @@ const HUB_ACTIONS = {
   enter: body => {
     const a = auth_(body.token);
     if (!isAdmin_(a)) throw fail_('forbidden', '앱 관리자만 할 수 있어요.');
-    const c = read_('churches').find(x => x.id === String(body.id || '') && x.url);
+    const c = read_('churches').find(x => x.id === String(body.id || '') && x.url), app = appOf_(body);
     if (!c) throw fail_('bad', '교회를 찾지 못했어요.');
-    return goTo_(a, c);
+    if (app === 'didako' && !didakoOf_(c)) throw notYet_();
+    return goTo_(a, c, app);
   },
   invite: inviteFirst_
 };
@@ -78,8 +87,10 @@ function login_(body) {
   // 설정값 앞뒤에 빈칸이 들어가도 되게 다듬는다(붙여 넣다 들어가기 쉽다)
   const p = {}; Object.entries(props_()).forEach(([k, v]) => { p[k] = String(v).trim(); });
   if (!body.code) throw fail_('bad', '카카오 로그인 정보가 없어요.');
-  if (p.REDIRECT_URI && body.redirectUri !== p.REDIRECT_URI) throw fail_('bad', '등록되지 않은 주소에서 로그인했어요.');
-  const payload = { grant_type: 'authorization_code', client_id: p.KAKAO_REST_KEY, redirect_uri: body.redirectUri, code: body.code };
+  // REDIRECT_URI는 쉼표로 여럿 둘 수 있다(코이데·디다코). 앱이 보낸 주소가 그중 하나여야 하고, 카카오에는 그 주소를 그대로 돌려준다
+  const redirects = redirectList_(p);
+  if (redirects.length && redirects.indexOf(String(body.redirectUri || '').trim()) < 0) throw fail_('bad', '등록되지 않은 주소에서 로그인했어요.');
+  const payload = { grant_type: 'authorization_code', client_id: p.KAKAO_REST_KEY, redirect_uri: String(body.redirectUri || '').trim(), code: body.code };
   if (p.KAKAO_CLIENT_SECRET) payload.client_secret = p.KAKAO_CLIENT_SECRET;
   const tok = UrlFetchApp.fetch('https://kauth.kakao.com/oauth/token', { method: 'post', payload, muteHttpExceptions: true });
   // 카카오가 거절한 까닭(예: KOE010 Client Secret이 다름, KOE320 로그인 정보를 이미 씀)을 함께 보여 준다. 비밀 값은 들어 있지 않다
@@ -114,23 +125,34 @@ function byCode_(a, code) {
   if (!c) { cache.put(key, String(miss + 1), 600); throw fail_('notfound', '맞는 교회 코드가 없어요. 받은 코드를 다시 확인해 주세요.'); }
   return c;
 }
-// 확인증(5분): 그 교회 서버의 ticketLogin이 받는다
-function goTo_(a, c) {
+// 어느 앱에서 왔나: 'didako'만 따로 다룬다. 없거나 'koide'(또는 모르는 값)면 코이데와 똑같다
+const appOf_ = body => body && body.app === 'didako' ? 'didako' : 'koide';
+const didakoOf_ = c => String(c.didako || '').trim();
+const notYet_ = () => fail_('notyet', '이 교회는 아직 디다코 노트를 쓰지 않아요. 교회 관리자에게 알려 주세요.');
+// 확인증(5분): 코이데는 그 교회 서버의 ticketLogin이 받는다.
+//  디다코 확인증은 종류(typ)가 달라서 코이데 교회 서버(typ가 'ticket'인 것만 받는다)는 거절한다. 디다코 서버는 'didako-ticket'만 받아야 한다
+function goTo_(a, c, app) {
+  if (app === 'didako') {
+    const url = didakoOf_(c);
+    if (!url) return { church: null, notYet: { name: c.name } };
+    return { church: { id: c.id, name: c.name, kind: kindOf_(c), url },
+      ticket: seal_({ typ: 'didako-ticket', kakaoId: a.kakaoId, nick: a.nick, church: c.id, exp: Date.now() + TICKET_MIN * 60e3 }) };
+  }
   return { church: { id: c.id, name: c.name, kind: kindOf_(c), url: c.url },
     ticket: seal_({ typ: 'ticket', kakaoId: a.kakaoId, nick: a.nick, church: c.id, exp: Date.now() + TICKET_MIN * 60e3 }) };
 }
 // 갈 교회: 사람 탭에 있으면 그 교회. 없으면(교회 코드 전부터 쓰던 사람의 새 휴대폰 등) 교회 서버들에 이 사람을 아는지 물어보고 적어 둔다
-function whereOf_(a) {
+function whereOf_(a, app) {
   const L = read_('churches').filter(live_);
   const m = read_('members').find(x => x.kakaoId === a.kakaoId), mine = m && L.find(c => c.id === m.church);
-  if (mine) return goTo_(a, mine);
+  if (mine) return goTo_(a, mine, app);
   if (!L.length) return { church: null };
   const at = Date.now();
   const res = UrlFetchApp.fetchAll(L.map(c => post_(c.url, { action: 'hubKnows', kakaoId: a.kakaoId, at, sig: sign_('knows|' + a.kakaoId + '|' + at) })));
   const i = res.findIndex(r => { try { const j = JSON.parse(r.getContentText()); return j.ok && j.data.known; } catch (e) { return false; } });
   if (i < 0) return { church: null };
   withLock_(() => { if (!read_('members').some(x => x.kakaoId === a.kakaoId)) append_('members', { kakaoId: a.kakaoId, church: L[i].id, at: new Date() }); });
-  return goTo_(a, L[i]);
+  return goTo_(a, L[i], app);
 }
 
 // ── ③ 앱 관리자 보기 ─────────────────────────────────────────
@@ -139,15 +161,24 @@ function adminView_(body) {
   const a = auth_(body.token);
   if (!isAdmin_(a)) throw fail_('forbidden', '앱 관리자만 볼 수 있어요. 내 카카오ID: ' + a.kakaoId);
   const L = read_('churches').filter(c => c.id && c.url), at = Date.now(), sig = sign_('status|' + at);
-  const res = L.length ? UrlFetchApp.fetchAll(L.map(c => post_(c.url, { action: 'appStatus', at, sig }))) : [];
+  // 디다코 서버 주소가 있는 교회에도 같은 서명으로 묻는다(코이데 서버들 다음에 붙여 한꺼번에 보낸다)
+  const D = L.filter(didakoOf_);
+  const res = L.length ? UrlFetchApp.fetchAll(L.map(c => post_(c.url, { action: 'appStatus', at, sig })).concat(D.map(c => post_(didakoOf_(c), { action: 'appStatus', at, sig })))) : [];
   const people = read_('members');
   return { me: a.kakaoId, version: HUB_VERSION, churches: L.map((c, i) => {
-    let st = null, err = '';
-    try { const j = JSON.parse(res[i].getContentText()); if (j.ok) st = j.data; else err = j.message || j.code; }
-    catch (e) { err = '서버가 답하지 않아요(' + res[i].getResponseCode() + ')'; }
+    const k = statusOf_(res[i]), di = D.indexOf(c), d = di < 0 ? null : statusOf_(res[L.length + di]);
     return { id: c.id, name: c.name, kind: kindOf_(c), codes: String(c.codes || ''), url: c.url, stopped: String(c.status).trim() === '멈춤', memo: String(c.memo || ''),
-      came: people.filter(m => m.church === c.id).length, status: st, err };
+      came: people.filter(m => m.church === c.id).length, status: k.st, err: k.err,
+      // 디다코 서버는 버전과 7일 오류 수만 답한다(그 밖의 것은 받아도 넘기지 않는다)
+      didako: didakoOf_(c), didakoStatus: d && d.st ? { version: d.st.version, errors: d.st.errors } : null, didakoErr: d ? d.err : '' };
   }) };
+}
+// 교회 서버가 appStatus에 답한 것을 { st: 답, err: 안 될 때의 까닭 }로
+function statusOf_(r) {
+  let st = null, err = '';
+  try { const j = JSON.parse(r.getContentText()); if (j.ok) st = j.data; else err = j.message || j.code; }
+  catch (e) { err = '서버가 답하지 않아요(' + r.getResponseCode() + ')'; }
+  return { st, err };
 }
 
 // 첫 관리자 초대 링크(앱 관리자만): 그 교회 서버에 전체 관리자 초대를 만들게 하고, 앱 주소에 초대 값과 그 교회 코드를 붙여 돌려준다.
@@ -160,11 +191,14 @@ function inviteFirst_(body) {
   const at = Date.now(), r = UrlFetchApp.fetchAll([post_(c.url, { action: 'hubOpsInvite', at, sig: sign_('invite|' + at) })])[0];
   let j; try { j = JSON.parse(r.getContentText()); } catch (e) { throw fail_('bad', '그 교회 서버가 답하지 않아요. 서버 주소를 확인해 주세요.'); }
   if (!j.ok) throw fail_('bad', /모르는 요청/.test(j.message || '') ? '그 교회 서버를 새 버전으로 배포해야 초대 링크를 만들 수 있어요.' : j.message);
-  const code = String(c.codes || '').split(',')[0].trim(), base = String(props_().REDIRECT_URI || '').trim();
+  const code = String(c.codes || '').split(',')[0].trim(), base = redirectList_(props_())[0] || '';
   return { link: base + '?opsjoin=' + encodeURIComponent(j.data.token) + (code ? '&church=' + encodeURIComponent(code) : ''), until: j.data.until };
 }
 
 // 교회 더하기·고치기(앱 관리자만). orig가 있으면 그 이름표의 줄을 고친다(이름표는 바꾸지 않는다)
+const GAS_URL_ = /^https:\/\/script\.google\.com\/(a\/macros\/[^/]+|macros)\/s\/[^/]+\/exec$/;
+// REDIRECT_URI 속성(쉼표로 나눈 목록)을 앞뒤 빈칸을 다듬어 배열로. 첫 주소가 코이데
+const redirectList_ = p => String(p.REDIRECT_URI || '').split(',').map(s => s.trim()).filter(Boolean);
 function churchSave_(body) {
   const a = auth_(body.token);
   if (!isAdmin_(a)) throw fail_('forbidden', '앱 관리자만 바꿀 수 있어요.');
@@ -173,7 +207,10 @@ function churchSave_(body) {
   const codes = String(body.codes || '').split(',').map(x => x.trim()).filter(Boolean);
   if (!/^[A-Za-z0-9_-]{1,20}$/.test(id)) throw fail_('bad', '이름표는 영어·숫자로 20자까지 써 주세요.');
   if (!name) throw fail_('bad', '이름을 써 주세요.');
-  if (!/^https:\/\/script\.google\.com\/(a\/macros\/[^/]+|macros)\/s\/[^/]+\/exec$/.test(url)) throw fail_('bad', '서버 주소는 Apps Script 웹 앱 주소(https://script.google.com/macros/s/…/exec)로 넣어 주세요.');
+  if (!GAS_URL_.test(url)) throw fail_('bad', '서버 주소는 Apps Script 웹 앱 주소(https://script.google.com/macros/s/…/exec)로 넣어 주세요.');
+  // 디다코 서버 주소: 비워도 된다. 넣으면 서버 주소와 같은 모양이어야 한다. 이 칸이 아예 오지 않으면(옛 화면) 있던 값을 그대로 둔다
+  const didako = body.didako === undefined ? undefined : String(body.didako || '').trim();
+  if (didako && !GAS_URL_.test(didako)) throw fail_('bad', '디다코 서버 주소는 Apps Script 웹 앱 주소(https://script.google.com/macros/s/…/exec)로 넣어 주세요. 쓰지 않으면 비워 두세요.');
   if (!codes.length) throw fail_('bad', '코드를 하나 이상 써 주세요.');
   if (codes.some(c => normCode_(c).length < 3)) throw fail_('bad', '코드는 3글자 이상으로 써 주세요.');
   return withLock_(() => {
@@ -182,7 +219,7 @@ function churchSave_(body) {
     const taken = {}; L.filter(c => c.id !== id).forEach(c => String(c.codes).split(',').map(normCode_).filter(Boolean).forEach(k => { taken[k] = c.name; }));
     const dup = codes.find(c => taken[normCode_(c)]);
     if (dup) throw fail_('bad', `코드 ${dup}는 ${taken[normCode_(dup)]}에서 쓰고 있어요.`);
-    const o = { id, name, kind, codes: codes.join(', '), url, status: body.stopped ? '멈춤' : '', memo };
+    const o = { id, name, kind, codes: codes.join(', '), url, status: body.stopped ? '멈춤' : '', memo, didako: didako === undefined ? (row ? row.didako : '') : didako };
     if (row) update_('churches', Object.assign(row, o)); else append_('churches', o);
     return adminView_(body);
   });
@@ -211,7 +248,11 @@ function setup() {
   Object.keys(HUB_SCHEMA).forEach(k => {
     const [name, cols] = HUB_SCHEMA[k];
     const sh = ss.getSheetByName(name) || ss.insertSheet(name);
-    if (sh.getLastRow() === 0) { sh.appendRow(cols.map(c => c[1])); sh.setFrozenRows(1); }
+    if (sh.getLastRow() === 0) { sh.appendRow(cols.map(c => c[1])); sh.setFrozenRows(1); return; }
+    // 이미 있는 탭: 칸이 늘어난 버전으로 올릴 때 시트를 다시 만들지 않아도 되게, 첫 줄에서 비어 있는 칸 이름을 채운다(있는 이름은 건드리지 않는다)
+    if (sh.getMaxColumns() < cols.length) sh.insertColumnsAfter(sh.getMaxColumns(), cols.length - sh.getMaxColumns());
+    const head = sh.getRange(1, 1, 1, cols.length).getValues()[0];
+    cols.forEach((c, j) => { if (String(head[j]).trim() === '') sh.getRange(1, j + 1).setValue(c[1]); });
   });
 }
 function sheet_(key) {
