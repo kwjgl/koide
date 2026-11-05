@@ -204,5 +204,72 @@
         "h": 1
       }
     }
+  },
+  "david": {
+    "tiles": {
+      "file": "david-tiles.png",
+      "ground": [
+        [
+          0,
+          0
+        ],
+        [
+          1,
+          0
+        ]
+      ],
+      "wheat": [
+        2,
+        0
+      ],
+      "river": [
+        3,
+        0
+      ],
+      "ford": [
+        4,
+        0
+      ],
+      "bush": [
+        5,
+        0
+      ],
+      "rock": [
+        6,
+        0
+      ],
+      "hill": [
+        7,
+        0
+      ]
+    },
+    "objects": {
+      "file": "david-objects.png",
+      "sheep": 0,
+      "jar": 1,
+      "harp": 2,
+      "stones": 3,
+      "sling": 4,
+      "helmet": 5,
+      "goat": 6,
+      "crown": 7,
+      "house": 8,
+      "spear": 9,
+      "olive": 10,
+      "camp": 11,
+      "spring": 12,
+      "cave": {
+        "x": 0,
+        "y": 1,
+        "w": 2,
+        "h": 2
+      },
+      "city": {
+        "x": 2,
+        "y": 1,
+        "w": 3,
+        "h": 2
+      }
+    }
   }
 }

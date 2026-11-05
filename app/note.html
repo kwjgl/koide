@@ -567,6 +567,11 @@ button.pg-tag::before { content: ''; position: absolute; inset: -10px; }
     Object.assign(PGW, { landopen: [wd(52, 0), [...PA, ...WK.slice(0, 6)]], landstart: [wd(52), DONE], landjordan: [wd(55), [...DONE, 'l0']], landring: [wd(59), [...DONE, ...LK.slice(0, 3)]], landjericho: [wd(60), [...DONE, ...LK.slice(0, 3)]],
       landtoday: [wd(52 + 5), [...DONE, ...LK.slice(0, 3)]], landarrive: [wd(52 + 11), [...DONE, ...LK.slice(0, 4)]], landrest: [wd(52 + 9, 6), [...DONE, ...LK.slice(0, 4)]], landend: [wd(52 + 12), [...DONE, ...LK.slice(0, 4)]],
       landbadge: [wd(52 + 12), [...DONE, ...LK, 'lend']], landlist: [wd(52 + 6), [...DONE, ...LK.slice(0, 3)]] });
+    //  at=david…: 다윗의 길 장면. 걸은 날은 어제부터 거슬러 이어진다(앞의 세 길 64일 + 다윗의 길 k일)
+    //  davidopen 약속의 땅 마지막 날(열림 장면) · davidstart 베들레헴 · davidelah 엘라 골짜기 · davidcave 아둘람 굴 · davidtoday 오늘 카드 · davidend 다 걸음 · davidbadge 지난 기록의 나의 배지 · davidlist 지나온 길 목록
+    const DK = ['d0', 'd7', 'd14', 'd20', 'd27', 'd34', 'd40'], DONE2 = [...DONE, ...LK, 'lend'];
+    Object.assign(PGW, { davidopen: [wd(64, 0), [...DONE, ...LK]], davidstart: [wd(64), DONE2], davidelah: [wd(64 + 14), [...DONE2, ...DK.slice(0, 2)]], davidcave: [wd(64 + 20), [...DONE2, ...DK.slice(0, 3)]],
+      davidtoday: [wd(64 + 9), [...DONE2, ...DK.slice(0, 2)]], davidend: [wd(64 + 40), [...DONE2, ...DK.slice(0, 6)]], davidbadge: [wd(64 + 40), [...DONE2, ...DK, 'dend']], davidlist: [wd(64 + 30), [...DONE2, ...DK.slice(0, 5)]] });
     if (PGW[SC.at] && ['wildmid', 'wildlist'].includes(SC.at)) { // 응답으로 마친 기도제목 하나를 더 둬서, 아브라함의 길(그 12일 중)과 광야의 길(day 5)에 돌이 따로 서게 한다
       items.push(it('si11', 'me', '새 학기에 좋은 친구를 만나도록', 60, { date: day(SC.at === 'wildmid' ? 30 : 20), how: 'answer' }));
       thanks.push({ id: 'st6', date: day(SC.at === 'wildmid' ? 30 : 20), text: '좋은 친구를 만나게 해 주셨어요', item: 'si11', kind: 'answer', up: 1 });
@@ -1129,7 +1134,7 @@ button.pg-tag::before { content: ''; position: absolute; inset: -10px; }
       },
       sub: pgFill({ '1~2': '싯딤을 떠나 요단강으로 가는 길이에요.', 4: '요단강을 건너 길갈로 가는 길이에요.', '6~7': '길갈을 떠나 여리고로 가는 길이에요.', '9~11': '여리고를 지나 실로로 가는 길이에요.' }),
       arrive: { 3: '요단강에 닿았어요. 다음은 길갈이에요.', 5: '길갈에 닿았어요. 다음은 여리고예요.', 8: '여리고에 닿았어요. 다음은 실로예요.' },
-      end: { title: '약속의 땅을 다 걸었어요', text: '기도한 날 하루하루가 모여 약속의 땅에 이르렀어요. 수고하셨어요.', ref: '나의 배지에 ‘약속의 땅’이 생겼어요.', soon: '다음 길 · 곧 열려요' },
+      end: { title: '약속의 땅을 다 걸었어요', text: '기도한 날 하루하루가 모여 약속의 땅에 이르렀어요. 수고하셨어요.', ref: '나의 배지에 ‘약속의 땅’이 생겼어요.', open: '다윗의 길이 열렸어요. 다음에 기도하는 날부터 걸어요.' },
       startLine: '싯딤에서 길을 시작해요. 다음은 요단강이에요.', doneLine: '약속의 땅을 다 걸었어요. 실로에서 쉬어 가요.', doneBand: '오늘 약속의 땅을 다 걸었어요',
       // 마디 13개 [열, 행]. 행 0이 맨 위(실로), 30이 맨 아래(싯딤). 요단강(행 21~22)은 열 3의 마른 강바닥으로만 건너고, 여리고(성 3×3)는 둘레 길 16칸 중 13칸을 돈다(남쪽 문 쪽 3칸을 비워 들어온 길과 나가는 길이 붙지 않게)
       nodes: [[3, 29], [5, 26], [3, 23], [3, 22], [3, 20], [1, 18], [1, 12], [5, 12], [5, 16], [7, 14], [7, 10], [5, 7], [3, 3]],
@@ -1151,7 +1156,44 @@ button.pg-tag::before { content: ''; position: absolute; inset: -10px; }
       fog: ['#BFC793', '#283A48'],
       miniUp: 2,
       pillar: { art: 'land', day: 'ark', night: 'ark', glow: false, rest: [4, 2], ahead: { full: 3, mini: 1 } }, // 언약궤: 밤에도 빛나지 않고, 길 끝 가까이에서 회막 곁 [4, 2]에 가 머문다
-      badge: 'p-land', next: null
+      badge: 'p-land', next: 'david'
+    },
+    david: {
+      id: 'david', name: '다윗의 길', off: 64, n: 40, pre: 'd', endKey: 'dend', cols: 8, rows: 46, art: 'david', ground: 'ground', // 약속의 땅 12일 뒤부터 센다(아브라함 12 + 광야 40 + 약속의 땅 12)
+      at: [0, 7, 14, 20, 27, 34, 40],
+      places: {
+        0: { tag: '베들레헴', name: '베들레헴 · 기름 부음', text: '양을 치던 막내 다윗이 기름 부음을 받았어요.', ref: '사무엘상 16:11~13' },
+        7: { tag: '기브아', name: '기브아 · 수금 소리', text: '다윗이 수금을 타면 사울의 마음이 편안해졌어요.', ref: '사무엘상 16:23' },
+        14: { tag: '엘라 골짜기', name: '엘라 골짜기 · 물맷돌', text: '여호와의 이름으로 나아가 물맷돌 하나로 이겼어요.', ref: '사무엘상 17:40~49' },
+        20: { tag: '아둘람 굴', name: '아둘람 굴 · 숨은 곳', text: '쫓기던 날, 굴에 숨어 하나님께 피했어요.', ref: '사무엘상 22:1' },
+        27: { tag: '엔게디', name: '엔게디 · 들염소 바위', text: '사울을 해칠 수 있었지만 옷자락만 베었어요.', ref: '사무엘상 24:2~6' },
+        34: { tag: '헤브론', name: '헤브론 · 왕이 된 곳', text: '헤브론에서 유다의 왕으로 기름 부음을 받았어요.', ref: '사무엘하 2:4' },
+        40: { tag: '예루살렘', name: '예루살렘 · 언약궤를 맞은 곳', text: '언약궤를 모셔 오며 온 힘을 다해 춤추었어요.', ref: '사무엘하 6:14~15' }
+      },
+      sub: pgFill({ '1~6': '베들레헴을 떠나 기브아로 가는 길이에요.', '8~13': '기브아를 떠나 엘라 골짜기로 가는 길이에요.', '15~19': '엘라 골짜기를 지나 아둘람 굴로 가는 길이에요.', '21~26': '아둘람 굴을 떠나 엔게디로 가는 길이에요.', '28~33': '엔게디를 지나 헤브론으로 가는 길이에요.', '35~39': '헤브론을 떠나 예루살렘으로 가는 길이에요.' }),
+      arrive: { 7: '기브아에 닿았어요. 다음은 엘라 골짜기예요.', 14: '엘라 골짜기에 닿았어요. 다음은 아둘람 굴이에요.', 20: '아둘람 굴에 닿았어요. 다음은 엔게디예요.', 27: '엔게디에 닿았어요. 다음은 헤브론이에요.', 34: '헤브론에 닿았어요. 다음은 예루살렘이에요.' },
+      end: { title: '다윗의 길을 다 걸었어요', text: '기도한 날 하루하루가 모여 예루살렘에 이르렀어요. 수고하셨어요.', ref: '나의 배지에 ‘다윗의 길’이 생겼어요.', soon: '다음 길 · 곧 열려요' },
+      startLine: '베들레헴에서 길을 시작해요. 다음은 기브아예요.', doneLine: '다윗의 길을 다 걸었어요. 예루살렘에서 쉬어 가요.', doneBand: '오늘 다윗의 길을 다 걸었어요',
+      // 마디 41개 [열, 행]. 행 0이 맨 위(예루살렘), 45가 맨 아래(베들레헴). 엘라 골짜기 앞 시내(행 29)는 열 3의 징검다리로 건넌다(돌 다섯 개를 고른 시냇가)
+      nodes: [[3, 44], [5, 43], [5, 41], [2, 41], [2, 39], [4, 38], [4, 36], [2, 35], [2, 33], [5, 33], [5, 31], [3, 31], [3, 30], [3, 28], [5, 27], [5, 25], [2, 25], [2, 23], [6, 23], [6, 21], [4, 21],
+        [2, 21], [2, 19], [2, 17], [5, 17], [5, 15], [3, 15], [3, 13], [6, 13], [6, 11], [4, 11], [2, 11], [2, 9], [4, 9], [4, 7], [6, 7], [6, 5], [3, 5], [1, 5], [1, 3], [3, 2]],
+      gate: null,
+      // 장소(마디 번호): 0 베들레헴(집 · 양 · 기름 뿔병) · 7 기브아(사울의 집 · 수금 · 창) · 14 엘라 골짜기(물맷돌 · 투구 · 창) · 20 아둘람 굴(동굴) · 27 엔게디(샘 · 들염소) · 34 헤브론(왕관) · 40 예루살렘(성 · 언약궤 장막)
+      obj: [['house', 1, 44], ['house', 0, 42], ['jar', 4, 45], ['sheep', 6, 42], ['sheep', 7, 40], ['sheep', 6, 39], ['sheep', 0, 39],
+        ['house', 0, 34], ['house', 1, 34], ['harp', 1, 36], ['spear', 3, 34], ['camp', 7, 34],
+        ['stones', 2, 28], ['sling', 4, 27], ['helmet', 6, 26], ['spear', 7, 27], ['camp', 0, 26], ['camp', 7, 24],
+        ['camp', 7, 20], ['camp', 0, 20], ['olive', 0, 17],
+        ['spring', 2, 13], ['goat', 1, 14], ['goat', 4, 12], ['goat', 6, 16],
+        ['crown', 3, 7], ['olive', 2, 7], ['olive', 1, 8], ['camp', 5, 8], ['olive', 7, 8],
+        ['olive', 0, 1], ['olive', 6, 1], ['olive', 7, 3], ['camp', 6, 3]],
+      big: [['cave', 4, 19, 2, 2], ['city', 2, 0, 3, 2]], // 아둘람 굴(2×2칸) · 예루살렘 성(3×2칸, 왼쪽 위 칸 기준)
+      deco: [['wheat', 5, 45], ['wheat', 6, 45], ['wheat', 7, 45], ['wheat', 7, 44], ['wheat', 0, 45]],
+      water: { kind: 'river', row: 29, ford: 3 }, // 엘라 골짜기의 시내(한 줄 · 징검다리 열 3)
+      scatter: [['bush', .82, .9], ['rock', .9, .95], ['hill', .95, 1]],
+      label: { 0: [1.4, 43.1], 7: [2.6, 37.1], 14: [3.6, 25.9], 20: [2.0, 22.05], 27: [1.2, 12.05], 34: [5.8, 9.1], 40: [5.8, 2.1] },
+      fog: ['#BFC793', '#283A48'],
+      miniUp: 1,
+      pillar: null, badge: 'p-david', next: null
     }
   };
   const pgCell = (c, r) => c + ',' + r;
@@ -1233,11 +1275,11 @@ button.pg-tag::before { content: ''; position: absolute; inset: -10px; }
   const PG = { ready: false, fail: false, artFail: {}, p: null, walk: null, base: {}, work: {}, typeT: 0 };
   const pgHash = (c, r) => { const x = Math.sin((c * 12.9898 + r * 78.233) * 1.7) * 43758.5453; return x - Math.floor(x); };
   const pgDark = () => { const m = document.documentElement.dataset.mode; return m === 'dark' || (m !== 'light' && !!(window.matchMedia && matchMedia('(prefers-color-scheme: dark)').matches)); };
-  // 지금 큰 화면에서 보는 길(S.pgRoute) · 길 하나의 그림 묶음(낮 · 밤): art 'main'은 sprites.json 맨 위, 나머지('wild' · 'land')는 같은 이름의 묶음
+  // 지금 큰 화면에서 보는 길(S.pgRoute) · 길 하나의 그림 묶음(낮 · 밤): art 'main'은 sprites.json 맨 위, 나머지('wild' · 'land' · 'david')는 같은 이름의 묶음
   const pgBad = R => PG.fail || (R.art !== 'main' && !!PG.artFail[R.art]); // 그 길의 그림을 못 불러왔는지
   const pgR = () => PG_ROUTES[S.pgRoute] || PG_ROUTES.abraham;
   const pgArt = (R, dark) => { const A = dark ? PG.night : PG.day, M = R.art === 'main' ? null : R.art; return { A, tiles: M ? A[M].tiles : A.tiles, objs: M ? A[M].objects : A.objects, T: M ? PG.spr[M].tiles : PG.spr.tiles, O: M ? PG.spr[M].objects : PG.spr.objects }; };
-  // 낮 → 밤 색 바꾸기(37색: 아브라함의 길 26색 + 광야의 길 7색 + 약속의 땅 4색, docs/pilgrim-art.md 3장 · 7-1). 불꽃·불빛·불 속 색은 표에 없어 밤에도 그대로
+  // 낮 → 밤 색 바꾸기(37색: 아브라함의 길 26색 + 광야의 길 7색 + 약속의 땅 4색, docs/pilgrim-art.md 3장 · 7-1. 다윗의 길은 새 색 없이 이 표의 색만 쓴다). 불꽃·불빛·불 속 색은 표에 없어 밤에도 그대로
   const PG_NIGHT = 'E9DDBF→273150 DDCDA6→222B47 BFC793→283A48 A5B27A→22323F F6EED8→3B415E D9C69E→2E3450 A9CBD3→1B2A48 D3E6E8→2B4170 DCC89B→2F375A C7B083→283050 8A6A48→3B3340 8FA06A→2D4350 6F8250→233541 B3C086→3A5262 B9B4A8→4A4F6B D8D3C6→5E6484 8E897E→353A55 E8D5B2→4C4A62 5B4A3A→14121A B06A4C→5A3F4C E3B48C→8A6F68 C8946C→6A5560 C0782C→6B4A33 E6CFA5→2D2C4A D8BB8C→27263F C4876A→4A3A50 9E6650→3A2D42 7FB0C2→18284A F7F5EF→8C93B0 DAD8D2→6E7594 D4A548→6E5A35 A87E2E→54442A E8D08A→3A3A52 8A6A9A→3E3550'.split(' ').map(x => x.split('→').map(h => parseInt(h, 16)));
   function pgNight(cv) { // 낮 그림의 색을 하나씩 밤 색으로 바꾼 새 그림
     const o = document.createElement('canvas'); o.width = cv.width; o.height = cv.height;
@@ -1260,7 +1302,7 @@ button.pg-tag::before { content: ''; position: absolute; inset: -10px; }
     return out;
   }
   // 그림 불러오기(한 번만). 못 불러오면(파일 없음, file:// 로 열어 읽기가 막힘) PG.fail: 지도 자리에 안내 한 줄만 나온다.
-  //  광야의 길 · 약속의 땅 그림(sprites.json의 "wild" · "land")은 따로 불러온다: 하나를 못 불러오면 PG.artFail[이름]: 앞 길은 그대로 쓰고 그 길의 지도 자리에만 안내가 나온다
+  //  광야의 길 · 약속의 땅 · 다윗의 길 그림(sprites.json의 "wild" · "land" · "david")은 따로 불러온다: 하나를 못 불러오면 PG.artFail[이름]: 앞 길은 그대로 쓰고 그 길의 지도 자리에만 안내가 나온다
   function pgLoad() {
     if (PG.p) return PG.p;
     const img = src => new Promise((ok, no) => { const i = new Image(); i.onload = () => ok(i); i.onerror = no; i.src = src; });
@@ -1272,7 +1314,7 @@ button.pg-tag::before { content: ''; position: absolute; inset: -10px; }
         PG.lamp = pgLamps(PG.day.hero);
       });
       const more = k => (!spr[k] ? Promise.reject(new Error(k)) : Promise.all([img('pilgrim/' + spr[k].tiles.file), img('pilgrim/' + spr[k].objects.file)])).then(w => w, () => { PG.artFail[k] = true; return null; });
-      const ks = ['wild', 'land'];
+      const ks = ['wild', 'land', 'david'];
       return Promise.all([main, ...ks.map(more)]).then(([, ...ws]) => {
         ws.forEach((w, i) => { if (w) { const d = { tiles: cp(w[0]), objects: cp(w[1]) }; PG.day[ks[i]] = d; PG.night[ks[i]] = { tiles: pgNight(d.tiles), objects: pgNight(d.objects) }; } });
         PG.ready = true;
@@ -1732,7 +1774,10 @@ button.pg-tag::before { content: ''; position: absolute; inset: -10px; }
       at: () => pgCalc('wild').doneDate },
     { k: 'p-land', ic: 'land', // 약속의 땅 12구간(기도한 날 12일)을 다 걸은 날 생긴다
       name: '약속의 땅', mean: '기도한 날을 모아 약속의 땅을 끝까지 걸었어요.', when: '약속의 땅을 끝까지 걸으면 생겨요.',
-      at: () => pgCalc('land').doneDate }
+      at: () => pgCalc('land').doneDate },
+    { k: 'p-david', ic: 'david', noArt: true, // 다윗의 길 40구간(기도한 날 40일)을 다 걸은 날 생긴다 · 삽화(webp)가 아직 없어 선 아이콘(수금)으로 보인다
+      name: '다윗의 길', mean: '기도한 날을 모아 다윗의 길을 끝까지 걸었어요.', when: '다윗의 길을 끝까지 걸으면 생겨요.',
+      at: () => pgCalc('david').doneDate }
   ];
   // 배지 그림: 노트에 있는 그림(ICON)을 쓰고, 없는 열(감사 · 사람 · 홈 화면 · 사람 더하기 · 왕관 · 팔레트 · 모임 · 그물 · 내려놓기 · 별 · 기념)만 같은 굵기(24칸, 선 1.8)로 더했다
   const bico = n => {
@@ -1743,6 +1788,7 @@ button.pg-tag::before { content: ''; position: absolute; inset: -10px; }
       home: s('<path d="M4 11l8-7 8 7"/><path d="M6 10v9h12v-9"/><path d="M10 19v-5h4v5"/>'),
       land: s('<path d="M4 18c0-6 4-11 10-11 3.5 0 6 1.8 6 4.2 0 2-1.6 3.2-3.4 3.2-1.5 0-2.6-1-2.6-2.4"/><path d="M4 18c0 1.2.8 2 2 2"/>'),
       wild: s('<path d="M12 21v-9"/><path d="M8.5 12c-2 0-3-1.6-3-3.2S7 6 8.7 6c.4-1.8 1.8-3 3.3-3s2.9 1.2 3.3 3c1.7 0 3.2 1.2 3.2 2.8S17.5 12 15.5 12z"/>'),
+      david: s('<path d="M7 4c-1.6 2-2 5-1 8l2 6h8l2-6c1-3 .6-6-1-8"/><path d="M6.4 9h11.2"/><path d="M10 9v9M14 9v9"/>'),
       road: s('<path d="M6 20c0-4 5-4 5-8s-4-4-4-7"/><path d="M13 20c0-3 5-4 5-8"/><circle cx="16" cy="6" r="1.4"/>'),
       addp: s('<circle cx="10" cy="8" r="3.2"/><path d="M4 19.5c0-3.2 2.7-5.2 6-5.2s6 2 6 5.2"/><path d="M19 6.5v6M16 9.5h6"/>'),
       crown: s('<path d="M4.5 17.5L3.5 8.5l4.6 3.8L12 5.5l3.9 6.8 4.6-3.8-1 9z"/><path d="M5.5 21h13"/>'),
@@ -2749,7 +2795,7 @@ button.pg-tag::before { content: ''; position: absolute; inset: -10px; }
   { const q = new URLSearchParams(location.search), mid = q.get('move'); if (mid) { q.delete('move'); history.replaceState(null, '', location.pathname + (q.toString() ? '?' + q.toString().replace(/=(&|$)/g, '$1') : '')); if (!SC) setTimeout(() => mvOpen(mid), 0); } }
   pgEnsure(); // 순례길 시작일(TODAY·dkey가 만들어진 뒤라야 한다)
   // 순례길 장면: 오늘 카드에서 시작하는 것(pilgrimtoday · pilgrimrest · wildtoday · wildrest)과 지난 기록(pilgrimbadge · wildbadge)이 아니면 순례길 화면을 바로 연다
-  if (SC && /^(pilgrim|wild|land)/.test(SC.at)) { if (['pilgrimbadge', 'wildbadge', 'landbadge'].includes(SC.at)) S.tab = 'look'; else if (!['pilgrimtoday', 'pilgrimrest', 'wildtoday', 'wildrest', 'landtoday', 'landarrive', 'landrest'].includes(SC.at)) { S.pg = true; pgEnter(); pgLoad(); pgNext(); } }
+  if (SC && /^(pilgrim|wild|land|david)/.test(SC.at)) { if (['pilgrimbadge', 'wildbadge', 'landbadge', 'davidbadge'].includes(SC.at)) S.tab = 'look'; else if (!['pilgrimtoday', 'pilgrimrest', 'wildtoday', 'wildrest', 'landtoday', 'landarrive', 'landrest', 'davidtoday'].includes(SC.at)) { S.pg = true; pgEnter(); pgLoad(); pgNext(); } }
   render();
   // 연습 페이지는 데모 띠가 없어 진짜 노트처럼 보인다. 6초 안에 안내가 시작되지 않으면 갇히지 않게 진짜 노트로 돌려보낸다
   if (TUT) setTimeout(() => { if (!NoteGuide.begun()) tutFail(); }, 6000);
