@@ -1916,6 +1916,8 @@ try { const p = JSON.parse(localStorage.getItem('koide-pref') || '{}'), d = docu
           <label class="f" for="aa-codes">코드</label><input id="aa-codes" class="field" name="codes" required value="${esc(v.codes || '')}" placeholder="예) KOIDE24, 코이데"><p class="hint">쉼표로 여럿 쓸 수 있어요. 대소문자·띄어쓰기·-는 가리지 않아요.</p>
           <label class="f" for="aa-url">서버 주소</label><input id="aa-url" class="field" name="url" required inputmode="url" value="${esc(v.url || '')}" placeholder="https://script.google.com/macros/s/…/exec">
           <p class="hint">그 교회 시트의 Apps Script › 배포 › 배포 관리에서 웹 앱 URL을 복사해 붙여 넣어요. /exec로 끝나는 주소예요.</p>
+          <label class="f" for="aa-didako">디다코 서버 주소 (비워도 돼요)</label><input id="aa-didako" class="field" name="didako" inputmode="url" value="${esc(v.didako || '')}" placeholder="https://script.google.com/macros/s/…/exec">
+          <p class="hint">이 교회가 디다코 노트를 쓰면 디다코 서버의 웹 앱 주소를 넣어요. 비워 두면 디다코에서는 "아직 쓰지 않아요"로 나와요.</p>
           <label class="f" for="aa-memo">메모</label><input id="aa-memo" class="field" name="memo" maxlength="60" value="${esc(v.memo || '')}">
           ${c.id ? `<label class="check"><input type="checkbox" name="stopped"${v.stopped ? ' checked' : ''}> 멈춤 · 이 코드로 새로 들어올 수 없어요</label>` : ''}
           <p class="hint">그 교회 서버의 스크립트 속성에 HUB_SECRET(기본 서버와 같은 값)과 CHURCH_ID(이름표)를 넣어야 이어져요. 테스트 공간이면 AUTO_APPROVE에 예를 넣어요.</p>
@@ -1929,7 +1931,7 @@ try { const p = JSON.parse(localStorage.getItem('koide-pref') || '{}'), d = docu
         return `<div class="aa-link"><p class="label" style="margin:0">첫 관리자 초대 링크</p><code>${esc(K.link)}</code>
           <div class="actions"><button class="btn small" data-act="aacopy">복사</button><button class="link quiet" data-act="aainvite" data-v="">닫기</button></div>
           <p class="hint">${esc(K.until)}까지 한 번 쓸 수 있어요. 받은 사람이 이 링크로 열고 카카오로 로그인하면 이 교회의 전체 관리자가 돼요.</p></div>`; };
-      const card = c => { const st = c.status, old = st && String(st.version).slice(0, 10) < NEED_SERVER, bad = !st || old || (st && st.errors);
+      const card = c => { const st = c.status, dst = c.didakoStatus, old = st && String(st.version).slice(0, 10) < NEED_SERVER, bad = !st || old || (st && st.errors) || (c.didako && (!dst || dst.errors));
         if (E && E.orig === c.id) return form(c);
         return `<section class="card aa-card${c.stopped ? ' stopped' : ''}">
           <div class="aa-head"><span class="ops-dot${bad ? ' bad' : ''}" title="${bad ? '살펴볼 것이 있어요' : '잘 이어져 있어요'}"></span><b>${esc(c.name)}</b>${c.kind === '테스트' ? '<span class="own-tag">테스트</span>' : ''}${c.stopped ? '<span class="own-tag">멈춤</span>' : ''}<button class="link" data-act="aaedit" data-v="${esc(c.id)}">고치기</button></div>
@@ -1937,6 +1939,7 @@ try { const p = JSON.parse(localStorage.getItem('koide-pref') || '{}'), d = docu
           ${st ? `<dl class="aa-stats">${stat('부서', st.depts)}${stat('연결', st.linked)}${stat('코드로 온 사람', c.came)}${stat('7일 오류', st.errors)}</dl>` : `<p class="aa-err">서버에 묻지 못했어요 · ${esc(c.err)}</p>`}
           ${(st && st.asks) || old || (st && !st.opened) || (st && st.auto) ? `<div class="ch-todos">${st && st.asks ? `<span class="ch-todo">승인 기다림 ${st.asks}</span>` : ''}${old ? '<span class="ch-todo">새 버전으로 배포 필요</span>' : ''}${st && !st.opened ? '<span class="ch-todo warn">이번 달 기도제목 아직 없음</span>' : ''}${st && st.auto ? '<span class="ch-todo warn">승인 없이 바로 연결</span>' : ''}</div>` : ''}
           <p class="aa-ver">${st ? '서버 ' + esc(st.version) : ''}${c.memo ? (st ? ' · ' : '') + esc(c.memo) : ''}</p>
+          ${c.didako ? (dst ? `<p class="${dst.errors ? 'aa-err' : 'aa-ver'}">디다코 서버 ${esc(dst.version)} · 7일 오류 ${esc(dst.errors)}</p>` : `<p class="aa-err">디다코 서버에 묻지 못했어요 · ${esc(c.didakoErr)}</p>`) : ''}
           ${inv(c)}
           <div class="aa-acts">${here(c) ? '<span class="own-tag">이 기기가 쓰는 교회</span>' : `<button class="btn small ghost" data-act="aaenter" data-v="${esc(c.id)}" ${S.busy ? 'disabled' : ''}>이 교회로 들어가기</button>`}
             ${S.aaLink && S.aaLink.id === c.id ? '' : `<button class="link" data-act="aainvite" data-v="${esc(c.id)}">첫 관리자 초대 링크</button>`}</div></section>`; };
@@ -5623,7 +5626,7 @@ try { const p = JSON.parse(localStorage.getItem('koide-pref') || '{}'), d = docu
     }
     if (f.dataset.form === 'aasave') {
       const d = new FormData(f), body = { orig: (S.aaEdit || {}).orig || '', stopped: d.get('stopped') === 'on' };
-      ['id', 'name', 'kind', 'codes', 'url', 'memo'].forEach(k => { body[k] = String(d.get(k) || '').trim(); });
+      ['id', 'name', 'kind', 'codes', 'url', 'didako', 'memo'].forEach(k => { body[k] = String(d.get(k) || '').trim(); });
       S.aaEdit = Object.assign({}, S.aaEdit, { draft: body }); S.busy = true; render();
       try { S.aa = await hubApi('churchSave', body); S.aaEdit = null; toast('저장했어요.'); } catch (err) { if (err.code !== 'login') toast(err.message); }
       S.busy = false; return render();
