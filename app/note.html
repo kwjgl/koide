@@ -1777,7 +1777,7 @@ button.pg-tag::before { content: ''; position: absolute; inset: -10px; }
     { k: 'p-land', ic: 'land', // 약속의 땅 12구간(기도한 날 12일)을 다 걸은 날 생긴다
       name: '약속의 땅', mean: '기도한 날을 모아 약속의 땅을 끝까지 걸었어요.', when: '약속의 땅을 끝까지 걸으면 생겨요.',
       at: () => pgCalc('land').doneDate },
-    { k: 'p-david', ic: 'david', noArt: true, // 다윗의 길 40구간(기도한 날 40일)을 다 걸은 날 생긴다 · 삽화(webp)가 아직 없어 선 아이콘(수금)으로 보인다
+    { k: 'p-david', ic: 'david', // 다윗의 길 40구간(기도한 날 40일)을 다 걸은 날 생긴다 · 삽화는 pray-for#219(수금)
       name: '다윗의 길', mean: '기도한 날을 모아 다윗의 길을 끝까지 걸었어요.', when: '다윗의 길을 끝까지 걸으면 생겨요.',
       at: () => pgCalc('david').doneDate }
   ];
