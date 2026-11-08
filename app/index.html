@@ -1204,6 +1204,15 @@ body.pop-open { overflow: hidden; }
 .chip-btn small, .edit-foot .state, .edit-foot .link { font-size: .93em; }
 .ps-list li span:last-child { font-size: .85em; }
 
+/* 내 기도 카드의 기호 단추: 눌리는 곳은 44px, 이름은 보조 기기와 도움말에 남긴다 */
+.edit-list .edit-foot { flex-wrap: wrap; gap: .35em .6em; }
+.edit-foot .prayer-meta { display: flex; flex-direction: column; gap: .15em; }
+.edit-foot .prayer-actions { display: flex; gap: 2px; flex: none; margin-left: auto; }
+.edit-foot .prayer-action { display: inline-flex; align-items: center; justify-content: center; width: 44px; min-width: 44px; height: 44px; padding: 10px; border: 0; border-radius: 10px; background: none; cursor: pointer; }
+.edit-foot .prayer-action svg { width: 20px; height: 20px; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
+.edit-foot .prayer-action:hover { background: var(--accent-soft); }
+.edit-foot .prayer-action:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+
 </style>
 <link rel="stylesheet" href="intro-video.css">
 <link rel="stylesheet" href="pray-open.css">
@@ -1821,6 +1830,7 @@ try { const p = JSON.parse(localStorage.getItem('koide-pref') || '{}'), d = docu
     download: svg('<path d="M8 2.2v7.6M4.8 6.6L8 9.8l3.2-3.2M2.6 11.6v1.8h10.8v-1.8"/>'),
     undo: svg('<path d="M3.4 6h6.3a3.3 3.3 0 0 1 0 6.6H6.2"/><path d="M5.6 3.6L3.2 6l2.4 2.4"/>'),
     done: svg('<path d="M3.2 8.4l3 3 6.6-6.8"/>'),
+    trash: svg('<path d="M3 5h10M6 5V3h4v2M4 5l.6 8h6.8l.6-8M6.5 7v4M9.5 7v4"/>'),
     lock: svg('<rect x="3" y="7" width="10" height="7" rx="1.5"/><path d="M5.5 7V5a2.5 2.5 0 0 1 5 0v2"/>'),
     people: svg('<circle cx="6" cy="5.5" r="2"/><path d="M2.5 13c0-2 1.6-3.5 3.5-3.5s3.5 1.5 3.5 3.5"/><circle cx="11.2" cy="6" r="1.6"/><path d="M10.5 9.6c1.8 0 3 1.3 3 3.1"/>'),
     gear: svg('<circle cx="8" cy="8" r="2"/><path d="M8 1.8v1.6M8 12.6v1.6M3.6 3.6l1.1 1.1M11.3 11.3l1.1 1.1M1.8 8h1.6M12.6 8h1.6M3.6 12.4l1.1-1.1M11.3 4.7l1.1-1.1"/>'),
@@ -2247,7 +2257,7 @@ try { const p = JSON.parse(localStorage.getItem('koide-pref') || '{}'), d = docu
         <form class="kid-form" data-form="tgtcustom" data-id="${esc(i.id)}"><input class="field" name="t" placeholder="직접 쓰기 (예: 시어머니, 조카)" aria-label="대상 직접 쓰기" maxlength="10" autocomplete="off"><button class="btn small" type="submit">적용</button></form></div>` : ''}
       <textarea class="field" rows="2" data-id="${esc(i.id)}" aria-label="기도제목 내용">${esc(i.text)}</textarea>
       <div class="edit-foot"><span class="state">${itemState(i)}</span>
-        <span class="foot-acts"><button class="link" data-act="end" data-id="${esc(i.id)}">마치기</button><button class="link quiet" data-act="delask" data-id="${esc(i.id)}">지우기</button></span></div>
+        <span class="prayer-actions"><button class="link prayer-action" data-act="end" data-id="${esc(i.id)}" aria-label="마치기" title="마치기">${ICON.done}</button><button class="link quiet prayer-action" data-act="delask" data-id="${esc(i.id)}" aria-label="지우기" title="지우기">${ICON.trash}</button></span></div>
       ${S.delAsk === i.id ? `<div class="del-ask" role="alert"><p>이 기도제목을 지울까요? 지난 기록에도 남지 않고 되돌릴 수 없어요.</p><div class="actions"><button class="btn small danger" data-act="del" data-id="${esc(i.id)}">지우기</button><button class="btn small ghost" data-act="delno">그대로 두기</button></div></div>` : ''}
     </fieldset></li>`;
   }
