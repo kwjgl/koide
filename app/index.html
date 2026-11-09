@@ -20,8 +20,8 @@
 <style>
 /* 시안(prototype/index.html)의 색과 글꼴을 그대로 쓴다. 실제 앱은 핵심 흐름만: 로그인 → 연결 → 이번 달 / 내 기도 / 더보기 */
 :root {
-  --page: #F3F5F2; --surface: #FFFFFF; --surface-2: #EEF2EF;
-  --ink: #1B2523; --ink-2: #5B6965; --line: #DDE4E0; --line-strong: #B9C4BF;
+  --page: #E8EBE8; --surface: #F7F8F6; --surface-2: #E9EDEA;
+  --ink: #1B2523; --ink-2: #5B6965; --line: #D7DEDA; --line-strong: #B9C4BF;
   --accent: #2B6A62; --accent-mid: #8DBDB5; --accent-soft: #DCEBE7; --on-accent: #FFFFFF;
   --leader: #62519E; --leader-soft: #ECE7F7; --private: #E8ECEA;
   --warn: #9A5A14; --warn-soft: #F5E8D6; --shadow: rgba(20, 35, 32, .14);
@@ -49,18 +49,21 @@
 :root[data-big] { --base: 19px; }
 @media (min-width: 1000px) { :root[data-big] { --base: 18px; } }
 /* 색 테마(초록은 위 기본값). 시안의 THEMES와 같은 값: 밝은 화면 / 어두운 화면 */
-:root[data-accent="amber"] { --page:#F7F2EA;--surface:#FFFDF9;--surface-2:#F1EADF;--ink:#2A221B;--ink-2:#6E6155;--line:#E6DCCD;--line-strong:#C9B9A3;--accent:#A9561B;--accent-mid:#E2B07F;--accent-soft:#F6E3CF;--on-accent:#FFFFFF;--private:#EFE8DE; }
+:root[data-accent="amber"] { --page:#EDE8E0;--surface:#F9F5EE;--surface-2:#ECE5DA;--ink:#2A221B;--ink-2:#6E6155;--line:#E0D6C8;--line-strong:#C9B9A3;--accent:#A9561B;--accent-mid:#E2B07F;--accent-soft:#F6E3CF;--on-accent:#FFFFFF;--private:#EFE8DE; }
 @media (prefers-color-scheme: dark) { :root[data-accent="amber"]:not([data-mode="light"]) { --page:#1A1612;--surface:#231E19;--surface-2:#2B241E;--ink:#EEE6DC;--ink-2:#AE9F8E;--line:#3A3129;--line-strong:#5A4D41;--accent:#E9A066;--accent-mid:#8A5A32;--accent-soft:#3A2818;--on-accent:#1E140C;--private:#2E2721; } }
 :root[data-accent="amber"][data-mode="dark"] { --page:#1A1612;--surface:#231E19;--surface-2:#2B241E;--ink:#EEE6DC;--ink-2:#AE9F8E;--line:#3A3129;--line-strong:#5A4D41;--accent:#E9A066;--accent-mid:#8A5A32;--accent-soft:#3A2818;--on-accent:#1E140C;--private:#2E2721; }
-:root[data-accent="blue"] { --page:#F2F4F8;--surface:#FFFFFF;--surface-2:#EAEEF4;--ink:#1B2230;--ink-2:#5A6475;--line:#DCE2EB;--line-strong:#B6C0CF;--accent:#2F5D95;--accent-mid:#93AFD3;--accent-soft:#DCE6F3;--on-accent:#FFFFFF;--private:#E8EBF0; }
+:root[data-accent="blue"] { --page:#E7E9EE;--surface:#F6F7FA;--surface-2:#E5E9EF;--ink:#1B2230;--ink-2:#5A6475;--line:#D6DCE5;--line-strong:#B6C0CF;--accent:#2F5D95;--accent-mid:#93AFD3;--accent-soft:#DCE6F3;--on-accent:#FFFFFF;--private:#E8EBF0; }
 @media (prefers-color-scheme: dark) { :root[data-accent="blue"]:not([data-mode="light"]) { --page:#12161D;--surface:#1A2029;--surface-2:#212833;--ink:#E4E9F0;--ink-2:#9AA5B5;--line:#2C3542;--line-strong:#485466;--accent:#8EB4E6;--accent-mid:#3C5B85;--accent-soft:#1D2C42;--on-accent:#0E1622;--private:#232A35; } }
 :root[data-accent="blue"][data-mode="dark"] { --page:#12161D;--surface:#1A2029;--surface-2:#212833;--ink:#E4E9F0;--ink-2:#9AA5B5;--line:#2C3542;--line-strong:#485466;--accent:#8EB4E6;--accent-mid:#3C5B85;--accent-soft:#1D2C42;--on-accent:#0E1622;--private:#232A35; }
-:root[data-accent="rose"] { --page:#F8F2F3;--surface:#FFFDFD;--surface-2:#F2E8EA;--ink:#2A1E21;--ink-2:#6E5B60;--line:#E8DADD;--line-strong:#CDB6BC;--accent:#A8435C;--accent-mid:#DDA2B1;--accent-soft:#F5DFE5;--on-accent:#FFFFFF;--private:#F0E7E9; }
+:root[data-accent="rose"] { --page:#EEE7E8;--surface:#FAF5F6;--surface-2:#EDE3E5;--ink:#2A1E21;--ink-2:#6E5B60;--line:#E2D4D7;--line-strong:#CDB6BC;--accent:#A8435C;--accent-mid:#DDA2B1;--accent-soft:#F5DFE5;--on-accent:#FFFFFF;--private:#F0E7E9; }
 @media (prefers-color-scheme: dark) { :root[data-accent="rose"]:not([data-mode="light"]) { --page:#1A1416;--surface:#231B1E;--surface-2:#2B2226;--ink:#EEE3E6;--ink-2:#B09CA2;--line:#3A2D31;--line-strong:#5A464C;--accent:#E896AB;--accent-mid:#86475A;--accent-soft:#3B2029;--on-accent:#200E14;--private:#2E2428; } }
 :root[data-accent="rose"][data-mode="dark"] { --page:#1A1416;--surface:#231B1E;--surface-2:#2B2226;--ink:#EEE3E6;--ink-2:#B09CA2;--line:#3A2D31;--line-strong:#5A464C;--accent:#E896AB;--accent-mid:#86475A;--accent-soft:#3B2029;--on-accent:#200E14;--private:#2E2428; }
-:root[data-accent="ink"] { --page:#F4F4F2;--surface:#FFFFFF;--surface-2:#EDEDEA;--ink:#1D1D1B;--ink-2:#62625E;--line:#E0E0DC;--line-strong:#BDBDB7;--accent:#33332F;--accent-mid:#A3A39C;--accent-soft:#E6E6E1;--on-accent:#FFFFFF;--private:#ECECE8; }
+:root[data-accent="ink"] { --page:#E9E9E7;--surface:#F7F7F6;--surface-2:#E8E8E5;--ink:#1D1D1B;--ink-2:#62625E;--line:#DADAD6;--line-strong:#BDBDB7;--accent:#33332F;--accent-mid:#A3A39C;--accent-soft:#E6E6E1;--on-accent:#FFFFFF;--private:#ECECE8; }
 @media (prefers-color-scheme: dark) { :root[data-accent="ink"]:not([data-mode="light"]) { --page:#141414;--surface:#1D1D1C;--surface-2:#252524;--ink:#ECECE8;--ink-2:#A3A39E;--line:#30302E;--line-strong:#4D4D4A;--accent:#E2E2DC;--accent-mid:#6A6A65;--accent-soft:#2E2E2C;--on-accent:#141414;--private:#262625; } }
 :root[data-accent="ink"][data-mode="dark"] { --page:#141414;--surface:#1D1D1C;--surface-2:#252524;--ink:#ECECE8;--ink-2:#A3A39E;--line:#30302E;--line-strong:#4D4D4A;--accent:#E2E2DC;--accent-mid:#6A6A65;--accent-soft:#2E2E2C;--on-accent:#141414;--private:#262625; }
+:root[data-accent="paper"] { --page:#F0EEE6;--surface:#FAF9F5;--surface-2:#F2F0E9;--ink:#1F1E1D;--ink-2:#5E5D59;--line:#E3E0D5;--line-strong:#C4C1B5;--accent:#6B4A2E;--accent-mid:#C4A27F;--accent-soft:#EADFCD;--on-accent:#FFFFFF;--private:#EEECE4; }
+@media (prefers-color-scheme: dark) { :root[data-accent="paper"]:not([data-mode="light"]) { --page:#1F1E1D;--surface:#262624;--surface-2:#30302E;--ink:#F5F4EE;--ink-2:#B7B5A9;--line:#3E3E38;--line-strong:#5C5B55;--accent:#D2B08A;--accent-mid:#7E6247;--accent-soft:#362B20;--on-accent:#1C150E;--private:#2C2C2A; } }
+:root[data-accent="paper"][data-mode="dark"] { --page:#1F1E1D;--surface:#262624;--surface-2:#30302E;--ink:#F5F4EE;--ink-2:#B7B5A9;--line:#3E3E38;--line-strong:#5C5B55;--accent:#D2B08A;--accent-mid:#7E6247;--accent-soft:#362B20;--on-accent:#1C150E;--private:#2C2C2A; }
 * { box-sizing: border-box; }
 html, body { margin: 0; }
 /* 휴대폰을 가로로 돌려도 브라우저가 글씨를 저절로 키우지 않게 */
@@ -98,7 +101,7 @@ button, a, label, summary, select, input, [role="button"], [data-act], .brand { 
 .mitem.static { cursor: default; flex-direction: column; align-items: flex-start; gap: .1em; }
 .mitem.static:hover { background: none; }
 .mitem small { font-size: .82em; color: var(--ink-2); }
-.swatches { display: flex; gap: .55em; margin: .2em .4em .4em; flex-wrap: wrap; }
+.swatches { display: flex; gap: 4px; margin: .2em .2em .4em; flex-wrap: wrap; } /* 색 테마 여섯 개가 설정 창 한 줄에 들어가게 간격만 줄인다(디다코와 같은 4px) */
 .swatch { width: 40px; height: 40px; border-radius: 50%; padding: 0; border: 2px solid transparent; background: none; cursor: pointer; display: grid; place-items: center; }
 .swatch i { width: 28px; height: 28px; border-radius: 50%; display: block; box-shadow: inset 0 0 0 1px rgba(0, 0, 0, .12); }
 .swatch.on { border-color: var(--ink); }
@@ -922,6 +925,21 @@ details[open] > :not(summary) { animation: reveal .22s ease-out; }
 @keyframes vt-up { from { opacity: 0; transform: translateY(18px); } }
 @keyframes vt-fade { from { opacity: 0; } }
 @media (prefers-reduced-motion: reduce) { .vt-in-r, .vt-in-l, .vt-up, .vt-fade { animation: none; } }
+/* 겹쳐 넘기기: 하단 탭(PC는 위쪽 메뉴)을 눌러 다른 탭으로 갈 때만. 넘기는 동안만 이름을 붙여 따로 찍는다. 위쪽 바·하단 탭은 따로 떼어 맨 위에 두고 움직이지 않는다(가운데 화면이 그 위를 덮지 않게). (디다코와 같은 값) */
+:root[data-vt] #main { view-transition-name: main; }
+:root[data-vt] #topbar { view-transition-name: topbar; }
+:root[data-vt] #tabs { view-transition-name: tabs; }
+::view-transition-group(topbar), ::view-transition-group(tabs) { animation: none; z-index: 1; }
+::view-transition-old(topbar), ::view-transition-old(tabs) { animation: none; opacity: 0; }
+::view-transition-new(topbar), ::view-transition-new(tabs) { animation: none; }
+:root[data-vt="vt-in-r"] { --vt-in: 14px; --vt-out: -10px; }
+:root[data-vt="vt-in-l"] { --vt-in: -14px; --vt-out: 10px; }
+::view-transition-old(root), ::view-transition-new(root) { animation: none; }
+::view-transition-group(main) { animation: none; }
+::view-transition-old(main) { animation: vt-old-out .18s ease-out both; }
+::view-transition-new(main) { animation: vt-new-in .25s cubic-bezier(.22, .8, .24, 1) both; }
+@keyframes vt-old-out { to { opacity: 0; transform: translateX(var(--vt-out, 0px)); } }
+@keyframes vt-new-in { from { opacity: 0; transform: translateX(var(--vt-in, 0px)); } }
 /* 기도했어요 효과: 아이콘이 톡, 메인 버튼은 빛이 한 번 번진다 */
 @keyframes pray-pop { 0% { transform: scale(.6); } 60% { transform: scale(1.2); } 100% { transform: scale(1); } }
 .pray.flash .ic { animation: pray-pop .35s ease-out; }
@@ -3073,11 +3091,11 @@ try { const p = JSON.parse(localStorage.getItem('koide-pref') || '{}'), d = docu
       <div class="two-col"><div class="col"><section class="card"><p style="margin-top:0">조용한 화면에서 <b>한 장씩</b> 넘기며 기도해요. ${esc(grp())} ${solo() ? '식구는' : '가정은'} 오늘 아직 기도하지 않은 ${words().one}부터 나와요.</p>
         <p class="label">무엇을 위해 기도할까요?</p>${seg(PS_KINDS(), PSET.kinds, 'pskind')}
         ${staffRoom ? `<p class="label" style="margin-top:14px">오늘의 ${esc(grp())}</p><div class="chips">${S.month.rooms.map(r => `<button class="chip-btn${r.id === staffRoom ? ' on' : ''}" data-act="psroom" data-v="${esc(r.id)}" aria-pressed="${r.id === staffRoom}">${esc(r.name)}</button>`).join('')}</div>` : ''}
-        ${PSET.kinds.includes('world') ? `<div class="ps-topics"><p class="hint" style="margin:0">기도할 주제를 골라요. 마지막엔 늘 감사와 찬양으로 마쳐요.</p>${seg(PRAY_TOPICS.map(t => [t.k, t.name]), PSET.topics, 'pstopic', 2, true)}</div>` : ''}
+        ${PSET.kinds.includes('world') ? `<div class="ps-topics"><p class="hint" style="margin:0">기도할 주제를 골라 보세요.</p>${seg(PRAY_TOPICS.map(t => [t.k, t.name]), PSET.topics, 'pstopic', 2, true)}</div>` : ''}
         <p class="label" style="margin-top:14px">한 장에 머무는 시간</p>${seg(PS_TIMES, PSET.dur, 'psdur')}
         ${PSET.dur ? `<div class="row" style="margin-top:10px"><div><p class="plain" style="margin:0;word-break:keep-all">자동으로 넘기기</p><p class="hint">만지면 멈추고, 넘기면 기도한 것으로 세요.</p></div>
           <button class="switch${PSET.flow ? ' on' : ''}" role="switch" aria-checked="${!!PSET.flow}" aria-label="자동으로 넘기기" data-act="psflow"><span></span></button></div>` : ''}
-        <div class="row" style="margin-top:14px"><div><p class="plain" style="margin:0;word-break:keep-all">기도를 열며</p><p class="hint">삼위일체 하나님께 간구로 시작해요</p></div>
+        <div class="row" style="margin-top:14px"><div><p class="plain" style="margin:0;word-break:keep-all">기도를 열며</p><p class="hint">삼위일체 하나님께 간구로 시작해요.</p></div>
           <button class="switch${PSET.open !== false ? ' on' : ''}" role="switch" aria-checked="${PSET.open !== false}" aria-label="기도를 열며" data-act="psopen"><span></span></button></div>
         <div class="row" style="margin-top:14px"><div><p class="plain" style="margin:0;word-break:keep-all">잔잔한 음악 (찬송가 1~8장)</p><p class="hint">기도하는 동안 조용히 흘러요. 이어폰을 권해요.</p></div>
           <button class="switch${PSET.music ? ' on' : ''}" role="switch" aria-checked="${PSET.music}" aria-label="잔잔한 음악" data-act="psmusic"><span></span></button></div>
@@ -4705,7 +4723,7 @@ try { const p = JSON.parse(localStorage.getItem('koide-pref') || '{}'), d = docu
   const MODES = [['system', '기기 설정'], ['light', '밝게'], ['dark', '어둡게']];
   // 디자인 스타일: 저장하는 이름 → 화면에 보이는 이름(시안과 같게)
   const STYLES = [['flat', 'basic'], ['neu', 'new'], ['skeu', 'classic'], ['glass', 'glass']];
-  const ACCENTS = [['green', '초록', '#2B6A62'], ['amber', '주황', '#C46A24'], ['blue', '파랑', '#2F5D95'], ['rose', '장미', '#A8435C'], ['ink', '먹색', '#3A3A36']];
+  const ACCENTS = [['green', '초록', '#2B6A62'], ['amber', '주황', '#C46A24'], ['blue', '파랑', '#2F5D95'], ['rose', '장미', '#A8435C'], ['ink', '먹색', '#3A3A36'], ['paper', '종이', '#6B4A2E']];
   function setPref(k, v) {
     PREF[k] = v;
     try { localStorage.setItem('koide-pref', JSON.stringify(PREF)); } catch (e) { /* 무시 */ }
@@ -4723,7 +4741,7 @@ try { const p = JSON.parse(localStorage.getItem('koide-pref') || '{}'), d = docu
   };
   const bigSwitch = () => `<button class="switch${PREF.big ? ' on' : ''}" role="switch" aria-checked="${!!PREF.big}" aria-label="큰 글씨 모드" data-act="big"><span></span></button>`;
 
-  const tabOn = () => S.op || ['import', 'status', 'admin', 'reorg', 'about', 'help', 'church', 'feedback', 'praytext'].includes(S.tab) ? 'more' : S.tab;
+  const tabOn = (t = S.tab) => S.op || ['import', 'status', 'admin', 'reorg', 'about', 'help', 'church', 'feedback', 'praytext'].includes(t) ? 'more' : t;
   // 상단 바: 로고(누르면 이번 달), PC에서는 메뉴, 사랑방 배지(누르면 사랑방 정보), 설정
   function topHtml() {
     const brand = `<button class="brand"${S.view === 'app' ? ' data-act="tab" data-v="home"' : ''} aria-label="코이데 홈"><span class="brand-mark">${ICON.knot}</span><span class="brand-name">코이데</span></button>`;
@@ -4793,6 +4811,22 @@ try { const p = JSON.parse(localStorage.getItem('koide-pref') || '{}'), d = docu
     return '';
   }
   const vtAnim = (el, cls) => { if (!el) return; el.classList.remove(cls); void el.offsetWidth; el.classList.add(cls); el.addEventListener('animationend', () => el.classList.remove(cls), { once: true }); };
+  // 겹쳐 넘기기: 하단 탭(PC는 위쪽 메뉴)을 눌러 탭 순서가 다른 탭으로 옮길 때만, 브라우저의 화면 전환 기능으로 옛 화면과 새 화면을 겹쳐 넘긴다.
+  //  옛 화면 사진을 찍은 뒤에 바꿔야 하니 상태 바꾸기·그리기·맨 위로 올리기(change)를 전환 콜백 안에서 한다. 그 안의 render는 CSS 움직임(vtAnim)을 하지 않는다(vtNow).
+  //  못 쓰거나(기능 없음·움직임 줄이기·예외) 겹쳐 넘길 일이 아니면 null을 돌려주고, 부르는 쪽이 지금처럼 바로 그린다
+  let vtNow = false, vtCur = null;
+  function tabSlide(b, v, change) {
+    if (vtNow || S.view !== 'app' || viewSig().o || !b.closest('#tabs, .topnav') || calm() || typeof document.startViewTransition !== 'function') return null;
+    const from = TABS.findIndex(x => x[0] === tabOn()), to = TABS.findIndex(x => x[0] === tabOn(v));
+    if (from < 0 || to < 0 || from === to) return null;
+    const root = document.documentElement; let t = null;
+    vtNow = true; root.dataset.vt = to > from ? 'vt-in-r' : 'vt-in-l';
+    try { t = document.startViewTransition(() => { try { change(); } finally { vtNow = false; } }); }
+    catch (err) { vtNow = false; delete root.dataset.vt; return null; }
+    vtCur = t; t.ready.catch(() => {});
+    t.finished.finally(() => { delete root.dataset.vt; if (vtCur === t) vtCur = null; });
+    return t.updateCallbackDone.catch(err => console.error(err));
+  }
   // 기도 노트에서 '카카오로 로그인하고 이어 두기'를 눌러 왔으면, 로그인만 하고 기도 노트로 돌아간다(사랑방 고르기로 가지 않는다)
   function backToNote() {
     let t = null; try { t = localStorage.getItem('koide-after-login'); localStorage.removeItem('koide-after-login'); } catch (e) { return false; }
@@ -4816,6 +4850,7 @@ try { const p = JSON.parse(localStorage.getItem('koide-pref') || '{}'), d = docu
   function render() {
     if (S.view === 'app' && !S.op && S.month) { try { if (localStorage.getItem('koide-share')) takeShare(); } catch (e) { /* 무시 */ } }
     const sig = viewSig(), kind = vtKind(lastSig, sig);
+    if (vtCur && sig.o && !(lastSig && lastSig.o)) vtCur.skipTransition();   // 기도하기·모임 모드처럼 화면 전체를 덮는 창이 새로 뜨면 넘기기를 바로 끝낸다
     lastSig = sig;
     const t0 = performance.now(), y0 = scrollY;
     draw();
@@ -4825,7 +4860,7 @@ try { const p = JSON.parse(localStorage.getItem('koide-pref') || '{}'), d = docu
     document.querySelectorAll('.cord-line animate').forEach(a => { try { a.beginElement(); } catch (e) { /* 지원하지 않으면 바로 팽팽 */ } });
     playTapFx();
     // 그리는 데 오래 걸린 화면(그림·표가 많은 화면, 느린 휴대폰)은 이미 늦었으니 움직임 없이 바로 보여 준다
-    if (!kind || calm() || performance.now() - t0 > 50) return;
+    if (!kind || vtNow || calm() || performance.now() - t0 > 50) return;   // 겹쳐 넘기는 중(vtNow)에는 CSS 움직임을 겹쳐 하지 않는다
     const sheet = S.ps || S.meet != null ? $('#pss') : $('#bigv').firstElementChild;
     if (kind === 'fwd') vtAnim($('#main'), 'vt-in-r');
     else if (kind === 'back') vtAnim($('#main'), 'vt-in-l');
@@ -5311,7 +5346,11 @@ try { const p = JSON.parse(localStorage.getItem('koide-pref') || '{}'), d = docu
         if (v === 'about') track('화면 보기', { screen: '코이데 소개' });
         if (v === 'help') { S.helpQ = null; track('화면 보기', { screen: '사용법' }); }
         if (v === 'home' && S.tab === 'home') S.openRoom = null;
-        S.tab = v; S.copied = null; render(); window.scrollTo(0, 0);
+        {
+          const go = () => { S.tab = v; S.copied = null; render(); window.scrollTo(0, 0); };
+          const slid = tabSlide(b, v, go);   // 하단 탭·위쪽 메뉴로 다른 탭에 갈 때만 겹쳐 넘긴다. 아니면 지금처럼 바로 그린다
+          if (slid) await slid; else go();
+        }
         if (v === 'history') { loadHist(S.hist && S.hist.month); track('화면 보기', { screen: '지난 기록' }); }
         if (v === 'status') { try { S.pending = await api('pending'); render(); } catch (err) { oops(err); } }
         if (v === 'admin') { await loadAdmin(); adminDone(); }
