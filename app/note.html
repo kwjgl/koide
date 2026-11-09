@@ -2,7 +2,7 @@
 <html lang="ko">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, viewport-fit=cover">
 <meta name="theme-color" content="#2B6A62">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-title" content="코이데">
@@ -66,11 +66,13 @@ try { const p = JSON.parse(localStorage.getItem('koide-pref') || '{}'), d = docu
 :root[data-accent="paper"][data-mode="dark"] { --page:#1F1E1D;--surface:#262624;--surface-2:#30302E;--ink:#F5F4EE;--ink-2:#B7B5A9;--line:#3E3E38;--line-strong:#5C5B55;--accent:#D2B08A;--accent-mid:#7E6247;--accent-soft:#362B20;--on-accent:#1C150E;--private:#2C2C2A; }
 * { box-sizing: border-box; }
 html { -webkit-text-size-adjust: 100%; text-size-adjust: 100%; }
+/* 두 번 눌러 확대 막기(아이폰 홈 화면 앱). 두 손가락 확대는 viewport의 maximum-scale=1로 막고, 3D 무대·큰 그림 등 자기 touch-action을 가진 곳은 그대로 둔다 */
+html { touch-action: manipulation; }
 /* 시트를 열어 스크롤을 잠가도 스크롤 막대 자리가 그대로라 화면이 옆으로 흔들리지 않는다 */
 html { scrollbar-gutter: stable; }
 body { margin: 0; background: var(--page); color: var(--ink); font-family: var(--f-body); font-size: var(--base); line-height: 1.55; -webkit-tap-highlight-color: transparent; }
 button, input, textarea { font: inherit; color: inherit; }
-/* 아이폰에서 빠르게 두세 번 눌러도 화면이 확대되지 않게(두 손가락으로 벌려 확대하는 것은 그대로). 캔버스·3D 무대는 건드리지 않는다 */
+/* 아이폰에서 빠르게 두세 번 눌러도 화면이 확대되지 않게. 캔버스·3D 무대는 건드리지 않는다 */
 button, a, label, summary, select, input, [role="button"], [data-a], .brand { touch-action: manipulation; }
 .wrap { max-width: 640px; margin: 0 auto; padding: calc(12px + env(safe-area-inset-top, 0px)) 16px calc(96px + env(safe-area-inset-bottom, 0px)); }
 /* 위쪽 막대(공동체 화면과 같은 짜임): 코이데 · 배지(함께하는 곳) · 톱니바퀴(화면 설정) */
