@@ -98,10 +98,10 @@
   let inner = '';
   if (mode === 'main') {
     inner = `<span class="splash-mark"><svg viewBox="0 0 16 12"><path pathLength="1" d="${KNOT}"/><path pathLength="1" d="${KNOT2}"/></svg></span>
-  <p class="splash-name">코이데</p><p class="splash-sub">함께 기도하는 공동체</p><p class="loading"></p>`;
+  <p class="splash-name">코이데</p><p class="splash-sub">나의 기도가 쌓이는 곳</p><p class="loading"></p>`;
   } else if (mode === 'switch' && space === 'note') {
     inner = `<span class="sw-note sw-in"><svg viewBox="0 0 16 12"><path d="${KNOT}"/><path d="${KNOT2}"/></svg></span>
-  <p class="splash-name sw-in d1">나의 기도 노트</p><p class="splash-sub sw-in d2">나만 보는 기도</p><p class="loading"></p>`;
+  <p class="splash-name sw-in d1">나의 기도 노트</p><p class="splash-sub sw-in d2">하나님과 나누는 이야기</p><p class="loading"></p>`;
   } else if (mode === 'switch') {
     // 공동체: 이 기기에 남은 지난번 화면에서 사랑방 이름을 가져온다(없으면 '코이데 공동체')
     let room = ''; try { const c = JSON.parse(localStorage.getItem(demo ? 'koide-demo-cache' : 'koide-cache') || 'null'); room = c && c.month && c.month.room ? c.month.room.name : ''; } catch (e) { /* 없음 */ }

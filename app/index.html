@@ -2151,7 +2151,6 @@ try { const p = JSON.parse(localStorage.getItem('koide-pref') || '{}'), d = docu
           <div class="today-body" data-id="${esc(t.id)}" tabindex="0" aria-label="${esc(t.name)} 기도제목">${t.items.length ? itemList(t.items, false) : `<p class="hint">아직 올린 기도제목이 없어요. 이 ${words().one}을 떠올리며 기도해요.</p>`}</div>
           <div class="pray-hero"><div class="pray-row">${prayBtn(t, false, true)}<button class="btn next${t.today ? '' : ' ghost'}" data-act="nexttoday">다음 ${words().one}</button></div>
             ${t.prayed ? `<p class="pray-done">이번 달 ${esc(t.name)}${solo() ? ' 님' : ' 가정'}을 위해 ${t.prayed}번 기도했어요</p>` : ''}</div>
-          <p class="hint">앱을 열 때마다 이번 달 아직 기도하지 않은 ${words().one}부터 돌아가며 나와요.</p>
           ${cordHtml(t.id)}</section>` : ''}${S.grp ? weaveCard() : artCard()}</div>
       <div class="col main">
         ${togetherCard()}
@@ -3538,7 +3537,7 @@ try { const p = JSON.parse(localStorage.getItem('koide-pref') || '{}'), d = docu
     <div class="about">
       <section class="card ab-hero">
         <span class="ab-mark" aria-hidden="true">${ICON.knot}</span>
-        <h1>코이데</h1><p class="ab-tag">함께 기도하는 공동체</p>
+        <h1>코이데</h1><p class="ab-tag">나의 기도가 쌓이는 곳</p>
         <button class="btn ab-play" data-act="ivid"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M8 5.5v13l10.5-6.5z" fill="currentColor"/></svg>영상으로 보기</button>
         <div class="ab-words" aria-hidden="true"><span><b>코이노니아</b><i>κοινωνία</i><small>교제</small></span><em>+</em><span><b>데에시스</b><i>δέησις</i><small>간구</small></span></div>
         <p class="ab-lead">코이데는 '교제'를 뜻하는 코이노니아(κοινωνία, koinōnia)와 '간구'를 뜻하는 데에시스(δέησις, deēsis)에서 영감을 얻은 이름입니다. 서로의 기도를 나누고, 함께 기도하는 공동체를 뜻합니다. 우리를 잇는 끈은 성령의 교통하심(코이노니아)입니다.</p>
@@ -4537,7 +4536,7 @@ try { const p = JSON.parse(localStorage.getItem('koide-pref') || '{}'), d = docu
     cv.width = W; cv.height = H; g.fillStyle = '#fff'; g.fillRect(0, 0, W, H); g.fillStyle = '#16211E';
     for (let r = 0; r < n; r++) for (let c = 0; c < n; c++) if (q.isDark(r, c)) g.fillRect(pad + c * k, pad + r * k, k, k);
     g.font = '600 26px "IBM Plex Sans KR", sans-serif'; g.textAlign = 'center'; g.fillText(label, W / 2, W + 30);
-    g.font = '18px "IBM Plex Sans KR", sans-serif'; g.fillStyle = '#5B6B66'; g.fillText('코이데 · 함께 기도하는 공동체', W / 2, W + 58);
+    g.font = '18px "IBM Plex Sans KR", sans-serif'; g.fillStyle = '#5B6B66'; g.fillText('코이데 · 나의 기도가 쌓이는 곳', W / 2, W + 58);
     const a = document.createElement('a'); a.href = cv.toDataURL('image/png'); a.download = label + ' 코이데 QR.png'; document.body.appendChild(a); a.click(); a.remove();
   }
   function inviteCard() {

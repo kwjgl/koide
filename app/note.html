@@ -1962,7 +1962,7 @@ button.pg-tag::before { content: ''; position: absolute; inset: -10px; }
       return `<i class="${prayedDays.has(d) ? 'on' : ''}${d === TODAY() ? ' today' : ''}" title="${short(d)}">${k + 1}</i>`; })].join('');
     const tab = S.lookTab === 'done' ? 'done' : 'thanks';
     const list = tab === 'thanks'
-      ? (thanks.length ? `<ul class="thanks">${thanks.map(x => { const it = x.item && D.items.find(i => i.id === x.item); return `<li><small>${short(x.date)}${x.kind === 'answer' ? ' · 응답' : ''}</small>${esc(x.text)}${it ? `<q>기도제목: ${esc(it.text)}</q>` : ''}</li>`; }).join('')}</ul>` : '<p class="hint">이 달에는 남긴 감사가 없어요. 기도제목을 "응답받았어요"로 마치거나, 오늘 화면에서 감사한 것을 남기면 여기에 모여요.</p>')
+      ? (thanks.length ? `<ul class="thanks">${thanks.map(x => { const it = x.item && D.items.find(i => i.id === x.item); return `<li><small>${short(x.date)}${x.kind === 'answer' ? ' · 응답' : ''}</small>${esc(x.text)}${it ? `<q>기도제목: ${esc(it.text)}</q>` : ''}</li>`; }).join('')}</ul>` : '<p class="hint">아직 남긴 응답이나 감사가 없어요.</p>')
       : (doneL.length ? doneL.map(i => `<div class="note"><p><span class="tag">${esc(targetName(i.target))}</span>${esc(i.text)}</p><span class="days">${short(i.created)} ~ ${short(i.done.date)} · ${i.done.how === 'answer' ? '응답받았어요' : '맡겨 두었어요'}</span>
         <button class="link quiet" data-a="undone" data-v="${i.id}" style="align-self:flex-start">다시 기도하기</button></div>`).join('') : '<p class="hint">이 달에 마친 기도는 없어요.</p>');
     const longest = M === cur ? open().slice().sort((p, q) => p.created.localeCompare(q.created)).slice(0, 3) : [];
@@ -1970,7 +1970,7 @@ button.pg-tag::before { content: ''; position: absolute; inset: -10px; }
       <div class="n-two"><div class="n-main"><div class="month-nav"><button class="btn ghost small" data-a="lookm" data-v="${shift(-1)}"${M > first ? '' : ' disabled'} aria-label="이전 달">‹</button><b>${y}년 ${m}월</b><button class="btn ghost small" data-a="lookm" data-v="${shift(1)}"${M < cur ? '' : ' disabled'} aria-label="다음 달">›</button></div>
       <section class="card"><div class="stats"><div><b>${prayedDays.size}</b><span>기도한 날</span></div><div><b>${thanks.length}</b><span>감사·응답</span></div><div><b>${doneL.length}</b><span>마친 기도</span></div></div>
         <div class="weeks" aria-label="${m}월 중 기도한 날">${'일월화수목금토'.split('').map(w => `<i class="wd">${w}</i>`).join('')}${cells}</div>
-        <p class="hint">남과 견주지 않는 나만의 기록이에요. 빈 날이 있어도 괜찮아요.</p></section></div>
+        </section></div>
       <div class="n-side"><section class="card"><div class="seg" role="tablist">${[['thanks', '감사와 응답 · ' + thanks.length], ['done', '마친 기도 · ' + doneL.length]].map(([k, l]) => `<button class="${tab === k ? 'on' : ''}" role="tab" aria-selected="${tab === k}" data-a="looktab" data-v="${k}">${l}</button>`).join('')}</div>${list}</section>
       ${longest.length ? `<section class="card"><p class="label">오래 이어 온 기도</p>${longest.map(i => `<p class="plain"><span class="tag">${esc(targetName(i.target))}</span>${esc(i.text)} <span class="days">· ${daysSince(i.created)}일째</span></p>`).join('')}</section>` : ''}
       </div><div class="n-end">${reflectHtml()}${badgeHtml()}</div></div>`;
