@@ -76,7 +76,8 @@ button, a, label, summary, select, input, [role="button"], [data-act], .brand { 
 .ic { width: 1em; height: 1em; fill: none; stroke: currentColor; stroke-width: 1.5; stroke-linecap: round; stroke-linejoin: round; flex: none; }
 .wrap { width: 100%; max-width: 1160px; margin: 0 auto; padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); }
 .topbar { position: sticky; top: 0; z-index: 20; background: var(--surface); border-bottom: 1px solid var(--line); padding-top: env(safe-area-inset-top, 0px); transition: transform .25s ease; }
-.topbar .wrap { display: flex; align-items: center; gap: .6em; min-height: 3.4em; position: relative; }
+/* 안쪽 줄 51px + 아래 테두리 1px = 디다코 노트 위쪽 바 52px */
+.topbar .wrap { display: flex; align-items: center; gap: .6em; min-height: 51px; position: relative; }
 .brand { display: inline-flex; align-items: center; gap: .45em; background: none; border: 0; padding: .3em 0; color: var(--ink); cursor: pointer; min-height: 44px; }
 .brand-mark { width: 1.6em; height: 1.6em; border-radius: 50%; background: var(--accent); color: var(--on-accent); display: grid; place-items: center; }
 .brand-mark .ic { width: .95em; height: .95em; }
@@ -118,7 +119,9 @@ html.kg-on body.hide-bars .topbar, html.kg-on body.hide-bars .tabs { transform: 
 @media (prefers-reduced-motion: reduce) { .topbar, .tabs { transition: none; } }
 main.wrap { padding-top: 14px; padding-bottom: calc(110px + env(safe-area-inset-bottom)); }
 /* 화면 제목 줄: 왼쪽 사랑방·제목, 오른쪽 날짜와 버튼 */
-.page-top { display: flex; justify-content: space-between; align-items: flex-end; gap: 12px; }
+.page-top { display: flex; justify-content: space-between; align-items: center; gap: 12px; min-height: 44px; }
+/* 화면 제목: 디다코 노트와 같은 크기(큰 글씨 모드에서는 기본 글씨와 함께 커진다) */
+.page-top h1 { font: 700 calc(var(--base) * 1.375)/1.4 var(--f-display); margin: 0; }
 .who-sep { display: inline-block; width: 1px; height: .9em; background: currentColor; opacity: .45; margin: 0 .6em; vertical-align: -.1em; }
   .eyebrow { margin-top: 0; }
 .page-top-r { display: flex; flex-direction: column; align-items: flex-end; gap: 6px; }
@@ -2179,7 +2182,7 @@ try { const p = JSON.parse(localStorage.getItem('koide-pref') || '{}'), d = docu
     if (S.openRoom) return staffRoomView();
     const M = S.month, rooms = M.rooms || [], sum = k => rooms.reduce((a, r) => a + r[k], 0);
     const stat = (n, l) => `<div class="stat"><b>${n}</b><span>${l}</span></div>`;
-    return `<div class="page-top"><div><p class="eyebrow">${esc(M.dept.name)} 전체 · ${esc(M.me.label || M.me.person)}</p><h1>${Number(M.month.slice(5))}월 기도제목 <span aria-hidden="true">🙏</span></h1></div><p class="date">${todayLabel()}</p></div>
+    return `<div class="page-top"><div><h1>${Number(M.month.slice(5))}월 기도제목 <span aria-hidden="true">🙏</span></h1></div><p class="date">${todayLabel()}</p></div>
       <div class="home-grid"><div class="col side">
         <section class="card"><div class="stats">${stat(rooms.length, grp())}${stat(sum('n'), words().count)}${stat(sum('edited') + sum('confirmed'), '이번 달 손봄·확인')}</div></section>
         ${rooms.length ? `<section class="card">${roomCordHtml()}<p class="hint">매듭을 누르면 그 ${esc(gj('을/를'))} 위해 기도하러 가요.</p></section>` : ''}
@@ -2221,7 +2224,7 @@ try { const p = JSON.parse(localStorage.getItem('koide-pref') || '{}'), d = docu
   function staffRoomView() {
     const r = (S.month.rooms || []).find(x => x.id === S.openRoom) || {}, R = loadRoom(S.openRoom);
     return `<button class="link back" data-act="roomclose">${ICON.chevL}${esc(S.month.dept.name)} 전체로</button>
-      <div class="page-top"><div><p class="eyebrow">${esc(S.month.dept.name)}</p><h1>${esc(r.name || '')}</h1></div><p class="date">${todayLabel()}</p></div>
+      <div class="page-top"><div><h1>${esc(r.name || '')}</h1></div><p class="date">${todayLabel()}</p></div>
       ${!R ? '<p class="loading">불러오는 중…</p>' : `<section class="card">${cordHtml()}<div class="actions"><button class="btn" data-act="roomknot" data-v="${esc(r.id)}">${ICON.hands}이 ${esc(gj('을/를'))} 위해 기도하기</button></div>
         <p class="hint">리더·목사님 항목까지 보여요. "${esc(words().only)}" 항목은 보이지 않아요.</p></section>
         ${R.families.length ? `<div class="fam-grid">${R.families.map(f => famCard(f, true)).join('')}</div>${famTlCard(R.families)}` : `<p class="hint">이 ${esc(grp())}에는 아직 ${words().members}이 없어요.</p>`}`}`;
@@ -2282,7 +2285,7 @@ try { const p = JSON.parse(localStorage.getItem('koide-pref') || '{}'), d = docu
   function mineView() {
     const mine = mineFam(), items = mine.items, mm = Number(S.month.month.slice(5)), carried = mine.items.filter(i => i.same).length, ended = mine.ended || [];
     const P = S.preview;
-    return `<div class="page-top"><div><p class="eyebrow">${solo() ? esc(S.me.person) : famWho(mine.name, S.me.person)}</p><h1>내 기도 · ${mm}월 <span aria-hidden="true">✏️</span></h1></div><p class="saved" id="saved">${S.saved || ''}</p></div>
+    return `<div class="page-top"><div><h1>내 기도 · ${mm}월 <span aria-hidden="true">✏️</span></h1></div><p class="saved" id="saved">${S.saved || ''}</p></div>
       <div class="two-col"><div class="col">
         ${carried ? `<p class="notice">${mm === 1 ? 12 : mm - 1}월 기도제목 ${carried}개가 그대로 넘어와 있어요. 바뀐 것만 고치면 돼요.</p>` : ''}
         ${items.length ? `<ul class="edit-list">${items.map((i, k) => editLi(i)).join('')}</ul>
@@ -2693,7 +2696,7 @@ try { const p = JSON.parse(localStorage.getItem('koide-pref') || '{}'), d = docu
   function historyView() {
     // 회원은 사랑방·타임라인·나의 기도, 목사님·장로님은 우리 가정이 하나 더(옛 값 'mine'이 남아 있어도 회원은 사랑방으로)
     const H = S.hist, staff = staffMe(), tab = S.histTab === 'mine' && !staff ? 'room' : S.histTab || 'room';
-    const head = `<div class="page-top"><div><p class="eyebrow">${esc(staff ? S.month.dept.name : H && H.room || S.month.room.name)}</p><h1>지난 기록 <span aria-hidden="true">📖</span></h1></div></div>
+    const head = `<div class="page-top"><div><h1>지난 기록 <span aria-hidden="true">📖</span></h1></div></div>
       <form class="kid-form hist-q" data-form="histq" role="search"><input class="field" type="search" name="q" placeholder="낱말로 찾기 (예: 이사)" aria-label="지난 기도제목에서 찾기" maxlength="20" autocomplete="off" value="${esc(S.sr ? S.sr.q : '')}"><button class="btn small" type="submit">찾기</button></form>
       <div class="seg fit" style="--n:${staff ? 4 : 3}" role="tablist" aria-label="지난 기록 보기">${[['room', grp() + (staff ? '별' : '')], ...(staff ? [['mine', words().mine]] : []), ['timeline', '타임라인'], ['pray', '나의 기도']].map(([k, l]) => `<button class="${tab === k ? 'on' : ''}" role="tab" aria-selected="${tab === k}" data-act="histtab" data-v="${k}">${l}</button>`).join('')}</div>`;
     if (S.sr) return head + searchView(S.sr);
@@ -3087,7 +3090,7 @@ try { const p = JSON.parse(localStorage.getItem('koide-pref') || '{}'), d = docu
     const list = psList(), seg = (items, cur, act, n, mark) => `<div class="seg" style="--n:${n || items.length}" role="group">${items.map(([k, l]) => { const on = Array.isArray(cur) ? cur.includes(k) : cur === k;
       return `<button class="${on ? 'on' : ''}" data-act="${act}" data-v="${k}" aria-pressed="${on}">${mark && on ? ICON.check + ' ' : ''}${l}</button>`; }).join('')}</div>`;
     const HY = Array.from({ length: 8 }, (_, i) => [i, (i + 1) + '장']);
-    return `<div class="page-top"><div><p class="eyebrow">${esc(S.month.room.name)}</p><h1>기도하기 <span aria-hidden="true">🕯️</span></h1></div><p class="date">${todayLabel()}</p></div>
+    return `<div class="page-top"><div><h1>기도하기 <span aria-hidden="true">🕯️</span></h1></div><p class="date">${todayLabel()}</p></div>
       <div class="two-col"><div class="col"><section class="card"><p style="margin-top:0">조용한 화면에서 <b>한 장씩</b> 넘기며 기도해요. ${esc(grp())} ${solo() ? '식구는' : '가정은'} 오늘 아직 기도하지 않은 ${words().one}부터 나와요.</p>
         <p class="label">무엇을 위해 기도할까요?</p>${seg(PS_KINDS(), PSET.kinds, 'pskind')}
         ${staffRoom ? `<p class="label" style="margin-top:14px">오늘의 ${esc(grp())}</p><div class="chips">${S.month.rooms.map(r => `<button class="chip-btn${r.id === staffRoom ? ' on' : ''}" data-act="psroom" data-v="${esc(r.id)}" aria-pressed="${r.id === staffRoom}">${esc(r.name)}</button>`).join('')}</div>` : ''}
@@ -3472,7 +3475,7 @@ try { const p = JSON.parse(localStorage.getItem('koide-pref') || '{}'), d = docu
       opsDepts().length ? row(S.me.ops.all ? 'church' : 'tab', S.me.ops.all ? '' : 'ops', S.me.ops.all ? '전체 관리' : '운영 지원', opsDepts().map(d => esc(d.name)).join(' · ') + ' · 기도제목 내용은 보지 않아요', tag('admin', S.me.ops.all ? '전체 관리자' : '지원')) : ''
     ].join('');
     const setOpen = !!S.setOpen;
-    return `<div class="page-top"><div><p class="eyebrow">${solo() ? esc(me.person) : famWho(mine.name, me.person)}</p><h1>더보기</h1></div></div>
+    return `<div class="page-top"><div><h1>더보기</h1></div></div>
       <div class="fam-grid" style="margin-top:12px">
         <div class="col"><p class="more-h">나</p>
           <section class="card mrows">${row('note', '', '나의 기도 노트', noteSyncOn() ? '나만 보는 기도제목과 감사 기록. 암호화해서 다른 기기와 동기화해요' : '나만 보는 기도제목과 감사 기록. 이 기기에 저장돼요')}</section>
@@ -4560,7 +4563,7 @@ try { const p = JSON.parse(localStorage.getItem('koide-pref') || '{}'), d = docu
     ].filter(Boolean);
     const open = S.helpQ;
     return `<button class="link back" data-act="tab" data-v="more">${ICON.chevL}더보기</button>
-      <div class="page-top"><div><p class="eyebrow">따라 하기와 도움말</p><h1>사용법</h1></div></div>
+      <div class="page-top"><div><h1>사용법</h1></div></div>
       <div class="help-page">
         ${staff || !me.familyId ? '' : `<section class="card"><p class="label">처음처럼 따라 해 보기</p><p class="plain">예시로 쓰기와 기도하기를 직접 눌러 보며 한 걸음씩 익혀요. 연습한 것은 저장되지 않아요.</p>
           <button class="btn wide help-go" data-act="guidere">▶ 따라 하기 시작</button></section>`}
@@ -4573,7 +4576,7 @@ try { const p = JSON.parse(localStorage.getItem('koide-pref') || '{}'), d = docu
   function feedbackView() {
     const F = S.fb || (S.fb = { kind: '이랬으면', text: '', named: false });
     return `<button class="link back" data-act="tab" data-v="more">${ICON.chevL}더보기</button>
-      <div class="page-top"><div><p class="eyebrow">코이데를 함께 만들어요</p><h1>의견 보내기</h1></div></div>
+      <div class="page-top"><div><h1>의견 보내기</h1></div></div>
       <section class="card fb-form" style="margin-top:12px">
         <div class="seg" style="--n:3" role="radiogroup" aria-label="의견 종류">${FB_KINDS.map(k => `<button class="${F.kind === k ? 'on' : ''}" role="radio" aria-checked="${F.kind === k}" data-act="fbkind" data-v="${k}">${k}</button>`).join('')}</div>
         <p class="hint warn-text">기도제목은 여기 쓰지 말아 주세요.</p>

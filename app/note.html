@@ -76,7 +76,8 @@ button, a, label, summary, select, input, [role="button"], [data-a], .brand { to
 /* 위쪽 막대(공동체 화면과 같은 짜임): 코이데 · 배지(함께하는 곳) · 톱니바퀴(화면 설정) */
 .ic { width: 1em; height: 1em; fill: none; stroke: currentColor; stroke-width: 1.5; stroke-linecap: round; stroke-linejoin: round; flex: none; }
 .topbar { position: sticky; top: 0; z-index: 20; background: var(--surface); border-bottom: 1px solid var(--line); padding-top: env(safe-area-inset-top, 0px); transition: transform .25s ease; }
-.topbar .wrap { display: flex; align-items: center; gap: .6em; min-height: 3.4em; position: relative; padding-top: 0; padding-bottom: 0; }
+/* 안쪽 줄 51px + 아래 테두리 1px = 디다코 노트 위쪽 바 52px */
+.topbar .wrap { display: flex; align-items: center; gap: .6em; min-height: 51px; position: relative; padding-top: 0; padding-bottom: 0; }
 .wrap.has-top { padding-top: 16px; }
 .brand { display: inline-flex; align-items: center; gap: .45em; background: none; border: 0; padding: .3em 0; color: var(--ink); cursor: pointer; min-height: 44px; font: inherit; }
 .brand-mark { width: 1.6em; height: 1.6em; border-radius: 50%; background: var(--accent); color: var(--on-accent); display: grid; place-items: center; }
@@ -115,7 +116,10 @@ button, a, label, summary, select, input, [role="button"], [data-a], .brand { to
 .mdiv { height: 1px; background: var(--line); margin: .35em .3em; }
 .menu-set { display: flex; flex-direction: column; gap: .6em; padding: 0 .4em .4em; }
 .pilot { font-size: .74em; color: var(--accent); background: var(--accent-soft); border-radius: 999px; padding: .3em .9em; display: inline-block; margin-bottom: 10px; }
-.top { display: flex; justify-content: space-between; align-items: flex-end; gap: 12px; margin-bottom: 12px; }
+.top { display: flex; justify-content: space-between; align-items: center; gap: 12px; min-height: 44px; margin-bottom: 12px; }
+/* 화면 제목(탭 화면·더보기 안 화면): 디다코 노트와 같은 크기. 큰 글씨 모드에서는 기본 글씨(--base)와 함께 커진다. 오른쪽 날짜는 공동체의 날짜와 같은 크기·색 */
+.top h1 { font: 700 calc(var(--base) * 1.375)/1.4 var(--f-display); margin: 0; }
+.top .date { font-size: .875em; color: var(--ink-2); margin: 0; white-space: nowrap; }
 .eyebrow { margin: 0; font-size: .8em; color: var(--ink-2); }
 h1 { font-family: var(--f-display); font-size: 1.6em; margin: .1em 0 0; line-height: 1.3; word-break: keep-all; text-wrap: balance; }
 h2 { font-family: var(--f-display); font-size: 1.15em; margin: 0; }
@@ -365,6 +369,15 @@ html.kg-on body.hide-bars .topbar, html.kg-on body.hide-bars .tabs { transform: 
 .people li { display: flex; justify-content: space-between; align-items: center; padding: .4em 0; border-top: 1px solid var(--line); list-style: none; }
 .people { margin: 0; padding: 0; }
 .people li:first-child { border-top: 0; }
+.people li { transition: transform .15s ease; }
+.people .pname { flex: 1; min-width: 0; overflow-wrap: anywhere; }
+/* 끌기 손잡이(≡): 누르는 칸 44px, 손가락으로 끌 때 화면이 스크롤되지 않게 touch-action: none */
+.people .drag-h { display: inline-flex; align-items: center; justify-content: center; flex: none; width: 44px; height: 44px; margin: 0 2px 0 -10px; padding: 10px; border: 0; border-radius: 10px; background: none; color: var(--ink-2); cursor: grab; touch-action: none; user-select: none; -webkit-user-select: none; }
+.people .drag-h svg { width: 20px; height: 20px; }
+.people .drag-h:hover { background: var(--accent-soft); }
+.people .drag-h:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.people li.dragging { position: relative; z-index: 2; transition: none; background: var(--surface); border-radius: 10px; box-shadow: 0 8px 20px -6px var(--shadow); }
+@media (prefers-reduced-motion: reduce) { .people li { transition: none; } }
 .swatches { display: flex; gap: 4px; flex-wrap: wrap; } /* 색 테마 여섯 개가 설정 창 한 줄에 들어가게 간격만 줄인다(디다코와 같은 4px) */
 .swatch { width: 40px; height: 40px; border-radius: 50%; padding: 0; border: 2px solid transparent; background: none; cursor: pointer; display: grid; place-items: center; }
 .swatch i { width: 28px; height: 28px; border-radius: 50%; display: block; box-shadow: inset 0 0 0 1px rgba(0, 0, 0, .12); }
@@ -777,7 +790,10 @@ button.pg-tag::before { content: ''; position: absolute; inset: -10px; }
   const $ = s => document.querySelector(s);
   const esc = s => String(s == null ? '' : s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]);
   const now = () => Date.now();
-  const people = () => D.people.filter(p => !p.del);
+  // 내가 기도하는 사람들: 순서 번호(ord)가 있으면 그 순서, 없는 사람은 뒤에 배열 순서대로. 순서 번호는 사람마다 있어 다른 기기에서 바꾼 순서도 동기화로 따라온다
+  const people = () => D.people.filter(p => !p.del).map((p, i) => [p, i]).sort((a, b) => (a[0].ord == null ? 1e9 : a[0].ord) - (b[0].ord == null ? 1e9 : b[0].ord) || a[1] - b[1]).map(x => x[0]);
+  // 새로 더하는 사람의 순서 번호: 순서 번호가 없던 예전 사람들에게 지금 보이는 순서대로 먼저 번호를 매겨 두어야 새 사람이 맨 끝에 온다
+  const nextOrd = () => { const L = people(); L.forEach((p, i) => { if (p.ord !== i) { p.ord = i; p.up = now(); } }); return L.length; };
   const prays = () => D.prays.filter(p => !p.off);
   const uid = () => Date.now().toString(36) + Math.random().toString(36).slice(2, 6);
   const dkey = (d = new Date()) => d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
@@ -789,6 +805,7 @@ button.pg-tag::before { content: ''; position: absolute; inset: -10px; }
   const daysSince = k => Math.max(1, Math.round((new Date(TODAY()) - new Date(k)) / 864e5) + 1);
   const ICON = {
     sun: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><circle cx="12" cy="12" r="4"/><path d="M12 2.5v2M12 19.5v2M2.5 12h2M19.5 12h2M5.3 5.3l1.4 1.4M17.3 17.3l1.4 1.4M5.3 18.7l1.4-1.4M17.3 6.7l1.4-1.4"/></svg>',
+    grip: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true"><path d="M5 8h14M5 12h14M5 16h14"/></svg>',
     pen: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 20h4L19 9l-4-4L4 16z"/><path d="M14 6l4 4"/></svg>',
     hands: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 21V9.5c0-1.6-.8-3-2-4L8 4v6"/><path d="M12 21V9.5c0-1.6.8-3 2-4L16 4v6"/><path d="M8 10l-3 5 4 6M16 10l3 5-4 6"/></svg>',
     book: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 5.5C6 4.5 9 4.5 12 6c3-1.5 6-1.5 8-.5V19c-2-1-5-1-8 .5-3-1.5-6-1.5-8-.5z"/><path d="M12 6v13.5"/></svg>',
@@ -1614,7 +1631,7 @@ button.pg-tag::before { content: ''; position: absolute; inset: -10px; }
   window.addEventListener('resize', () => { pgScale(); });
   function todayView() {
     const set = todaySet(), all = open(), done = set.filter(i => prayedToday(i.id)).length;
-    const head = `<header class="top"><div><p class="eyebrow">오늘의 기도</p><h1>${dateLabel(TODAY())} 기도제목</h1></div></header>`;
+    const head = `<header class="top"><h1>오늘의 기도</h1><span class="date">${dateLabel(TODAY())}</span></header>`;
     if (!all.length) return head + `<section class="card empty"><h2>아직 기도제목이 없어요</h2><p class="hint">나와 가족, 친구, 교회를 위한 기도제목을 써 보세요. 이 휴대폰에만 저장돼요.</p><button class="btn" data-a="tab" data-v="note">기도제목 쓰기</button></section>` + (pgK(pgCur()) >= 1 ? pgCardHtml() : '') + thanksQuick();
     return head + `<div class="t-grid"><div class="t-main"><section class="card"><div class="row"><p class="label">오늘 기도할 제목</p><span class="hint">${done} / ${set.length}</span></div>
       ${set.map(i => { const on = prayedToday(i.id); return `<div class="today-item${on ? ' on' : ''}"><p><span class="tag">${esc(targetName(i.target))}</span>${esc(i.text)}</p>
@@ -1730,7 +1747,7 @@ button.pg-tag::before { content: ''; position: absolute; inset: -10px; }
         ${P ? `<div class="preview"><p class="hint">${P.length}개로 정리했어요. 대상이 틀리면 바꾸고, 빼야 할 줄은 ×를 눌러요.</p>
           ${P.map((x, k) => `<div class="prev-row"><select class="prev-t" data-k="${k}" aria-label="대상">${prevTargets(x.target).map(([t, n]) => `<option value="${esc(t)}"${t === x.target ? ' selected' : ''}>${esc(n)}</option>`).join('')}</select><p>${esc(x.text)}</p><button class="link quiet" data-a="prevrm" data-v="${k}" aria-label="이 항목 빼기">×</button></div>`).join('')}
           <div class="row" style="justify-content:flex-start"><button class="btn" data-a="addparts">추가하기</button><button class="btn ghost" data-a="unsplit">다시 쓰기</button></div></div>` : ''}</section>`;
-    return `<header class="top"><div><p class="eyebrow">나만 보는 기도제목</p><h1>내 기도</h1></div><span class="hint">${open().length}개</span></header>
+    return `<header class="top"><div><h1>내 기도</h1></div><span class="hint">${open().length}개</span></header>
       <div class="n-two"><div class="n-side">${form}</div><div class="n-main">${filt}${list.length ? `<ul class="edit-list">${list.map(noteLi).join('')}</ul>` : '<p class="hint" style="text-align:center">첫 기도제목을 써 보세요.</p>'}</div></div>`;
   }
   // ── 지난 기록 아래쪽(달력·감사와 응답·오래 이어 온 기도 다음): 돌아보기(올해 기도한 모습)와 나의 배지(노트에서 해 본 일 · 이어 온 날) ──
@@ -1770,7 +1787,7 @@ button.pg-tag::before { content: ''; position: absolute; inset: -10px; }
   const BADGES = [
     { k: 'n-first', tut: 1, ic: 'pen', name: '첫 기도제목', mean: '기도제목을 처음 노트에 적었어요.', todo: '내 기도에서 기도제목을 한 줄 써 보세요. 한 줄이면 충분해요.',
       at: () => minOf(realItems().map(i => i.created)) },
-    { k: 'n-people', tut: 1, ic: 'addp', name: '기도하는 사람', mean: '내가 기도하는 사람을 처음 더했어요.', todo: '더보기 › 나 › 내가 기도하는 사람들에서 엄마 · 친구처럼 기도하는 사람을 더해 보세요.',
+    { k: 'n-people', tut: 1, ic: 'addp', name: '기도하는 사람', mean: '내가 기도하는 사람을 처음 더했어요.', todo: '더보기 › 내가 기도하는 사람들에서 엄마 · 친구처럼 기도하는 사람을 더해 보세요.',
       at: () => { if (D.badge['n-people']) return D.badge['n-people']; const P = people().filter(p => !p.practice); if (!P.length) return null; const ids = new Set(P.map(p => 'p:' + p.id)); return minOf(realItems().filter(i => ids.has(i.target)).map(i => i.created)) || ''; } },
     { k: 'n-today', tut: 1, ic: 'sun', name: '첫 기도', mean: '노트에서 처음 기도했어요.', todo: '오늘 화면에서 기도제목 하나를 위해 기도하고 기도했어요를 눌러 보세요.',
       at: () => minOf(prays().map(x => x.d)) },
@@ -1870,9 +1887,10 @@ button.pg-tag::before { content: ''; position: absolute; inset: -10px; }
       const M = noteMe(); if (M && (M.groups || []).length + (M.linked ? 1 : 0) < PLACES) S.gNew = true;
       go('more'); const f = $('#gc-n') || $('#my-groups'); if (f) { f.scrollIntoView({ block: 'center' }); if (f.id === 'gc-n') f.focus(); } return;
     }
-    if (k === 'n-people' || k === 'a-style' || k === 'n-weave') { // 더보기의 그 카드로: 기도하는 사람들 / 화면 설정(펼쳐서) / 내 모임
+    if (k === 'n-people') return go('people'); // 더보기 › 내가 기도하는 사람들 화면으로
+    if (k === 'a-style' || k === 'n-weave') { // 더보기의 그 카드로: 화면 설정(펼쳐서) / 내 모임
       if (k === 'a-style') S.setOpen = true;
-      go('more'); const f = $(k === 'n-people' ? '#my-people' : k === 'a-style' ? '[data-a=setopen]' : '#my-groups'); if (f) f.scrollIntoView({ block: 'center' }); return;
+      go('more'); const f = $(k === 'a-style' ? '[data-a=setopen]' : '#my-groups'); if (f) f.scrollIntoView({ block: 'center' }); return;
     }
     if (k === 'n-kingdom') { PS.world = true; savePs(); } // 기도하기에서 하나님 나라가 켜진 채로 열린다
     const to = ({ 'n-first': ['note', '#it-text'], 'n-two': ['note', '#it-text'], 'n-answer': ['note'], 'n-entrust': ['note'], 'n-kingdom': ['pray'], 'n-today': ['today'], 'n-thanks': ['today', '#th-in'], 'n-ps': ['pray'], 'n-sync': ['sync'] })[k] || ['today'];
@@ -1896,7 +1914,7 @@ button.pg-tag::before { content: ''; position: absolute; inset: -10px; }
       : (doneL.length ? doneL.map(i => `<div class="note"><p><span class="tag">${esc(targetName(i.target))}</span>${esc(i.text)}</p><span class="days">${short(i.created)} ~ ${short(i.done.date)} · ${i.done.how === 'answer' ? '응답받았어요' : '맡겨 두었어요'}</span>
         <button class="link quiet" data-a="undone" data-v="${i.id}" style="align-self:flex-start">다시 기도하기</button></div>`).join('') : '<p class="hint">이 달에 마친 기도는 없어요.</p>');
     const longest = M === cur ? open().slice().sort((p, q) => p.created.localeCompare(q.created)).slice(0, 3) : [];
-    return `<header class="top"><div><p class="eyebrow">나만 보는 기록</p><h1>지난 기록</h1></div></header>
+    return `<header class="top"><div><h1>지난 기록</h1></div></header>
       <div class="n-two"><div class="n-main"><div class="month-nav"><button class="btn ghost small" data-a="lookm" data-v="${shift(-1)}"${M > first ? '' : ' disabled'} aria-label="이전 달">‹</button><b>${y}년 ${m}월</b><button class="btn ghost small" data-a="lookm" data-v="${shift(1)}"${M < cur ? '' : ' disabled'} aria-label="다음 달">›</button></div>
       <section class="card"><div class="stats"><div><b>${prayedDays.size}</b><span>기도한 날</span></div><div><b>${thanks.length}</b><span>감사·응답</span></div><div><b>${doneL.length}</b><span>마친 기도</span></div></div>
         <div class="weeks" aria-label="${m}월 중 기도한 날">${'일월화수목금토'.split('').map(w => `<i class="wd">${w}</i>`).join('')}${cells}</div>
@@ -1909,7 +1927,7 @@ button.pg-tag::before { content: ''; position: absolute; inset: -10px; }
   function weavesView() {
     const has = weaves().length > 0;
     return `<button class="link" data-a="tab" data-v="more" style="align-self:flex-start;margin-bottom:6px">‹ 더보기</button>
-      <header class="top"><div><p class="eyebrow">나만 보는 기록</p><h1>함께 짠 그물</h1></div></header>
+      <header class="top"><div><h1>함께 짠 그물</h1></div></header>
       <section class="card">${has ? `${weaveNav()}<div class="stage3d weaves" id="weave3d"><span class="wait">불러오는 중…</span></div>`
         : '<p class="hint">담아 둔 그물이 없어요. 모임 화면에서 그물 담기를 누르면 여기에 걸려요.</p>'}</section>
       ${S.wopen != null && weaveAt(S.wopen) ? weaveBig() : ''}`;
@@ -2004,20 +2022,17 @@ button.pg-tag::before { content: ''; position: absolute; inset: -10px; }
       : S.menu === 'settings' ? `<div class="menu" role="menu" aria-label="설정"><p class="mlabel mhead">화면 설정</p><div class="menu-set">${screenControls()}</div></div>` : '';
     return `<header class="topbar"><div class="wrap">
       <button class="brand" data-a="tab" data-v="today" aria-label="기도 노트 오늘"><span class="brand-mark">${TOP_ICON.knot}</span><span class="brand-name">코이데</span></button>
-      <nav class="topnav" aria-label="주 메뉴">${TABS.map(([k, l]) => { const on = (['fb', 'sync', 'help', 'weaves'].includes(S.tab) ? 'more' : S.tab) === k; return `<button class="${on ? 'on' : ''}" data-a="tab" data-v="${k}" ${on ? 'aria-current="page"' : ''}>${l}</button>`; }).join('')}</nav><span class="spacer"></span>
+      <nav class="topnav" aria-label="주 메뉴">${TABS.map(([k, l]) => { const on = (['fb', 'sync', 'help', 'weaves', 'people'].includes(S.tab) ? 'more' : S.tab) === k; return `<button class="${on ? 'on' : ''}" data-a="tab" data-v="${k}" ${on ? 'aria-current="page"' : ''}>${l}</button>`; }).join('')}</nav><span class="spacer"></span>
       <button class="badge-btn" data-a="menu" data-v="badge" aria-haspopup="menu" aria-expanded="${S.menu === 'badge'}">나의 기도 노트<span class="role-tag">나</span>${G.some(g => g.asks) ? '<i class="badge-dot" aria-label="모임 신청이 있어요"></i>' : ''}</button>
       <button class="icon-btn" data-a="menu" data-v="settings" aria-haspopup="menu" aria-expanded="${S.menu === 'settings'}" aria-label="설정">${TOP_ICON.gear}</button>${menu}</div></header>`;
   }
   function moreView() {
-    const nick = (noteMe() || {}).nick;
     const linked = inCommunity();
-    return `<header class="top"><div><p class="eyebrow">${nick ? esc(nick) : '코이데 기도 노트'}</p><h1>더보기</h1></div></header>
+    return `<header class="top"><div><h1>더보기</h1></div></header>
       <div class="n-two"><div class="n-main">
       <p class="more-h">나</p>
       <section class="card mrows"><a class="mrow" style="text-decoration:none;color:inherit" href="${linked ? 'index.html' + QS : 'index.html' + (DEMO_LINK ? '?demo&connect' : '?connect')}"><span><b>${linked ? '코이데 공동체' : '우리 교회 공동체에 연결하기'}</b><small>${linked ? '사랑방·모임과 함께 기도제목을 나누는 곳이에요' : '사랑방과 함께 기도해요'}</small></span><span aria-hidden="true">›</span></a></section>
-      <section class="card" id="my-people"><p class="label">내가 기도하는 사람들</p>
-        ${people().length ? `<ul class="people">${people().map(p => `<li><span>${esc(p.name)}</span><span class="prayer-actions"><button class="link quiet prayer-action" data-a="renperson" data-v="${p.id}" aria-label="이름 바꾸기" title="이름 바꾸기">${ICON.pen.replace('<svg ', '<svg aria-hidden="true" ')}</button><button class="link quiet prayer-action" data-a="delperson" data-v="${p.id}" aria-label="빼기" title="빼기">${ICON.trash}</button></span></li>`).join('')}</ul>` : '<p class="hint">가족, 친구처럼 늘 기도하는 사람을 더해 두면 기도제목의 대상으로 고를 수 있고, 오늘 화면에 끈이 생겨요.</p>'}
-        <button class="btn ghost small" data-a="addperson" style="align-self:flex-start">+ 사람 더하기</button></section>
+      ${peopleRow()}
       ${syncRow()}
       ${groupsCard()}</div>
       <div class="n-side"><p class="more-h">앱 설정</p>
@@ -2045,13 +2060,27 @@ button.pg-tag::before { content: ''; position: absolute; inset: -10px; }
   ];
   function helpView() {
     return `<button class="link" data-a="tab" data-v="more" style="align-self:flex-start;margin-bottom:6px">‹ 더보기</button>
-      <header class="top"><div><p class="eyebrow">따라 하기와 도움말</p><h1>사용법</h1></div></header>
+      <header class="top"><div><h1>사용법</h1></div></header>
       <section class="card"><p class="label">처음처럼 따라 해 보기</p><p class="plain">예시로 쓰기와 기도하기를 직접 눌러 보며 한 걸음씩 익혀요. 연습한 것은 지워져요.</p>
         <button class="btn wide help-go" data-a="guidere">▶ 따라 하기 시작</button></section>
       <section class="card mrows"><p class="label">궁금한 것 찾아보기</p>
         ${HELP.map(([q, lines, go, to], k) => { const on = S.helpQ === k;
           return `<button class="mrow" data-a="helpq" data-v="${k}" aria-expanded="${on}"><span><b>${q}</b></span><span class="chev" aria-hidden="true">›</span></button>
             ${on ? `<div class="help-body">${lines.map(t => `<p class="plain">${t}</p>`).join('')}<button class="link" data-a="helpgo" data-v="${to}">${go} ›</button></div>` : ''}`; }).join('')}</section>`;
+  }
+  // 더보기의 '내가 기도하는 사람들' 한 줄(동기화 줄과 같은 모양): 앞 세 사람 이름과 사람 수. 누르면 사람 화면으로 간다
+  function peopleRow() {
+    const P = people(), n = P.length;
+    const st = n ? P.slice(0, 3).map(p => esc(p.name)).join(', ') + (n > 3 ? ' 외 ' + (n - 3) + '명' : '') : '가족, 친구처럼 늘 기도하는 사람을 더해 두세요';
+    return `<section class="card mrows" id="my-people"><button class="mrow" data-a="tab" data-v="people"><span><b>내가 기도하는 사람들</b><small>${st}</small></span><span class="mrow-end">${n ? n + '명' : ''}<span aria-hidden="true">›</span></span></button></section>`;
+  }
+  // 내가 기도하는 사람들 화면(더보기 › 내가 기도하는 사람들): 이름 바꾸기·빼기·사람 더하기
+  function peopleView() {
+    return `<button class="link" data-a="tab" data-v="more" style="align-self:flex-start;margin-bottom:6px">‹ 더보기</button>
+      <header class="top"><div><h1>내가 기도하는 사람들</h1></div></header>
+      <section class="card" id="my-people-list">
+        ${people().length ? `<ul class="people">${people().map((p, _, A) => `<li>${A.length > 1 ? `<button class="drag-h" data-v="${p.id}" aria-label="순서 바꾸기" title="순서 바꾸기">${ICON.grip}</button>` : ''}<span class="pname">${esc(p.name)}</span><span class="prayer-actions"><button class="link quiet prayer-action" data-a="renperson" data-v="${p.id}" aria-label="이름 바꾸기" title="이름 바꾸기">${ICON.pen.replace('<svg ', '<svg aria-hidden="true" ')}</button><button class="link quiet prayer-action" data-a="delperson" data-v="${p.id}" aria-label="빼기" title="빼기">${ICON.trash}</button></span></li>`).join('')}</ul>` : '<p class="hint">가족, 친구처럼 늘 기도하는 사람을 더해 두면 기도제목의 대상으로 고를 수 있고, 오늘 화면에 끈이 생겨요.</p>'}
+        <button class="btn ghost small" data-a="addperson" style="align-self:flex-start">+ 사람 더하기</button></section>`;
   }
   // 더보기의 동기화 한 줄(디다코와 같은 모양): 누르면 동기화 페이지로 간다. 켜짐/꺼짐 표시는 잠시 끈 것도 '꺼짐'
   function syncRow() {
@@ -2062,9 +2091,9 @@ button.pg-tag::before { content: ''; position: absolute; inset: -10px; }
   }
   // 동기화 페이지(더보기 › 동기화): 동기화 카드, 연결된 기기의 비밀 문구·복구용 낱말 줄, 내 기록 파일, 알아 두세요
   function syncView() {
-    const nick = (noteMe() || {}).nick, conn = !!(D.vault && D.vault.on);
+    const conn = !!(D.vault && D.vault.on);
     return `<button class="link" data-a="tab" data-v="more" style="align-self:flex-start;margin-bottom:6px">‹ 더보기</button>
-      <header class="top"><div><p class="eyebrow">${nick ? esc(nick) : '코이데 기도 노트'}</p><h1>동기화</h1></div></header>
+      <header class="top"><div><h1>동기화</h1></div></header>
       ${vaultCard()}
       ${conn && canLock() ? `<section class="card mrows">
         <button class="mrow" data-a="kcchange"><span><b>비밀 문구 바꾸기</b><small>기록을 잠그는 문구를 새로 정해요</small></span><span aria-hidden="true">›</span></button>
@@ -2085,7 +2114,7 @@ button.pg-tag::before { content: ''; position: absolute; inset: -10px; }
   function fbView() {
     const F = S.fb || (S.fb = { kind: '이랬으면', text: '', named: false }), nick = (noteMe() || {}).nick;
     return `<button class="link" data-a="tab" data-v="more" style="align-self:flex-start;margin-bottom:6px">‹ 더보기</button>
-      <header class="top"><div><p class="eyebrow">코이데를 함께 만들어요</p><h1>의견 보내기</h1></div></header>
+      <header class="top"><div><h1>의견 보내기</h1></div></header>
       <section class="card"><div class="seg" style="--n:3" role="radiogroup" aria-label="의견 종류">${FB_KINDS.map(k => `<button class="${F.kind === k ? 'on' : ''}" role="radio" aria-checked="${F.kind === k}" data-a="fbkind" data-v="${k}">${k}</button>`).join('')}</div>
         <p class="hint" style="color:var(--warm)">기도제목은 여기 쓰지 말아 주세요.</p>
         <textarea id="fb-t" class="field" rows="6" maxlength="500" placeholder="불편한 점, 바라는 점, 고마운 점 무엇이든 좋아요." aria-label="의견">${esc(F.text)}</textarea>
@@ -2165,8 +2194,7 @@ button.pg-tag::before { content: ''; position: absolute; inset: -10px; }
           ${M.linked ? '' : `<label class="label" for="gc-p" style="margin:0">모임에서 쓸 내 이름</label><input id="gc-p" class="field" maxlength="10" value="${esc(M.nick || '')}" autocomplete="name">`}
           <label class="label" for="gc-m" style="margin:0">얼마 동안 모일까요?</label>
           <select id="gc-m" class="field">${[1, 3, 6, 12].map(m => `<option value="${m}"${m === (S.gMonths || 3) ? ' selected' : ''}>${m}개월 · ${dayLabel(addMonthsStr(TODAY(), m))}까지</option>`).join('')}</select>
-          <p class="hint" style="margin:0">모임은 끝나는 날에 기록과 함께 사라져요. 남기고 싶은 기도제목은 언제든 내 기도 노트로 옮겨요. 기간은 늘릴 수 없어요.</p>
-          <p class="hint" style="margin:0">모임에 쓴 기도제목은 모임 사람들이 함께 봐요(서버에 저장, 교회 관리 화면에는 안 나와요). 모임 사람들은 내 기도제목을 자기 노트로 옮겨 둘 수 있어요. 노트의 기도제목은 "나누기"로만 모임에 옮겨져요.</p>
+          <p class="hint" style="margin:0">모임의 기도제목은 끝나는 날 기록과 함께 사라져요. 남기고 싶은 기도제목은 내 기도 노트로 옮길 수 있어요.</p>
           <div class="row" style="justify-content:flex-end;gap:8px"><button type="button" class="btn ghost small" data-a="gcancel">취소</button><button class="btn small" type="submit"${S.gBusy ? ' disabled' : ''}>동의하고 만들기</button></div></form>`
         : lead || full ? '' : '<button class="btn ghost small" data-a="gnew" style="align-self:flex-start">+ 모임 만들기</button>'}
       ${full ? `<p class="hint">${PLACES}곳이 다 찼어요(교회 소그룹 포함).</p>` : lead ? '<p class="hint">모임장은 한 모임만 맡아요.</p>' : ''}${weaves().length ? `<div class="mlist"><button class="mrow" data-a="tab" data-v="weaves"><span><b>함께 짠 그물</b><small>모임에서 담아 둔 그물 · ${weaves().length}개</small></span><span aria-hidden="true">›</span></button></div>` : ''}</section>`;
@@ -2183,7 +2211,7 @@ button.pg-tag::before { content: ''; position: absolute; inset: -10px; }
     render();
   }
   function mvTarget(x, made) {
-    const person = n => { n = String(n || '').trim().slice(0, 12) || '이름 없음'; const had = people().find(p => p.name === n); if (had) return 'p:' + had.id; const p = { id: uid(), name: n, up: now() }; D.people.push(p); made.push(n); return 'p:' + p.id; };
+    const person = n => { n = String(n || '').trim().slice(0, 12) || '이름 없음'; const had = people().find(p => p.name === n); if (had) return 'p:' + had.id; const p = { id: uid(), name: n, up: now(), ord: nextOrd() }; D.people.push(p); made.push(n); return 'p:' + p.id; };
     if (x.own) { const t = String(x.target || '').trim(); if (!t || t === '나') return ['me', x.text]; if (t === '교회') return ['church', x.text]; if (/^나라|^세상/.test(t)) return ['world', x.text]; return [person(t), x.text]; }
     const t = String(x.target || '').trim();
     return [person(x.who), t && t !== '나' ? '(' + t + ') ' + x.text : x.text];
@@ -2467,7 +2495,7 @@ button.pg-tag::before { content: ''; position: absolute; inset: -10px; }
         <ol class="ps-ord">${list.map(c => { if (c.topic) return `<li><div><span>${esc((topicByK(c.topic) || {}).name || '')}</span><span>하나님 나라</span></div></li>`;
           const on = c.ids.every(prayedToday), txt = c.ids.map(id => (D.items.find(i => i.id === id) || {}).text || '').join(' · ');
           return `<li><div><span><span class="tag">${esc(targetName(c.target))}</span>${esc(txt)}</span><span class="${on ? 'ok' : ''}">${on ? '오늘 기도함' : '아직'}</span></div></li>`; }).join('')}</ol></section>`;
-    return `<header class="top"><div><p class="eyebrow">한 장씩 넘기며</p><h1>기도하기</h1></div></header>
+    return `<header class="top"><div><h1>기도하기</h1></div></header>
       <div class="n-two"><div class="n-main"><section class="card"><p class="plain">조용한 화면에서 한 장씩 넘기며 기도해요. 마지막에는 주기도문으로 마쳐요.</p>
         <p class="label">무엇을 위해 기도할까요?</p>${kinds}
         ${PS.world ? `<div class="ps-topics"><p class="hint" style="margin:0">기도할 주제를 골라 보세요.</p><div class="seg" style="--n:2" role="group">${KP.PRAY_TOPICS.map(t => { const on = PS.topics.includes(t.k); return `<button class="${on ? 'on' : ''}" data-a="pstopic" data-v="${t.k}" aria-pressed="${on}">${on ? ICON.check + ' ' : ''}${esc(t.name)}</button>`; }).join('')}</div></div>` : ''}
@@ -2489,9 +2517,9 @@ button.pg-tag::before { content: ''; position: absolute; inset: -10px; }
   function render() {
     if (S.tab !== 'weaves') S.wopen = null;
     if (vtCur && S.ps) vtCur.skipTransition();   // 기도하기 창처럼 화면 전체를 덮는 창이 뜨면 넘기기를 바로 끝낸다
-    const V = { today: todayView, note: noteView, pray: prayTab, look: lookView, weaves: weavesView, more: moreView, sync: syncView, fb: fbView, help: helpView }[S.tab];
+    const V = { today: todayView, note: noteView, pray: prayTab, look: lookView, weaves: weavesView, more: moreView, people: peopleView, sync: syncView, fb: fbView, help: helpView }[S.tab];
     $('#root').innerHTML = `${topBar()}<div class="wrap has-top">${V()}</div>
-      <nav class="tabs" aria-label="메뉴">${TABS.map(([k, l, ic]) => { const on = (['fb', 'sync', 'help', 'weaves'].includes(S.tab) ? 'more' : S.tab) === k; return `<button class="${k === 'pray' ? 'pray-tab ' : ''}${on ? 'on' : ''}" data-a="tab" data-v="${k}" aria-label="${l}" title="${l}" ${on ? 'aria-current="page"' : ''}>${ic}</button>`; }).join('')}</nav>
+      <nav class="tabs" aria-label="메뉴">${TABS.map(([k, l, ic]) => { const on = (['fb', 'sync', 'help', 'weaves', 'people'].includes(S.tab) ? 'more' : S.tab) === k; return `<button class="${k === 'pray' ? 'pray-tab ' : ''}${on ? 'on' : ''}" data-a="tab" data-v="${k}" aria-label="${l}" title="${l}" ${on ? 'aria-current="page"' : ''}>${ic}</button>`; }).join('')}</nav>
       ${S.done ? doneSheet() : ''}${S.bdg ? bdgSheet() : ''}${a2hsOn() ? a2hsSheet() : ''}${S.vsheet ? vaultSheet() : ''}${S.cut ? cutSheet() : ''}${S.recSheet ? recSheet() : ''}${S.kc ? kcSheet() : ''}${S.share ? shareSheet() : ''}${S.mv ? mvSheet() : ''}${S.pg ? pgHtml() : ''}${S.ps ? psHtml() : ''}${S.toast ? `<div class="toast" role="status">${esc(S.toast)}</div>` : ''}
       ${canSave ? '' : '<div class="toast" role="alert">이 브라우저에서는 저장할 수 없어요. 개인 정보 보호 모드를 끄고 열어 주세요.</div>'}`;
     lockScroll();
@@ -2511,11 +2539,42 @@ button.pg-tag::before { content: ''; position: absolute; inset: -10px; }
   document.addEventListener('input', e => { if (e.target.matches && e.target.matches('textarea.field')) autosize(e.target); });
   let toastT;
   function toast(m) { S.toast = m; render(); clearTimeout(toastT); toastT = setTimeout(() => { S.toast = ''; render(); }, 2200); }
+  // 내가 기도하는 사람들 순서 끌기: 손잡이(≡)에서 pointerdown → 그 줄이 손가락을 따라가고 다른 줄이 비켜 서며, 놓으면(pointerup) 순서를 저장한다. 취소(pointercancel)면 원래대로. 키보드는 손잡이에서 위·아래 화살표
+  (function () {
+    let dr = null;
+    const rest = () => { if (!dr) return; dr.rows.forEach(r => { r.style.transform = ''; r.classList.remove('dragging'); }); dr = null; };
+    document.addEventListener('pointerdown', e => {
+      const h = e.target.closest && e.target.closest('.people .drag-h'); if (!h || dr || (e.pointerType === 'mouse' && e.button !== 0)) return;
+      const li = h.closest('li'), rows = [...li.parentElement.children], from = rows.indexOf(li);
+      dr = { id: h.dataset.v, h, li, rows, from, idx: from, y0: e.clientY, step: li.offsetHeight, pid: e.pointerId };
+      try { h.setPointerCapture(e.pointerId); } catch (err) { /* 무시 */ }
+      li.classList.add('dragging'); e.preventDefault();
+    });
+    document.addEventListener('pointermove', e => {
+      if (!dr || e.pointerId !== dr.pid) return;
+      const dy = e.clientY - dr.y0, n = dr.rows.length;
+      dr.idx = Math.max(0, Math.min(n - 1, Math.round(dr.from + dy / dr.step)));
+      dr.li.style.transform = `translateY(${Math.max(-dr.from * dr.step, Math.min((n - 1 - dr.from) * dr.step, dy))}px)`;
+      dr.rows.forEach((r, i) => { if (r === dr.li) return; r.style.transform = dr.from < dr.idx && i > dr.from && i <= dr.idx ? `translateY(${-dr.step}px)` : dr.from > dr.idx && i < dr.from && i >= dr.idx ? `translateY(${dr.step}px)` : ''; });
+    });
+    document.addEventListener('pointerup', e => {
+      if (!dr || e.pointerId !== dr.pid) return;
+      const { id, idx, from } = dr; rest();
+      if (idx !== from && movePerson(id, idx)) render();
+    });
+    document.addEventListener('pointercancel', e => { if (dr && e.pointerId === dr.pid) rest(); });
+    document.addEventListener('keydown', e => {
+      const h = e.target.closest && e.target.closest('.people .drag-h'); if (!h || (e.key !== 'ArrowUp' && e.key !== 'ArrowDown')) return;
+      e.preventDefault();
+      const id = h.dataset.v, i = people().findIndex(p => p.id === id);
+      if (movePerson(id, i + (e.key === 'ArrowUp' ? -1 : 1))) { render(); const nh = document.querySelector(`.people .drag-h[data-v="${id}"]`); if (nh) nh.focus(); }
+    });
+  })();
   function go(t) { S.tab = t; S.tgtOpen = null; render(); window.scrollTo(0, 0); }
   // 하단 탭(PC는 위쪽 메뉴)을 눌러 탭 순서가 다른 탭으로 옮길 때만 옛 화면과 새 화면을 겹쳐 넘긴다(공동체 화면과 같은 방식).
   //  옛 화면 사진을 찍은 뒤에 바꿔야 하니 상태 바꾸기·그리기·맨 위로 올리기(go)를 전환 콜백 안에서 한다. 기능이 없거나 실패하면 그린 뒤 새 화면만 옆으로 살짝 움직인다.
   //  기도하기 창이나 따라 하기가 떠 있거나, 다른 곳(카드 안 단추 등)에서 탭이 바뀔 때, 움직임 줄이기에서는 움직이지 않고 바로 그린다
-  const tabIdx = t => TABS.findIndex(x => x[0] === (['fb', 'sync', 'help', 'weaves'].includes(t) ? 'more' : t));
+  const tabIdx = t => TABS.findIndex(x => x[0] === (['fb', 'sync', 'help', 'weaves', 'people'].includes(t) ? 'more' : t));
   function vtAnim(el, cls) { if (!el) return; el.classList.remove('vt-in-r', 'vt-in-l'); void el.offsetWidth; el.classList.add(cls); el.addEventListener('animationend', () => el.classList.remove(cls), { once: true }); }
   function tabGo(b, v) {
     const from = tabIdx(S.tab), to = tabIdx(v);
@@ -2529,9 +2588,17 @@ button.pg-tag::before { content: ''; position: absolute; inset: -10px; }
     }
     go(v); vtAnim($('#root > .wrap.has-top'), cls);
   }
+  // 순서 바꾸기: 보이는 사람 모두에게 0,1,2…로 순서 번호를 다시 매기고, 번호가 바뀐 사람만 고친 시각을 올린다(동기화는 고친 시각이 큰 쪽을 남긴다)
+  function movePerson(id, to) {
+    const L = people(), from = L.findIndex(p => p.id === id); if (from < 0) return false;
+    to = Math.max(0, Math.min(L.length - 1, to)); if (to === from) return false;
+    L.splice(to, 0, L.splice(from, 1)[0]);
+    L.forEach((p, i) => { if (p.ord !== i) { p.ord = i; p.up = now(); } });
+    save(); return true;
+  }
   function addPerson() {
     const n = (prompt('기도할 사람의 이름') || '').trim().slice(0, 12); if (!n) return null;
-    const p = { id: uid(), name: n, up: now() }; D.people.push(p); save(); earn('n-people'); return p;
+    const p = { id: uid(), name: n, up: now(), ord: nextOrd() }; D.people.push(p); save(); earn('n-people'); return p;
   }
 
   // ── 누르기 ─────────────────────────────────────────────────────────────
@@ -2575,7 +2642,7 @@ button.pg-tag::before { content: ''; position: absolute; inset: -10px; }
         const pr = NoteGuide.add(parts); // 연습이면 만든 기도제목·사람에 practice 표시
         parts.forEach(x => {
           let t = x.target;
-          if (t.startsWith('new:')) { const n = t.slice(4).slice(0, 12), had = people().find(p => p.name === n); t = 'p:' + (had ? had.id : (made[n] || (made[n] = (() => { const p = { id: uid(), name: n, up: now() }; if (pr) p.practice = true; D.people.push(p); return p.id; })()))); }
+          if (t.startsWith('new:')) { const n = t.slice(4).slice(0, 12), had = people().find(p => p.name === n); t = 'p:' + (had ? had.id : (made[n] || (made[n] = (() => { const p = { id: uid(), name: n, up: now(), ord: nextOrd() }; if (pr) p.practice = true; D.people.push(p); return p.id; })()))); }
           D.items.push(Object.assign({ id: uid(), text: x.text, target: t, created: TODAY(), done: null, up: now() }, pr ? { practice: true } : {}));
         });
         filterReveal([...new Set(D.items.slice(-parts.length).map(i => i.target))]);
