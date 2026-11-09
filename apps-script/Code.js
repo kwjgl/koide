@@ -80,6 +80,7 @@ const SCHEMA = {
   // 의견함(설계서 S7 › ⑥): 이름을 밝히지 않으면 가정ID와 사람을 남기지 않는다. 13개월 뒤 지운다
   // 운영 관리자(설계서 13장): 부서에 속하지 않고, 기도제목 내용을 보지 않고 맡은 부서를 꾸리는 사람. 범위는 부서ID들(쉼표) 또는 '전체'.
   //  맨 처음 한 사람은 시트에 직접 적는다(카카오ID는 연결 탭에서). 그다음부터는 앱의 일회용 초대 링크(초대 값)로 붙는다
+  // 탭 이름 '전체 관리자'는 예전 이름 그대로 둔다(화면 이름은 2026-11-09부터 '교회 관리자'). 바꾸면 운영 중인 시트를 못 찾는다
   opsAdmins: ['전체 관리자', [['kakaoId', '카카오ID'], ['name', '이름'], ['scope', '범위'], ['status', '상태'], ['token', '초대 값'], ['at', '만든 날'], ['by', '만든 사람']]],
   // 자율 모임(설계서 13장, 2026-10-23 · 2026-10-21 기도 노트로 옮김): 카카오로 로그인한 누구나 만드는 모임. 한 모임 12명, 한 사람 3곳(원래 소그룹 포함), 모임장은 한 사람당 1곳.
   //  모임은 잠깐 모이는 임시 공간: 만들 때 끝나는 날(1·3·6·12개월 뒤, 늘리기 없음)을 정하고, 끝나는 날이 지나면 모임·사람·기도제목·기도 기록을 모두 지운다(개수만 변경기록에 남는다).
@@ -87,7 +88,7 @@ const SCHEMA = {
   //  사람마다 모임 안의 ID(모임 사람ID)가 있어서, 기도제목·기도했어요는 그 ID를 가정ID 자리에 쓴다(모임마다 따로)
   groups: ['모임', [['id', '모임ID'], ['name', '이름'], ['owner', '모임장 카카오ID'], ['token', '초대 값'], ['status', '상태'], ['at', '만든 날'], ['endsAt', '끝나는 날']]],
   gmembers: ['모임 사람', [['groupId', '모임ID'], ['id', '모임 사람ID'], ['kakaoId', '카카오ID'], ['person', '이름'], ['role', '역할'], ['status', '상태'], ['at', '들어온 날']]],
-  //  부서ID가 비어 있으면 교회에 연결되지 않은 기도 노트 사용자가 보낸 것(전체 관리자만 본다)
+  //  부서ID가 비어 있으면 교회에 연결되지 않은 기도 노트 사용자가 보낸 것(교회 관리자만 본다)
   feedback: ['의견', [['at', '보낸 날'], ['deptId', '부서ID'], ['kind', '종류'], ['text', '내용'], ['familyId', '가정ID'], ['person', '사람'], ['ver', '화면 버전'], ['width', '기기 폭'], ['read', '읽음']]],
   // 시범 설문(3·7·14일째 카드): 누가 보냈는지는 남기지 않는다(카카오ID·가정ID·이름 없음). 답은 정해 둔 키와 값만(JSON), 숫자는 사용자가 '숫자도 함께 보내기'를 켰을 때만
   survey: ['설문', [['at', '보낸 날'], ['where', '어디'], ['day', '몇째 날'], ['answers', '답'], ['nums', '숫자'], ['deptId', '부서ID'], ['width', '기기 폭'], ['ver', '화면 버전'], ['pilot', '해 본 일']]]
@@ -102,7 +103,7 @@ const FIRST_DEPT = { id: 'D1', name: '청장년부', group: '사랑방', unit: '
 // ── 요청 받기 ─────────────────────────────────────────────
 
 // 서버 코드를 고칠 때마다 바꾼다. 웹 앱 주소를 열면 보여서, 새 버전으로 배포됐는지 확인할 수 있다
-const VERSION = '2026-11-13 첫 관리자 초대';
+const VERSION = '2026-11-14 교회 관리자 이름';
 function doGet() {
   return ContentService.createTextOutput('코이데 서버가 켜져 있어요. (버전: ' + VERSION + ')');
 }
@@ -325,7 +326,7 @@ function hubKnows_(body) {
   const l = read_('links').find(x => String(x.kakaoId) === k && (x.status === '연결' || x.status === '요청'));
   return { known: !!l || opsRows_(k).length > 0 };
 }
-// 첫 관리자 초대(앱 관리자 보기): 전체 관리자 초대 링크 값을 만든다. 전체 관리자가 아직 없는 새 교회·테스트 공간을 시트를 열지 않고 꾸리려고. 7일 안에 한 번
+// 첫 관리자 초대(앱 관리자 보기): 교회 관리자 초대 링크 값을 만든다. 교회 관리자가 아직 없는 새 교회·테스트 공간을 시트를 열지 않고 꾸리려고. 7일 안에 한 번
 function hubOpsInvite_(body) {
   hubCheck_('invite|' + body.at, body.sig, body.at);
   return withLock_(() => {
@@ -1257,7 +1258,7 @@ function setMonthly_(familyId, m, status) {
 
 // 변경기록: 관리자·리더가 바꾼 것. 기록하다 실패해도 하던 일은 그대로 마친다
 function logChange_(c, kind, target, extra, ref, deptId) {
-  try { append_('changes', { at: new Date(), deptId: deptId || c.deptId, who: c.person, role: c.ops ? (c.all ? '전체 관리자' : '운영 지원') : c.admin ? '부서 관리자' : c.role, kind, target: target || '', extra: extra || '', ref: ref || '' }); }
+  try { append_('changes', { at: new Date(), deptId: deptId || c.deptId, who: c.person, role: c.ops ? (c.all ? '교회 관리자' : '운영 지원') : c.admin ? '부서 관리자' : c.role, kind, target: target || '', extra: extra || '', ref: ref || '' }); }
   catch (e) { /* 기록을 못 남겨도 하던 일은 마친다 */ }
 }
 // 오류 기록: 요청 이름과 오류 종류만(오류 글은 80자까지)
@@ -1464,7 +1465,7 @@ function inviteRenew_(body) {
 
 // ── 의견함 (설계서 S7 › ⑥) ───────────────────────────────
 const FEEDBACK_KINDS = ['불편해요', '이랬으면', '고마워요'];
-// 로그인한 누구나 의견을 보낸다(교회에 연결되지 않은 기도 노트 사용자도: 부서ID가 비고 전체 관리자만 본다).
+// 로그인한 누구나 의견을 보낸다(교회에 연결되지 않은 기도 노트 사용자도: 부서ID가 비고 교회 관리자만 본다).
 //  이름을 밝히면 연결된 사람은 가정ID와 사람을, 연결되지 않은 사람은 카카오 닉네임을 남긴다. 한 사람이 하루 10번까지
 function sendFeedback_(body) {
   const w = who_(body), text = String(body.text || '').trim().slice(0, 500);
@@ -1560,7 +1561,7 @@ function sendSurvey_(body) {
   append_('survey', { at: new Date(), where, day, answers: JSON.stringify(ans), nums, pilot, deptId, width: ['phone', 'tablet', 'pc'].indexOf(body.width) >= 0 ? body.width : '', ver: String(body.ver || '').slice(0, 20) });
   return { ok: true };
 }
-// 교회 전체 › 의견과 설문(전체 관리자): 몇째 날별 답 개수(합계만, 사람별 보기 없음)와 시범 해 본 일 항목별 사람 수, 글 답, 부서 없는 것까지 모든 의견, 표로 내려받을 줄들
+// 교회 전체 › 의견과 설문(교회 관리자): 몇째 날별 답 개수(합계만, 사람별 보기 없음)와 시범 해 본 일 항목별 사람 수, 글 답, 부서 없는 것까지 모든 의견, 표로 내려받을 줄들
 function surveyAdmin_(body) {
   allAdmin_(body);
   const depts = read_('depts'), deptName = id => id ? ((depts.find(d => d.id === id) || {}).name || id) : '기도 노트(부서 없음)';
@@ -1648,13 +1649,13 @@ function opsList_(c) {
   return { live: live.map(o => ({ id: String(o.kakaoId), name: o.name, all: isAll(o), me: String(o.kakaoId) === c.kakaoId })),
     wait: wait.map(o => ({ token: o.token, at: fmtDay_(o.at) })) };
 }
-// 전체 관리자 초대(전체 관리자만): 일회용 링크, 7일 안에 한 번. 한 사람이 빠져도 멈추지 않게 둘 이상 두려고
+// 교회 관리자 초대(교회 관리자만): 일회용 링크, 7일 안에 한 번. 한 사람이 빠져도 멈추지 않게 둘 이상 두려고
 function opsInvite_(body) {
   const c = allAdmin_(body);
   return withLock_(() => {
     const token = newToken_() + newToken_().slice(0, 4);
     append_('opsAdmins', { kakaoId: '', name: '', scope: '전체', status: '초대', token, at: new Date(), by: c.person });
-    logChange_(c, '전체 관리자 초대', '');
+    logChange_(c, '교회 관리자 초대', '');
     return { token, list: opsList_(c) };
   });
 }
@@ -1670,7 +1671,7 @@ function opsJoin_(body) {
     return meInfo_(who_(body));
   });
 }
-// 전체 관리자 빼기·초대 취소(전체 관리자만, 나는 뺄 수 없다)
+// 교회 관리자 빼기·초대 취소(교회 관리자만, 나는 뺄 수 없다)
 function opsRemove_(body) {
   const c = allAdmin_(body);
   return withLock_(() => {
@@ -1679,11 +1680,11 @@ function opsRemove_(body) {
       : rows.find(o => String(o.kakaoId) === String(body.kakaoId) && o.status === '활동' && String(o.kakaoId) !== c.kakaoId);
     if (!row) throw fail_('bad', '뺄 수 있는 사람이 아니에요.');
     row.status = '마침'; update_('opsAdmins', row);
-    logChange_(c, body.invite ? '전체 관리자 초대 취소' : '전체 관리자 뺌', body.invite ? '' : row.name);
+    logChange_(c, body.invite ? '교회 관리자 초대 취소' : '교회 관리자 뺌', body.invite ? '' : row.name);
     return opsList_(c);
   });
 }
-// 교회 전체(전체 관리자의 첫 화면): 부서마다 요약과 할 일 수, 앱 상태, 교회 안 모임, 전체 관리자. 기도제목은 없다
+// 교회 전체(교회 관리자의 첫 화면): 부서마다 요약과 할 일 수, 앱 상태, 교회 안 모임, 교회 관리자. 기도제목은 없다
 function churchView_(body) {
   const c = allAdmin_(body), m = month_(), p = props_();
   const fams = read_('families'), links = read_('links'), fb = read_('feedback');
@@ -1706,7 +1707,7 @@ function churchView_(body) {
 // 부서 만들기·고치기(교회 전체를 맡은 운영 관리자): 이름, 소그룹 이름, 단위(가정/개인)
 function deptSave_(body) {
   const c = adminOf_(body);
-  if (!c.ops || !c.all) throw fail_('forbidden', '전체 관리자만 부서를 만들어요.');
+  if (!c.ops || !c.all) throw fail_('forbidden', '교회 관리자만 부서를 만들어요.');
   const name = String(body.name || '').trim().slice(0, 12), group = String(body.group || '').trim(), unit = body.unit === '개인' ? '개인' : '가정';
   if (!name) throw fail_('bad', '부서 이름을 적어 주세요.');
   if (!/^[가-힣A-Za-z0-9]{1,6}$/.test(group)) throw fail_('bad', '소그룹 이름은 띄어쓰기 없이 6글자까지 써 주세요.');
@@ -1720,12 +1721,12 @@ function deptSave_(body) {
   });
 }
 
-// ── 전체 관리자(범위 '전체'인 운영 지원): 부서 닫기·다시 열기·기록 모두 지우기 ─────────────
+// ── 교회 관리자(범위 '전체'인 운영 지원): 부서 닫기·다시 열기·기록 모두 지우기 ─────────────
 // 닫기: 첫 접속 목록에서 빠지고 그 부서 사람은 들어오지 못한다. 기록은 남아서 다시 열 수 있다.
 //  닫은 부서 사람들은 닫은 달부터 1년이 지나면 개인정보 요청에 올라온다. 바로 지워야 하면 '기록 모두 지우기'(부서 이름을 그대로 써야 한다)
 function allAdmin_(body) {
   const c = adminOf_(body);
-  if (!c.ops || !c.all) throw fail_('forbidden', '전체 관리자만 할 수 있어요.');
+  if (!c.ops || !c.all) throw fail_('forbidden', '교회 관리자만 할 수 있어요.');
   return c;
 }
 function deptState_(body, status) {
@@ -1760,7 +1761,7 @@ function deptErase_(body) {
   });
 }
 
-// 교회 전체 분석(전체 관리자): 부서를 합친 숫자와 부서 × 달 손봄·확인 비율(부서는 정해 둔 순서, 순위 없음), 기도하는 때, 기도 주제 흐름(숫자만),
+// 교회 전체 분석(교회 관리자): 부서를 합친 숫자와 부서 × 달 손봄·확인 비율(부서는 정해 둔 순서, 순위 없음), 기도하는 때, 기도 주제 흐름(숫자만),
 //  앱 개선(교회 전체 사용기록). 이름·가정별 숫자·기도제목 내용은 없다. 닫은 부서는 빼고 센다
 function churchAnalysis_(body) {
   const c = allAdmin_(body), m = month_(), months = [m];
@@ -1805,7 +1806,7 @@ function churchAnalysis_(body) {
 }
 
 // ── 함께 기도해요(부서 기도제목) ─────────────────────────────────
-// 교역자·부서 관리자·전체 관리자가 쓰는 부서의 이번 달 기도제목(수련회, 선교사님, 새가족, 아픈 성도 등). 회원의 이번 달 화면 '함께 기도해요'와
+// 교역자·부서 관리자·교회 관리자가 쓰는 부서의 이번 달 기도제목(수련회, 선교사님, 새가족, 아픈 성도 등). 회원의 이번 달 화면 '함께 기도해요'와
 //  기도하기 › 하나님 나라 › 우리 교회 장에 나온다. 기도제목 시트에 가정ID 대신 'DEPT-부서ID'로 쌓고, 다음 달로 그대로 이어진다(마치기 전까지)
 const togetherKey_ = deptId => 'DEPT-' + deptId;
 function togetherItems_(deptId, withEnded) {
@@ -2000,9 +2001,9 @@ function newsOfFamily_(familyId) {
   if (gone) out.moved = { at: now.from, dept: deptOfRoom_(gone.roomId).name };
   return out.married || out.moved ? out : undefined;
 }
-// 받는 부서의 관리자이거나 전체 관리자만
+// 받는 부서의 관리자이거나 교회 관리자만
 function canReceive_(c, deptId) { return c.deptId === deptId || !!(c.ops && c.all); }
-// 변경 기록 줄의 [되돌리기]: '' / 'marry' / 'move'. 그달 안에서, 받는 부서 관리자와 전체 관리자에게만
+// 변경 기록 줄의 [되돌리기]: '' / 'marry' / 'move'. 그달 안에서, 받는 부서 관리자와 교회 관리자에게만
 function undoable_(c, x) {
   if (!x.ref || fmtMonth_(x.at) !== month_() || (x.kind !== '결혼 처리' && x.kind !== '부서 옮김')) return '';
   if (!(c.ops && c.all) && c.deptId !== x.deptId) return '';
@@ -2207,7 +2208,7 @@ function moveUndo_(body) {
 
 // ── 자율 모임 (설계서 13장, 2026-10-23) ─────────────────────────
 // 카카오로 로그인한 누구나 만든다(2026-10-21, 기도 노트의 '내 모임'으로 옮기며). 모임장의 초대 링크로 들어오고 모임장이 승인한다.
-//  교회에 연결되지 않은 사람은 모임에서 쓸 이름을 적는다. 관리 화면에는 나오지 않고, 전체 관리자는 문제가 있을 때 초대 링크로 그 모임 하나만 닫는다.
+//  교회에 연결되지 않은 사람은 모임에서 쓸 이름을 적는다. 관리 화면에는 나오지 않고, 교회 관리자는 문제가 있을 때 초대 링크로 그 모임 하나만 닫는다.
 //  모임은 끝나는 날(endsAt, 최대 1년)이 있고, 지나면 모임과 기록을 모두 지운다. 늘리기는 없다. 남기고 싶은 기도제목은 그동안 내 기도 노트로 옮긴다(groupExport)
 //  모임은 개인 단위라 사람마다 모임 사람ID가 있고, 이번 달·내 기도·기도하기는 사랑방과 같은 화면을 모임 것으로 쓴다
 const GROUP_SCOPES = ['room', 'family'];
@@ -2418,7 +2419,7 @@ function groupRenew_(body) {
   if (c.role !== '모임장') throw fail_('forbidden', '모임장만 할 수 있어요.');
   return withLock_(() => { const g = read_('groups').find(x => x.id === c.grp); g.token = newToken_(); update_('groups', g); return groupMonthView_(groupMember_(body)); });
 }
-// 전체 관리자: 문제가 있는 자율 모임 하나를 초대 링크(또는 초대 값)로 지운다(기록도 함께). 모임 목록은 보여 주지 않고, 기도제목도 보지 않는다
+// 교회 관리자: 문제가 있는 자율 모임 하나를 초대 링크(또는 초대 값)로 지운다(기록도 함께). 모임 목록은 보여 주지 않고, 기도제목도 보지 않는다
 function groupAdmin_(body) {
   const c = allAdmin_(body), t = String(body.invite || '').trim().replace(/^.*[?&]gjoin=/, '').replace(/[&#].*$/, '');
   if (!t) throw fail_('bad', '모임 초대 링크를 넣어 주세요.');
@@ -2479,10 +2480,10 @@ function groupExport_(body) {
   return { name: c.group.name, endsAt: c.group.endsAt || '', left: daysLeft_(c.group), me: c.person, items: list };
 }
 
-// 변경 기록 보기: 부서 관리자는 우리 부서, 전체 관리자는 교회 전체(all). 최근 것부터 300줄
+// 변경 기록 보기: 부서 관리자는 우리 부서, 교회 관리자는 교회 전체(all). 최근 것부터 300줄
 function changesView_(body) {
   const c = adminOf_(body), all = !!body.all;
-  if (all && !(c.ops && c.all)) throw fail_('forbidden', '전체 관리자만 볼 수 있어요.');
+  if (all && !(c.ops && c.all)) throw fail_('forbidden', '교회 관리자만 볼 수 있어요.');
   const names = {}; read_('depts').forEach(d => { names[d.id] = d.name; });
   return read_('changes').filter(x => all || x.deptId === c.deptId).sort((a, b) => a.at < b.at ? 1 : -1).slice(0, 300)
     .map(x => ({ at: x.at, who: x.who, role: x.role, kind: x.kind, target: x.target, extra: x.extra, dept: names[x.deptId] || '', ref: x.ref || '', undo: undoable_(c, x) }));
@@ -2616,7 +2617,7 @@ function sampleData() {
   append_('roster', { year: String(Number(y) - 2), roomId: 'R1', familyId: 'F12', role: '회원' });
   append_('roster', { year: String(Number(y) - 1), roomId: 'R1', familyId: 'F1', role: '리더' });
   append_('requests', { familyId: 'F7', deptId: d1, kind: '기록 지우기', at: today_(), status: '요청', doneAt: '', doneBy: '' });
-  // 전체 관리자 예시: 가정 없이 교회 전체를 맡은 최운영(데모 로그인)
+  // 교회 관리자 예시: 가정 없이 교회 전체를 맡은 최운영(데모 로그인)
   append_('opsAdmins', { kakaoId: 'd-최운영', name: '최운영', scope: '전체', status: '활동', token: '', at: new Date(), by: '예시' });
   // 함께 기도해요 예시(청장년부)
   append_('items', { id: newId_(), month: prev, familyId: 'DEPT-' + d1, roomId: '', target: '수련회', text: '11월 가을 수련회를 잘 준비하고, 모든 가정이 함께하도록', scope: 'dept', state: '이어짐', prevId: '', same: '아니오', order: 1, editedAt: new Date(), editedBy: '한기쁨' });

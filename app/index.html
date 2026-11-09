@@ -1537,7 +1537,7 @@ try { const p = JSON.parse(localStorage.getItem('koide-pref') || '{}'), d = docu
       let oj = null; try { oj = localStorage.getItem(OPS_JOIN); } catch (e) { /* 없음 */ }
       if (oj) {
         try { localStorage.removeItem(OPS_JOIN); } catch (e) { /* 무시 */ }
-        try { S.me = await api('opsJoin', { invite: oj }); toast('전체 관리자를 맡게 되었어요.'); try { localStorage.setItem(OP_KEY, '*'); } catch (e) { /* 무시 */ } }
+        try { S.me = await api('opsJoin', { invite: oj }); toast('교회 관리자를 맡게 되었어요.'); try { localStorage.setItem(OP_KEY, '*'); } catch (e) { /* 무시 */ } }
         catch (e) { toast(e.message); }
       }
       // 운영 화면으로 보던 부서가 있으면(또는 가정 없이 운영 관리자만이면) 운영 화면으로
@@ -1972,7 +1972,7 @@ try { const p = JSON.parse(localStorage.getItem('koide-pref') || '{}'), d = docu
         if (K.err) return `<p class="aa-err">${esc(K.err)}</p>`;
         return `<div class="aa-link"><p class="label" style="margin:0">첫 관리자 초대 링크</p><code>${esc(K.link)}</code>
           <div class="actions"><button class="btn small" data-act="aacopy">복사</button><button class="link quiet" data-act="aainvite" data-v="">닫기</button></div>
-          <p class="hint">${esc(K.until)}까지 한 번 쓸 수 있어요. 받은 사람이 이 링크로 열고 카카오로 로그인하면 이 교회의 전체 관리자가 돼요.</p></div>`; };
+          <p class="hint">${esc(K.until)}까지 한 번 쓸 수 있어요. 받은 사람이 이 링크로 열고 카카오로 로그인하면 이 교회의 교회 관리자가 돼요.</p></div>`; };
       const card = c => { const st = c.status, dst = c.didakoStatus, old = st && String(st.version).slice(0, 10) < NEED_SERVER, bad = !st || old || (st && st.errors) || (c.didako && (!dst || dst.errors));
         if (E && E.orig === c.id) return form(c);
         return `<section class="card aa-card${c.stopped ? ' stopped' : ''}">
@@ -3480,7 +3480,7 @@ try { const p = JSON.parse(localStorage.getItem('koide-pref') || '{}'), d = docu
     const roles = [
       isLeaderRole() && !S.grp ? row('tab', 'status', esc(grp()) + ' 현황', '기도제목 올렸는지 보기 · 안부 문구 · 연결 승인', tag('leader', esc(me.role))) : '',
       me.admin && !S.grp ? row('tab', 'admin', (S.month.dept && S.month.dept.name ? esc(S.month.dept.name) : '부서') + ' 관리', '우리 부서 전체를 꾸려요', tag('admin', '부서 관리자')) : '',
-      opsDepts().length ? row(S.me.ops.all ? 'church' : 'tab', S.me.ops.all ? '' : 'ops', S.me.ops.all ? '전체 관리' : '운영 지원', opsDepts().map(d => esc(d.name)).join(' · ') + ' · 기도제목 내용은 보지 않아요', tag('admin', S.me.ops.all ? '전체 관리자' : '지원')) : ''
+      opsDepts().length ? row(S.me.ops.all ? 'church' : 'tab', S.me.ops.all ? '' : 'ops', S.me.ops.all ? '교회 관리' : '운영 지원', opsDepts().map(d => esc(d.name)).join(' · ') + ' · 기도제목 내용은 보지 않아요', tag('admin', S.me.ops.all ? '교회 관리자' : '지원')) : ''
     ].join('');
     const setOpen = !!S.setOpen;
     return `<div class="page-top"><div><h1>더보기</h1></div></div>
@@ -3749,7 +3749,7 @@ try { const p = JSON.parse(localStorage.getItem('koide-pref') || '{}'), d = docu
     const tab = S.adminTab || 'manage';
     const seg = `<div class="seg2 admin-seg" role="tablist" aria-label="관리 화면">${[['manage', '관리'], ['analysis', '분석']].map(([k, l]) => `<button class="${tab === k ? 'on' : ''}" role="tab" aria-selected="${tab === k}" data-act="admintab" data-v="${k}">${l}</button>`).join('')}</div>`;
     const head = `${S.op ? (S.month.me.all ? `<button class="link back" data-act="church">${ICON.chevL}교회 전체</button>` : S.home ? `<button class="link back" data-act="tab" data-v="more">${ICON.chevL}더보기</button>` : '') : `<button class="link back" data-act="tab" data-v="more">${ICON.chevL}더보기</button>`}
-      <div class="page-top"><div><p class="eyebrow">${S.month.dept && S.month.dept.name ? esc(S.month.dept.name) : '관리자'}${S.op ? (S.month.me.all ? ' · 전체 관리자' : ' · 운영 지원') : ''}${S.op && S.month.dept.closed ? ' · 닫힌 부서' : ''}</p><h1>${tab === 'analysis' ? '분석' : '관리'}</h1></div></div>${seg}`;
+      <div class="page-top"><div><p class="eyebrow">${S.month.dept && S.month.dept.name ? esc(S.month.dept.name) : '관리자'}${S.op ? (S.month.me.all ? ' · 교회 관리자' : ' · 운영 지원') : ''}${S.op && S.month.dept.closed ? ' · 닫힌 부서' : ''}</p><h1>${tab === 'analysis' ? '분석' : '관리'}</h1></div></div>${seg}`;
     if (tab === 'analysis') return head + analysisView();
     // 관리 탭(더보기처럼 묶음): 왼쪽은 할 일과 소그룹과 사람, 오른쪽은 묶음마다 한 줄씩 접어 둔 메뉴(누르면 그 자리에서 펼침)
     const P = S.pending, O = S.ops, reqs = P ? P.requests : [];
@@ -3818,7 +3818,7 @@ try { const p = JSON.parse(localStorage.getItem('koide-pref') || '{}'), d = docu
       ${pick !== cur ? `<label class="check grp-ren"><input type="checkbox" id="grp-rename"${S.grpRename === false ? '' : ' checked'}><span><span>이름 끝의 "${esc(cur)}"도 함께 바꾸기</span><small class="hint">예: ${esc(ex)} → ${esc(after)}</small></span></label>
         <div class="actions"><button class="btn" data-act="grpsave" ${S.busy ? 'disabled' : ''}>${esc(euro(pick))} 바꾸기</button><button class="btn ghost" data-act="grppick" data-v="${esc(cur)}">그대로 두기</button></div>` : ''}</section>`;
   }
-  // ── 교회 전체 (전체 관리자의 첫 화면): 부서마다 요약과 할 일, 앱 상태, 교회 안 모임, 전체 관리자, 부서 만들기·닫기 ──
+  // ── 교회 전체 (교회 관리자의 첫 화면): 부서마다 요약과 할 일, 앱 상태, 교회 안 모임, 교회 관리자, 부서 만들기·닫기 ──
   //  부서 카드를 누르면 그 부서의 관리 화면으로. 관리 화면 위의 '교회 전체'로 돌아온다
   async function enterChurch() {
     const first = (opsDepts().find(d => !d.closed) || opsDepts()[0] || {}).id;
@@ -3910,7 +3910,7 @@ try { const p = JSON.parse(localStorage.getItem('koide-pref') || '{}'), d = docu
   async function loadChurchAnalysis() { S.canErr = ''; try { S.can = await api('churchAnalysis'); } catch (e) { S.can = null; S.canErr = e.code === 'bad' ? '서버를 새 버전으로 배포하면 볼 수 있어요.' : e.message; } render(); }
   function churchView() {
     const ct = S.churchTab || 'home';
-    const head = `${S.home ? `<button class="link back" data-act="tab" data-v="more">${ICON.chevL}더보기</button>` : ''}<div class="page-top"><div><p class="eyebrow">전체 관리자</p><h1>교회 전체</h1></div>${HUB ? '<a class="link" href="./?appadmin">앱 관리자 보기 ›</a>' : ''}</div>
+    const head = `${S.home ? `<button class="link back" data-act="tab" data-v="more">${ICON.chevL}더보기</button>` : ''}<div class="page-top"><div><p class="eyebrow">교회 관리자</p><h1>교회 전체</h1></div>${HUB ? '<a class="link" href="./?appadmin">앱 관리자 보기 ›</a>' : ''}</div>
       <div class="seg2 admin-seg three" role="tablist" aria-label="교회 전체">${[['home', '한눈에'], ['survey', '의견과 설문'], ['analysis', '분석']].map(([k, l]) => `<button class="${ct === k ? 'on' : ''}" role="tab" aria-selected="${ct === k}" data-act="churchtab" data-v="${k}">${l}</button>`).join('')}</div>`;
     if (ct === 'analysis') return head + analysisView(true);
     if (ct === 'survey') return head + surveyAdminView();
@@ -3935,7 +3935,7 @@ try { const p = JSON.parse(localStorage.getItem('koide-pref') || '{}'), d = docu
         <section class="card mrows folds">${fold('chgall', '변경 기록', '모든 부서 · 누가 언제 무엇을 바꿨는지', changesCard(true))}</section>
       </div></div>`;
   }
-  // ── 함께 기도해요(부서 기도제목): 교역자·부서 관리자·전체 관리자가 쓰고, 회원은 이번 달 화면과 기도하기 › 우리 교회에서 본다 ──
+  // ── 함께 기도해요(부서 기도제목): 교역자·부서 관리자·교회 관리자가 쓰고, 회원은 이번 달 화면과 기도하기 › 우리 교회에서 본다 ──
   const canTogether = () => !!(S.month && S.month.me && (S.month.me.staff || S.month.me.admin || S.op) && !S.grp);
   function togetherCard() {
     const L = (S.month && S.month.together) || [];
@@ -4103,7 +4103,7 @@ try { const p = JSON.parse(localStorage.getItem('koide-pref') || '{}'), d = docu
         <p class="hint">카카오로 로그인한 누구나 신청하고, 모임장이 승인해요.</p>` : ''}
       <div class="actions"><button class="link danger" data-act="gleave">모임에서 나가기</button></div></section>`;
   }
-  // 변경 기록(부서 관리자: 우리 부서, 전체 관리자: 교회 전체). 최근 것부터 20줄씩
+  // 변경 기록(부서 관리자: 우리 부서, 교회 관리자: 교회 전체). 최근 것부터 20줄씩
   async function loadChanges(all) { try { S.chg = await api('changes', all ? { all: true } : {}); } catch (e) { S.chg = { err: e.code === 'bad' ? '서버를 새 버전으로 배포하면 볼 수 있어요.' : e.message }; } render(); }
   function changesCard(all) {
     const L = S.chg;
@@ -4116,7 +4116,7 @@ try { const p = JSON.parse(localStorage.getItem('koide-pref') || '{}'), d = docu
       ${L.length > n ? `<button class="link" data-act="chgmore">${L.length - n}개 더 보기</button>` : ''}
       <p class="hint">누가 언제 무엇을 바꿨는지 남아요. 기도제목 내용은 남기지 않아요. 1년 1개월 뒤에 지워요.</p></section>`;
   }
-  // 전체 관리자(교회 전체): 자율 모임은 교회가 꾸리지 않아 목록이 없다. 문제가 있다는 말을 들으면 그 모임의 초대 링크로 하나만 닫는다
+  // 교회 관리자(교회 전체): 자율 모임은 교회가 꾸리지 않아 목록이 없다. 문제가 있다는 말을 들으면 그 모임의 초대 링크로 하나만 닫는다
   function groupCloseCard() {
     const F = S.gaFound;
     return `<section class="card mrows folds">${fold('gaclose', '자율 모임 지우기', '문제가 있을 때만 · 초대 링크로', `<section class="card"><h2>자율 모임 지우기</h2>
@@ -4176,12 +4176,12 @@ try { const p = JSON.parse(localStorage.getItem('koide-pref') || '{}'), d = docu
   function opsAdminCard() {
     const L = S.church && S.church.opsList;
     if (!L) return '';
-    return `<section class="card"><h2>전체 관리자</h2>
+    return `<section class="card"><h2>교회 관리자</h2>
       ${L.live.length ? `<ul class="staff-list">${L.live.filter(o => o.all).map(o => `<li><div><b>${esc(o.name || '이름 없음')}</b>${o.me ? '<small>나</small>' : ''}</div>
         ${o.me ? '' : `<span class="foot-acts"><button class="link quiet" data-act="opsrm" data-v="${esc(o.id)}" data-n="${esc(o.name)}">빼기</button></span>`}</li>`).join('')}</ul>` : ''}
       ${L.wait.map(w => `<div class="req"><b>쓰지 않은 초대 링크</b><small>${esc(w.at)} 만듦 · 7일 안에 한 번 쓸 수 있어요</small>
         <div class="actions" style="margin-top:8px"><button class="btn small" data-act="opscopy" data-v="${esc(w.token)}">링크 복사</button><button class="btn small ghost" data-act="opsrmw" data-v="${esc(w.token)}">취소</button></div>${copyNote('ops' + w.token, opsInviteUrl(w.token))}</div>`).join('')}
-      <button class="btn small ghost" data-act="opsinv" ${S.busy ? 'disabled' : ''}>전체 관리자 초대</button>
+      <button class="btn small ghost" data-act="opsinv" ${S.busy ? 'disabled' : ''}>교회 관리자 초대</button>
       <p class="hint">모든 부서를 꾸리고 부서를 만들고 닫아요. 기도제목 내용은 보지 않아요. 한 사람이 빠져도 멈추지 않게 둘 이상 두세요.</p></section>`;
   }
 
@@ -4348,7 +4348,7 @@ try { const p = JSON.parse(localStorage.getItem('koide-pref') || '{}'), d = docu
   const mvOlds = M => [M.a, M.b].filter(Boolean);
   const mvLinks = M => mvOlds(M).reduce((all, o) => all.concat(o.links.map(l => Object.assign({ owner: o.name }, l))), []);
   const mvMapped = (M, l) => { const v = M.map[l.kakaoId]; return v !== undefined ? v : (mvNames(M).indexOf(l.person) >= 0 ? l.person : ''); };
-  // 받을 수 있는 부서: 결혼은 가정 단위 부서, 옮기기는 지금 부서가 아닌 부서(가정 단위에서 개인 단위로는 못 간다). 내가 관리하는 부서(전체 관리자는 모두)만
+  // 받을 수 있는 부서: 결혼은 가정 단위 부서, 옮기기는 지금 부서가 아닌 부서(가정 단위에서 개인 단위로는 못 간다). 내가 관리하는 부서(교회 관리자는 모두)만
   function mvDepts(M) {
     const a = M.a;
     return ((S.rost && S.rost.depts) || []).filter(d => mvRecv(d) && (M.kind === 'marry' ? d.unit === '가정' : !a || (d.id !== a.deptId && !(a.unit === '가정' && d.unit === '개인'))));
@@ -4376,7 +4376,7 @@ try { const p = JSON.parse(localStorage.getItem('koide-pref') || '{}'), d = docu
     const total = marry ? 5 : 1, names = mvNames(M), one = a && a.unit === '개인';
     const head = (t, sub) => `<section class="card mv-card"><div class="row"><h2>${t}</h2>${marry ? `<small class="hint">${M.step} / ${total}</small>` : ''}</div>${sub ? `<p class="hint" style="margin-top:0">${sub}</p>` : ''}`;
     const nav = (next, nextLabel, ok) => `<div class="actions">${M.step > 1 ? '<button class="btn small ghost" data-act="mvback">이전</button>' : ''}${next ? `<button class="btn small" data-act="${next}" ${ok && !S.busy ? '' : 'disabled'}>${nextLabel}</button>` : ''}<button class="btn small ghost" data-act="mvcancel">그만두기</button></div>`;
-    const noDept = !ds.length ? `<p class="hint">${marry ? '합친 가정이 들어갈 부서(가정 단위)' : '받는 부서'}의 관리자나 전체 관리자가 처리할 수 있어요. 그 부서 관리자에게 알려 주세요.</p>` : '';
+    const noDept = !ds.length ? `<p class="hint">${marry ? '합친 가정이 들어갈 부서(가정 단위)' : '받는 부서'}의 관리자나 교회 관리자가 처리할 수 있어요. 그 부서 관리자에게 알려 주세요.</p>` : '';
     const deptRoom = () => `${noDept}${ds.length ? `<label class="label" for="mv-dept">${marry ? '새 가정이 들어갈 부서' : '받는 부서'}</label><select id="mv-dept" class="field" data-mv="deptId"><option value="">고르세요</option>${ds.map(d => `<option value="${esc(d.id)}"${d.id === M.deptId ? ' selected' : ''}>${esc(d.name)}</option>`).join('')}</select>
       ${dept ? `<label class="label" for="mv-room">${esc(dept.group)}</label><select id="mv-room" class="field" data-mv="roomId"><option value="">고르세요</option>${dept.rooms.map(r => `<option value="${esc(r.id)}"${r.id === M.roomId ? ' selected' : ''}>${esc(r.name)}</option>`).join('')}</select>` : ''}` : ''}`;
     if (!marry) {
@@ -4593,7 +4593,7 @@ try { const p = JSON.parse(localStorage.getItem('koide-pref') || '{}'), d = docu
         <div class="set-row"><div><p class="label" style="margin:0">이름 밝히기</p><p class="hint" style="margin:.2em 0 0">${F.named ? `관리자가 보낸 사람(${esc(S.month.me.person)})을 봐요.` : '끄면 누가 보냈는지 남기지 않아요.'}</p></div>
           <button type="button" class="switch${F.named ? ' on' : ''}" role="switch" aria-checked="${F.named}" aria-label="이름 밝히기" data-act="fbnamed"><span></span></button></div>
         <div class="actions"><button class="btn" data-act="fbsend" ${S.busy ? 'disabled' : ''}>${S.busy ? '보내는 중…' : '보내기'}</button></div>
-        <p class="hint">${esc(S.month.dept.name)} 관리자와 교회 전체 관리자가 읽어요. 답장은 따로 오지 않아요. 이야기가 필요하면 ${esc(grp())} 리더에게 카톡으로 알려 주세요.</p></section>`;
+        <p class="hint">${esc(S.month.dept.name)} 관리자와 교회 관리자가 읽어요. 답장은 따로 오지 않아요. 이야기가 필요하면 ${esc(grp())} 리더에게 카톡으로 알려 주세요.</p></section>`;
   }
   const keepFb = () => { const t = $('#fb-t'); if (t && S.fb) S.fb.text = t.value; };
   const fbNew = () => S.ops && S.ops.feedback ? S.ops.feedback.filter(x => !x.read).length : 0;
@@ -4629,7 +4629,7 @@ try { const p = JSON.parse(localStorage.getItem('koide-pref') || '{}'), d = docu
   //  색은 주 색 하나의 진하기로만 나누고 칸마다 숫자를 적어 색만으로 읽지 않게 한다
   const AN_SLOT = ['새벽', '오전', '오후', '저녁', '밤'], AN_DAY = ['월', '화', '수', '목', '금', '토', '일'];
   const heatAttr = (v, max) => { const k = Math.round(12 + 78 * (max ? v / max : 0)); return `style="background:color-mix(in srgb, var(--accent) ${k}%, var(--surface))"${k >= 55 ? ' data-dark' : ''}`; };
-  // church: 교회 전체 분석(전체 관리자). 부서 대신 부서 × 달, 기도가 닿지 않은 곳 대신 자율 모임, 아래에 앱 개선
+  // church: 교회 전체 분석(교회 관리자). 부서 대신 부서 × 달, 기도가 닿지 않은 곳 대신 자율 모임, 아래에 앱 개선
   function analysisView(church) {
     const A = church ? S.can : S.an, err = church ? S.canErr : S.anErr;
     if (!A) return `<section class="card"><p class="hint">${err ? esc(err) : '불러오는 중…'}</p></section>`;
@@ -4760,14 +4760,14 @@ try { const p = JSON.parse(localStorage.getItem('koide-pref') || '{}'), d = docu
     const M = S.month, me = M.me, lead = me.role === '리더' || me.role === '코리더', on = tabOn();
     // 운영 화면: 메뉴 없이 부서 배지(맡은 부서 바꾸기·내 화면으로)와 설정만
     if (S.op) {
-      const opMenu = S.menu === 'badge' ? `<div class="menu" role="menu" aria-label="운영 지원"><p class="mlabel">${M.me.all ? '전체 관리' : '지원하는 부서'}</p>${M.me.all ? `<button class="mitem${S.tab === 'church' ? ' on' : ''}" role="menuitem" data-act="church"><span>교회 전체</span><small>모든 부서 한눈에</small></button>` : ''}
+      const opMenu = S.menu === 'badge' ? `<div class="menu" role="menu" aria-label="운영 지원"><p class="mlabel">${M.me.all ? '교회 관리' : '지원하는 부서'}</p>${M.me.all ? `<button class="mitem${S.tab === 'church' ? ' on' : ''}" role="menuitem" data-act="church"><span>교회 전체</span><small>모든 부서 한눈에</small></button>` : ''}
           ${opsDepts().map(d => `<button class="mitem${d.id === S.op ? ' on' : ''}" role="menuitem" data-act="opsgo" data-v="${esc(d.id)}"><span>${esc(d.name)}${d.closed ? ' (닫음)' : ''}</span>${d.id === S.op && S.tab !== 'church' ? '<small>지금 보는 부서</small>' : ''}</button>`).join('')}
           <div class="mdiv"></div>${S.me.link && S.me.link.status === '연결' ? '<button class="mitem" role="menuitem" data-act="opsleave"><span>내 화면으로 돌아가기</span></button>' : ''}
           <button class="mitem" role="menuitem" data-act="logout"><span>이 기기에서 로그아웃</span></button></div>`
         : S.menu === 'settings' ? `<div class="menu" role="menu" aria-label="설정"><p class="mlabel mhead">화면 설정</p>${themeControls()}<div class="mdiv"></div>
           <div class="mitem static set-row" style="flex-direction:row;align-items:center"><span class="mhead">큰 글씨</span>${bigSwitch()}</div></div>` : '';
       return `<div class="wrap">${S.home ? brand : brand.replace(' data-act="tab" data-v="home"', '')}${S.home ? `<nav class="topnav" aria-label="주 메뉴">${TABS.map(([k, l]) => `<button class="${k === 'more' ? 'on' : ''}" data-act="tab" data-v="${k}" ${k === 'more' ? 'aria-current="page"' : ''}>${l}</button>`).join('')}</nav>` : ''}<span class="spacer"></span>
-        <button class="badge-btn" data-act="menu" data-v="badge" aria-haspopup="menu" aria-expanded="${S.menu === 'badge'}">${S.tab === 'church' ? '교회 전체' : esc(M.dept.name)}<span class="role-tag admin">${M.me.all ? '전체 관리자' : '지원'}</span></button>
+        <button class="badge-btn" data-act="menu" data-v="badge" aria-haspopup="menu" aria-expanded="${S.menu === 'badge'}">${S.tab === 'church' ? '교회 전체' : esc(M.dept.name)}<span class="role-tag admin">${M.me.all ? '교회 관리자' : '지원'}</span></button>
         <button class="icon-btn" data-act="menu" data-v="settings" aria-haspopup="menu" aria-expanded="${S.menu === 'settings'}" aria-label="설정">${ICON.gear}</button>${opMenu}</div>`;
     }
     const role = S.grp ? me.role : lead || me.staff ? me.role : me.admin ? '관리자' : '회원', rc = S.grp ? (me.role === '모임장' ? 'leader' : '') : lead || me.staff ? 'leader' : me.admin ? 'admin' : '';
@@ -4779,7 +4779,7 @@ try { const p = JSON.parse(localStorage.getItem('koide-pref') || '{}'), d = docu
       attr: (k, id) => k === 'note' ? `href="note.html${DEMO_LINK ? '?demo' : ''}"` : k === 'make' ? `data-act="gnew"` : k === 'room' ? 'data-act="gback"' : `data-act="gopen" data-v="${esc(id)}"` });
     const menu = S.menu === 'badge' ? `<div class="menu" role="menu" aria-label="사랑방">
         <p class="mlabel">${esc(grp())}</p><div class="mitem static"><b>${esc(M.room.name)}</b><small>${S.grp ? `모임 · ${M.families.length}명` : ''}${S.grp ? '' : M.dept && M.dept.name ? esc(M.dept.name) + ' · ' : ''}${S.grp ? '' : me.staff ? `${grp()} ${(M.rooms || []).length}곳 · ${(M.rooms || []).reduce((a, r) => a + r.n, 0)}${words().count}` : `${M.term || M.month.slice(0, 4)}년 편성 · ${M.families.length}${words().count}`}</small></div>${places}
-        ${!opsDepts().length ? '' : S.me.ops.all ? `<div class="mdiv"></div><p class="mlabel">전체 관리</p><button class="mitem" role="menuitem" data-act="church"><span>교회 전체</span><small>모든 부서 한눈에</small></button>`
+        ${!opsDepts().length ? '' : S.me.ops.all ? `<div class="mdiv"></div><p class="mlabel">교회 관리</p><button class="mitem" role="menuitem" data-act="church"><span>교회 전체</span><small>모든 부서 한눈에</small></button>`
           : `<div class="mdiv"></div><p class="mlabel">운영 지원</p>${opsDepts().map(d => `<button class="mitem" role="menuitem" data-act="opsgo" data-v="${esc(d.id)}"><span>${esc(d.name)} · 지원</span><small>관리 화면</small></button>`).join('')}`}
         ${me.admin && !DEMO ? '<div class="mdiv"></div><a class="mitem" role="menuitem" href="?demo" target="_blank" rel="noopener"><span>데모로 둘러보기</span><small>예시 데이터</small></a>' : ''}</div>`
       : S.menu === 'settings' ? `<div class="menu" role="menu" aria-label="설정">
@@ -5222,7 +5222,7 @@ try { const p = JSON.parse(localStorage.getItem('koide-pref') || '{}'), d = docu
         return;
       case 'chgmore': S.chgN = (S.chgN || 20) + 40; return render();
       case 'rsunlink': if (!confirm(b.dataset.n + ' 님의 카카오 연결을 해제할까요? 휴대폰을 잃어버렸거나 잘못 고른 경우에만 해제해요.')) return; return rosterDo({ op: 'unlink', familyId: S.rostSel, kakaoId: v }, '연결을 해제했어요.');
-      // 전체 관리자: 문제가 있는 자율 모임 하나를 초대 링크로 닫는다(모임 목록은 보지 않는다)
+      // 교회 관리자: 문제가 있는 자율 모임 하나를 초대 링크로 닫는다(모임 목록은 보지 않는다)
       case 'gafind': case 'gaclose': {
         const t = (($('#ga-link') || {}).value || '').trim(); if (!t) return toast('모임 초대 링크를 넣어 주세요.');
         if (b.dataset.act === 'gaclose' && !confirm(`"${S.gaFound.name}" 모임을 지울까요? 모임 사람과 기도제목, 기도 기록이 모두 지워지고 되돌릴 수 없어요.`)) return;
@@ -5269,7 +5269,7 @@ try { const p = JSON.parse(localStorage.getItem('koide-pref') || '{}'), d = docu
       }
       case 'opscopy': { let ok = false; try { await navigator.clipboard.writeText(opsInviteUrl(v)); ok = true; } catch (err) { /* 막힌 기기 */ } S.copied = { key: 'ops' + v, ok }; render(); if (ok) toast('초대 링크를 복사했어요.'); return; }
       case 'opsrm': case 'opsrmw': {
-        if (b.dataset.act === 'opsrm' && !confirm(b.dataset.n + ' 님을 전체 관리자에서 뺄까요?')) return;
+        if (b.dataset.act === 'opsrm' && !confirm(b.dataset.n + ' 님을 교회 관리자에서 뺄까요?')) return;
         try { const L = await api('opsRemove', b.dataset.act === 'opsrm' ? { kakaoId: v } : { invite: v }); if (S.church) S.church.opsList = L; render(); } catch (err) { oops(err); }
         return;
       }

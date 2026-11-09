@@ -2161,7 +2161,7 @@ button.pg-tag::before { content: ''; position: absolute; inset: -10px; }
         <p class="hint">· 맡긴 기록은 비밀 문구로 다시 열 수 있어요.</p>
         ${D.vault && D.vault.on ? '' : '<p class="hint">· 아이폰은 홈 화면에 두지 않고 7일 넘게 열지 않으면 이 기기의 기록이 지워질 수 있어요.</p>'}</section>`;
   }
-  // 의견 보내기: 공동체와 같은 종류. 교회에 연결되지 않아도 보낼 수 있고(로그인만), 운영하는 분(교회 전체 관리자)이 읽는다. 기도제목은 담지 않는다
+  // 의견 보내기: 공동체와 같은 종류. 교회에 연결되지 않아도 보낼 수 있고(로그인만), 운영하는 분(교회 관리자)이 읽는다. 기도제목은 담지 않는다
   const FB_KINDS = ['불편해요', '이랬으면', '고마워요'];
   function fbView() {
     const F = S.fb || (S.fb = { kind: '이랬으면', text: '', named: false }), nick = (noteMe() || {}).nick;
