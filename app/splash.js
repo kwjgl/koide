@@ -35,9 +35,9 @@
   // 이 화면이 어느 곳인지: 공동체 화면이라도 기도 노트의 '내 모임'에서 연 모임(?grp=)은 기도 노트 쪽이다
   const page = me.dataset.space, space = page === 'community' && q.has('grp') ? 'note' : page;
   const prev = get(sessionStorage, LAST);
-  // ① 새로 켰는데 마지막에 기도 노트를 쓰다 껐으면(로그인돼 있고, 초대 링크 같은 특별한 주소가 아닐 때) 기도 노트로
-  const special = ['code', 'gjoin', 'grp', 'join', 'connect', 'opsjoin'].some(k => q.has(k));
-  if (!prev && page === 'community' && !special && get(localStorage, SPACE_KEY) === 'note' && get(localStorage, TOKEN) && !get(localStorage, 'koide-share')) {
+  // ① 새로 켰는데 마지막에 기도 노트를 쓰다 껐으면(교회 로그인이나 노트 로그인이 돼 있고, 초대 링크 같은 특별한 주소가 아닐 때) 기도 노트로
+  const special = ['code', 'gjoin', 'grp', 'join', 'connect', 'opsjoin', 'door'].some(k => q.has(k));
+  if (!prev && page === 'community' && !special && get(localStorage, SPACE_KEY) === 'note' && (get(localStorage, TOKEN) || get(localStorage, 'koide-note-sbh')) && !get(localStorage, 'koide-share')) {
     location.replace('note.html' + (demo ? '?demo' : '')); return;
   }
   // 기도 노트에서 모임 화면(?grp=)을 열면 모임 전환 화면. 모임 이름(gn)과 남은 날(gl)을 알고 넘어왔으면 바로 보여 준다

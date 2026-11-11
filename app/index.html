@@ -1314,7 +1314,11 @@ try { const p = JSON.parse(localStorage.getItem('koide-pref') || '{}'), d = docu
   const UID = DEMO_LINK ? 'koide-demo-uid' : 'koide-uid';
   const setUid = u => { try { u ? localStorage.setItem(UID, u) : localStorage.removeItem(UID); } catch (e) { /* 무시 */ } };
   const getUid = () => { try { return localStorage.getItem(UID) || ''; } catch (e) { return ''; } };
-  const setToken = (t, uid) => { try { t ? localStorage.setItem(TOKEN, t) : localStorage.removeItem(TOKEN); localStorage.removeItem(CACHE); localStorage.removeItem(DEMO_LINK ? 'koide-demo-note-me' : 'koide-note-me'); } catch (e) { /* 무시 */ } setUid(t ? uid : null); };
+  // 앞문(2026-11-11): 설정에서 새 길(NOTE_BACKEND 'supabase')이 켜져 있으면, 교회 표시가 없는 첫 방문은 기도 노트의 환영 화면으로 보낸다.
+  //  교회 쪽으로 가려는 표시(?door=church, 노트의 '교회 코드로 들어가기')는 koide-door에 적어 두고, 교회 로그인을 받거나 노트로 돌아가면 지운다
+  const DOOR = 'koide-door';
+  const frontDoor = () => !DEMO && CFG.NOTE_BACKEND === 'supabase' && !!CFG.SUPABASE_URL && !!CFG.SUPABASE_KEY;
+  const setToken = (t, uid) => { try { t ? localStorage.setItem(TOKEN, t) : localStorage.removeItem(TOKEN); localStorage.removeItem(CACHE); localStorage.removeItem(DEMO_LINK ? 'koide-demo-note-me' : 'koide-note-me'); if (t) localStorage.removeItem(DOOR); } catch (e) { /* 무시 */ } setUid(t ? uid : null); };
   // 지난번 이번 달 화면: 앱을 열 때 서버를 기다리지 않고 먼저 보여 준다
   const CACHE = DEMO_LINK ? 'koide-demo-cache' : 'koide-cache';
   const readCache = () => { try { return JSON.parse(localStorage.getItem(CACHE)); } catch (e) { return null; } };
@@ -1461,6 +1465,7 @@ try { const p = JSON.parse(localStorage.getItem('koide-pref') || '{}'), d = docu
     if (q.get('grp')) { GOPEN = q.get('grp'); q.delete('grp'); q.delete('gn'); q.delete('gl'); history.replaceState(null, '', location.pathname + (q.toString() ? '?' + q.toString().replace(/=(&|$)/g, '$1') : '')); }
     if (q.get('gjoin')) { try { localStorage.setItem(GJOIN, q.get('gjoin')); } catch (e) { /* 이번만 */ } q.delete('gjoin'); history.replaceState(null, '', location.pathname + (q.toString() ? '?' + q.toString().replace(/=(&|$)/g, '$1') : '')); }
     if (q.get('opsjoin')) { try { localStorage.setItem(OPS_JOIN, q.get('opsjoin')); } catch (e) { /* 이번만 */ } q.delete('opsjoin'); history.replaceState(null, '', location.pathname + (q.toString() ? '?' + q.toString().replace(/=(&|$)/g, '$1') : '')); }
+    if (q.get('door') === 'church') { try { localStorage.setItem(DOOR, 'church'); } catch (e) { /* 이번만 */ } q.delete('door'); history.replaceState(null, '', location.pathname + (q.toString() ? '?' + q.toString().replace(/=(&|$)/g, '$1') : '')); }
     if (q.has('connect')) { try { localStorage.setItem(CONNECT, '1'); } catch (e) { /* 이번만 */ } q.delete('connect'); history.replaceState(null, '', location.pathname + (q.toString() ? '?' + q.toString().replace(/=(&|$)/g, '$1') : '')); }
     if (q.get('join')) { try { localStorage.setItem(JOIN, q.get('join')); } catch (e) { /* 이번만 */ } q.delete('join'); history.replaceState(null, '', location.pathname + (q.toString() ? '?' + q.toString().replace(/=(&|$)/g, '$1') : '')); }
     // 교회 코드가 붙은 초대 링크(?church=코드): 코드 칸을 미리 채워 둔다. 앱 관리자 보기(?appadmin)
@@ -1499,6 +1504,10 @@ try { const p = JSON.parse(localStorage.getItem('koide-pref') || '{}'), d = docu
     if (HUB && lsGet(APPADMIN)) { if (lsGet(HUB_TOKEN)) return openAppAdmin(); S.view = 'login'; return render(); }
     // 기본 서버에는 로그인했는데 아직 교회에 들어가지 않았으면(코드를 넣다 앱을 닫음 등) 이어서
     if (HUB && !getToken() && lsGet(HUB_TOKEN)) return toChurch();
+    // 앞문: 교회 표시가 하나도 없는 첫 방문은 기도 노트의 환영 화면으로(교회를 쓰는 분은 거기서 '교회 코드로 들어가기'로 온다)
+    if (frontDoor() && !getToken() && !lsGet(HUB_TOKEN) && !lsGet(DOOR) && !lsGet(CONNECT) && !lsGet(JOIN) && !lsGet(GJOIN) && !lsGet(OPS_JOIN) && !lsGet(CODE_IN) && !lsGet(APPADMIN) && !GOPEN && !q.get('code') && !q.get('error')) {
+      if (window.koideSpace) window.koideSpace.going('note'); location.replace('note.html'); return;
+    }
     if (!getToken()) { S.view = 'login'; return render(); }
     // 지난번 화면이 기억돼 있으면 먼저 보여 주고, 서버에서 새로 받아 조용히 바꾼다
     const c = readCache();
@@ -1893,7 +1902,7 @@ try { const p = JSON.parse(localStorage.getItem('koide-pref') || '{}'), d = docu
           <button class="choice" data-act="login" data-v="최운영">데모: 최운영으로 들어가기 (운영 지원 · 가정 없음)</button></div>
           <p class="hint">데모 모드에서는 카카오 대신 이 버튼으로 사람을 골라 들어가요.</p>`
         : `<button class="kakao" data-act="login">${ICON.bubble}카카오로 시작하기</button>
-          <p class="hint wl-once">${HUB && lsGet(APPADMIN) ? '앱 관리자 보기는 카카오로 한 번 더 로그인해요.' : '처음 한 번만 로그인하면 돼요.<br>초대 링크를 받았다면 그 링크로 열어 주세요.'}</p>${HUB && lsGet(APPADMIN) ? '<button class="link" data-act="aaback">앱으로 돌아가기</button>' : ''}${iosSafari() ? '<p class="hint">아이폰에서 \'접속 정보를 확인해 주세요\'가 나오면, 카톡 채팅방에서 이 링크를 눌러 열거나 설정 → iCloud → 비공개 릴레이를 끄고 다시 해 주세요.</p>' : ''}`}
+          <p class="hint wl-once">${HUB && lsGet(APPADMIN) ? '앱 관리자 보기는 카카오로 한 번 더 로그인해요.' : '처음 한 번만 로그인하면 돼요.<br>초대 링크를 받았다면 그 링크로 열어 주세요.'}</p>${HUB && lsGet(APPADMIN) ? '<button class="link" data-act="aaback">앱으로 돌아가기</button>' : ''}${frontDoor() && lsGet(DOOR) ? '<button class="link" data-act="tonote">‹ 코이데 노트로 시작하기</button>' : ''}${iosSafari() ? '<p class="hint">아이폰에서 \'접속 정보를 확인해 주세요\'가 나오면, 카톡 채팅방에서 이 링크를 눌러 열거나 설정 → iCloud → 비공개 릴레이를 끄고 다시 해 주세요.</p>' : ''}`}
         <button class="btn ghost wl-play" data-act="ividw"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M8 5.5v13l10.5-6.5z" fill="currentColor"/></svg>코이데 소개 영상</button>
       </section>
       <ul class="wl-feat">
@@ -1931,10 +1940,11 @@ try { const p = JSON.parse(localStorage.getItem('koide-pref') || '{}'), d = docu
         <button class="btn wide" data-act="ccjoin" ${S.busy ? 'disabled' : ''}>맞아요, 들어가기</button>
         <button class="link" data-act="ccagain">코드 다시 넣기</button>`;
       return `<p class="eyebrow">처음 한 번만</p><h1>교회 코드를 넣어 주세요</h1>
-        <p>코이데는 교회 코드가 있어야 쓸 수 있어요.</p>
+        <p>${frontDoor() ? '코이데 교회는 교회 코드가 있어야 들어갈 수 있어요.' : '코이데는 교회 코드가 있어야 쓸 수 있어요.'}</p>
         <form data-form="churchcode"><input id="cc-a" class="field" required maxlength="20" autocapitalize="characters" autocomplete="off" spellcheck="false" aria-label="교회 코드" value="${esc(C.code || '')}">
           <button class="btn wide" type="submit" style="margin-top:12px" ${S.busy ? 'disabled' : ''}>다음</button></form>
         <p class="hint">코드는 교회나 코이데를 소개해 준 분에게 받아요.</p>
+        ${frontDoor() ? '<button class="link" data-act="tonote">코이데 노트로 돌아가기</button>' : ''}
         <button class="link" data-act="logout">다른 카카오 계정으로 로그인</button>`;
     },
     // 어떻게 시작할까요(교회 코드로 막 들어왔고 초대 링크가 없을 때 한 번): 공동체로(부서·소그룹을 골라 연결 신청) 또는 기도 노트만
@@ -5082,7 +5092,7 @@ try { const p = JSON.parse(localStorage.getItem('koide-pref') || '{}'), d = docu
         lsSet(CONNECT, '1'); S.view = 'loading'; render(); return refreshMe();
       case 'retry': S.view = 'loading'; render(); return refreshMe();
       case 'demoreset': window.koideDemo && window.koideDemo.reset(); setToken(null); location.replace(location.pathname + location.search); return;
-      case 'logout': try { if (getToken()) await api('logout'); } catch (err) { /* 이미 끝난 로그인 */ } setToken(null); lsSet(HUB_TOKEN, null); S.cc = null; S.view = 'login'; S.tab = 'home'; S.pending = null; S.hist = null; S.histTab = null;
+      case 'logout': try { if (getToken()) await api('logout'); } catch (err) { /* 이미 끝난 로그인 */ } setToken(null); lsSet(HUB_TOKEN, null); if (frontDoor()) lsSet(DOOR, 'church'); S.cc = null; S.view = 'login'; S.tab = 'home'; S.pending = null; S.hist = null; S.histTab = null;
         // 한 기기를 여럿이 쓰면 앞사람이 보던 화면·쓰던 글이 다음 사람에게 남지 않게
         S.op = null; S.grp = null; S.home = null; S.ops = null; S.rost = null; S.mv = null; S.before = null; try { localStorage.removeItem(OP_KEY); } catch (err) { /* 무시 */ }
         Object.assign(S, { famEdit: null, famMsg: '', a2hs: false, homeView: null, ex: null, draft: '', draftTgt: '', todayId: null, shareId: null, menu: null, imp: null, preview: null, tgtOpen: null, delAsk: null }); S.openItems.clear(); S.openFams.clear();
@@ -5142,7 +5152,7 @@ try { const p = JSON.parse(localStorage.getItem('koide-pref') || '{}'), d = docu
         catch (err) { oops(err.code === 'bad' && /모르는 요청/.test(err.message) ? { message: '서버를 새 버전으로 배포하면 저장할 수 있어요.' } : err); }
         S.busy = false; return render();
       }
-      case 'tonote': try { localStorage.removeItem(CONNECT); } catch (err) { /* 무시 */ } location.href = 'note.html' + (DEMO_LINK ? '?demo' : ''); return;
+      case 'tonote': try { localStorage.removeItem(CONNECT); localStorage.removeItem(DOOR); } catch (err) { /* 무시 */ } location.href = 'note.html' + (DEMO_LINK ? '?demo' : ''); return;
       case 'note': location.href = 'note.html' + (DEMO_LINK ? '?demo' : ''); return;
       case 'ivid': {
         const w = words(), k = sceneKey(S.month.month), sc = SCENES[k], all = sc.props.length;
