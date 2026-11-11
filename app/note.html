@@ -725,6 +725,122 @@ button.pg-tag::before { content: ''; position: absolute; inset: -10px; }
   const b64 = buf => { const a = new Uint8Array(buf); let s = ''; for (let i = 0; i < a.length; i += 0x8000) s += String.fromCharCode.apply(null, a.subarray(i, i + 0x8000)); return btoa(s); };
   const unb64 = s => Uint8Array.from(atob(s), c => c.charCodeAt(0));
   const canLock = () => !!(window.crypto && crypto.subtle);
+
+  // 노트 동기화를 맡기는 곳 고르기. 'apps-script'(예전 길: api() 그대로)와 'supabase'(새 길: 설정 NOTE_BACKEND, docs/setup.md 8장).
+  //  데모·따라 하기·장면 모드와 설정이 빈 앱은 언제나 예전 길이고, 이미 예전 보관함에 연결된 기기는 설정을 바꿔도 그 길에 남는다
+  const sbReady = () => !DEMO && !TUT && !SC && CFG.NOTE_BACKEND === 'supabase' && !!CFG.SUPABASE_URL && !!CFG.SUPABASE_KEY;
+  function vaultBackend() {
+    if (DEMO || TUT || SC) return 'apps-script';
+    if (D && D.vault && D.vault.on) return D.vault.backend || 'apps-script';
+    return sbReady() ? 'supabase' : 'apps-script';
+  }
+  // 새 길의 supabase-js는 새 길을 쓸 때만 늦게 불러온다(PKCE 로그인, 만료 전 자동 갱신은 supabase-js가 한다)
+  const SB_URL = () => String(CFG.SUPABASE_URL || '').replace(/\/+$/, '');
+  let sbC = null, sbLoad = null;
+  function sbClient() {
+    if (sbC) return Promise.resolve(sbC);
+    return sbLoad || (sbLoad = new Promise((ok, bad) => {
+      const fail = () => { sbLoad = null; bad({ code: 'net', message: '로그인 도구를 불러오지 못했어요. 인터넷을 확인해 주세요.' }); };
+      const mk = () => { try { sbC = window.supabase.createClient(SB_URL(), CFG.SUPABASE_KEY, { auth: { flowType: 'pkce', detectSessionInUrl: true, persistSession: true, autoRefreshToken: true, storageKey: 'koide-note-sb' } }); ok(sbC); } catch (e) { fail(); } };
+      if (window.supabase && window.supabase.createClient) return mk();
+      const a = document.createElement('script'); a.src = 'vendor/supabase.js'; a.onload = mk; a.onerror = fail; document.head.appendChild(a);
+    }));
+  }
+  // 지금 로그인된 세션(없으면 null). 네트워크가 막혀 못 읽은 것은 net 오류로 알린다
+  async function sbSession() {
+    const c = await sbClient();
+    let r; try { r = await c.auth.getSession(); } catch (e) { throw { code: 'net', message: '서버가 답하지 않아요. 잠시 뒤 다시 해 주세요.' }; }
+    if (r.error && /Retryable|fetch/i.test((r.error.name || '') + (r.error.message || ''))) throw { code: 'net', message: '서버가 답하지 않아요. 잠시 뒤 다시 해 주세요.' };
+    return r.data && r.data.session || null;
+  }
+  // 사용자 id를 그대로 기기에 두지 않고 SHA-256 앞 16자만 남긴다(D.vault.sb). 남의 보관함에 올리지 않으려는 비교용
+  async function sbHash(id) { return [...new Uint8Array(await crypto.subtle.digest('SHA-256', te.encode(String(id))))].map(x => x.toString(16).padStart(2, '0')).join('').slice(0, 16); }
+  async function sbMe() { const s = await sbSession(); if (!s) throw { code: 'login' }; return { id: s.user.id, h: await sbHash(s.user.id), token: s.access_token }; }
+  async function sbSignOut() { try { await (await sbClient()).auth.signOut(); } catch (e) { /* 이 기기의 세션만 지우면 된다 */ } }
+  // 새 길 요청: apikey 헤더에는 publishable 키, Authorization에는 로그인 access_token. 오류는 api()와 같은 모양(login · net · bad)
+  async function sbFetch(path, opt) {
+    const me = await sbMe();
+    const ctl = new AbortController(), stop = setTimeout(() => ctl.abort(), 60000);
+    let res, body = null;
+    try { res = await fetch(SB_URL() + path, Object.assign({}, opt, { signal: ctl.signal, headers: Object.assign({ apikey: CFG.SUPABASE_KEY, Authorization: 'Bearer ' + me.token, 'Content-Type': 'application/json' }, opt && opt.headers) })); }
+    catch (e) { throw { code: 'net', message: '서버가 답하지 않아요. 잠시 뒤 다시 해 주세요.' }; }
+    finally { clearTimeout(stop); }
+    try { const t = await res.text(); body = t ? JSON.parse(t) : null; } catch (e) { body = null; }
+    if (res.status === 401 || res.status === 403 || (body && (String(body.code) === '28000' || /^login$/.test(body.message || '')))) throw { code: 'login' };
+    if (!res.ok) throw { code: 'bad', message: '서버가 받지 못했어요. 잠시 뒤 다시 해 주세요.' };
+    return { body, me };
+  }
+  // 노트 보관함 요청 4가지(noteGet · notePut · noteKeys · noteDel). 예전 길이면 api() 그대로, 새 길이면 Supabase 표·함수로 같은 모양의 답을 돌려준다. force는 옮기기에서 길을 정해 부를 때만
+  async function vaultApi(action, data, force) {
+    if ((force || vaultBackend()) !== 'supabase') return api(action, data);
+    data = data || {};
+    if (action === 'noteGet') {
+      const { body } = await sbFetch('/rest/v1/note_vault?select=*', { method: 'GET' });
+      const r = Array.isArray(body) && body[0];
+      if (!r) return { none: true };
+      return { data: String(r.data), salt: String(r.salt), rev: Number(r.rev) || 0, at: r.at, wrap: String(r.wrap || ''), rsalt: String(r.rsalt || ''), rwrap: String(r.rwrap || '') };
+    }
+    if (action === 'notePut') {
+      const { body } = await sbFetch('/rest/v1/rpc/note_put', { method: 'POST', body: JSON.stringify({ p_data: String(data.data || ''), p_salt: String(data.salt || ''), p_base_rev: Number(data.baseRev || 0), p_wrap: String(data.wrap || ''), p_rsalt: String(data.rsalt || ''), p_rwrap: String(data.rwrap || '') }) });
+      return body;
+    }
+    if (action === 'noteKeys') {
+      // 짝 검사는 지금 서버(Code.js)가 하는 대로 먼저
+      const set = {};
+      if (data.salt !== undefined || data.wrap !== undefined) { if (!data.salt || !data.wrap) throw { code: 'bad', message: '바꿀 열쇠가 모자라요.' }; set.salt = String(data.salt); set.wrap = String(data.wrap); }
+      if (data.rsalt !== undefined || data.rwrap !== undefined) { if (!data.rsalt || !data.rwrap) throw { code: 'bad', message: '바꿀 열쇠가 모자라요.' }; set.rsalt = String(data.rsalt); set.rwrap = String(data.rwrap); }
+      if (!Object.keys(set).length) { const cur = await vaultApi('noteGet', null, 'supabase'); throw { code: 'bad', message: cur.none ? '맡긴 노트가 없어요.' : '바꿀 열쇠가 없어요.' }; }
+      const me = await sbMe();
+      const { body } = await sbFetch('/rest/v1/note_vault?user_id=eq.' + encodeURIComponent(me.id), { method: 'PATCH', headers: { Prefer: 'return=representation' }, body: JSON.stringify(set) });
+      if (!Array.isArray(body) || !body.length) throw { code: 'bad', message: '맡긴 노트가 없어요.' };
+      return { ok: true };
+    }
+    if (action === 'noteDel') {
+      const me = await sbMe();
+      await sbFetch('/rest/v1/note_vault?user_id=eq.' + encodeURIComponent(me.id), { method: 'DELETE' });
+      return { ok: true };
+    }
+    return api(action, data);
+  }
+  // 새 길 로그인 창에 보일 공급자: Supabase에서 켜 둔 것만(/auth/v1/settings). 못 읽으면 카카오만
+  async function sbProviders() {
+    const out = ['kakao'];
+    try {
+      const ctl = new AbortController(), stop = setTimeout(() => ctl.abort(), 6000);
+      const r = await (await fetch(SB_URL() + '/auth/v1/settings', { headers: { apikey: CFG.SUPABASE_KEY }, signal: ctl.signal })).json(); clearTimeout(stop);
+      const x = r && r.external || {}; const L = ['kakao', 'google', 'apple'].filter(k => x[k]);
+      if (L.length) return L;
+    } catch (e) { /* 카카오만 */ }
+    return out;
+  }
+  const SB_LABEL = { kakao: '카카오로 계속', google: '구글로 계속', apple: 'Apple로 계속' };
+  // 로그인 창 열기. after: 돌아와서 이어 갈 일(koide-note-resume 값): 'vault'(동기화 켜기) · 'vault-move'(옮기기) · 'sync'(다시 로그인)
+  async function sbLoginOpen(after) {
+    S.vbusy = true; render();
+    const list = await sbProviders();
+    S.vbusy = false; S.sbSheet = { list, after, busy: false, err: '' }; render();
+  }
+  function sbSheet() {
+    const P = S.sbSheet; if (!P) return '';
+    return `<div class="sheet-back" data-a="sbclose"><section class="sheet" role="dialog" aria-modal="true" aria-labelledby="sb-t" data-stop>
+      <h2 id="sb-t">동기화에 쓸 계정으로 로그인해요</h2>
+      <p class="plain">이 로그인은 맡긴 노트의 주인을 알아보는 데만 써요. 노트는 휴대폰에서 잠긴 채로 맡겨서 서버도 볼 수 없어요.</p>
+      <div style="display:flex;flex-direction:column;gap:8px">${P.list.map(k => `<button class="btn wide" data-a="sbgo" data-v="${k}"${P.busy ? ' disabled' : ''}>${SB_LABEL[k]}</button>`).join('')}</div>
+      ${P.err ? `<p class="hint" style="color:var(--warm)" role="alert">${esc(P.err)}</p>` : ''}
+      <div class="row" style="justify-content:flex-end"><button type="button" class="btn ghost" data-a="sbclose">취소</button></div></section></div>`;
+  }
+  async function sbGo(provider) {
+    const P = S.sbSheet; if (!P || P.busy) return;
+    P.busy = true; P.err = ''; render();
+    try {
+      localStorage.setItem('koide-note-resume', P.after || 'vault');
+      const q = new URLSearchParams(location.search); ['code', 'error', 'error_code', 'error_description'].forEach(k => q.delete(k));
+      const qs = q.toString().replace(/=(&|$)/g, '$1');
+      const c = await sbClient();
+      const r = await c.auth.signInWithOAuth({ provider, options: { redirectTo: location.origin + location.pathname + (qs ? '?' + qs : '') } });
+      if (r && r.error) throw r.error;
+    } catch (e) { P.busy = false; P.err = e && e.code === 'net' ? e.message : '로그인을 시작하지 못했어요. 다시 해 주세요.'; render(); }
+  }
   async function deriveKey(pass, salt) {
     const base = await crypto.subtle.importKey('raw', te.encode(pass), 'PBKDF2', false, ['deriveKey']);
     return crypto.subtle.deriveKey({ name: 'PBKDF2', salt: unb64(salt), iterations: 250000, hash: 'SHA-256' }, base, { name: 'AES-GCM', length: 256 }, true, ['encrypt', 'decrypt']);
@@ -797,8 +913,11 @@ button.pg-tag::before { content: ''; position: absolute; inset: -10px; }
     try {
       const key = await loadKey();
       if (!key) { D.vault.on = false; saveLocal(); throw { message: '이 기기에서 비밀 문구를 다시 넣어야 해요.' }; }
+      S.sbRelogin = false;
+      // 새 길: 지금 로그인된 계정이 이 기기가 연결한 계정이 아니면 올리지 않는다(남의 보관함에 올리지 않게)
+      if (vaultBackend() === 'supabase') { const me = await sbMe(); if (me.h !== D.vault.sb) throw { message: '다른 계정으로 로그인돼 있어요. 동기화 연결을 끊고 다시 연결해 주세요.' }; }
       for (let tries = 0; tries < 3; tries++) {
-        const r = await api('noteGet');
+        const r = await vaultApi('noteGet');
         let base = 0;
         if (r && !r.none) D.vault.rec = !!r.rwrap;
         if (r && r.data) {
@@ -806,13 +925,14 @@ button.pg-tag::before { content: ''; position: absolute; inset: -10px; }
           base = r.rev;
         }
         // 처음 맡길 때는 잠긴 열쇠들(pend)도 함께 보낸다. 서버에 이미 있으면 서버가 있던 것을 지킨다
-        const w = await api('notePut', Object.assign({ salt: D.vault.salt, data: await lockUp(key, payload()), baseRev: base }, D.vault.pend || {}));
+        const w = await vaultApi('notePut', Object.assign({ salt: D.vault.salt, data: await lockUp(key, payload()), baseRev: base }, D.vault.pend || {}));
         if (w.stale) continue;
         delete D.vault.pend; D.vault.rev = w.rev; D.vault.last = now(); saveLocal();
         break;
       }
     } catch (e) {
-      S.syncMsg = e.code === 'login' ? '카카오 로그인이 끝났어요. 다시 로그인하면 이어서 동기화해요.' : e.code === 'bad' && /모르는 요청/.test(e.message || '') ? '서버를 새 버전으로 배포해야 연결할 수 있어요.' : (e.message || '맞추지 못했어요.');
+      if (e.code === 'login' && vaultBackend() === 'supabase') S.sbRelogin = true;
+      S.syncMsg = e.code === 'login' ? (S.sbRelogin ? '동기화 로그인이 끝났어요. 다시 로그인하면 이어서 동기화해요.' : '카카오 로그인이 끝났어요. 다시 로그인하면 이어서 동기화해요.') : e.code === 'bad' && /모르는 요청/.test(e.message || '') ? '서버를 새 버전으로 배포해야 연결할 수 있어요.' : (e.message || '맞추지 못했어요.');
     } finally {
       syncing = false;
       if (syncAgain) { syncAgain = false; sync(); } else safeRender();
@@ -1033,7 +1153,7 @@ button.pg-tag::before { content: ''; position: absolute; inset: -10px; }
     // 열 수 있는 때: 장면 모드(화면 지도)가 아니고 안내가 돌고 있지 않을 때
     const can = () => !SC && !KoideGuide.running();
     // 창이나 메뉴가 떠 있으면 시작하지 않는다
-    const calmNow = () => !(S.menu || S.done || S.bdg || S.a2hs || S.vsheet || S.cut || S.recSheet || S.kc || S.share || S.mv || S.ps || S.pg || S.gNew || S.fb) && !document.documentElement.classList.contains('booting');
+    const calmNow = () => !(S.menu || S.done || S.bdg || S.a2hs || S.vsheet || S.sbSheet || S.cut || S.recSheet || S.kc || S.share || S.mv || S.ps || S.pg || S.gNew || S.fb) && !document.documentElement.classList.contains('booting');
     const tabBtn = k => [...document.querySelectorAll(`.tabs [data-v="${k}"], .topnav [data-v="${k}"]`)].find(b => b.offsetWidth > 0);
     const goTab = k => { const b = document.createElement('button'); b.dataset.a = 'tab'; b.dataset.v = k; document.body.appendChild(b); b.click(); b.remove(); };
     // 오늘 화면에서 누를 기도했어요: 이번에 더한 기도제목 것이 있으면 그것, 없으면 보이는 첫 번째
@@ -1734,7 +1854,7 @@ button.pg-tag::before { content: ''; position: absolute; inset: -10px; }
   const noteStart = () => [...D.items.map(i => i.created), ...prays().map(p => p.d), ...D.thanks.map(x => x.date)].filter(Boolean).sort()[0] || '';
   const surveyNums = () => ({ days: new Set(prays().map(p => p.d)).size, items: D.items.length, thanks: D.thanks.length, app: HOME_APP, vault: !!(D.vault && D.vault.on) });
   if (!QUIET) KOIDE_SURVEY.init({ where: 'note', key: DEMO_LINK ? 'koide-demo-survey' : 'koide-survey', api, start: noteStart, nums: surveyNums, ver: APP_VER, demo: DEMO,
-    can: () => !QUIET && !!getToken() && S.tab === 'today' && !S.ps && !S.pg && !a2hsOn() && !S.done && !S.vsheet && !S.cut && !S.recSheet && !S.kc && !S.share && !S.mv && S.wopen == null && !S.menu,
+    can: () => !QUIET && !!getToken() && S.tab === 'today' && !S.ps && !S.pg && !a2hsOn() && !S.done && !S.vsheet && !S.sbSheet && !S.cut && !S.recSheet && !S.kc && !S.share && !S.mv && S.wopen == null && !S.menu,
     ready: () => !syncing, store: { get: () => D.survey, set: v => { D.survey = v; save(); } } });
   // ── 시범 '해 볼 일' 띠(pilot.js): 시범 링크(?pilot)로 연 사람, 또는 공동체 앱이 남긴 '내 사랑방 시범 중' 표시가 있는 사람에게만(같은 앱·같은 브라우저 저장 공간 안에서). 화면 제목 바로 아래에 한 줄. 기도하기·사용법 카드에는 없다 ──
   //  (2026-10-31) 내 사랑방이 시범 중인 사람은 공동체 앱에서 띠를 보니, 기도 노트에서는 띠를 거두고 지난 기록의 '나의 배지'가 같은 일을 한 번에 하나씩 안내한다. 링크(?pilot) 시범인 사람에게는 노트에도 띠가 그대로 있다. 해 본 일을 적는 것(체크 · 설문 키)은 어느 쪽이든 그대로 한다 ──
@@ -2214,6 +2334,7 @@ button.pg-tag::before { content: ''; position: absolute; inset: -10px; }
         <button class="mrow" data-a="kcchange"><span><b>비밀 문구 바꾸기</b><small>기록을 잠그는 문구를 새로 정해요</small></span><span aria-hidden="true">›</span></button>
         <button class="mrow" data-a="kcforgot"><span><b>비밀 문구를 잊었어요</b><small>적어 둔 복구용 낱말로 다시 열어요</small></span><span aria-hidden="true">›</span></button>
         <button class="mrow" data-a="vrec"${S.recBusy ? ' disabled' : ''}><span><b>${D.vault.rec ? '복구용 낱말 새로 만들기' : '복구용 낱말 만들기'}</b>${D.vault.rec ? '' : '<small>아직 없어요. 비밀 문구를 잊어도 열 수 있게 만들어 두세요.</small>'}</span><span aria-hidden="true">›</span></button>
+        ${canMove() ? '<button class="mrow" data-a="vmove"' + (S.vbusy ? ' disabled' : '') + '><span><b>새 보관함으로 옮기기</b><small>기록은 휴대폰에서 잠긴 그대로 옮겨요</small></span><span aria-hidden="true">›</span></button>' : ''}
         <p class="hint">비밀 문구와 복구용 낱말을 둘 다 잃으면 기록을 되살릴 수 없어요.</p></section>` : ''}
       <section class="card mrows"><p class="label">내 기록 파일</p>
         <button class="mrow" data-a="backup"><span><b>기록 저장하기</b><small>파일·드라이브에 저장하거나, 카카오톡으로 보내요.</small></span></button>
@@ -2255,7 +2376,7 @@ button.pg-tag::before { content: ''; position: absolute; inset: -10px; }
       <div class="sync-act">${cut}</div></section>`;
     return `<section class="card" style="margin-top:12px">${head}
       <p class="sync-st"><i class="dot${S.syncMsg && !syncing ? ' err' : ''}" aria-hidden="true"></i><span id="sync-state" aria-live="polite">${esc(syncLabel())}</span></p>${SYNC_LOCK}
-      <div class="sync-act"><button class="btn small ghost" data-a="vsync"${syncing ? ' disabled' : ''}>${ICON.sync}지금 동기화</button>${cut}</div></section>`;
+      <div class="sync-act">${S.sbRelogin ? '<button class="btn small" data-a="sblogin">다시 로그인</button>' : ''}<button class="btn small ghost" data-a="vsync"${syncing ? ' disabled' : ''}>${ICON.sync}지금 동기화</button>${cut}</div></section>`;
   }
   // 연결 끊기 창: 이 기기에서만 끊는다. 서버에 맡긴 기록을 지울지는 고른다(기본은 남겨 둠)
   function cutSheet() {
@@ -2385,7 +2506,7 @@ button.pg-tag::before { content: ''; position: absolute; inset: -10px; }
       </form><button type="button" class="link" data-a="vrecback" style="align-self:flex-start">‹ 비밀 문구로 열기</button></section></div>`;
     return `<div class="sheet-back" data-a="vclose"><section class="sheet" role="dialog" aria-modal="true" aria-labelledby="vs-t" data-stop>
       <h2 id="vs-t">${make ? '비밀 문구 정하기' : '비밀 문구 넣기'}</h2>
-      <p class="plain">${make ? '이 비밀 문구로 노트를 잠가서 맡겨요. 다른 기기에서 열 때도 같은 문구를 넣어요.' : '다른 기기에서 정한 비밀 문구를 넣으면, 맡겨 둔 노트를 이 기기의 노트와 합쳐요.'}</p>
+      <p class="plain">${make ? '이 비밀 문구로 노트를 잠가서 맡겨요. 다른 기기에서 열 때도 같은 문구를 넣어요.' : V.move ? '새 보관함에 이미 맡겨 둔 노트가 있어요. 그 노트의 비밀 문구를 넣으면, 이 기기의 노트와 합쳐서 새 보관함에 이어 붙어요. 예전 보관함의 기록은 남아요.' : '다른 기기에서 정한 비밀 문구를 넣으면, 맡겨 둔 노트를 이 기기의 노트와 합쳐요.'}</p>
       <form data-f="${make ? 'vcreate' : 'vunlock'}" style="display:flex;flex-direction:column;gap:8px">
         <input class="field" id="vs-a" type="password" minlength="6" maxlength="100" autocomplete="${make ? 'new-password' : 'current-password'}" placeholder="비밀 문구 (6글자 넘게)" aria-label="비밀 문구" required>
         ${make ? '<input class="field" id="vs-b" type="password" maxlength="100" autocomplete="new-password" placeholder="한 번 더" aria-label="비밀 문구 한 번 더" required>' : ''}
@@ -2415,7 +2536,7 @@ button.pg-tag::before { content: ''; position: absolute; inset: -10px; }
     try {
       const rc = await lockWithWords(raw);
       // 아직 맡기기 전이면(pend) 첫 맡김에 실어 보내고, 맡긴 뒤면 열쇠만 바꾼다
-      if (D.vault.pend) { D.vault.pend.rsalt = rc.rsalt; D.vault.pend.rwrap = rc.rwrap; } else await api('noteKeys', { rsalt: rc.rsalt, rwrap: rc.rwrap });
+      if (D.vault.pend) { D.vault.pend.rsalt = rc.rsalt; D.vault.pend.rwrap = rc.rwrap; } else await vaultApi('noteKeys', { rsalt: rc.rsalt, rwrap: rc.rwrap });
       D.vault.rec = true; saveLocal(); S.recSheet = { words: rc.words };
     } catch (e) {
       if (e.code === 'login') { S.recBusy = false; return toast('카카오 로그인이 끝났어요. 다시 로그인해 주세요'); }
@@ -2431,7 +2552,7 @@ button.pg-tag::before { content: ''; position: absolute; inset: -10px; }
     if (S.kc) return;
     const P = S.kc = { kind, loading: true }; render();
     let r = null;
-    try { r = await api('noteGet'); }
+    try { r = await vaultApi('noteGet'); }
     catch (e) { if (S.kc === P) { S.kc = null; toast(e.code === 'login' ? '카카오 로그인이 끝났어요. 다시 로그인해 주세요' : (e.message || '서버와 이야기하지 못했어요.')); } return; }
     if (S.kc !== P) return;
     delete P.loading;
@@ -2478,19 +2599,47 @@ button.pg-tag::before { content: ''; position: absolute; inset: -10px; }
     } catch (e) { return fail(change ? '비밀 문구가 맞지 않아요.' : '복구용 낱말이 맞지 않아요. 낱말을 다시 봐 주세요.'); }
     try {
       const salt = randB64(16), wrap = await lockUp(await deriveKey(a, salt), { k: raw });
-      await api('noteKeys', { salt, wrap });
+      await vaultApi('noteKeys', { salt, wrap });
       D.vault.salt = salt; saveLocal(); S.kc = null; render(); toast('비밀 문구를 바꿨어요');
     } catch (e) {
       fail(e.code === 'login' ? '카카오 로그인이 끝났어요. 다시 로그인해 주세요.' : e.code === 'bad' && /모르는 요청/.test(e.message || '') ? '서버를 새 버전으로 배포해야 바꿀 수 있어요.' : '바꾸지 못했어요. 예전 비밀 문구는 그대로예요. 다시 해 주세요.');
     }
   }
+  // 예전 보관함(Apps Script)에 연결된 기기를 새 보관함(Supabase)으로 옮긴다. 기록은 잠긴 그대로 옮기고(서버는 내용을 못 본다) 예전 보관함의 기록은 남긴다.
+  //  새 보관함에 이미 노트가 있으면 덮어쓰지 않고 비밀 문구로 열어 붙는다. 실패하면 D.vault는 그대로(예전 길 그대로)
+  const canMove = () => sbReady() && !!(D.vault && D.vault.on && !D.vault.backend);
+  async function vaultMove(resumed) {
+    if (S.vbusy || !canMove() || !canLock()) return;
+    if (!resumed && !confirm('기록은 휴대폰에서 잠긴 그대로 옮겨요. 서버는 내용을 볼 수 없어요. 예전 보관함의 기록은 남아요. 옮길까요?')) return;
+    S.vbusy = true; S.syncMsg = ''; render();
+    try {
+      const old = await vaultApi('noteGet', null, 'apps-script');
+      if (old.none) throw { message: '예전 보관함에 맡긴 노트가 없어요.' };
+      if (!(await sbSession())) return sbLoginOpen('vault-move');
+      const me = await sbMe(), cur = await vaultApi('noteGet', null, 'supabase');
+      if (cur.none) {
+        const w = await vaultApi('notePut', { salt: old.salt, data: old.data, baseRev: 0, wrap: old.wrap, rsalt: old.rsalt, rwrap: old.rwrap }, 'supabase');
+        if (w.stale) throw { message: '새 보관함에 다른 노트가 생겼어요. 다시 해 주세요.' };
+        D.vault.backend = 'supabase'; D.vault.sb = me.h; D.vault.rev = w.rev; D.vault.last = now(); delete D.vault.pend; saveLocal();
+        S.vbusy = false; render(); toast('새 보관함으로 옮겼어요'); return sync();
+      }
+      S.vbusy = false; S.vsheet = { mode: 'unlock', remote: cur, move: true }; render();
+    } catch (e) {
+      S.vbusy = false; render();
+      if (e && e.code === 'login') return sbLoginOpen('vault-move');
+      toast(e && e.message || '옮기지 못했어요. 예전 보관함은 그대로예요');
+    }
+  }
   async function vaultStart() {
     if (!canLock()) return toast('이 화면 주소(https)에서만 쓸 수 있어요');
     const toLogin = () => { try { localStorage.setItem('koide-after-login', 'note'); localStorage.setItem('koide-note-resume', 'vault'); } catch (e) { /* 무시 */ } location.href = 'index.html' + QS; };
-    if (!getToken()) return toLogin();
+    const nb = vaultBackend() === 'supabase';
+    // 새 길은 공동체 로그인(getToken) 대신 Supabase 로그인이 있어야 한다. 없으면 로그인 창
+    if (nb) { try { if (!(await sbSession())) return sbLoginOpen('vault'); } catch (e) { return toast(e.message || '서버와 이야기하지 못했어요.'); } }
+    else if (!getToken()) return toLogin();
     S.vbusy = true; S.syncMsg = ''; render();
-    try { const r = await api('noteGet'); S.vsheet = r.none ? { mode: 'create' } : { mode: 'unlock', remote: r }; }
-    catch (e) { if (e.code === 'login') return toLogin(); S.syncMsg = e.code === 'bad' && /모르는 요청/.test(e.message || '') ? '서버를 새 버전으로 배포해야 연결할 수 있어요.' : (e.message || '서버와 이야기하지 못했어요.'); }
+    try { const r = await vaultApi('noteGet'); S.vsheet = r.none ? { mode: 'create' } : { mode: 'unlock', remote: r }; }
+    catch (e) { if (e.code === 'login') return nb ? sbLoginOpen('vault') : toLogin(); S.syncMsg = e.code === 'bad' && /모르는 요청/.test(e.message || '') ? '서버를 새 버전으로 배포해야 연결할 수 있어요.' : (e.message || '서버와 이야기하지 못했어요.'); }
     S.vbusy = false; render();
   }
   function doneSheet() {
@@ -2624,7 +2773,7 @@ button.pg-tag::before { content: ''; position: absolute; inset: -10px; }
   }
   const TABS = [['today', '오늘의 기도', TICON.sun], ['note', '기도 제목', TICON.pen], ['pray', '기도하기', TICON.hands], ['look', '돌아보기', TICON.book], ['more', '더보기', TICON.more]];
   // 창이 하나라도 열려 있으면 뒤 화면 스크롤을 잠근다
-  function lockScroll() { document.documentElement.style.overflow = S.ps || S.pg || S.done || S.bdg || S.vsheet || S.cut || S.recSheet || S.kc || S.share || S.yr || a2hsOn() || S.wopen != null ? 'hidden' : ''; }
+  function lockScroll() { document.documentElement.style.overflow = S.ps || S.pg || S.done || S.bdg || S.vsheet || S.sbSheet || S.cut || S.recSheet || S.kc || S.share || S.yr || a2hsOn() || S.wopen != null ? 'hidden' : ''; }
   // 배지 창은 화면 전체를 다시 그리지 않고 창만 붙이고 뗀다(다시 그리면 배지 그림이 모두 새로 만들어져 휴대폰에서 반짝인다)
   function bdgShow() { const r = $('#root'); r.querySelectorAll('.sheet-back[data-a=bdgclose]').forEach(n => n.remove()); r.insertAdjacentHTML('beforeend', bdgSheet()); lockScroll(); }
   function bdgHide() { S.bdg = null; document.querySelectorAll('#root .sheet-back[data-a=bdgclose]').forEach(n => n.remove()); lockScroll(); }
@@ -2669,7 +2818,7 @@ button.pg-tag::before { content: ''; position: absolute; inset: -10px; }
     const V = { today: todayView, note: noteView, pray: prayTab, look: lookView, weaves: weavesView, more: moreView, people: peopleView, sync: syncView, fb: fbView, help: helpView }[S.tab];
     $('#root').innerHTML = `${topBar()}<div class="wrap has-top">${V()}</div>
       <nav class="tabs" aria-label="메뉴">${TABS.map(([k, l, ic]) => { const on = (['fb', 'sync', 'help', 'weaves', 'people'].includes(S.tab) ? 'more' : S.tab) === k; return `<button class="${k === 'pray' ? 'pray-tab ' : ''}${on ? 'on' : ''}" data-a="tab" data-v="${k}" aria-label="${l}" title="${l}" ${on ? 'aria-current="page"' : ''}>${ic}</button>`; }).join('')}</nav>
-      ${S.done ? doneSheet() : ''}${S.bdg ? bdgSheet() : ''}${S.yr ? yearSheet() : ''}${a2hsOn() ? a2hsSheet() : ''}${S.vsheet ? vaultSheet() : ''}${S.cut ? cutSheet() : ''}${S.recSheet ? recSheet() : ''}${S.kc ? kcSheet() : ''}${S.share ? shareSheet() : ''}${S.mv ? mvSheet() : ''}${S.pg ? pgHtml() : ''}${S.ps ? psHtml() : ''}${S.toast ? `<div class="toast" role="status">${esc(S.toast)}</div>` : ''}
+      ${S.done ? doneSheet() : ''}${S.bdg ? bdgSheet() : ''}${S.yr ? yearSheet() : ''}${a2hsOn() ? a2hsSheet() : ''}${S.vsheet ? vaultSheet() : ''}${S.sbSheet ? sbSheet() : ''}${S.cut ? cutSheet() : ''}${S.recSheet ? recSheet() : ''}${S.kc ? kcSheet() : ''}${S.share ? shareSheet() : ''}${S.mv ? mvSheet() : ''}${S.pg ? pgHtml() : ''}${S.ps ? psHtml() : ''}${S.toast ? `<div class="toast" role="status">${esc(S.toast)}</div>` : ''}
       ${canSave ? '' : '<div class="toast" role="alert">이 브라우저에서는 저장할 수 없어요. 개인 정보 보호 모드를 끄고 열어 주세요.</div>'}`;
     lockScroll();
     { const yb = $('.yr-body'); if (yb) yb.scrollTop = S.yrNew ? yb.scrollHeight : ysTop; S.yrNew = false; }
@@ -2905,6 +3054,10 @@ button.pg-tag::before { content: ''; position: absolute; inset: -10px; }
       case 'psxtra': psMark(); return psGo(1);
       case 'vstart': return vaultStart();
       case 'vclose': S.vsheet = null; return render();
+      case 'vmove': return vaultMove(false);
+      case 'sblogin': return sbLoginOpen('sync');
+      case 'sbclose': S.sbSheet = null; return render();
+      case 'sbgo': return sbGo(v);
       case 'vrecmode': S.vsheet.rec = true; S.vsheet.err = ''; return render();
       case 'vrecback': S.vsheet.rec = false; S.vsheet.err = ''; return render();
       case 'vrec': return recMake();
@@ -2921,10 +3074,12 @@ button.pg-tag::before { content: ''; position: absolute; inset: -10px; }
       case 'cutopen': S.cut = { del: false }; render(); { const g = $('#cut-go'); if (g) g.focus(); } return;
       case 'cutclose': S.cut = null; return render();
       case 'cutgo': {
-        const del = !!S.cut.del; S.cut = null; clearTimeout(syncT);
+        const del = !!S.cut.del, bk = vaultBackend(); S.cut = null; clearTimeout(syncT);
         D.vault = null; saveLocal(); try { localStorage.removeItem(LOCK_KEY); } catch (e) { /* 무시 */ }
-        if (del) api('noteDel').then(() => toast('맡긴 노트를 지웠어요'), () => toast('맡긴 노트를 지우지 못했어요. 다시 연결한 뒤 끊어 주세요'));
+        let gone = null;
+        if (del) gone = vaultApi('noteDel', null, bk).then(() => toast('맡긴 노트를 지웠어요'), () => toast('맡긴 노트를 지우지 못했어요. 다시 연결한 뒤 끊어 주세요'));
         else toast('이 기기에서 연결을 끊었어요');
+        if (bk === 'supabase') Promise.resolve(gone).then(sbSignOut); // 새 길 세션도 함께 끊는다(공동체 로그인은 그대로)
         return render();
       }
       case 'backup': {
@@ -2982,16 +3137,18 @@ button.pg-tag::before { content: ''; position: absolute; inset: -10px; }
       if (a.length < 6) { V.err = '6글자 넘게 써 주세요.'; return render(); }
       if (a !== b) { V.err = kind === 'vrecover' ? '두 번 쓴 새 비밀 문구가 달라요.' : '두 번 쓴 비밀 문구가 달라요.'; return render(); }
       V.busy = true; V.err = ''; render();
+      const nb = !!V.move || vaultBackend() === 'supabase'; // 새 길로 연결하는 중(옮기기 포함)
       (async () => {
         try {
           let words = null;
+          const tag = nb ? { backend: 'supabase', sb: (await sbMe()).h } : {};
           if (kind === 'vcreate') {
-            // 새 서버가 아니면 잠긴 열쇠를 저장하지 못해 다른 기기에서 못 열 수 있다. 맡기기 전에 알아본다(새 서버는 '맡긴 노트가 없다'고 답한다)
-            try { await api('noteKeys', {}); } catch (e) { if (e.code === 'bad' && /모르는 요청/.test(e.message || '')) { V.busy = false; V.err = '서버를 새 버전으로 배포해야 연결할 수 있어요.'; return render(); } }
+            // 새 서버가 아니면 잠긴 열쇠를 저장하지 못해 다른 기기에서 못 열 수 있다. 맡기기 전에 알아본다(새 서버는 '맡긴 노트가 없다'고 답한다). 새 길은 처음부터 열쇠 칸이 있어 건너뛴다
+            if (!nb) try { await api('noteKeys', {}); } catch (e) { if (e.code === 'bad' && /모르는 요청/.test(e.message || '')) { V.busy = false; V.err = '서버를 새 버전으로 배포해야 연결할 수 있어요.'; return render(); } }
             const salt = randB64(16), pk = await deriveKey(a, salt), raw = randB64(32);
             const wrap = await lockUp(pk, { k: raw }), rc = await lockWithWords(raw);
             rawKeep(raw); words = rc.words;
-            D.vault = { on: true, salt, rev: 0, last: 0, rec: true, pend: { wrap, rsalt: rc.rsalt, rwrap: rc.rwrap } };
+            D.vault = Object.assign({ on: true, salt, rev: 0, last: 0, rec: true, pend: { wrap, rsalt: rc.rsalt, rwrap: rc.rwrap } }, tag);
           } else if (kind === 'vunlock') {
             const pk = await deriveKey(a, V.remote.salt);
             let raw, data;
@@ -2999,7 +3156,7 @@ button.pg-tag::before { content: ''; position: absolute; inset: -10px; }
               raw = V.remote.wrap ? (await unlockUp(pk, V.remote.wrap)).k : await rawOf(pk);
               data = await unlockUp(await keyOfRaw(raw), V.remote.data);
             } catch (e) { V.busy = false; V.err = '비밀 문구가 달라요.'; return render(); }
-            rawKeep(raw); mergeIn(data); D.vault = { on: true, salt: V.remote.salt, rev: V.remote.rev, last: 0, rec: !!V.remote.rwrap };
+            rawKeep(raw); mergeIn(data); D.vault = Object.assign({ on: true, salt: V.remote.salt, rev: V.remote.rev, last: 0, rec: !!V.remote.rwrap }, tag);
           } else {
             // 복구용 낱말로 진짜 열쇠를 풀고, 새 비밀 문구로 다시 잠가 서버의 잠긴 열쇠만 바꾼다(노트와 복구용 낱말은 그대로)
             let raw, data;
@@ -3008,14 +3165,14 @@ button.pg-tag::before { content: ''; position: absolute; inset: -10px; }
               data = await unlockUp(await keyOfRaw(raw), V.remote.data);
             } catch (e) { V.busy = false; V.err = '복구용 낱말이 맞지 않아요. 낱말을 다시 봐 주세요.'; return render(); }
             const salt = randB64(16), wrap = await lockUp(await deriveKey(a, salt), { k: raw });
-            await api('noteKeys', { salt, wrap });
-            rawKeep(raw); mergeIn(data); D.vault = { on: true, salt, rev: V.remote.rev, last: 0, rec: true };
+            await vaultApi('noteKeys', { salt, wrap }, nb ? 'supabase' : undefined);
+            rawKeep(raw); mergeIn(data); D.vault = Object.assign({ on: true, salt, rev: V.remote.rev, last: 0, rec: true }, tag);
           }
           saveLocal(); S.vsheet = null;
           KoidePilot.done('n-sync'); earn('n-sync');
           if (words) S.recSheet = { words };
           render(); if (!words) toast(kind === 'vrecover' ? '새 비밀 문구로 바꾸고 노트를 합쳤어요' : '맡겨 둔 노트를 합쳤어요'); sync();
-        } catch (e) { V.busy = false; V.err = e && e.code === 'net' ? e.message : '잠그지 못했어요. 다시 해 주세요.'; render(); }
+        } catch (e) { V.busy = false; V.err = e && e.code === 'net' ? e.message : e && e.code === 'login' ? '로그인이 끝났어요. 창을 닫고 다시 로그인해 주세요.' : '잠그지 못했어요. 다시 해 주세요.'; render(); }
       })();
       return;
     }
@@ -3056,7 +3213,7 @@ button.pg-tag::before { content: ''; position: absolute; inset: -10px; }
     if (S.pgEnd) { pgEndClose(); return render(); }
     if (S.pgDlg) { pgDlgClose(); return render(); }
     if (S.pg) { S.pg = false; return render(); }
-    if (S.wopen != null) { S.wopen = null; render(); } else if (S.ps) { psStop(); render(); } else if (S.bdg) { bdgHide(); } else if (S.yr) { yrHide(); } else if (S.done) { S.done = null; render(); } else if (S.kc) { S.kc = null; render(); } else if (S.cut) { S.cut = null; render(); } else if (S.vsheet) { S.vsheet = null; render(); } else if (S.share) { S.share = null; render(); } else if (S.mv) { S.mv = null; render(); }
+    if (S.wopen != null) { S.wopen = null; render(); } else if (S.ps) { psStop(); render(); } else if (S.bdg) { bdgHide(); } else if (S.yr) { yrHide(); } else if (S.done) { S.done = null; render(); } else if (S.kc) { S.kc = null; render(); } else if (S.cut) { S.cut = null; render(); } else if (S.sbSheet) { S.sbSheet = null; render(); } else if (S.vsheet) { S.vsheet = null; render(); } else if (S.share) { S.share = null; render(); } else if (S.mv) { S.mv = null; render(); }
   });
   // 모임 화면의 '그물 담기'로 오면(?weave=모임ID) 모임 화면이 건네준 그물(sessionStorage)을 노트에 담고 '함께 짠 그물' 화면을 연다
   { const q = new URLSearchParams(location.search), wid = q.get('weave'); if (wid) {
@@ -3084,12 +3241,19 @@ button.pg-tag::before { content: ''; position: absolute; inset: -10px; }
   if (SC && !window.KoideBeatitudes.scene(SC.at)) window.KoideSunrain.scene(SC.at, { n: people().length + 1 });
   // 노트 주인을 아직 모르면(예전 로그인) 서버에 한 번 묻고, 내 노트 자리가 달라지면 다시 연다. 서버가 답하지 않으면 이번에는 예전 자리 그대로
   if (!QUIET) (async () => {
+    // 새 길 로그인에서 돌아오면(?code=) supabase-js가 세션으로 바꿔 둔 뒤 주소에서 code를 지운다
+    if (sbReady() && /[?&](code|error_code)=/.test(location.search)) {
+      try { await sbSession(); } catch (e) { /* 아래 흐름이 로그인 창을 다시 연다 */ }
+      const q = new URLSearchParams(location.search); ['code', 'error', 'error_code', 'error_description'].forEach(k => q.delete(k));
+      history.replaceState(null, '', location.pathname + (q.toString() ? '?' + q.toString().replace(/=(&|$)/g, '$1') : ''));
+    }
     if (!getUid()) {
       try { const r = await api('me'); if (r && r.uid) { try { localStorage.setItem(UID, r.uid); } catch (e) { /* 무시 */ } if (ownNoteKey(BASE, r.uid) !== KEY) return location.reload(); } }
       catch (e) { if (e && e.code === 'login') { if (window.koideSpace) window.koideSpace.going('community'); return location.replace('index.html' + QS); } }
     }
     let resume = null; try { resume = localStorage.getItem('koide-note-resume'); localStorage.removeItem('koide-note-resume'); } catch (e) { /* 무시 */ }
-    if (resume === 'vault' && getToken()) { S.tab = 'sync'; vaultStart(); }
+    if (resume === 'vault-move' && getToken() && canMove()) { S.tab = 'sync'; vaultMove(true); }
+    else if (resume === 'vault' && getToken()) { S.tab = 'sync'; vaultStart(); }
     else if (D.vault && D.vault.on && !D.vault.paused) sync();
     loadMe();
   })();
