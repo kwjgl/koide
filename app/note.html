@@ -141,6 +141,18 @@ h2 { font-family: var(--f-display); font-size: 1.15em; margin: 0; }
 .btn.ghost { background: var(--surface); color: var(--accent); border: 1.5px solid var(--accent-mid); }
 .btn.small { padding: .35em .9em; min-height: 36px; font-size: .88em; border-radius: 10px; }
 .btn.wide { width: 100%; }
+/* 로그인 단추: 각 회사의 공식 모양(승인된 색 예외, docs/design.md 결정 기록). 디자인 스타일이 바꾸지 못하게 :root:root:root[data-style]보다 세게 쓴다 */
+:root:root:root .btn.sso-btn { display: flex; align-items: center; justify-content: center; gap: 8px; width: 100%; min-height: 48px; border-radius: 12px; font-weight: 600; box-shadow: none !important; backdrop-filter: none; text-shadow: none; background-image: none !important; }
+:root:root:root .btn.sso-btn svg { width: 20px; height: 20px; flex: none; }
+:root:root:root[data-style] .btn.sso-btn.sso-kakao, :root:root:root .btn.sso-btn.sso-kakao { background-color: #FEE500; color: rgba(0,0,0,.85); border: 0; }
+:root:root:root[data-style] .btn.sso-btn.sso-google, :root:root:root .btn.sso-btn.sso-google { background-color: #FFFFFF; color: #1F1F1F; border: 1px solid #747775; }
+:root:root:root[data-style] .btn.sso-btn.sso-apple, :root:root:root .btn.sso-btn.sso-apple { background-color: #000000; color: #FFFFFF; border: 0; }
+@media (prefers-color-scheme: dark) {
+  :root:root:root:not([data-mode="light"]) .btn.sso-btn.sso-google, :root:root:root[data-style]:not([data-mode="light"]) .btn.sso-btn.sso-google { background-color: #131314; color: #E3E3E3; border-color: #8E918F; }
+  :root:root:root:not([data-mode="light"]) .btn.sso-btn.sso-apple, :root:root:root[data-style]:not([data-mode="light"]) .btn.sso-btn.sso-apple { background-color: #FFFFFF; color: #000000; }
+}
+:root:root:root[data-mode="dark"] .btn.sso-btn.sso-google { background-color: #131314; color: #E3E3E3; border-color: #8E918F; }
+:root:root:root[data-mode="dark"] .btn.sso-btn.sso-apple { background-color: #FFFFFF; color: #000000; }
 .btn:disabled { opacity: .45; cursor: default; }
 /* 1000px 미만: 두 칸 틀은 레이아웃에 영향을 주지 않는다(카드가 지금과 같은 순서·간격으로 쌓임). 오른쪽에만 쓰는 순서 카드는 숨김 */
 .n-two, .n-main, .n-side, .n-end { display: contents; }
@@ -813,7 +825,13 @@ button.pg-tag::before { content: ''; position: absolute; inset: -10px; }
     } catch (e) { /* 카카오만 */ }
     return out;
   }
-  const SB_LABEL = { kakao: '카카오로 계속', google: '구글로 계속', apple: 'Apple로 계속' };
+  const SB_LABEL = { kakao: '카카오로 계속', google: 'Google로 계속', apple: 'Apple로 계속' };
+  // 각 회사의 공식 로그인 단추 모양을 따른 로고(simple-icons 13.21.0, CC0 · 구글 G는 구글 공식 4색)
+  const SB_LOGO = {
+    kakao: '<svg viewBox="0 0 24 24" aria-hidden="true" fill="currentColor"><path d="M12 18.75c-.591 0-1.1697-.0413-1.7317-.1209-.5626.3965-3.813 2.6797-4.1198 2.7225 0 0-.1258.0489-.2328-.0141s-.0876-.2282-.0876-.2282c.0322-.2198.8426-3.0183.992-3.5333-2.7452-1.36-4.5701-3.7686-4.5701-6.5135C2.25 6.8168 6.6152 3.375 12 3.375s9.75 3.4418 9.75 7.6875c0 4.2457-4.3652 7.6875-9.75 7.6875z"/></svg>',
+    google: '<svg viewBox="0 0 48 48" aria-hidden="true"><path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z"/><path fill="#4285F4" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z"/><path fill="#FBBC05" d="M10.53 28.59c-.48-1.45-.76-2.99-.76-4.59s.27-3.14.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24c0 3.88.92 7.54 2.56 10.78l7.97-6.19z"/><path fill="#34A853" d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.15 1.45-4.92 2.3-8.16 2.3-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z"/></svg>',
+    apple: '<svg viewBox="0 0 24 24" aria-hidden="true" fill="currentColor"><path d="M12.152 6.896c-.948 0-2.415-1.078-3.96-1.04-2.04.027-3.91 1.183-4.961 3.014-2.117 3.675-.546 9.103 1.519 12.09 1.013 1.454 2.208 3.09 3.792 3.039 1.52-.065 2.09-.987 3.935-.987 1.831 0 2.35.987 3.96.948 1.637-.026 2.676-1.48 3.676-2.948 1.156-1.688 1.636-3.325 1.662-3.415-.039-.013-3.182-1.221-3.22-4.857-.026-3.04 2.48-4.494 2.597-4.559-1.429-2.09-3.623-2.324-4.39-2.376-2-.156-3.675 1.09-4.61 1.09zM15.53 3.83c.843-1.012 1.4-2.427 1.245-3.83-1.207.052-2.662.805-3.532 1.818-.78.896-1.454 2.338-1.273 3.714 1.338.104 2.715-.688 3.559-1.701"/></svg>'
+  };
   // 로그인 창 열기. after: 돌아와서 이어 갈 일(koide-note-resume 값): 'vault'(동기화 켜기) · 'vault-move'(옮기기) · 'sync'(다시 로그인)
   async function sbLoginOpen(after) {
     S.vbusy = true; render();
@@ -824,7 +842,7 @@ button.pg-tag::before { content: ''; position: absolute; inset: -10px; }
     const P = S.sbSheet; if (!P) return '';
     return `<div class="sheet-back" data-a="sbclose"><section class="sheet" role="dialog" aria-modal="true" aria-labelledby="sb-t" data-stop>
       <h2 id="sb-t">동기화에 쓸 계정으로 로그인해요</h2>
-      <div style="display:flex;flex-direction:column;gap:8px">${P.list.map(k => `<button class="btn wide" data-a="sbgo" data-v="${k}"${P.busy ? ' disabled' : ''}>${SB_LABEL[k]}</button>`).join('')}</div>
+      <div style="display:flex;flex-direction:column;gap:8px">${P.list.map(k => `<button class="btn wide sso-btn sso-${k}" data-a="sbgo" data-v="${k}"${P.busy ? ' disabled' : ''}>${SB_LOGO[k]}<span>${SB_LABEL[k]}</span></button>`).join('')}</div>
       ${P.err ? `<p class="hint" style="color:var(--warm)" role="alert">${esc(P.err)}</p>` : ''}
       <div class="row" style="justify-content:flex-end"><button type="button" class="btn ghost" data-a="sbclose">취소</button></div></section></div>`;
   }
