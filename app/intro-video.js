@@ -61,8 +61,8 @@ window.KoideIntroVideo = (() => {
     if (O.art && O.art.length) L.push({ ch: 'together', dur: 6000, cap: '기도한 날마다 이달의 그림이 채워져요.',
       html: `<div class="iv-art">${O.art.map((a, k) => `<div class="iv-layer${k ? ' iv-show' : ''}" ${k ? d(.6 + k * 1.2) : ''}>${a}</div>`).join('')}</div>` });
     L.push(
-      { ch: 'me', dur: 7000, cap: '나만 보는 기도 노트도 있어요. 이 휴대폰에만 저장돼서 아무도 볼 수 없어요.',
-        html: PHONE(`<p class="iv-ph-h">나의 기도 노트</p>${['', '', ''].map((_, k) => `<span class="iv-line iv-in" ${d(.5 + k * .35)}></span>`).join('')}<span class="iv-lock iv-pop" ${d(2.2)}>${LOCK}</span>`, 'iv-pop') +
+      { ch: 'me', dur: 7000, cap: '나만 보는 코이데 노트도 있어요. 이 휴대폰에만 저장돼서 아무도 볼 수 없어요.',
+        html: PHONE(`<p class="iv-ph-h">코이데 노트</p>${['', '', ''].map((_, k) => `<span class="iv-line iv-in" ${d(.5 + k * .35)}></span>`).join('')}<span class="iv-lock iv-pop" ${d(2.2)}>${LOCK}</span>`, 'iv-pop') +
           `<p class="iv-chip iv-in" ${d(3.2)}>이 휴대폰에만</p>` },
       { ch: 'me', dur: 7000, cap: '날마다 기도제목 세 개. 오래 기도하지 않은 것부터 나와요.',
         html: `<div class="iv-today"><p class="iv-sub iv-in" ${d(.2)}>오늘의 기도</p>${[['엄마', '건강을 회복하도록'], ['나', '새 일터에서 지혜를'], ['교회', '다음 세대를 위해']].map(([w, t], k) =>
@@ -73,7 +73,7 @@ window.KoideIntroVideo = (() => {
       { ch: 'me', dur: 7000, cap: '내가 기도하는 사람들도 끈으로 이어져요.',
         html: cord({ tie: [.6, 1.4, 2.2, 3, 3.8, 4.6], names: ['나', '엄마', '아빠', '지우', '친구', '교회'] }) },
       { ch: 'me', dur: 6000, cap: `나누고 싶은 기도는 ${g}에 나누고, 다른 기기에서도 동기화할 수 있어요.`,
-        html: `<div class="iv-flow"><span class="iv-box iv-in" ${d(.3)}>내 기도 노트</span><span class="iv-arrow iv-in" ${d(.9)}>→</span><span class="iv-box hl iv-in" ${d(1.3)}>우리 ${homeName}</span></div>
+        html: `<div class="iv-flow"><span class="iv-box iv-in" ${d(.3)}>코이데 노트</span><span class="iv-arrow iv-in" ${d(.9)}>→</span><span class="iv-box hl iv-in" ${d(1.3)}>우리 ${homeName}</span></div>
           <div class="iv-flow"><span class="iv-dev iv-in" ${d(2.4)}>휴대폰</span><span class="iv-sync iv-pop" ${d(3)}>${LOCK}</span><span class="iv-dev iv-in" ${d(2.7)}>PC</span></div>` },
       { ch: 'me', dur: 6000, end: true, cap: '우리를 잇는 끈은 성령의 교통하심(코이노니아)입니다.',
         html: cord({ all: true }) + `<p class="iv-big iv-in" ${d(.6)}>우리를 잇는 끈은<br>성령의 교통하심입니다</p><p class="iv-sub iv-in" ${d(1.4)}>고린도후서 13:13</p>
