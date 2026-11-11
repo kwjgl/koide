@@ -824,7 +824,6 @@ button.pg-tag::before { content: ''; position: absolute; inset: -10px; }
     const P = S.sbSheet; if (!P) return '';
     return `<div class="sheet-back" data-a="sbclose"><section class="sheet" role="dialog" aria-modal="true" aria-labelledby="sb-t" data-stop>
       <h2 id="sb-t">동기화에 쓸 계정으로 로그인해요</h2>
-      <p class="plain">이 로그인은 맡긴 노트의 주인을 알아보는 데만 써요. 노트는 휴대폰에서 잠긴 채로 맡겨서 서버도 볼 수 없어요.</p>
       <div style="display:flex;flex-direction:column;gap:8px">${P.list.map(k => `<button class="btn wide" data-a="sbgo" data-v="${k}"${P.busy ? ' disabled' : ''}>${SB_LABEL[k]}</button>`).join('')}</div>
       ${P.err ? `<p class="hint" style="color:var(--warm)" role="alert">${esc(P.err)}</p>` : ''}
       <div class="row" style="justify-content:flex-end"><button type="button" class="btn ghost" data-a="sbclose">취소</button></div></section></div>`;
