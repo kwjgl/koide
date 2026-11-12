@@ -1,0 +1,39 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#2B6A62">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="코이데">
+<title>코이데 공동체</title>
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+<link rel="icon" type="image/svg+xml" href="icons/favicon.svg">
+<link rel="icon" type="image/png" sizes="192x192" href="icons/icon-192.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Gowun+Batang:wght@700&family=IBM+Plex+Sans+KR:wght@400;500;600&display=swap">
+<script>
+/* 노트·교회와 같은 이 기기의 화면 설정 */
+try { const p=JSON.parse(localStorage.getItem('koide-pref')||'{}'),d=document.documentElement;
+if(p.mode==='light'||p.mode==='dark')d.dataset.mode=p.mode;
+if(p.accent&&p.accent!=='green')d.dataset.accent=p.accent;
+if(p.style&&p.style!=='flat')d.dataset.style=p.style;
+if(p.big)d.dataset.big='';}catch(e){}
+</script>
+<link rel="stylesheet" href="koinonia.css">
+<link rel="stylesheet" href="design-styles.css">
+</head>
+<body>
+<script src="config.js"></script>
+<script src="splash.js" data-space="koinonia"></script>
+<div id="root"><main class="wrap"><h1>코이데 공동체</h1><p class="hint">불러오는 중이에요…</p></main></div>
+<script src="sb.js"></script>
+<script src="koinonia.js"></script>
+<script>
+if ('serviceWorker' in navigator && location.protocol.startsWith('http'))
+  navigator.serviceWorker.register('sw.js').catch(()=>{});
+</script>
+</body>
+</html>

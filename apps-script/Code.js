@@ -103,7 +103,7 @@ const FIRST_DEPT = { id: 'D1', name: '청장년부', group: '사랑방', unit: '
 // ── 요청 받기 ─────────────────────────────────────────────
 
 // 서버 코드를 고칠 때마다 바꾼다. 웹 앱 주소를 열면 보여서, 새 버전으로 배포됐는지 확인할 수 있다
-const VERSION = '2026-11-14 교회 관리자 이름';
+const VERSION = '2026-11-14 새 모임은 코이데 공동체에서';
 function doGet() {
   return ContentService.createTextOutput('코이데 서버가 켜져 있어요. (버전: ' + VERSION + ')');
 }
@@ -2328,21 +2328,9 @@ function groupPerson_(w, body) {
   if (!n) throw fail_('bad', '모임에서 쓸 이름을 적어 주세요.');
   return n;
 }
-// 모임 만들기: 카카오로 로그인한 누구나, 모임장은 한 사람당 한 모임, 속한 곳은 세 곳까지. 기간(months)은 1·3·6·12개월만, 끝나는 날은 오늘부터 센다
+// 예전 모임은 끝날 때까지 유지하고, 새 모임은 코이데 공동체에서 만든다.
 function groupCreate_(body) {
-  const w = who_(body), name = String(body.name || '').trim().replace(/\s+/g, ' ').slice(0, 16);
-  if (!name) throw fail_('bad', '모임 이름을 적어 주세요.');
-  const person = groupPerson_(w, body), months = Number(body.months);
-  if (GROUP_MONTHS.indexOf(months) < 0) throw fail_('bad', '모임 기간은 ' + GROUP_MONTHS.join('·') + '개월 중에서 골라 주세요.');
-  return withLock_(() => {
-    const mine = myGroups_(w.kakaoId);
-    if (mine.some(g => g.role === '모임장')) throw fail_('bad', '모임장은 한 모임만 맡을 수 있어요.');
-    if (placesOf_(w) >= PLACES_MAX) throw fail_('bad', '모임은 교회 소그룹을 포함해 세 곳까지 함께할 수 있어요.');
-    const id = 'G' + Date.now().toString(36);
-    append_('groups', { id, name, owner: w.kakaoId, token: newToken_(), status: '활동', at: new Date(), endsAt: addMonths_(today_(), months) });
-    append_('gmembers', { groupId: id, id: 'M' + Date.now().toString(36), kakaoId: w.kakaoId, person, role: '모임장', status: '함께', at: new Date() });
-    return { id, me: meInfo_(who_(body)) };
-  });
+  throw fail_('bad', '새 모임은 코이데 공동체에서 만들어 주세요.');
 }
 // 초대 링크로 들어온 사람에게 보여 줄 모임: 이름, 모임장, 사람 수(기도제목은 없다)
 function groupPeek_(body) {
