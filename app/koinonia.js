@@ -89,6 +89,8 @@
     else if(S.page==='error')inside=failed();
     else inside='<h1>코이데 공동체</h1><p class="hint">불러오는 중이에요…</p>'+error();
     $('root').innerHTML=layout(inside);
+    // 화면 전환 그림(splash.js)은 첫 화면을 그린 뒤에 닫는다. 불러오는 중에는 그대로 둔다
+    if(S.page!=='load'&&window.koideSplash)window.koideSplash.hide();
   }
   function clearInvite(){
     S.invite='';S.peek=null;S.joinError='';
