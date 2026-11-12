@@ -84,10 +84,31 @@ h1,h2 {font-family:var(--f-display); line-height:1.45;} h1 {font-size:1.45em; ma
 .seg{display:grid;grid-template-columns:repeat(4,1fr);gap:7px}.seg button{background:var(--surface);border:1px solid var(--line-strong);border-radius:10px;padding:9px 4px;cursor:pointer;font:inherit;min-height:54px}.seg button.on{background:var(--accent-soft);color:var(--accent);border-color:var(--accent)}.seg small{display:block;font-size:.72em;white-space:nowrap;margin-top:3px}
 .sheet-back{position:fixed;inset:0;z-index:35;background:rgba(0,0,0,.36);display:flex;align-items:flex-end;justify-content:center;padding:0;}
 .sheet {background:var(--surface);color:var(--ink);border:1px solid var(--line);border-radius:18px 18px 0 0;width:min(100%,560px);max-height:91vh;overflow-y:auto;padding:24px 18px calc(18px + env(safe-area-inset-bottom,0px));display:flex;flex-direction:column;gap:14px;box-shadow:0 10px 40px var(--shadow);}
-.agree {display:flex;flex-direction:column;gap:9px}.agree p{margin:0;padding:10px 12px;background:var(--surface-2);border-radius:9px;font-size:.89em}
+.agree {margin:2px 0 0;padding-left:1.1em;display:flex;flex-direction:column;gap:3px;font-size:.82em;color:var(--ink-2)}.agree li{margin:0}
 .sso-btn{display:flex;align-items:center;justify-content:center;gap:10px;width:100%;}.sso-btn svg{width:24px;height:24px;flex:none}
 .sso-kakao{background:#FEE500;color:#191919;border:1px solid #FEE500}.sso-google{background:white;color:#1f1f1f;border:1px solid #dadce0}.sso-apple{background:black;color:white;border:1px solid black}
 :root[data-mode="dark"] .sso-apple{background:white;color:black;border-color:white}
 .demo-banner{background:var(--accent-soft);color:var(--ink);padding:8px 16px;display:flex;gap:12px;justify-content:center;align-items:center;flex-wrap:wrap;font-size:.84em}
 .error{color:var(--warm);word-break:keep-all}.notice{font-size:.86em;color:var(--ink-2);line-height:1.65}.muted{color:var(--ink-2)}
 @media (min-width: 1000px){.wrap{max-width:900px;padding-top:36px}.sheet-back{align-items:center;padding:24px}.sheet{border-radius:18px}.grid-two{display:grid;grid-template-columns:1fr 1fr;gap:14px}}
+
+/* 위쪽 바의 배지 메뉴·화면 설정: 노트(note.html)와 같은 모양 */
+.role-tag { font-size: .93em; padding: .15em .6em; border-radius: 999px; background: var(--surface); color: var(--ink-2); border: 1px solid var(--line); }
+.icon-btn { width: 44px; height: 44px; display: grid; place-items: center; background: none; border: 0; border-radius: 12px; color: var(--ink); cursor: pointer; flex: none; }
+.icon-btn .ic { width: 1.35em; height: 1.35em; }
+.icon-btn[aria-expanded="true"] { background: var(--surface-2); }
+.menu { position: absolute; top: calc(100% + 6px); right: max(16px, env(safe-area-inset-right, 0px)); width: min(300px, calc(100vw - 32px)); background: var(--surface); border: 1px solid var(--line); border-radius: 16px; box-shadow: 0 16px 40px -12px var(--shadow); padding: .5em; display: flex; flex-direction: column; gap: .1em; z-index: 25; }
+.mlabel { font-size: .72em; font-weight: 600; color: var(--ink-2); margin: .6em .7em .3em; }
+.mhead, .mrow b.mhead { font-size: calc(var(--base) * .97); font-weight: 600; color: var(--ink); }
+.mitem { display: flex; justify-content: space-between; align-items: center; gap: .6em; width: 100%; text-align: left; font: inherit; font-size: .9em; color: var(--ink); background: none; border: 0; border-radius: 10px; padding: .55em .7em; min-height: 44px; cursor: pointer; text-decoration: none; }
+.mitem:hover { background: var(--surface-2); }
+.mitem.on { cursor: default; } .mitem.on span { font-weight: 700; } .mitem.on:hover { background: none; }
+.mitem[aria-disabled="true"] { cursor: default; opacity: .7; } .mitem[aria-disabled="true"]:hover { background: none; }
+.mitem small { font-size: .82em; color: var(--ink-2); text-align: right; }
+.mdiv { height: 1px; background: var(--line); margin: .35em .3em; }
+.menu-set { display: flex; flex-direction: column; gap: .6em; padding: 0 .4em .4em; }
+.swatches { display: flex; gap: 4px; flex-wrap: wrap; } /* 색 테마 여섯 개가 설정 창 한 줄에 들어가게 간격만 줄인다(디다코와 같은 4px) */
+.swatch { width: 40px; height: 40px; border-radius: 50%; padding: 0; border: 2px solid transparent; background: none; cursor: pointer; display: grid; place-items: center; }
+.swatch i { width: 28px; height: 28px; border-radius: 50%; display: block; box-shadow: inset 0 0 0 1px rgba(0, 0, 0, .12); }
+.swatch.on { border-color: var(--ink); }
+.topbar .inner { position: relative; }
