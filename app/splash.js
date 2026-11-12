@@ -103,9 +103,9 @@
     inner = `<span class="sw-note sw-in"><svg viewBox="0 0 16 12"><path d="${KNOT}"/><path d="${KNOT2}"/></svg></span>
   <p class="splash-name sw-in d1">코이데 노트</p><p class="splash-sub sw-in d2">하나님과 나누는 이야기</p><p class="loading"></p>`;
   } else if (mode === 'switch') {
-    // 공동체: 이 기기에 남은 지난번 화면에서 사랑방 이름을 가져온다(없으면 '코이데 공동체')
+    // 공동체: 이 기기에 남은 지난번 화면에서 사랑방 이름을 가져온다(없으면 '코이데 교회')
     let room = ''; try { const c = JSON.parse(localStorage.getItem(demo ? 'koide-demo-cache' : 'koide-cache') || 'null'); room = c && c.month && c.month.room ? c.month.room.name : ''; } catch (e) { /* 없음 */ }
-    inner = cordInner(room || '코이데 공동체', '함께 기도하는 공동체');
+    inner = cordInner(room || '코이데 교회', '사랑방과 함께 기도해요');
   }
   // 모임 전환 화면의 속: 수틀(바깥 고리와 속천), 그물 눈금, 걸리는 실 둘, 실이 만나는 매듭 둘
   const groupInner = (name, left) => `<span class="sw-hoop"><svg viewBox="0 0 156 156"><defs><clipPath id="sw-clip"><circle cx="78" cy="78" r="70"/></clipPath></defs>

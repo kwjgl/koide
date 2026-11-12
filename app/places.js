@@ -1,5 +1,5 @@
 // '함께하는 곳' 메뉴(공동체 index.html과 기도 노트 note.html이 함께 쓴다). 위쪽 배지를 누르면 열리는 목록을 한 곳에서 그려서 어디서 열어도 같다.
-//  순서: 코이데 노트 → 코이데 공동체(교회 사랑방) → 내 모임들 → 구분선 → + 모임 만들기 / 우리 교회 공동체에 연결하기
+//  순서: 코이데 노트 → 코이데 교회(교회 사랑방) → 내 모임들 → 구분선 → + 모임 만들기 / 코이데 교회 들어가기
 //  모임은 끝나는 날이 있는 임시 공간이라 남은 날(D-n)을 함께 보여 준다. 자율 모임은 기도 노트 소속(만들기·관리는 노트 › 더보기 › 내 모임)이고, 이 메뉴는 거기로 가는 길만 보여 준다. 화면마다 다른 것은 누르면 하는 일뿐이라 attr로 받는다.
 (() => {
   const MAX = 3; // 한 사람이 함께할 수 있는 곳(교회 소그룹 포함)
@@ -20,12 +20,12 @@
     const here = '지금 보는 곳';
     return `<p class="mlabel">함께하는 곳</p>
         ${item('note', '', '코이데 노트', o.cur === 'note' ? here : '나만 봐요 · 이 휴대폰에만')}
-        ${o.room ? item('room', '', '코이데 공동체', o.cur === 'room' ? here : esc(o.room.name)) : ''}
+        ${o.room ? item('room', '', '코이데 교회', o.cur === 'room' ? here : esc(o.room.name)) : ''}
         ${G.map(g => g.wait ? `<div class="mitem" role="menuitem" aria-disabled="true"><span>${esc(g.name)}</span><small>승인을 기다려요</small></div>`
           : item('group', g.id, g.name, [o.cur === g.id ? here : '모임', dday(g), g.role === '모임장' ? '모임장' : '', g.asks ? '신청 ' + g.asks : ''].filter(Boolean).join(' · '))).join('')}
         ${o.make || !o.linked ? '<div class="mdiv"></div>' : ''}
         ${o.make ? `<button class="mitem" role="menuitem" ${o.attr('make', '')}><span>+ 모임 만들기</span></button>` : ''}
-        ${o.linked ? '' : `<a class="mitem" role="menuitem" href="index.html${o.demo ? '?demo&connect' : '?connect'}"><span>우리 교회 공동체에 연결하기</span><small>사랑방과 함께 기도해요</small></a>`}`;
+        ${o.linked ? '' : `<a class="mitem" role="menuitem" href="index.html${o.demo ? '?demo&connect' : '?connect'}"><span>코이데 교회 들어가기</span><small>교회 코드가 있으면 우리 교회와 함께 기도해요</small></a>`}`;
   }
   window.koidePlaces = { MAX, canMake, html, dday };
 })();
