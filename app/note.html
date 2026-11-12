@@ -2267,9 +2267,6 @@ button.pg-tag::before { content: ''; position: absolute; inset: -10px; }
     { k: 'n-group', tut: 1, ic: 'group', name: '모임 만들기', mean: '코이데 공동체에서 모임장이 됐어요.', todo: '더보기 › 코이데 공동체에서 모임을 만들어 보세요.',
       can: () => communityOn(), noCan: '코이데 공동체는 곧 열려요.',
       at: () => D.badge['n-group'] || (CIRCLES.list.some(g => g.role === '모임장') || (((noteMe() || {}).groups || []).some(g => g.role === '모임장')) ? '' : null) },
-    { k: 'n-weave', tut: 1, ic: 'net', name: '함께 짠 그물', mean: '모임이 함께 짠 그물을 이 노트에 담아 두었어요.', todo: '모임이 끝날 즈음 모임 화면에서 그물 담기를 누르면 이 노트에 걸려요.',
-      can: () => (communityOn() && CIRCLES.list.some(g => g.status === '함께')) || (!churchless() && ((noteMe() || {}).groups || []).some(g => !g.wait)), get noCan() { return '먼저 더보기 › 코이데 공동체에서 모임을 만들거나 함께해 보세요.'; },
-      at: () => D.badge['n-weave'] || (weaves().length ? minOf(weaves().map(w => w.at)) || '' : null) },
     { k: 'n-answer', tut: 1, ic: 'check', name: '응답의 기록', mean: '응답받은 기도를 감사 기록으로 남겼어요.', todo: '응답받은 기도가 있으면 기도 제목에서 마치기를 누르고 응답받았어요로 남겨 보세요.',
       at: () => minOf(D.thanks.filter(x => x.date && x.kind === 'answer').map(x => x.date)) },
     { k: 'n-entrust', tut: 1, ic: 'lay', name: '내려놓기', mean: '응답을 기다리며 기도제목을 하나님께 맡겨 두었어요.', todo: '기도제목을 마칠 때 "맡겨 둘게요"를 고를 수 있어요. 응답이 아니어도 내려놓는 것도 기도예요.',
@@ -2732,7 +2729,7 @@ button.pg-tag::before { content: ''; position: absolute; inset: -10px; }
       + (old.length ? '<section class="card mrows"><p class="label">예전 모임</p>' + old.map(g =>
         g.wait ? '<div class="mrow" aria-disabled="true"><span><b>' + esc(g.name) + '</b><small>모임장의 승인을 기다려요</small></span></div>'
           : '<a class="mrow" ' + link + ' href="' + groupUrl(g.id, g) + '"><span><b>' + esc(g.name) + '</b><small>' + g.n + '명' + (g.endsAt ? ', ' + dayLabel(g.endsAt) + '까지' : '') + '</small></span></a><div class="mrow-sub"><button class="link quiet" data-a="mvopen" data-v="' + esc(g.id) + '">코이데 노트로 옮기기</button></div>').join('') + '</section>' : '')
-      + (weaves().length ? '<section class="card mrows"><button class="mrow" data-a="tab" data-v="weaves"><span><b>함께 짠 그물</b><small>모임에서 담아 둔 그물 ' + weaves().length + '개</small></span><span aria-hidden="true">›</span></button></section>' : '');
+      ;
   }
   // 모임 → 내 기도 노트로 옮기기: 서버에서 이 모임의 내가 볼 수 있는 기도제목을 받아(읽기만), 고른 것을 이 휴대폰의 노트에 더한다.
   //  내 것은 대상(나·사람 이름) 그대로, 모임 사람의 것은 그 사람 이름 아래로. 노트에 같은 글이 이미 있으면 건너뛴다

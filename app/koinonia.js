@@ -24,10 +24,42 @@
   const days=d=>{if(!d)return null;const a=String(d).slice(0,10),today=ymd(nday());return Math.round((Date.parse(a+'T00:00:00Z')-Date.parse(today+'T00:00:00Z'))/864e5)};
   const endText=e=>e?', '+krday(e)+'까지':'';
   const finishText=e=>e?krday(e)+'까지':'끝나는 날 없이 계속해요';
-  const agree=()=>'<div class="agree"><p>공동체 사람들과 함께 봐요. 휴대폰에서 잠그지 않고 서버에 저장돼요.</p><p>나가면 내 기도제목도 함께 지워져요.</p></div>';
+  const agree=()=>'<ul class="agree hint"><li>공동체 사람들과 함께 보기 때문에 암호화되지 않고 서버에 저장돼요.</li><li>모임에서 나가면 내 기도제목도 지워져요.</li></ul>';
   const banner=()=>demo?'<div class="demo-banner"><span>데모 모드예요</span><button class="link" data-a="reset">데모 데이터 지우기</button></div>':'';
   const KNOT = '<svg class="ic" viewBox="0 0 16 16" aria-hidden="true"><path d="M.5 8.5h3.8c1.2 0 1.7-1.5 1.7-2.8C6 3.7 7.3 2.5 9 2.5s3 1.2 3 3.1-1.8 3.1-4 3.3"/><path d="M5.6 10.1C7.6 9 9.6 8.5 15.5 8.5"/></svg>';
-  const head=()=>'<header class="topbar"><div class="inner"><a href="note.html'+(explicitDemo?'?demo':'')+'" class="brand"><span class="brand-mark">'+KNOT+'</span>코이데</a><a href="note.html'+(explicitDemo?'?demo':'')+'" class="badge-btn badge-link">코이데 공동체</a></div></header>';
+  // 화면 설정: 노트·교회와 같은 곳(koide-pref)에 둔다
+  const PREF=(()=>{try{return JSON.parse(localStorage.getItem('koide-pref'))||{};}catch(e){return {};}})();
+  const MODES=[['system','기기 설정'],['light','밝게'],['dark','어둡게']], STYLES=[['flat','basic'],['neu','new'],['skeu','classic'],['glass','glass']];
+  const ACCENTS=[['green','초록','#2B6A62'],['amber','주황','#C46A24'],['blue','파랑','#2F5D95'],['rose','장미','#A8435C'],['ink','먹색','#3A3A36'],['paper','종이','#6B4A2E']];
+  function setPref(k,v){
+    PREF[k]=v;try{localStorage.setItem('koide-pref',JSON.stringify(PREF));}catch(e){}
+    const d=document.documentElement;
+    if(PREF.mode==='light'||PREF.mode==='dark')d.dataset.mode=PREF.mode;else delete d.dataset.mode;
+    if(PREF.accent&&PREF.accent!=='green')d.dataset.accent=PREF.accent;else delete d.dataset.accent;
+    if(PREF.style&&PREF.style!=='flat')d.dataset.style=PREF.style;else delete d.dataset.style;
+    if(PREF.big)d.dataset.big='';else delete d.dataset.big;
+  }
+  function screenControls(){
+    const mode=PREF.mode||'system',accent=PREF.accent||'green',style=PREF.style||'flat';
+    return '<div class="seg" role="radiogroup" aria-label="화면 모드">'+MODES.map(([k,l])=>'<button class="'+(mode===k?'on':'')+'" role="radio" aria-checked="'+(mode===k)+'" data-a="pref" data-k="mode" data-v="'+k+'">'+l+'</button>').join('')+'</div>'+
+      '<div class="swatches" role="radiogroup" aria-label="색 테마">'+ACCENTS.map(([k,l,c])=>'<button class="swatch'+(accent===k?' on':'')+'" role="radio" aria-checked="'+(accent===k)+'" data-a="pref" data-k="accent" data-v="'+k+'" aria-label="'+l+'" title="'+l+'"><i style="background:'+c+'"></i></button>').join('')+'</div>'+
+      '<div class="seg" role="radiogroup" aria-label="디자인">'+STYLES.map(([k,l])=>'<button class="'+(style===k?'on':'')+'" role="radio" aria-checked="'+(style===k)+'" data-a="pref" data-k="style" data-v="'+k+'">'+l+'</button>').join('')+'</div>'+
+      '<div class="row"><span class="mhead">큰 글씨</span><button class="switch'+(PREF.big?' on':'')+'" role="switch" aria-checked="'+!!PREF.big+'" aria-label="큰 글씨" data-a="pref" data-k="big"><span></span></button></div>';
+  }
+  const GEAR='<svg class="ic" viewBox="0 0 16 16" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"><circle cx="8" cy="8" r="2"/><path d="M8 1.8v1.6M8 12.6v1.6M3.6 3.6l1.1 1.1M11.3 11.3l1.1 1.1M1.8 8h1.6M12.6 8h1.6M3.6 12.4l1.1-1.1M11.3 4.7l1.1-1.1"/></svg>';
+  // 함께하는 곳 메뉴: 노트·교회 화면과 같은 places.js로 그린다(교회 사랑방은 이 기기에 남은 교회 화면에서 이름을 가져온다)
+  function placesMenu(){
+    const D=explicitDemo?'?demo':'';let room=null,linked=false;
+    try{const c=JSON.parse(localStorage.getItem(explicitDemo?'koide-demo-cache':'koide-cache')||'null');if(c&&c.month&&c.month.room&&c.me&&c.me.link&&c.me.link.status==='연결'){room={name:c.month.room.name};linked=true;}}catch(e){}
+    if(!window.koidePlaces)return '';
+    return window.koidePlaces.html({cur:'',room,linked,demo:explicitDemo,groups:[],circles:S.list,circleMake:S.page!=='login'&&S.page!=='off'&&S.places>0,
+      attr:(k,id)=>k==='note'?'href="note.html'+D+'"':k==='room'?'href="index.html'+D+'"':k==='circle'?'href="index.html'+(explicitDemo?'?demo&c=':'?c=')+encodeURIComponent(id)+'"':'data-a="new"'});
+  }
+  const head=()=>'<header class="topbar"><div class="inner"><a href="note.html'+(explicitDemo?'?demo':'')+'" class="brand"><span class="brand-mark">'+KNOT+'</span>코이데</a>'+
+    '<span style="display:flex;align-items:center;gap:.3em"><button class="badge-btn" data-a="menu" data-v="badge" aria-haspopup="menu" aria-expanded="'+(S.menu==='badge')+'">코이데 공동체</button>'+
+    '<button class="icon-btn" data-a="menu" data-v="settings" aria-haspopup="menu" aria-expanded="'+(S.menu==='settings')+'" aria-label="설정">'+GEAR+'</button></span>'+
+    (S.menu==='badge'?'<div class="menu" role="menu" aria-label="함께하는 곳">'+placesMenu()+'</div>':S.menu==='settings'?'<div class="menu" role="menu" aria-label="설정"><p class="mlabel mhead">화면 설정</p><div class="menu-set">'+screenControls()+'</div></div>':'')+
+    '</div></header>';
   const notice=()=>S.msg?'<p class="hint" role="status">'+esc(S.msg)+'</p>':'';
   const error=()=>S.error?'<p class="error" role="alert">'+esc(S.error)+'</p>':'';
   const layout=inner=>banner()+head()+'<main class="wrap">'+inner+'</main>'+sheet();
@@ -158,7 +190,11 @@
   }
   document.addEventListener('input',ev=>{const id=ev.target.id;if(id==='create-name')S.draftName=ev.target.value;else if(id==='create-person')S.draftPerson=ev.target.value;else if(id==='join-person')S.draftJoin=ev.target.value;});
   document.addEventListener('click',async ev=>{
-    const b=ev.target.closest('[data-a]');if(!b)return;
+    const b=ev.target.closest('[data-a]');
+    if(S.menu&&!ev.target.closest('.menu')&&!(b&&b.dataset.a==='menu')){S.menu=null;render();if(!b)return;}
+    if(!b)return;
+    if(b.dataset.a==='menu'){S.menu=S.menu===b.dataset.v?null:b.dataset.v;return render();}
+    if(b.dataset.a==='pref'){const k=b.dataset.k;setPref(k,k==='big'?!PREF.big:b.dataset.v);return render();}
     if(ev.target.closest('[data-stop]')&&!b.closest('[data-stop]'))return;
     const a=b.dataset.a,v=b.dataset.v;
     if(a==='none')return;
