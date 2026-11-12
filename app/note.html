@@ -2497,8 +2497,8 @@ button.pg-tag::before { content: ''; position: absolute; inset: -10px; }
     const P = places(), M = noteMe(), G = (M && M.groups) || [], linked = inCommunity();
     let room = null; if (!churchless()) try { const c = JSON.parse(localStorage.getItem(DEMO_LINK ? 'koide-demo-cache' : 'koide-cache') || 'null'); if (c && c.month && c.month.room && c.me && c.me.link && c.me.link.status === '연결') room = { name: c.month.room.name, group: (c.month.dept && c.month.dept.group) || '소그룹' }; } catch (e) { /* 없음 */ }
     const circleMake = communityOn() && CIRCLES.session && CIRCLES.places > 0;
-    const menu = S.menu === 'badge' ? `<div class="menu" role="menu" aria-label="함께하는 곳">${koidePlaces.html({ cur: 'note', room, groups: G, circles: CIRCLES.list, circleMake, linked, demo: DEMO_LINK,
-        attr: (k, id) => k === 'room' ? `href="index.html${QS}"` : k === 'group' ? `href="${groupUrl(id, G.find(x => x.id === id))}"` : k === 'circle' ? `href="${circleUrl(id)}"` : k === 'circleMake' ? `href="koinonia.html${DEMO ? '?demo&new' : '?new'}"` : 'data-a="menunew"' })}</div>`
+    const menu = S.menu === 'badge' ? `<div class="menu" role="menu" aria-label="함께하는 곳">${koidePlaces.html({ cur: 'note', room, groups: G, circles: CIRCLES.list, circleMake, circleList: communityOn(), linked, demo: DEMO_LINK,
+        attr: (k, id) => k === 'room' ? `href="index.html${QS}"` : k === 'group' ? `href="${groupUrl(id, G.find(x => x.id === id))}"` : k === 'circle' ? `href="${circleUrl(id)}"` : k === 'circleMake' ? `href="koinonia.html${DEMO ? '?demo&new' : '?new'}"` : k === 'circleList' ? `href="koinonia.html${DEMO ? '?demo' : ''}"` : 'data-a="menunew"' })}</div>`
       : S.menu === 'settings' ? `<div class="menu" role="menu" aria-label="설정"><p class="mlabel mhead">화면 설정</p><div class="menu-set">${screenControls()}</div></div>` : '';
     return `<header class="topbar"><div class="wrap">
       <button class="brand" data-a="tab" data-v="today" aria-label="코이데 노트 오늘의 기도"><span class="brand-mark">${TOP_ICON.knot}</span><span class="brand-name">코이데</span></button>
@@ -2512,8 +2512,8 @@ button.pg-tag::before { content: ''; position: absolute; inset: -10px; }
       <div class="n-two"><div class="n-main">
       <p class="more-h">내 기도</p>${peopleRow()}
       <p class="more-h">함께하는 곳</p>
-      <section class="card mrows"><a class="mrow" style="text-decoration:none;color:inherit" href="${linked ? 'index.html' + QS : 'index.html' + (DEMO_LINK ? '?demo&connect' : '?connect')}"><span><b>${linked ? '코이데 교회' : '코이데 교회 들어가기'}</b><small>${linked ? '사랑방과 함께 기도해요' : '교회 코드가 있으면 우리 교회와 함께 기도해요'}</small></span><span aria-hidden="true">›</span></a></section>
       ${groupsCard()}
+      <section class="card mrows"><a class="mrow" style="text-decoration:none;color:inherit" href="${linked ? 'index.html' + QS : 'index.html' + (DEMO_LINK ? '?demo&connect' : '?connect')}"><span><b>${linked ? '코이데 교회' : '코이데 교회 들어가기'}</b><small>${linked ? '사랑방과 함께 기도해요' : '교회 코드가 있으면 우리 교회와 함께 기도해요'}</small></span><span aria-hidden="true">›</span></a></section>
       <p class="more-h">계정과 동기화</p>${syncRow()}</div>
       <div class="n-side"><p class="more-h">앱 설정</p>
       <section class="card mrows">

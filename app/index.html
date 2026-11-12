@@ -1248,7 +1248,9 @@ body.pop-open { overflow: hidden; }
 .kc-panel { width: min(100%, 420px); max-height: 90vh; overflow: auto; background: var(--surface); color: var(--ink); border-radius: 20px; padding: 22px; box-shadow: 0 15px 40px #0003; display: grid; gap: 14px; }
 .kc-card .kc-head { display: flex; align-items: baseline; justify-content: space-between; gap: 10px; padding: .6em 0 .4em; }
 .kc-card .kc-head h3 { margin: 0; } .kc-card .kc-n { color: var(--ink-2); font-size: .9em; }
-.kc-card .kc-foot { display: flex; justify-content: space-between; gap: 10px; padding: .9em 0 .4em; border-top: 1px solid var(--line); }
+.kc-card .kc-ib { width: 44px; height: 44px; color: var(--ink-2); }
+.kc-card .kc-ib.danger { color: var(--warn); }
+.kc-card .kc-foot { display: flex; justify-content: flex-end; gap: 6px; padding: .9em 0 .4em; border-top: 1px solid var(--line); }
 .kc-panel h2 { margin: 0; } .kc-panel label { display: grid; gap: 6px; } .kc-panel .actions { display: flex; flex-wrap: wrap; gap: 8px; }
 @media (max-width: 639px) { .kc-back { place-items: end center; padding: 0; } .kc-panel { width: 100%; border-radius: 20px 20px 0 0; max-height: 88svh; } }
 .koinonia-readonly [data-act="pray"], .koinonia-readonly [data-act="psstart"], .koinonia-readonly [data-act="confirm"] { display: none !important; }
@@ -1908,6 +1910,8 @@ try { const p = JSON.parse(localStorage.getItem('koide-pref') || '{}'), d = docu
     room: svg('<circle cx="8" cy="8" r="5.5"/><path d="M2.5 8h11M8 2.5c1.6 1.6 2.3 3.4 2.3 5.5S9.6 11.9 8 13.5M8 2.5C6.4 4.1 5.7 5.9 5.7 8s.7 3.9 2.3 5.5"/>'),
     chev: svg('<path d="M4.5 6.5L8 10l3.5-3.5"/>'),
     chevR: svg('<path d="M6 3.5L10.5 8 6 12.5"/>'),
+    flag: svg('<path d="M4 14V2.5"/><path d="M4 3h8l-1.8 2.8L12 8.5H4"/>'),
+    leave: svg('<path d="M6.5 2.5h-3a1 1 0 0 0-1 1v9a1 1 0 0 0 1 1h3"/><path d="M6 8h7.5M11 5.5L13.5 8 11 10.5"/>'),
     chevL: svg('<path d="M10 3.5L5.5 8 10 12.5"/>'),
     up: svg('<path d="M4 9.5L8 5.5l4 4"/>'),
     x: svg('<path d="M4 4l8 8M12 4l-8 8"/>'),
@@ -3541,6 +3545,25 @@ try { const p = JSON.parse(localStorage.getItem('koide-pref') || '{}'), d = docu
   // 더보기(시안과 같게): 왼쪽 우리 가정 정보, 오른쪽 역할 메뉴(사랑방 현황·관리), 홈 화면에 두기, 로그아웃
   // 기도 노트가 남기는 켜짐/꺼짐 표시('on' | 'off' | '')만 읽는다. 노트 내용은 여기서 읽지 않는다
   const noteSyncOn = () => { try { return localStorage.getItem(DEMO_LINK ? 'koide-demo-note-sync' : 'koide-note-sync') === 'on'; } catch (e) { return false; } };
+  // 더보기 › 함께하는 곳: 내 코이데 공동체(노트 더보기의 공동체 카드와 같은 모양). 지금 보는 곳은 링크 없이 표시
+  function kcCirclesCard() {
+    if (!CIRCLE_MENU.loaded && !CIRCLE_MENU.loading) queueMicrotask(loadCircleMenu);
+    const link = 'style="text-decoration:none;color:inherit"', q = KOINONIA_DEMO ? '?demo' : '';
+    const cDate = day => { const m = String(day || '').match(/-([0-9]{2})-([0-9]{2})/); return m ? Number(m[1]) + '월 ' + Number(m[2]) + '일' : ''; };
+    if (!CIRCLE_MENU.loaded) return '<section class="card mrows"><div class="mrow" aria-disabled="true"><span><b>코이데 공동체</b><small>불러오는 중이에요…</small></span></div></section>';
+    const rows = CIRCLE_MENU.list.map(c => {
+      const here = c.id === KOINONIA_ID, ended = c.state === '끝남' || c.state === '끝맺음';
+      const small = here ? '지금 보는 곳' : c.state === '닫음' ? '닫힌 공동체예요' : ended ? (c.eraseOn ? cDate(c.eraseOn) + '에 지워져요' : '끝난 공동체예요')
+        : c.status === '요청' ? '모임장의 승인을 기다려요' : (c.n != null ? c.n + '명' : '') + (c.endsOn ? (c.n != null ? ', ' : '') + cDate(c.endsOn) + '까지' : '');
+      const body = `<span><b>${esc(c.name)}${c.role === '모임장' ? ' <span class="own-tag">모임장</span>' : ''}</b>${small ? `<small>${esc(small)}</small>` : ''}</span>`;
+      return here || c.status === '요청' || c.state === '닫음' ? `<div class="mrow" aria-disabled="true">${body}</div>`
+        : `<a class="mrow" ${link} href="index.html${KOINONIA_DEMO ? '?demo&c=' : '?c='}${encodeURIComponent(c.id)}">${body}${ICON.chevR}</a>`;
+    }).join('');
+    const make = CIRCLE_MENU.session && koidePlaces.canMake(false, CIRCLE_MENU.list)
+      ? `<a class="mrow" ${link} href="koinonia.html${KOINONIA_DEMO ? '?demo&new' : '?new'}"><span><b>코이데 공동체 만들기</b><small>함께 기도할 사람을 초대해요</small></span>${ICON.chevR}</a>`
+      : `<div class="mrow" aria-disabled="true"><span><b>코이데 공동체 만들기</b><small>세 곳이 다 찼어요</small></span></div>`;
+    return `<section class="card mrows">${rows}${make}</section>`;
+  }
   function moreView() {
     const me = S.month.me, mine = mineFam();
     // 한 줄 메뉴: 제목, 무엇을 하는 곳인지, 역할 표
@@ -3556,7 +3579,9 @@ try { const p = JSON.parse(localStorage.getItem('koide-pref') || '{}'), d = docu
       <div class="fam-grid" style="margin-top:12px">
         <div class="col">${KOINONIA ? `<p class="more-h">이 공동체</p>${groupMoreCard()}
           <p class="more-h">함께하는 곳</p>
-          <section class="card mrows">${row('note', '', '코이데 노트', '나만 보는 기도제목과 감사 기록')}<a class="mrow" style="text-decoration:none;color:inherit" href="index.html${KOINONIA_DEMO ? '?demo' : ''}"><span><b>코이데 교회</b><small>교회 코드가 있으면 우리 교회와 함께 기도해요</small></span>${ICON.chevR}</a></section>` : `<p class="more-h">나</p>
+          <section class="card mrows">${row('note', '', '코이데 노트', '나만 보는 기도제목과 감사 기록')}</section>
+          ${kcCirclesCard()}
+          <section class="card mrows"><a class="mrow" style="text-decoration:none;color:inherit" href="index.html${KOINONIA_DEMO ? '?demo' : ''}"><span><b>코이데 교회</b><small>교회 코드가 있으면 우리 교회와 함께 기도해요</small></span>${ICON.chevR}</a></section>` : `<p class="more-h">나</p>
           <section class="card mrows">${row('note', '', '코이데 노트', noteSyncOn() ? '나만 보는 기도제목과 감사 기록. 암호화해서 다른 기기와 동기화해요' : '나만 보는 기도제목과 감사 기록. 이 기기에 저장돼요')}</section>`}
           ${KOINONIA ? '' : S.grp ? groupMoreCard() : famInfoCard()}
           ${me.staff && !S.grp ? `<section class="card"><p class="label">섬기는 곳</p><h3>${esc(S.month.dept && S.month.dept.name || '')} · ${esc(me.label || me.role)}</h3>
@@ -4205,11 +4230,11 @@ try { const p = JSON.parse(localStorage.getItem('koide-pref') || '{}'), d = docu
       return `<section class="card mrows kc-card"><div class="kc-head"><h3>${esc(G.name)}</h3><span class="kc-n">${G.people.length}명</span></div>
         ${lead && G.asks.length ? G.asks.map(a => `<div class="req"><b>${esc(a.person)} 님이 함께하고 싶어 해요</b>
           <div class="actions" style="margin-top:8px"><button class="btn small" data-act="gdecide" data-v="${esc(a.id)}" data-ok="1">승인</button><button class="btn small ghost" data-act="gdecide" data-v="${esc(a.id)}">거절</button></div></div>`).join('') : ''}
-        ${lead ? line('gcopy', '', '초대 링크 보내기', '복사해서 카톡으로 보내요') + copyNote('g' + G.token, groupUrl(G.token)) : ''}
         ${line('kcopen', 'members', '지체 ' + G.people.length + '명', '')}
-        ${lead ? line('kcopen', 'manage', '공동체 관리', '이름, 모임장, 끝나는 날') : ''}
+        ${lead ? line('gcopy', '', '초대 링크 보내기', '복사해서 카톡으로 보내요') + copyNote('g' + G.token, groupUrl(G.token)) : ''}
         ${closed ? '' : line('gmove', '', '코이데 노트로 옮기기', '')}
-        <div class="kc-foot"><button class="link quiet" data-act="kcopen" data-v="report">신고하기</button><button class="link danger" data-act="kcleave">공동체에서 나가기</button></div></section>`;
+        ${lead ? line('kcopen', 'manage', '공동체 관리', '이름, 모임장, 끝나는 날') : ''}
+        <div class="kc-foot"><button class="icon-btn kc-ib" data-act="kcopen" data-v="report" aria-label="신고하기" title="신고하기">${ICON.flag}</button><button class="icon-btn kc-ib danger" data-act="kcleave" aria-label="공동체에서 나가기" title="공동체에서 나가기">${ICON.leave}</button></div></section>`;
     }
     return `<section class="card"><p class="label">${KOINONIA ? '공동체' : '모임'}</p>
       ${writable && E === 'rename' ? `<form class="kid-form" data-form="grename"><input class="field" name="n" maxlength="16" value="${esc(G.name)}" aria-label="${KOINONIA ? '공동체' : '모임'} 이름" autocomplete="off"><button class="btn small" type="submit">바꾸기</button></form>`
@@ -4874,7 +4899,7 @@ try { const p = JSON.parse(localStorage.getItem('koide-pref') || '{}'), d = docu
       else if (await window.KoideSb.session()) { CIRCLE_MENU.session = true; CIRCLE_MENU.list = (await window.KoideSb.rpc('community_mine')).list || []; }
       CIRCLE_MENU.loaded = true;
     } catch (e) { CIRCLE_MENU.loaded = false; }
-    finally { CIRCLE_MENU.loading = false; if (S.menu === 'badge' && S.view === 'app') $('#topbar').innerHTML = topHtml(); }
+    finally { CIRCLE_MENU.loading = false; if (S.menu === 'badge' && S.view === 'app') $('#topbar').innerHTML = topHtml(); if (KOINONIA && CIRCLE_MENU.loaded && S.tab === 'more') render(); }
   }
   const TABS = [['home', '이번 달', ICON.home], ['mine', '내 기도', ICON.pen], ['pray', '기도하기', ICON.hands], ['history', '돌아보기', ICON.book], ['more', '더보기', ICON.more]];
   // 화면 모드·색 테마·큰 글씨: 이 기기에만 기억(head에서 먼저 입힌 값을 그대로 이어 쓴다)
@@ -4922,9 +4947,8 @@ try { const p = JSON.parse(localStorage.getItem('koide-pref') || '{}'), d = docu
     const H = S.grp ? S.home : M;
     if (KOINONIA) {
       const badgeMenu = S.menu === 'badge' ? `<div class="menu" role="menu" aria-label="공동체">
-        ${koidePlaces.html({cur:KOINONIA_ID, linked:false, demo:KOINONIA_DEMO, circles:CIRCLE_MENU.list, circleMake:CIRCLE_MENU.session && koidePlaces.canMake(false,CIRCLE_MENU.list), groups:[],
-          attr:(k,id)=>k==='note' ? `href="note.html${KOINONIA_DEMO?'?demo':''}"` : k==='circle' ? `href="index.html${KOINONIA_DEMO?'?demo&c=':'?c='}${encodeURIComponent(id)}"` : `href="koinonia.html${KOINONIA_DEMO?'?demo&new':'?new'}"`})}
-        <div class="mdiv"></div><a class="mitem" href="koinonia.html${KOINONIA_DEMO?'?demo':''}">공동체 목록</a></div>`
+        ${koidePlaces.html({cur:KOINONIA_ID, linked:false, demo:KOINONIA_DEMO, circles:CIRCLE_MENU.list, circleMake:CIRCLE_MENU.session && koidePlaces.canMake(false,CIRCLE_MENU.list), circleList:true, groups:[],
+          attr:(k,id)=>k==='note' ? `href="note.html${KOINONIA_DEMO?'?demo':''}"` : k==='circle' ? `href="index.html${KOINONIA_DEMO?'?demo&c=':'?c='}${encodeURIComponent(id)}"` : k==='circleList' ? `href="koinonia.html${KOINONIA_DEMO?'?demo':''}"` : `href="koinonia.html${KOINONIA_DEMO?'?demo&new':'?new'}"`})}</div>`
         : S.menu === 'settings' ? `<div class="menu" role="menu" aria-label="설정">
           <p class="mlabel mhead">화면 설정</p>${themeControls()}
           <div class="mdiv"></div><div class="mitem static set-row" style="flex-direction:row;align-items:center"><span class="mhead">큰 글씨</span>${bigSwitch()}</div></div>` : '';
@@ -4936,9 +4960,9 @@ try { const p = JSON.parse(localStorage.getItem('koide-pref') || '{}'), d = docu
     }
     // 함께하는 곳: 노트의 위쪽 막대와 같은 목록(places.js 하나로 그린다). 자율 모임은 기도 노트 소속이라 만들기만 노트로 보내고, 열기는 여기서 바로 된다
     const linked = !!(S.me && S.me.link && S.me.link.status === '연결'), G = myGroups();
-    const places = !linked && !S.grp && !G.length ? '' : `<div class="mdiv"></div>` + koidePlaces.html({ cur: S.grp || 'room', linked, demo: DEMO_LINK, groups: G, circles: CIRCLE_MENU.list, circleMake: communityOn() && CIRCLE_MENU.session && koidePlaces.canMake(false, CIRCLE_MENU.list),
+    const places = !linked && !S.grp && !G.length ? '' : `<div class="mdiv"></div>` + koidePlaces.html({ cur: S.grp || 'room', linked, demo: DEMO_LINK, groups: G, circles: CIRCLE_MENU.list, circleMake: communityOn() && CIRCLE_MENU.session && koidePlaces.canMake(false, CIRCLE_MENU.list), circleList: communityOn(),
       room: linked && H && H.room ? { name: H.room.name, group: H.dept && H.dept.group } : null,
-      attr: (k, id) => k === 'note' ? `href="note.html${DEMO_LINK ? '?demo' : ''}"` : k === 'circleMake' ? `href="koinonia.html${DEMO_LINK?'?demo&new':'?new'}"` : k === 'circle' ? `href="index.html${DEMO_LINK?'?demo&c=':'?c='}${encodeURIComponent(id)}"` : k === 'room' ? 'data-act="gback"' : `data-act="gopen" data-v="${esc(id)}"` });
+      attr: (k, id) => k === 'note' ? `href="note.html${DEMO_LINK ? '?demo' : ''}"` : k === 'circleMake' ? `href="koinonia.html${DEMO_LINK?'?demo&new':'?new'}"` : k === 'circleList' ? `href="koinonia.html${DEMO_LINK?'?demo':''}"` : k === 'circle' ? `href="index.html${DEMO_LINK?'?demo&c=':'?c='}${encodeURIComponent(id)}"` : k === 'room' ? 'data-act="gback"' : `data-act="gopen" data-v="${esc(id)}"` });
     const menu = S.menu === 'badge' ? `<div class="menu" role="menu" aria-label="사랑방">
         <p class="mlabel">${esc(grp())}</p><div class="mitem static"><b>${S.grp ? esc(M.room.name) : '코이데 교회'}</b><small>${S.grp ? '' : esc(M.room.name) + ' · '}${S.grp ? `모임 · ${M.families.length}명` : ''}${S.grp ? '' : M.dept && M.dept.name ? esc(M.dept.name) + ' · ' : ''}${S.grp ? '' : me.staff ? `${grp()} ${(M.rooms || []).length}곳 · ${(M.rooms || []).reduce((a, r) => a + r.n, 0)}${words().count}` : `${M.term || M.month.slice(0, 4)}년 편성 · ${M.families.length}${words().count}`}</small></div>${places}
         ${!opsDepts().length ? '' : S.me.ops.all ? `<div class="mdiv"></div><p class="mlabel">교회 관리</p><button class="mitem" role="menuitem" data-act="church"><span>교회 전체</span><small>모든 부서 한눈에</small></button>`
