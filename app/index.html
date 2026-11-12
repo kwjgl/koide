@@ -1950,8 +1950,8 @@ try { const p = JSON.parse(localStorage.getItem('koide-pref') || '{}'), d = docu
     // 어떻게 시작할까요(교회 코드로 막 들어왔고 초대 링크가 없을 때 한 번): 공동체로(부서·소그룹을 골라 연결 신청) 또는 기도 노트만
     startpick: () => `<p class="eyebrow">${esc(lsGet('koide-church-name') || '처음 한 번만')}</p><h1>어떻게 시작할까요?</h1>
       <div class="choices start-pick">
-        <button class="choice" data-act="pickstart" data-v="community"><b>코이데 공동체로 시작</b><small class="choice-sub">부서와 소그룹을 고르고 리더에게 연결을 신청해요. 소그룹 사람들과 기도제목을 나누고 함께 기도해요.</small></button>
-        <button class="choice" data-act="pickstart" data-v="note"><b>코이데 노트만 쓰기</b><small class="choice-sub">나만 보는 코이데 노트예요. 나중에 코이데 노트의 '우리 교회 공동체에 연결하기'로 언제든 공동체에 들어갈 수 있어요.</small></button>
+        <button class="choice" data-act="pickstart" data-v="community"><b>코이데 교회로 시작</b><small class="choice-sub">부서와 소그룹을 고르고 리더에게 연결을 신청해요. 소그룹 사람들과 기도제목을 나누고 함께 기도해요.</small></button>
+        <button class="choice" data-act="pickstart" data-v="note"><b>코이데 노트만 쓰기</b><small class="choice-sub">나만 보는 코이데 노트예요. 나중에 코이데 노트의 '코이데 교회 들어가기'로 언제든 코이데 교회에 들어갈 수 있어요.</small></button>
       </div>
       <p class="hint">초대 링크를 받았다면 그 링크로 열면 소그룹이 미리 골라져 있어요.</p>`,
     // 앱 관리자 보기: 교회(와 테스트 공간)마다 코드, 서버 상태와 숫자. 이름·기도제목은 오지 않는다. 넓은 화면에서는 카드가 나란히, 더하기는 카드 옆 점선 칸
@@ -3542,7 +3542,7 @@ try { const p = JSON.parse(localStorage.getItem('koide-pref') || '{}'), d = docu
       ['경쟁하지 않아요', '다른 사람이 누구를 위해 몇 번 기도했는지는 보이지 않고, 순위도 없어요. 끈이 이어진 모습만 보여 줄 뿐이에요.'],
       ['모두를 위해 기도해요', `"지금 함께 기도할 ${fam}"은 아직 기도하지 않은 ${fam}부터 차례로 나와요.`],
       ['목적에 따라 다르게 써요', `기도제목마다 고른 공개 범위(${g} · 리더·목사님 · ${esc(words().only)})대로만 보여요.`],
-      ['모임은 잠깐만 열려요', '해외선교팀이나 단기 선교처럼 잠깐 모여 서로를 위해 기도하는 모임은 만들 때 끝나는 날(최대 1년)을 정해요. 끝나는 날 기록과 함께 사라지니, 남기고 싶은 기도제목은 코이데 노트로 옮겨 두세요. 중심은 코이데 공동체와 코이데 노트예요.'],
+      ['모임은 잠깐만 열려요', '해외선교팀이나 단기 선교처럼 잠깐 모여 서로를 위해 기도하는 모임은 만들 때 끝나는 날(최대 1년)을 정해요. 끝나는 날 기록과 함께 사라지니, 남기고 싶은 기도제목은 코이데 노트로 옮겨 두세요. 중심은 코이데 교회와 코이데 노트예요.'],
       ['잠잠하게 응답을 기다려요', '바뀐 게 없으면 기도제목이 다음 달로 그대로 넘어가요. "이번 달도 그대로예요"만 눌러도 괜찮아요.']
     ];
     return `<button class="link back" data-act="tab" data-v="more">${ICON.chevL}더보기</button>
@@ -3849,7 +3849,7 @@ try { const p = JSON.parse(localStorage.getItem('koide-pref') || '{}'), d = docu
   async function loadChurch() { try { S.church = await api('church'); } catch (e) { S.church = { err: e.code === 'bad' ? '서버를 새 버전으로 배포하면 볼 수 있어요.' : e.message }; } render(); }
   // ── 교회 전체 › 의견과 설문: 몇째 날별 답 개수(합계만, 사람별 보기 없음), 글 답, 부서 없는 것까지 모든 의견. 표(CSV)로 내려받기 ──
   async function loadSurveyAdmin() { try { S.sv = await api('surveyAdmin'); } catch (e) { S.sv = { err: e.code === 'bad' ? '서버를 새 버전으로 배포하면 볼 수 있어요.' : e.message }; } render(); }
-  const WHERE_NAME = { note: '코이데 노트', community: '코이데 공동체' };
+  const WHERE_NAME = { note: '코이데 노트', community: '코이데 교회' };
   // UEQ-S 합계(−3~+3, 공식 계산은 서버). 보통 −0.8~+0.8은 중간, 0.8보다 크면 긍정, −0.8보다 작으면 부정으로 읽는다(UEQ 안내)
   function ueqCard(U) {
     if (!U) return '';
@@ -3878,7 +3878,7 @@ try { const p = JSON.parse(localStorage.getItem('koide-pref') || '{}'), d = docu
     const dayCard = n => {
       const B = V.byDay[n], qs = R[n].qs.filter(q => q.t !== 'text' && B.q[q.k]);
       return `<section class="card"><div class="row"><h2>${n}일째 · ${R[n].title}</h2><small class="hint">답 ${B.n}개</small></div>
-        ${B.n ? `<p class="hint">코이데 노트 ${B.note} · 코이데 공동체 ${B.community}${B.withNums ? ` · 숫자도 함께 보낸 ${B.withNums}` : ''}</p>` : '<p class="hint">아직 온 답이 없어요.</p>'}
+        ${B.n ? `<p class="hint">코이데 노트 ${B.note} · 코이데 교회 ${B.community}${B.withNums ? ` · 숫자도 함께 보낸 ${B.withNums}` : ''}</p>` : '<p class="hint">아직 온 답이 없어요.</p>'}
         ${qs.map(q => `<div class="svb"><p class="svb-q">${esc(q.q)}</p>${q.o.map(o => { const c = B.q[q.k][o[0]] || 0, t = o[o.length - 1]; return `<div class="svb-row"><span>${esc(t)}</span><div class="svb-bar" aria-hidden="true"><i style="width:${B.n ? Math.round(c / B.n * 100) : 0}%"></i></div><b>${c}</b></div>`; }).join('')}</div>`).join('')}
         ${n === 14 ? ueqCard(B.ueq) : ''}
         ${B.texts.length ? `<p class="svb-q">글로 쓴 답 ${B.texts.length}</p><ul class="fb-list">${B.texts.map(x => `<li><div class="row"><span class="fb-kind">${esc((R[n].qs.find(q => q.k === x.k) || {}).q || '').replace(/ \(선택\)$/, '')}</span><small>${day(x.at)} · ${WHERE_NAME[x.where] || ''}</small></div><p class="plain">${esc(x.text)}</p></li>`).join('')}</ul>` : ''}</section>`;
@@ -4535,7 +4535,7 @@ try { const p = JSON.parse(localStorage.getItem('koide-pref') || '{}'), d = docu
   }
   // ── ⑤ 초대 링크 · QR: 링크로 들어온 사람은 부서·사랑방 고르기를 건너뛴다. 승인은 지금처럼 리더가 ──
   const JOIN = 'koide-join';
-  // 기도 노트에서 '우리 교회 공동체에 연결하기'를 눌러 왔다는 표시(초대 링크 없이 부서·소그룹을 골라 신청)
+  // 기도 노트에서 '코이데 교회 들어가기'를 눌러 왔다는 표시(초대 링크 없이 부서·소그룹을 골라 신청)
   const CONNECT = 'koide-connect';
   const connecting = () => { try { return !!localStorage.getItem(CONNECT); } catch (e) { return false; } };
   const inviteUrl = t => (CFG.REDIRECT_URI || location.origin + location.pathname) + (DEMO_LINK ? '?demo&' : '?') + 'join=' + t + churchQ();
@@ -4790,7 +4790,7 @@ try { const p = JSON.parse(localStorage.getItem('koide-pref') || '{}'), d = docu
       room: linked && H && H.room ? { name: H.room.name, group: H.dept && H.dept.group } : null,
       attr: (k, id) => k === 'note' ? `href="note.html${DEMO_LINK ? '?demo' : ''}"` : k === 'make' ? `data-act="gnew"` : k === 'room' ? 'data-act="gback"' : `data-act="gopen" data-v="${esc(id)}"` });
     const menu = S.menu === 'badge' ? `<div class="menu" role="menu" aria-label="사랑방">
-        <p class="mlabel">${esc(grp())}</p><div class="mitem static"><b>${S.grp ? esc(M.room.name) : '코이데 공동체'}</b><small>${S.grp ? '' : esc(M.room.name) + ' · '}${S.grp ? `모임 · ${M.families.length}명` : ''}${S.grp ? '' : M.dept && M.dept.name ? esc(M.dept.name) + ' · ' : ''}${S.grp ? '' : me.staff ? `${grp()} ${(M.rooms || []).length}곳 · ${(M.rooms || []).reduce((a, r) => a + r.n, 0)}${words().count}` : `${M.term || M.month.slice(0, 4)}년 편성 · ${M.families.length}${words().count}`}</small></div>${places}
+        <p class="mlabel">${esc(grp())}</p><div class="mitem static"><b>${S.grp ? esc(M.room.name) : '코이데 교회'}</b><small>${S.grp ? '' : esc(M.room.name) + ' · '}${S.grp ? `모임 · ${M.families.length}명` : ''}${S.grp ? '' : M.dept && M.dept.name ? esc(M.dept.name) + ' · ' : ''}${S.grp ? '' : me.staff ? `${grp()} ${(M.rooms || []).length}곳 · ${(M.rooms || []).reduce((a, r) => a + r.n, 0)}${words().count}` : `${M.term || M.month.slice(0, 4)}년 편성 · ${M.families.length}${words().count}`}</small></div>${places}
         ${!opsDepts().length ? '' : S.me.ops.all ? `<div class="mdiv"></div><p class="mlabel">교회 관리</p><button class="mitem" role="menuitem" data-act="church"><span>교회 전체</span><small>모든 부서 한눈에</small></button>`
           : `<div class="mdiv"></div><p class="mlabel">운영 지원</p>${opsDepts().map(d => `<button class="mitem" role="menuitem" data-act="opsgo" data-v="${esc(d.id)}"><span>${esc(d.name)} · 지원</span><small>관리 화면</small></button>`).join('')}`}
         ${me.admin && !DEMO ? '<div class="mdiv"></div><a class="mitem" role="menuitem" href="?demo" target="_blank" rel="noopener"><span>데모로 둘러보기</span><small>예시 데이터</small></a>' : ''}</div>`
@@ -4802,7 +4802,7 @@ try { const p = JSON.parse(localStorage.getItem('koide-pref') || '{}'), d = docu
     return `<div class="wrap">${brand}
       <nav class="topnav" aria-label="주 메뉴">${TABS.map(([k, l]) => `<button class="${on === k ? 'on' : ''}" data-act="tab" data-v="${k}" ${on === k ? 'aria-current="page"' : ''}>${l}</button>`).join('')}</nav>
       <span class="spacer"></span>
-      <button class="badge-btn" data-act="menu" data-v="badge" aria-haspopup="menu" aria-expanded="${S.menu === 'badge'}">${S.grp ? esc(M.room.name) : '코이데 공동체'}<span class="role-tag ${rc}">${role}</span>${G.some(g => g.asks) ? '<i class="badge-dot" aria-label="모임 신청이 있어요"></i>' : ''}</button>
+      <button class="badge-btn" data-act="menu" data-v="badge" aria-haspopup="menu" aria-expanded="${S.menu === 'badge'}">${S.grp ? esc(M.room.name) : '코이데 교회'}<span class="role-tag ${rc}">${role}</span>${G.some(g => g.asks) ? '<i class="badge-dot" aria-label="모임 신청이 있어요"></i>' : ''}</button>
       <button class="icon-btn" data-act="menu" data-v="settings" aria-haspopup="menu" aria-expanded="${S.menu === 'settings'}" aria-label="설정">${ICON.gear}</button>
       ${menu}</div>`;
   }

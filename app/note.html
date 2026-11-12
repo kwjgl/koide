@@ -621,7 +621,7 @@ button.pg-tag::before { content: ''; position: absolute; inset: -10px; }
   if (!(q.has('code') || q.has('error_code') || q.has('error') || hq.has('error_code') || hq.has('error'))) return;
   if (!C.API_URL || C.NOTE_BACKEND !== 'supabase' || !C.SUPABASE_URL || !C.SUPABASE_KEY || q.has('demo') || q.has('tutorial')) return;
   window.__koideSbReturn = true;
-  // 로그인 방법 더하기(linkIdentity)에서 돌아온 길인지: 더보기 › 로그인 계정에서 시작할 때 적어 둔 표시 두 개가 함께 있을 때만. 결과는 sessionStorage에 남기고 노트가 열린 뒤 알려 준다
+  // 로그인 방법 더하기(linkIdentity)에서 돌아온 길인지: 더보기 › 계정과 동기화에서 시작할 때 적어 둔 표시 두 개가 함께 있을 때만. 결과는 sessionStorage에 남기고 노트가 열린 뒤 알려 준다
   let LK = ''; try { if (localStorage.getItem('koide-note-resume') === 'acct') LK = localStorage.getItem('koide-note-link') || ''; } catch (e) { /* 일반 로그인으로 본다 */ }
   const linkEnd = r => { try { sessionStorage.setItem('koide-note-link-res', JSON.stringify({ p: LK, r })); localStorage.removeItem('koide-note-link'); } catch (e) { /* 표시를 못 남겨도 돌아간다 */ } };
   const linkKind = (c, d) => { const t = String(c || '') + ' ' + String(d || ''); return /identity_already_exists|already.?linked|already exists/i.test(t) ? 'exists' : /manual_linking_disabled|manual linking/i.test(t) ? 'manual' : /access_denied/i.test(t) ? 'cancel' : 'fail'; };
@@ -1010,25 +1010,22 @@ button.pg-tag::before { content: ''; position: absolute; inset: -10px; }
     S.acct = ids.map(i => i.provider).filter((k, i, a) => k && a.indexOf(k) === i);
     if (S.tab === 'more' || S.tab === 'acct' || S.tab === 'sync') render();
   }
-  async function acctOpen() {
-    S.acctErr = ''; S.acctBusy = false; go('acct');
-    S.acctProv = await sbProviders(); render();
-    acctLoad(true);
-  }
-  function acctRow() {
-    if (!S.acct || !S.acct.length) return '';
-    return `<section class="card mrows"><button class="mrow" data-a="acctopen"><span><b>로그인 계정</b><small>${esc(S.acct.map(k => SB_NAME[k] || k).join(' · '))}</small></span><span aria-hidden="true">›</span></button></section>`;
-  }
-  function acctView() {
+  // 계정 정보는 계정과 동기화 화면에서 함께 관리한다.
+  function acctCard() {
+    if (!sbReady() || vaultBackend() !== 'supabase' || QUIET) return '';
     const L = S.acct || [], more = S.acctProv ? S.acctProv.filter(k => !L.includes(k)) : null;
-    return `<button class="link" data-a="tab" data-v="more" style="align-self:flex-start;margin-bottom:6px">‹ 더보기</button>
-      <header class="top"><div><h1>로그인 계정</h1></div></header>
-      <section class="card"><p class="label">이은 로그인 방법</p>
-        ${L.length ? L.map(k => `<div class="acct-li"><span class="acct-logo">${SB_LOGO[k] || ''}</span><b>${esc(SB_NAME[k] || k)}</b></div>`).join('') : '<p class="hint">불러오는 중…</p>'}</section>
-      <section class="card"><p class="label">로그인 방법 더하기</p>
-        ${more === null ? '<p class="hint">불러오는 중…</p>' : more.length ? `<div style="display:flex;flex-direction:column;gap:8px">${more.map(k => `<button class="btn wide sso-btn sso-${k}" data-a="acctgo" data-v="${k}"${S.acctBusy ? ' disabled' : ''}>${SB_LOGO[k]}<span>${SB_LABEL[k]}</span></button>`).join('')}</div>` : '<p class="hint">더할 수 있는 로그인 방법이 더는 없어요.</p>'}
-        ${S.acctErr ? `<p class="hint" style="color:var(--warm)" role="alert">${esc(S.acctErr)}</p>` : ''}
-        <p class="hint">카카오와 구글을 한 계정으로 이으면 어느 쪽으로 들어와도 같은 노트와 보관함이에요.</p></section>`;
+    if (S.sess === 'out' || S.sbIn === false) return `<section class="card"><p class="label">로그인 계정</p><p class="hint">로그인되어 있지 않아요</p><button class="btn small" data-a="sblogin">다시 로그인</button></section>`;
+    return `<section class="card"><p class="label">로그인 계정</p><p class="label">이은 로그인 방법</p>
+      ${L.length ? L.map(k => `<div class="acct-li"><span class="acct-logo">${SB_LOGO[k] || ''}</span><b>${esc(SB_NAME[k] || k)}</b></div>`).join('') : '<p class="hint">불러오는 중…</p>'}
+      <p class="label">로그인 방법 더하기</p>
+      ${more === null ? '<p class="hint">불러오는 중…</p>' : more.length ? `<div style="display:flex;flex-direction:column;gap:8px">${more.map(k => `<button class="btn wide sso-btn sso-${k}" data-a="acctgo" data-v="${k}"${S.acctBusy ? ' disabled' : ''}>${SB_LOGO[k]}<span>${SB_LABEL[k]}</span></button>`).join('')}</div>` : '<p class="hint">더할 수 있는 로그인 방법이 더는 없어요.</p>'}
+      ${S.acctErr ? `<p class="hint" style="color:var(--warm)" role="alert">${esc(S.acctErr)}</p>` : ''}
+      <p class="hint">카카오와 구글을 한 계정으로 이으면 어느 쪽으로 들어와도 같은 노트와 보관함이에요.</p></section>`;
+  }
+  async function acctOpen() {
+    S.acctErr = ''; S.acctBusy = false; go('sync');
+    if (!sbReady() || vaultBackend() !== 'supabase' || QUIET) return;
+    S.acctProv = await sbProviders(); render(); acctLoad(true);
   }
   async function acctGo(provider) {
     if (S.acctBusy) return;
@@ -2518,12 +2515,11 @@ button.pg-tag::before { content: ''; position: absolute; inset: -10px; }
     const linked = inCommunity();
     return `<header class="top"><div><h1>더보기</h1></div></header>
       <div class="n-two"><div class="n-main">
-      <p class="more-h">나</p>
-      <section class="card mrows"><a class="mrow" style="text-decoration:none;color:inherit" href="${linked ? 'index.html' + QS : 'index.html' + (DEMO_LINK ? '?demo&connect' : '?connect')}"><span><b>${linked ? '코이데 공동체' : '우리 교회 공동체에 연결하기'}</b><small>${linked ? '사랑방·모임과 함께 기도제목을 나누는 곳이에요' : '사랑방과 함께 기도해요'}</small></span><span aria-hidden="true">›</span></a></section>
-      ${peopleRow()}
-      ${syncRow()}
-      ${acctRow()}
-      ${groupsCard()}</div>
+      <p class="more-h">내 기도</p>${peopleRow()}
+      <p class="more-h">함께하는 곳</p>
+      <section class="card mrows"><a class="mrow" style="text-decoration:none;color:inherit" href="${linked ? 'index.html' + QS : 'index.html' + (DEMO_LINK ? '?demo&connect' : '?connect')}"><span><b>${linked ? '코이데 교회' : '코이데 교회 들어가기'}</b><small>${linked ? '사랑방과 함께 기도해요' : '교회 코드가 있으면 우리 교회와 함께 기도해요'}</small></span><span aria-hidden="true">›</span></a></section>
+      ${groupsCard()}
+      <p class="more-h">계정과 동기화</p>${syncRow()}</div>
       <div class="n-side"><p class="more-h">앱 설정</p>
       <section class="card mrows">
         <button class="mrow" data-a="setopen" aria-expanded="${!!S.setOpen}"><span><b class="mhead">화면 설정</b><small>화면 모드 · 색 테마 · 디자인 · 큰 글씨</small></span><span class="chev" aria-hidden="true">›</span></button>
@@ -2532,11 +2528,9 @@ button.pg-tag::before { content: ''; position: absolute; inset: -10px; }
         ${KoidePilot.moreRows()}</section>
       <p class="more-h">코이데</p>
       <section class="card mrows">
-        <button class="mrow" data-a="ivid"><span><b>코이데 소개 영상</b><small>코이데 공동체와 코이데 노트를 영상으로 봐요</small></span></button>
+        <button class="mrow" data-a="ivid"><span><b>코이데 소개 영상</b><small>코이데 교회와 코이데 노트를 영상으로 봐요</small></span></button>
         <button class="mrow" data-a="tab" data-v="help"><span><b>사용법</b><small>따라 하기와 도움말</small></span><span aria-hidden="true">›</span></button>
-        <button class="mrow" data-a="fbopen"><span><b>의견 보내기</b><small>불편한 점, 바라는 점, 고마운 점. 기도 내용은 담기지 않아요</small></span><span aria-hidden="true">›</span></button></section></div>
-      </div><div class="n-end"><button class="link quiet" data-a="logout" style="display:block;margin:6px auto 0">로그아웃</button>
-      <button class="link quiet" data-a="wipe" style="display:block;margin:6px auto 0">이 휴대폰의 코이데 노트 모두 지우기</button></div>`;
+        <button class="mrow" data-a="fbopen"><span><b>의견 보내기</b><small>불편한 점, 바라는 점, 고마운 점. 기도 내용은 담기지 않아요</small></span><span aria-hidden="true">›</span></button></section></div></div>`;
   }
   // 사용법(더보기 › 사용법): 위는 따라 하기 시작, 아래는 궁금한 것 찾아보기(질문을 누르면 풀이와 그 화면으로 가는 링크). 글은 실제 동작과 같게 쓴다
   const HELP = [
@@ -2545,7 +2539,7 @@ button.pg-tag::before { content: ''; position: absolute; inset: -10px; }
     ['기도의 순례길은 뭐예요?', ['오늘의 기도 화면의 순례길 카드는 기도한 날마다 길을 한 구간씩 걷는 작은 지도예요(처음 길은 아브라함의 길). 하루에 여러 번 기도해도 한 구간이에요.', '며칠 쉬어도 뒤로 가지 않고, 순례자가 길가에서 쉬었다가 기도하면 다시 걸어요. 응답받았어요로 마친 기도는 그날 걷던 길가에 돌로 서요.', '장소에 처음 닿으면 이야기가 한 번 나오고, 길을 다 걸으면 나의 배지가 생겨요. 아브라함의 길을 다 걸으면 광야의 길이, 광야의 길을 다 걸으면 약속의 땅이, 약속의 땅을 다 걸으면 다윗의 길이 이어서 열리고, 순례길 화면 위의 지나온 길 단추로 다 걸은 길을 다시 볼 수 있어요. 나만 보는 노트라 남과 견주지 않아요.'], '오늘의 기도로 가기', 'today'],
     ['기도의 끈은 뭐예요?', ['오늘의 기도 화면의 끈은 내가 기도하는 사람마다 매듭이 하나씩이에요.', '이번 주(주일부터) 그 사람을 위해 기도하면 매듭이 지어지고, 매주 주일에 새로 시작해요. 더보기에서 사람을 더하면 끈이 생겨요.'], '오늘의 기도로 가기', 'today'],
     ['돌아보기에서는 무엇을 볼 수 있어요?', ['달마다 기도한 날 달력과 감사·응답, 마친 기도를 볼 수 있어요.', '달력과 감사 아래 지난 기록에는 올해 기도한 날, 기억한 사람, 감사와 응답 기록, 달마다 기도한 날이 모여요. 그 아래 나의 배지에는 노트에서 해 볼 일과 기념일(아브라함의 길 · 광야의 길 · 약속의 땅을 다 걸은 날 포함)이 처음부터 모두 보여요. 해 보면 그 배지에 색이 들어오고, 색이 없는 배지를 누르면 어떻게 하는지 알려 줘요.', '지난 기록 카드 제목 오른쪽의 격자 단추를 누르면 최근 1년 동안 기도한 날을 칸으로 한눈에 볼 수 있어요. 위가 옛날, 아래가 오늘이에요.', '나만 보는 기록이에요. 비어 있는 날이 있어도 괜찮아요.'], '돌아보기 열기', 'look'],
-    ['휴대폰을 바꿔도 이어지게 하려면?', ['코이데 노트는 이 휴대폰에만 있어요. 더보기 › 동기화를 켜면 로그인한 계정과 비밀 문구로 암호화하여 보관해요.', '새 휴대폰에서는 같은 계정으로 로그인한 뒤 더보기 › 동기화를 켜고 같은 비밀 문구를 넣으면 보관한 기록이 합쳐져요.', '비밀 문구를 잊을 때를 위해 복구용 낱말도 만들어 두세요. 둘 다 잃으면 되살릴 수 없어요.'], '동기화로 가기', 'sync']
+    ['휴대폰을 바꿔도 이어지게 하려면?', ['코이데 노트는 이 휴대폰에만 있어요. 더보기 › 계정과 동기화에서 동기화를 켜면 로그인한 계정과 비밀 문구로 암호화하여 보관해요.', '새 휴대폰에서는 같은 계정으로 로그인한 뒤 더보기 › 계정과 동기화에서 동기화를 켜고 같은 비밀 문구를 넣으면 보관한 기록이 합쳐져요.', '비밀 문구를 잊을 때를 위해 복구용 낱말도 만들어 두세요. 비밀 문구·복구용 낱말을 모두 잃으면 기록을 불러올 수 없어요.'], '계정과 동기화로 가기', 'sync']
   ];
   function helpView() {
     return `<button class="link" data-a="tab" data-v="more" style="align-self:flex-start;margin-bottom:6px">‹ 더보기</button>
@@ -2571,33 +2565,36 @@ button.pg-tag::before { content: ''; position: absolute; inset: -10px; }
         ${people().length ? `<ul class="people">${people().map((p, _, A) => `<li>${A.length > 1 ? `<button class="drag-h" data-v="${p.id}" aria-label="순서 바꾸기" title="순서 바꾸기">${ICON.grip}</button>` : ''}<span class="pname">${esc(p.name)}</span><span class="prayer-actions"><button class="link quiet prayer-action" data-a="renperson" data-v="${p.id}" aria-label="이름 바꾸기" title="이름 바꾸기">${ICON.pen.replace('<svg ', '<svg aria-hidden="true" ')}</button><button class="link quiet prayer-action" data-a="delperson" data-v="${p.id}" aria-label="빼기" title="빼기">${ICON.trash}</button></span></li>`).join('')}</ul>` : '<p class="hint">가족, 친구처럼 늘 기도하는 사람을 더해 두면 기도제목의 대상으로 고를 수 있고, 오늘의 기도 화면에 끈이 생겨요.</p>'}
         <button class="btn ghost small" data-a="addperson" style="align-self:flex-start">+ 사람 더하기</button></section>`;
   }
-  // 더보기의 동기화 한 줄(디다코와 같은 모양): 누르면 동기화 페이지로 간다. 켜짐/꺼짐 표시는 잠시 끈 것도 '꺼짐'
   function syncRow() {
-    const V = D.vault, conn = !!(V && V.on), paused = conn && !!V.paused, live = conn && !paused;
-    const st = !canLock() ? '이 화면 주소(https)에서만 쓸 수 있어요' : paused ? '꺼짐' : live ? syncLabel() : '켜면 휴대폰을 바꿔도 기록이 이어져요';
-    return `<section class="card mrows"><button class="mrow" data-a="tab" data-v="sync"><span><b>동기화</b><small>${esc(st)}</small></span>
-      <span class="mrow-end">${canLock() ? `<span class="tag${live ? '' : ' off'}">${live ? '켜짐' : '꺼짐'}</span>` : ''}<span aria-hidden="true">›</span></span></button></section>`;
+    const V = D.vault, conn = !!(V && V.on), live = conn && !V.paused;
+    let st;
+    if (sbReady() && vaultBackend() === 'supabase' && !QUIET) {
+      const who = S.sess === 'in' && S.acct && S.acct.length ? S.acct.map(k => SB_NAME[k] || k).join(' · ') + '로 로그인' : '';
+      const status = live ? syncLabel() : '동기화 꺼짐';
+      st = S.sess === 'out' || S.sbIn === false ? '로그인되어 있지 않아요' : who ? who + ' · ' + status : status;
+    } else st = !canLock() ? '이 화면 주소(https)에서만 쓸 수 있어요' : V && V.paused ? '꺼짐' : live ? syncLabel() : '켜면 휴대폰을 바꿔도 기록이 이어져요';
+    return `<section class="card mrows"><button class="mrow" data-a="acctopen"><span><b>계정과 동기화</b><small style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(st)}</small></span><span class="mrow-end"><span aria-hidden="true">›</span></span></button></section>`;
   }
-  // 동기화 페이지(더보기 › 동기화): 동기화 카드, 연결된 기기의 비밀 문구·복구용 낱말 줄, 내 기록 파일, 알아 두세요
   function syncView() {
     const conn = !!(D.vault && D.vault.on);
     return `<button class="link" data-a="tab" data-v="more" style="align-self:flex-start;margin-bottom:6px">‹ 더보기</button>
-      <header class="top"><div><h1>동기화</h1></div></header>
-      ${vaultCard()}
-      ${conn && canLock() ? `<section class="card mrows">
+      <header class="top"><div><h1>계정과 동기화</h1></div></header>
+      ${acctCard()}${vaultCard()}
+      ${conn && canLock() ? `<section class="card mrows"><p class="label">비밀 문구</p>
         <button class="mrow" data-a="kcchange"><span><b>비밀 문구 바꾸기</b><small>기록을 잠그는 문구를 새로 정해요</small></span><span aria-hidden="true">›</span></button>
         <button class="mrow" data-a="kcforgot"><span><b>비밀 문구를 잊었어요</b><small>적어 둔 복구용 낱말로 다시 열어요</small></span><span aria-hidden="true">›</span></button>
         <button class="mrow" data-a="vrec"${S.recBusy ? ' disabled' : ''}><span><b>${D.vault.rec ? '복구용 낱말 새로 만들기' : '복구용 낱말 만들기'}</b>${D.vault.rec ? '' : '<small>아직 없어요. 비밀 문구를 잊어도 열 수 있게 만들어 두세요.</small>'}</span><span aria-hidden="true">›</span></button>
         ${canMove() ? '<button class="mrow" data-a="vmove"' + (S.vbusy ? ' disabled' : '') + '><span><b>새 보관함으로 옮기기</b><small>기록은 휴대폰에서 잠긴 그대로 옮겨요</small></span><span aria-hidden="true">›</span></button>' : ''}
         <p class="hint">비밀 문구·복구용 낱말을 모두 잃으면 기록을 불러올 수 없어요.</p></section>` : ''}
-      <section class="card mrows"><p class="label">내 기록 파일</p>
+      <section class="card mrows"><p class="label">기록 파일</p>
         <button class="mrow" data-a="backup"><span><b>기록 저장하기</b><small>파일·드라이브에 저장하거나, 카카오톡으로 보내요.</small></span></button>
         <button class="mrow" data-a="restore"><span><b>불러오기</b><small>저장해 둔 파일로 기록을 되살려요.</small></span></button>
         <input type="file" id="restore-file" accept="application/json,.json" hidden></section>
       <section class="card"><p class="label">알아 두세요</p>
         <p class="hint">· 브라우저의 인터넷 기록·사이트 데이터를 지우면 이 기기의 사본과 화면 설정이 지워질 수 있어요.</p>
         <p class="hint">· 보관한 기록은 비밀 문구로 다시 열 수 있어요.</p>
-        ${D.vault && D.vault.on ? '' : '<p class="hint">· 아이폰은 홈 화면에 두지 않고 7일 넘게 열지 않으면 이 기기의 기록이 지워질 수 있어요.</p>'}</section>`;
+        ${D.vault && D.vault.on ? '' : '<p class="hint">· 아이폰은 홈 화면에 두지 않고 7일 넘게 열지 않으면 이 기기의 기록이 지워질 수 있어요.</p>'}</section>
+      <div class="n-end"><button class="link quiet" data-a="logout" style="display:block;margin:6px auto 0">로그아웃</button><button class="link quiet" data-a="wipe" style="display:block;margin:6px auto 0">이 휴대폰의 코이데 노트 모두 지우기</button></div>`;
   }
   // 의견 보내기: 공동체와 같은 종류. 교회에 연결되지 않아도 보낼 수 있고(로그인만), 운영하는 분(교회 관리자)이 읽는다. 기도제목은 담지 않는다
   const FB_KINDS = ['불편해요', '이랬으면', '고마워요'];
@@ -2617,13 +2614,6 @@ button.pg-tag::before { content: ''; position: absolute; inset: -10px; }
         <button class="btn wide" data-a="fbsend"${S.fbBusy ? ' disabled' : ''}>${S.fbBusy ? '보내는 중…' : '보내기'}</button>
         <p class="hint">코이데를 꾸리는 분들이 읽어요. 답장은 따로 오지 않아요.</p></section>`;
   }
-  // 동기화 화면의 로그인 줄: 새 길(Supabase)로 연결돼 있을 때만. 로그인돼 있으면 로그인 계정 화면으로, 아니면 다시 로그인 창으로
-  function sbLine() {
-    if (!sbReady() || vaultBackend() !== 'supabase') return '';
-    const st = 'padding:.55em 0;border-top:1px solid var(--line);font-size:.95em';
-    if (S.sess === 'in' && S.acct && S.acct.length) return `<button class="mrow" style="${st}" data-a="acctopen"><span>로그인: ${esc(S.acct.map(k => SB_NAME[k] || k).join(' · '))}</span><span aria-hidden="true">›</span></button>`;
-    if (S.sess !== 'in' || !(S.acct && S.acct.length)) return `<div class="mrow" style="${st};cursor:default"><span>로그인되어 있지 않아요</span><button class="link" data-a="sblogin" style="min-height:0">다시 로그인</button></div>`;
-  }
   // 동기화 카드(디다코와 같은 모양): 제목 + 스위치, 상태 한 줄, 암호화 안내, 동작 줄. 스위치는 '연결 유지한 채 잠시 끄기'(D.vault.paused)
   const SYNC_LOCK = '<p class="sync-lock">' + ICON.lock + '<span>기록은 암호화되기 때문에 운영자도 볼 수 없어요.</span></p>';
   function vaultCard() {
@@ -2637,10 +2627,10 @@ button.pg-tag::before { content: ''; position: absolute; inset: -10px; }
       <div class="sync-act"><button class="btn small" data-a="vstart"${S.vbusy ? ' disabled' : ''}>${churchless() ? (S.sbIn === false ? '로그인하고 켜기' : '켜기') : getToken() ? '켜기' : '카카오로 로그인하고 켜기'}</button></div></section>`;
     const cut = '<button class="quiet-link" data-a="cutopen">연결 끊기</button>';
     if (paused) return `<section class="card" style="margin-top:12px">${head}
-      <p class="sync-st off"><i class="dot" aria-hidden="true"></i><span>동기화하지 않아요. 이 기기의 기록은 그대로 있고, 켜면 이어서 동기화해요.</span></p>${SYNC_LOCK}${sbLine()}
+      <p class="sync-st off"><i class="dot" aria-hidden="true"></i><span>동기화하지 않아요. 이 기기의 기록은 그대로 있고, 켜면 이어서 동기화해요.</span></p>${SYNC_LOCK}
       <div class="sync-act">${cut}</div></section>`;
     return `<section class="card" style="margin-top:12px">${head}
-      <p class="sync-st"><i class="dot${S.syncMsg && !syncing ? ' err' : ''}" aria-hidden="true"></i><span id="sync-state" aria-live="polite">${esc(syncLabel())}</span></p>${SYNC_LOCK}${sbLine()}
+      <p class="sync-st"><i class="dot${S.syncMsg && !syncing ? ' err' : ''}" aria-hidden="true"></i><span id="sync-state" aria-live="polite">${esc(syncLabel())}</span></p>${SYNC_LOCK}
       <div class="sync-act">${S.sbRelogin && S.sess !== 'out' && S.sbIn !== false ? '<button class="btn small" data-a="sblogin">다시 로그인</button>' : ''}<button class="btn small ghost" data-a="vsync"${syncing ? ' disabled' : ''}>${ICON.sync}지금 동기화</button>${cut}</div></section>`;
   }
   // 연결 끊기 창: 이 기기에서만 끊는다. 서버에 맡긴 기록을 지울지는 고른다(기본은 남겨 둠)
@@ -2755,7 +2745,7 @@ button.pg-tag::before { content: ''; position: absolute; inset: -10px; }
       <h2 id="sh-t">어디에 나눌까요?</h2><p class="plain"><span class="tag">${esc(targetName(i.target))}</span>${esc(i.text)}</p>
       <p class="hint">고른 곳의 "내 기도" 쓰기 칸에 옮겨 적어요. 거기서 대상별로 정리하기 → 공개 범위를 고르고 추가해야 나눠져요. 노트의 기도제목은 그대로 남아요.</p>
       ${opts.length ? opts.map(([id, n, sub]) => `<button class="mrow" data-a="shareto" data-v="${esc(id)}"><span><b>${esc(n)}</b><small>${sub}</small></span></button>`).join('')
-        : `<a class="mrow" style="text-decoration:none;color:inherit" href="index.html${DEMO_LINK ? '?demo&connect' : '?connect'}"><span><b>우리 교회 공동체에 연결하기</b><small>아직 연결된 소그룹이나 모임이 없어요. 연결된 다음에 나눌 수 있어요</small></span></a>`}
+        : `<a class="mrow" style="text-decoration:none;color:inherit" href="index.html${DEMO_LINK ? '?demo&connect' : '?connect'}"><span><b>코이데 교회 들어가기</b><small>교회 코드가 있으면 우리 교회와 함께 기도해요</small></span></a>`}
       <div class="row" style="justify-content:flex-end"><button class="btn ghost" data-a="shareclose">취소</button></div></section></div>`;
   }
   function vaultSheet() {
@@ -3086,7 +3076,7 @@ button.pg-tag::before { content: ''; position: absolute; inset: -10px; }
     if (S.tab !== 'weaves') S.wopen = null;
     if (vtCur && S.ps) vtCur.skipTransition();   // 기도하기 창처럼 화면 전체를 덮는 창이 뜨면 넘기기를 바로 끝낸다
     const ys = $('.yr-body'), ysTop = ys ? ys.scrollTop : 0;   // 1년 창이 열려 있을 때 다시 그려도 보던 자리를 지킨다
-    const V = { today: todayView, note: noteView, pray: prayTab, look: lookView, weaves: weavesView, more: moreView, people: peopleView, sync: syncView, acct: acctView, fb: fbView, help: helpView }[S.tab];
+    const V = { today: todayView, note: noteView, pray: prayTab, look: lookView, weaves: weavesView, more: moreView, people: peopleView, sync: syncView, fb: fbView, help: helpView }[S.tab];
     $('#root').innerHTML = `${topBar()}<div class="wrap has-top">${V()}</div>
       <nav class="tabs" aria-label="메뉴">${TABS.map(([k, l, ic]) => { const on = (['fb', 'sync', 'acct', 'help', 'weaves', 'people'].includes(S.tab) ? 'more' : S.tab) === k; return `<button class="${k === 'pray' ? 'pray-tab ' : ''}${on ? 'on' : ''}" data-a="tab" data-v="${k}" aria-label="${l}" title="${l}" ${on ? 'aria-current="page"' : ''}>${ic}</button>`; }).join('')}</nav>
       ${S.done ? doneSheet() : ''}${S.bdg ? bdgSheet() : ''}${S.yr ? yearSheet() : ''}${a2hsOn() ? a2hsSheet() : ''}${S.vsheet ? vaultSheet() : ''}${S.sbSheet ? sbSheet() : ''}${S.acctSheet ? acctSheet() : ''}${S.cut ? cutSheet() : ''}${S.recSheet ? recSheet() : ''}${S.kc ? kcSheet() : ''}${S.share ? shareSheet() : ''}${S.mv ? mvSheet() : ''}${S.pg ? pgHtml() : ''}${S.ps ? psHtml() : ''}${S.toast ? `<div class="toast" role="status">${esc(S.toast)}</div>` : ''}
@@ -3205,7 +3195,7 @@ button.pg-tag::before { content: ''; position: absolute; inset: -10px; }
       case 'mvall': S.mv.list.forEach((_, i) => { S.mv.sel[i] = v === '1'; }); return render();
       case 'mvgo': return mvGo();
       case 'menunew': S.menu = null; S.gNew = true; go('more'); { const f = $('#gc-n'); if (f) { f.scrollIntoView({ block: 'center' }); f.focus(); } } return;
-      case 'tab': S.menu = null; S.draft = null; S.thDraft = ''; S.preview = null; if (v === 'help') S.helpQ = null; return tabGo(b, v);
+      case 'tab': S.menu = null; S.draft = null; S.thDraft = ''; S.preview = null; if (v === 'help') S.helpQ = null; if (v === 'sync' || v === 'acct') return acctOpen(); return tabGo(b, v);
       case 'split': { S.draft = $('#it-text').value; const parts = splitNote(S.draft); if (!parts.length) { toast('내용을 적어 주세요.'); return $('#it-text').focus(); } S.preview = parts; return render(); }
       case 'unsplit': S.preview = null; return render();
       case 'prevrm': S.preview.splice(Number(v), 1); if (!S.preview.length) S.preview = null; return render();
@@ -3543,7 +3533,7 @@ button.pg-tag::before { content: ''; position: absolute; inset: -10px; }
     }
     acctLoad();
     let resume = null; try { resume = localStorage.getItem('koide-note-resume'); localStorage.removeItem('koide-note-resume'); } catch (e) { /* 무시 */ }
-    if (resume === 'acct' && (getToken() || nb)) { S.tab = 'acct'; S.acctProv = null; sbProviders().then(l => { S.acctProv = l; render(); }); acctLoad(true); acctResult(); }
+    if ((resume === 'acct' || resume === 'sync') && (getToken() || nb)) { S.tab = 'sync'; S.acctProv = null; sbProviders().then(l => { S.acctProv = l; render(); }); acctLoad(true); acctResult(); }
     else if (resume === 'door' && nb) doorArrive();
     else if (resume === 'vault-move' && (getToken() || nb) && canMove()) { S.tab = 'sync'; vaultMove(true); }
     else if (resume === 'vault' && (getToken() || nb)) { S.tab = 'sync'; vaultStart(); }
