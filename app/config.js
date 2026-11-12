@@ -13,7 +13,9 @@ window.KOIDE_CONFIG = {
   // 노트 동기화를 맡길 곳. 비우면 예전처럼 Apps Script(API_URL). 'supabase'면 새로 연결하는 기기는 Supabase에 맡긴다
   NOTE_BACKEND: 'supabase',
   SUPABASE_URL: 'https://knzibzjnpkcpelwfqdvx.supabase.co',  // 공개 값
-  SUPABASE_KEY: 'sb_publishable_zWrybkJVwpzQ04XnUoxnSA_keakooJI'  // publishable 키(공개 값). secret(service_role) 키는 절대 넣지 않는다
+  SUPABASE_KEY: 'sb_publishable_zWrybkJVwpzQ04XnUoxnSA_keakooJI',  // publishable 키(공개 값). secret(service_role) 키는 절대 넣지 않는다
+  // 코이데 공동체 켜기. 비우면 꺼짐, 'on'이면 켬. 서버 스위치 community_open도 켜져 있어야 쓸 수 있다
+  COMMUNITY: 'on'
 };
 // 교회 코드로 들어간 기기: 그 교회 서버로 이야기한다(공동체·기도 노트 모두). ?demo로 연 데모는 그대로
 (() => {
