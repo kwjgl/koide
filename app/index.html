@@ -4823,28 +4823,28 @@ try { const p = JSON.parse(localStorage.getItem('koide-pref') || '{}'), d = docu
   // 사용법(더보기 › 사용법): 위는 따라 하기 시작, 아래는 궁금한 것 찾아보기(질문을 누르면 풀이와 그 화면으로 가는 링크). 화면 글은 실제 동작과 같게 쓴다
   function helpView() {
     const w = words(), g = esc(grp()), staff = staffMe(), one = w.one, me = S.month.me;
-    const cord = staff ? `이번 주(주일부터)에 기도한 ${g}마다 끈에 매듭이 지어져요. 모든 ${g}를 위해 기도하면 끈이 리본으로 묶여요.`
-      : `이번 주(주일부터)에 기도한 ${one}마다 끈에 매듭이 지어져요. 모든 ${one}을 위해 기도하면 끈이 리본으로 묶여요.`;
+    const cord = staff ? `이번 주(주일부터)에 기도한 ${g}마다 끈에 매듭이 지어지고, 모든 ${esc(gj('을/를'))} 위해 기도하면 끈이 리본으로 묶여요. 매주 주일에 새로 시작하고, 나만 봐요.`
+      : `이번 주(주일부터)에 기도한 ${one}마다 끈에 매듭이 지어지고, 모든 ${one}을 위해 기도하면 끈이 리본으로 묶여요. 매주 주일에 새로 시작하고, 나만 봐요.`;
     const order = staff ? `${scopeName('dept')} ↔ ${w.only}` : `${scopeName('room')} → ${scopeName('leader')} → ${w.only}`;
     const Q = [
-      ['기도제목은 어떻게 써요?', ['내 기도의 "새 기도제목 쓰기" 칸에 한 줄에 하나씩 써요.', '줄 앞에 "' + (solo() ? '가족' : '자녀') + 'ㅡ"처럼 이름을 쓰고 ㅡ를 붙이면 그 사람이 대상이 돼요.', '대상별로 정리하기를 누르고, 미리보기에서 괜찮으면 추가하기를 눌러요.'], '내 기도로 가기', 'mine'],
-      ['누가 볼지 바꾸고 싶어요', ['기도제목마다 있는 공개 범위 버튼을 눌러요.', `누를 때마다 ${order} 순서로 바뀌어요.`, `"${w.only}"은 ${solo() ? '나만' : '우리 가정에 연결된 사람만'} 봐요.`], '내 기도로 가기', 'mine'],
-      ['기도하기는 어떻게 해요?', ['아래 가운데 기도하기를 눌러요.', '한 장에 머무는 시간과 음악을 골라요. 안 골라도 돼요.', '기도 시작을 누르고, 한 장씩 넘기며 기도한 장에서 기도했어요를 눌러요.'], '기도하기 열기', 'pray'],
-      ['기도의 끈은 뭐예요?', [cord, '끈은 매주 주일에 새로 시작하고, 나만 봐요.'], '이번 달로 가기', 'home'],
-      staff ? null : ['이달의 그림은 뭐예요?', ['기도한 날마다 그림에 주인공이 하나씩 놓여요.', `이번 달에 처음 기도한 ${one}이 있으면 소품이 하나 늘고, 같은 날 같은 ${one}을 한 번 더 위해 기도하면 하트가 생겨요.`, '나만 보고, 다른 사람과 비교하지 않아요.'], '이번 달로 가기', 'home'],
-      ['이뤄진 기도는 어떻게 해요?', ['기도제목의 마치기를 누르면 이번 달에서 빠지고 돌아보기에 남아요.', '지우기는 돌아보기에도 남지 않고 되돌릴 수 없어요.'], '내 기도로 가기', 'mine'],
-      ['지난달 기도제목은 어디 있어요?', ['돌아보기에서 달마다 그 달의 기도제목을 다시 볼 수 있어요.', `그 달에 함께했던 ${g} 그대로 보여 줘요.`], '돌아보기로 가기', 'history']
+      ['기도제목은 어떻게 써요?', '내 기도의 "새 기도제목 쓰기" 칸에 한 줄에 하나씩 쓰고, 줄 앞에 "' + (solo() ? '가족' : '자녀') + 'ㅡ"처럼 이름과 ㅡ를 붙이면 그 사람이 대상이 돼요. 대상별로 정리하기를 누르고 미리보기에서 괜찮으면 추가하기를 눌러요.', '내 기도로 가기', 'mine'],
+      KOINONIA ? null : ['누가 볼지 바꾸고 싶어요', `기도제목마다 있는 공개 범위 버튼을 누를 때마다 ${order} 순서로 바뀌어요. "${w.only}"은 ${solo() ? '나만' : '우리 가정에 연결된 사람만'} 봐요.`, '내 기도로 가기', 'mine'],
+      ['기도하기는 어떻게 해요?', '기도하기 탭에서 무엇을 위해 기도할지, 한 장에 머무는 시간과 음악을 골라요(안 골라도 돼요). 기도 시작을 누르고 한 장씩 넘기며, 기도한 장에서 기도했어요를 눌러요.', '기도하기 열기', 'pray'],
+      ['기도의 끈은 뭐예요?', cord, '이번 달로 가기', 'home'],
+      staff ? null : ['이달의 그림은 뭐예요?', `기도한 날마다 그림에 주인공이 하나씩 놓여요. 이번 달에 처음 기도한 ${one}이 있으면 소품이 하나 늘고, 같은 날 같은 ${one}을 한 번 더 위해 기도하면 하트가 생겨요. 나만 보고, 다른 사람과 비교하지 않아요.`, '이번 달로 가기', 'home'],
+      ['이뤄진 기도는 어떻게 해요?', '기도제목의 마치기를 누르면 이번 달에서 빠지고 돌아보기에 남아요. 지우기는 돌아보기에도 남지 않고 되돌릴 수 없어요.', '내 기도로 가기', 'mine'],
+      ['지난달 기도제목은 어디 있어요?', `돌아보기에서 달마다 그 달의 기도제목을 다시 볼 수 있어요. 그 달에 함께했던 ${g} 그대로 보여 줘요.`, '돌아보기로 가기', 'history']
     ].filter(Boolean);
     const open = S.helpQ;
     return `<button class="link back" data-act="tab" data-v="more">${ICON.chevL}더보기</button>
       <div class="page-top"><div><h1>사용법</h1></div></div>
       <div class="help-page">
-        ${staff || !me.familyId ? '' : `<section class="card"><p class="label">처음처럼 따라 해 보기</p><p class="plain">예시로 쓰기와 기도하기를 직접 눌러 보며 한 걸음씩 익혀요. 연습한 것은 저장되지 않아요.</p>
+        ${staff || !me.familyId ? '' : `<section class="card"><p class="label">처음처럼 따라 해 보기</p><p class="plain">예시로 쓰기와 기도하기를 직접 눌러 보며 한 걸음씩 익혀요.</p>
           <button class="btn wide help-go" data-act="guidere">▶ 따라 하기 시작</button></section>`}
         <section class="card mrows folds"><p class="label" style="margin:.8em 0 .2em">궁금한 것 찾아보기</p>
-        ${Q.map(([q, lines, go, to], k) => { const on = open === k;
+        ${Q.map(([q, text, go, to], k) => { const on = open === k;
           return `<div class="fold${on ? ' open' : ''}"><button class="mrow" data-act="helpq" data-v="${k}" aria-expanded="${on}"><span><b>${q}</b></span><span class="ops-chev" aria-hidden="true">${ICON.chev}</span></button>
-            ${on ? `<div class="fold-body">${lines.map(t => `<p class="plain">${t}</p>`).join('')}<button class="link ab-go" data-act="helpgo" data-v="${to}">${go}${ICON.chevR}</button></div>` : ''}</div>`; }).join('')}
+            ${on ? `<div class="fold-body"><p class="plain">${text}</p><button class="link ab-go" data-act="helpgo" data-v="${to}">${go}${ICON.chevR}</button></div>` : ''}</div>`; }).join('')}
         </section></div>`;
   }
   function feedbackView() {
