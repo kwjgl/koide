@@ -441,6 +441,18 @@ body.wbig-open { overflow: hidden; }
 .link.danger { color: var(--warn); }
 .kakao { display: flex; align-items: center; justify-content: center; gap: .5em; width: 100%; min-height: 52px; border: 0; border-radius: 12px; background: #FEE500; color: rgba(0,0,0,.85); font-weight: 600; cursor: pointer; }
 .choices { display: flex; flex-direction: column; gap: 8px; margin: 12px 0; }
+/* 로그인 단추: 각 회사의 공식 모양(승인된 색 예외, docs/design.md 결정 기록). 디자인 스타일이 바꾸지 못하게 :root:root:root[data-style]보다 세게 쓴다 */
+:root:root:root .btn.sso-btn { display: flex; align-items: center; justify-content: center; gap: 8px; width: 100%; min-height: 48px; border-radius: 12px; font-weight: 600; box-shadow: none !important; backdrop-filter: none; text-shadow: none; background-image: none !important; }
+:root:root:root .btn.sso-btn svg { width: 20px; height: 20px; flex: none; }
+:root:root:root[data-style] .btn.sso-btn.sso-kakao, :root:root:root .btn.sso-btn.sso-kakao { background-color: #FEE500; color: rgba(0,0,0,.85); border: 0; }
+:root:root:root[data-style] .btn.sso-btn.sso-google, :root:root:root .btn.sso-btn.sso-google { background-color: #FFFFFF; color: #1F1F1F; border: 1px solid #747775; }
+:root:root:root[data-style] .btn.sso-btn.sso-apple, :root:root:root .btn.sso-btn.sso-apple { background-color: #000000; color: #FFFFFF; border: 0; }
+@media (prefers-color-scheme: dark) {
+  :root:root:root:not([data-mode="light"]) .btn.sso-btn.sso-google, :root:root:root[data-style]:not([data-mode="light"]) .btn.sso-btn.sso-google { background-color: #131314; color: #E3E3E3; border-color: #8E918F; }
+  :root:root:root:not([data-mode="light"]) .btn.sso-btn.sso-apple, :root:root:root[data-style]:not([data-mode="light"]) .btn.sso-btn.sso-apple { background-color: #FFFFFF; color: #000000; }
+}
+:root:root:root[data-mode="dark"] .btn.sso-btn.sso-google { background-color: #131314; color: #E3E3E3; border-color: #8E918F; }
+:root:root:root[data-mode="dark"] .btn.sso-btn.sso-apple { background-color: #FFFFFF; color: #000000; }
 .choice { text-align: left; min-height: 52px; padding: 0 16px; border-radius: 14px; border: 1px solid var(--line); background: var(--surface); cursor: pointer; }
 .choice.new { border-style: dashed; color: var(--ink-2); }
 .steps { display: flex; gap: 6px; margin-top: 16px; }
@@ -1309,6 +1321,7 @@ try { const p = JSON.parse(localStorage.getItem('koide-pref') || '{}'), d = docu
 <script src="beatitudes.js"></script>
 <script src="sb.js"></script>
 <script src="koinonia-api.js"></script>
+<script src="church-api.js"></script>
 <script>
 (function () {
   const CFG = window.KOIDE_CONFIG || {};
@@ -1323,7 +1336,10 @@ try { const p = JSON.parse(localStorage.getItem('koide-pref') || '{}'), d = docu
   const TUT = new URLSearchParams(location.search).has('tutorial');
   const fromCircle = new URLSearchParams(location.search).get('from');
   const TUT_FROM = TUT && fromCircle && /^[\w-]{1,64}$/.test(fromCircle) ? fromCircle : '';
-  const DEMO_LINK = KOINONIA ? KOINONIA_DEMO : !!CFG.API_URL && new URLSearchParams(location.search).has('demo'), DEMO = KOINONIA ? KOINONIA_DEMO : !CFG.API_URL || DEMO_LINK || TUT;
+  // 코이데 교회를 Supabase 교회 층으로(CFG.CHURCH_BACKEND). 켜져 있으면 서버 주소가 비어 있어도 데모로 열지 않는다
+  const CHURCH_ON = CFG.CHURCH_BACKEND === 'supabase' && !!CFG.SUPABASE_URL && !!CFG.SUPABASE_KEY && !!window.koideChurchApi;
+  const DEMO_LINK = KOINONIA ? KOINONIA_DEMO : (!!CFG.API_URL || CHURCH_ON) && new URLSearchParams(location.search).has('demo'), DEMO = KOINONIA ? KOINONIA_DEMO : (!CFG.API_URL && !CHURCH_ON) || DEMO_LINK || TUT;
+  const CHURCHSB = CHURCH_ON && !KOINONIA && !DEMO;
   // 장면 모드(?as=사람&at=화면, 데모에서만): 그 사람으로 바로 들어가 그 화면을 연다. 화면 지도(demo/map.html)가 쓴다.
   //  이 창의 localStorage는 splash.js가 메모리 판으로 바꿔 놓아서, 로그인·화면 기억이 다른 창과 섞이지 않는다.
   //  처음 도움말, 사용법, 홈 화면에 두기 창, 사용 기록은 없다(&fresh를 붙이면 도움말은 처음처럼 나온다)
@@ -1361,7 +1377,7 @@ try { const p = JSON.parse(localStorage.getItem('koide-pref') || '{}'), d = docu
   // ── 교회 코드(결정 기록 2026-10-27): 카카오 로그인은 기본 서버(CFG.HUB_URL, apps-script/hub)가 하고, 교회 코드가 있어야 들어온다 ──
   //  코드가 맞으면 기본 서버가 서명한 확인증으로 그 교회 서버(테스트 코드면 테스트 서버)에 로그인하고, 그 서버 주소를 기기에 적어 둔다(config.js가 읽는다).
   //  한 번 들어간 사람은 기본 서버가 기억해서 다시 로그인해도 코드를 묻지 않는다. 기본 서버가 없거나(예전 설정) 데모면 예전처럼 교회 서버 하나로 로그인한다
-  const HUB = !DEMO && !!CFG.HUB_URL, HUB_TOKEN = 'koide-hub-token', CHURCH_URL = 'koide-church-url', CHURCH_CODE = 'koide-church-code', CODE_IN = 'koide-church-in', APPADMIN = 'koide-appadmin';
+  const HUB = !DEMO && !CHURCHSB && !!CFG.HUB_URL, HUB_TOKEN = 'koide-hub-token', CHURCH_URL = 'koide-church-url', CHURCH_CODE = 'koide-church-code', CODE_IN = 'koide-church-in', APPADMIN = 'koide-appadmin';
   const lsGet = k => { try { return localStorage.getItem(k); } catch (e) { return null; } };
   const lsSet = (k, v) => { try { v == null ? localStorage.removeItem(k) : localStorage.setItem(k, v); } catch (e) { /* 이번만 */ } };
   // 초대 링크에 교회 코드를 붙인다(새 기기에서 열면 코드 칸이 채워져 있다). 코드로 들어온 기기만 안다
@@ -1392,7 +1408,7 @@ try { const p = JSON.parse(localStorage.getItem('koide-pref') || '{}'), d = docu
   }
   async function peekCode(v) {
     S.busy = true; render();
-    try { S.cc.peek = await hubApi('peek', { code: v }); } catch (e) { if (e.code !== 'login') toast(e.message); }
+    try { S.cc.peek = await (CHURCHSB ? api('churchPeek', { code: v }) : hubApi('peek', { code: v })); } catch (e) { if (e.code !== 'login') toast(e.message); }
     S.busy = false; render();
   }
   // 그 교회 서버로: 서버 주소를 적고, 확인증으로 로그인한 뒤 평소처럼 연다
@@ -1429,6 +1445,7 @@ try { const p = JSON.parse(localStorage.getItem('koide-pref') || '{}'), d = docu
     let res;
     if (KOINONIA) res = await window.koideCommunityApi.call(body);
     else if (DEMO) res = await window.koideDemo.call(body);
+    else if (CHURCHSB) res = await window.koideChurchApi.call(body);
     else {
       // 본문을 글자로 보내면 브라우저가 미리 묻는 요청(CORS preflight) 없이 바로 보낸다. Apps Script는 그 요청을 받지 못한다
       // 한동안 안 쓰면 서버가 깨어나는 데 10~20초 걸린다. 4초가 넘으면 기다리는 이유를 알려 주고, 60초가 넘으면 그만 기다린다
@@ -1555,6 +1572,19 @@ try { const p = JSON.parse(localStorage.getItem('koide-pref') || '{}'), d = docu
     // 교회 코드가 붙은 초대 링크(?church=코드): 코드 칸을 미리 채워 둔다. 앱 관리자 보기(?appadmin)
     if (q.get('church')) { lsSet(CODE_IN, q.get('church')); q.delete('church'); history.replaceState(null, '', location.pathname + (q.toString() ? '?' + q.toString().replace(/=(&|$)/g, '$1') : '')); }
     if (q.has('appadmin')) { if (HUB) lsSet(APPADMIN, '1'); q.delete('appadmin'); history.replaceState(null, '', location.pathname + (q.toString() ? '?' + q.toString().replace(/=(&|$)/g, '$1') : '')); }
+    // 코이데 교회 Supabase 길: 로그인에서 돌아오면 주소의 code를 세션으로 바꾸는 일을 기다리고, 옛 카카오 code 갈래를 타지 않게 주소에서 지운다
+    let sbSes = null;
+    if (CHURCHSB) {
+      try { sbSes = await window.KoideSb.session(); } catch (e) { S.view = 'error'; S.err = e; return render(); }
+      const SBQ = ['code', 'error', 'error_code', 'error_description'];
+      if (SBQ.some(k => q.has(k))) {
+        const failed = q.has('error') || q.has('error_description');
+        SBQ.forEach(k => q.delete(k));
+        history.replaceState(null, '', location.pathname + (q.toString() ? '?' + q.toString().replace(/=(&|$)/g, '$1') : ''));
+        if (failed && !sbSes) toast('로그인이 끝나지 않았어요.');
+      }
+      if (!sbSes && getToken()) { try { localStorage.removeItem(TOKEN); } catch (e) { /* 무시 */ } setUid(null); }
+    }
     // 교회 코드: 카카오에서 돌아오면 기본 서버로 로그인하고 갈 교회를 정한다
     if (q.get('code') && HUB) {
       history.replaceState(null, '', location.pathname);
@@ -1592,9 +1622,12 @@ try { const p = JSON.parse(localStorage.getItem('koide-pref') || '{}'), d = docu
     if (frontDoor() && !getToken() && !lsGet(HUB_TOKEN) && !lsGet(DOOR) && !lsGet(CONNECT) && !lsGet(JOIN) && !lsGet(GJOIN) && !lsGet(OPS_JOIN) && !lsGet(CODE_IN) && !lsGet(APPADMIN) && !GOPEN && !q.get('code') && !q.get('error')) {
       if (window.koideSpace) window.koideSpace.going('note'); location.replace('note.html'); return;
     }
-    if (!getToken()) { S.view = 'login'; return render(); }
+    if (CHURCHSB) {
+      if (!sbSes) { S.view = 'login'; return render(); }
+      if (!getToken()) { try { localStorage.setItem(TOKEN, 'sb'); } catch (e) { /* 이번만 */ } setUid(sbSes.user.id); } // 교회 로그인 표시. setToken()은 노트 쪽 표시도 지우므로 쓰지 않는다
+    } else if (!getToken()) { S.view = 'login'; return render(); }
     // 지난번 화면이 기억돼 있으면 먼저 보여 주고, 서버에서 새로 받아 조용히 바꾼다
-    const c = readCache();
+    const c = CHURCHSB ? null : readCache();
     if (c && c.me && c.month && !GOPEN && !shareGroup()) { S.me = c.me; S.month = c.month; S.view = 'app'; S.stale = true; render(); return refreshMe(true).then(() => { S.stale = false; paint(); }); }
     await refreshMe();
   }
@@ -1653,6 +1686,13 @@ try { const p = JSON.parse(localStorage.getItem('koide-pref') || '{}'), d = docu
       }
       // 이미 연결(또는 요청)된 사람의 기기에 남은 초대 값은 지우기만 하고, 화면은 아래에서 평소처럼 정한다
       if (S.me.link && join) { try { localStorage.removeItem(JOIN); } catch (e) { /* 무시 */ } }
+      // 코이데 교회 Supabase 길: 가정 연결은 ③부터라 코드로 들어온 일반 사람은 안내 화면에서 멈춘다(③에서 이 갈래를 좁힌다). 교회 관리자는 위 opsDepts 갈래가 먼저 처리한다
+      if (CHURCHSB && !S.me.link) {
+        if (S.me.church) S.view = 'churchjoined';
+        else { S.cc = { code: lsGet(CODE_IN) || '' }; S.view = 'ccode'; }
+        render(); if (S.view === 'ccode' && S.cc.code) peekCode(S.cc.code);
+        return;
+      }
       if (!S.me.link) {
         // 초대 링크(소그룹·부서)나 '공동체에 연결하기'로 오지 않았으면 혼자 시작한 사람: 기도 노트가 첫 화면이다
         //  (2026-10-27) 교회 코드로 막 들어온 사람은 공동체로 시작할지, 기도 노트만 쓸지 먼저 고른다(startpick). 한 번만 묻는다
@@ -1705,6 +1745,7 @@ try { const p = JSON.parse(localStorage.getItem('koide-pref') || '{}'), d = docu
       if (backToNote()) return;
       S.view = 'loading'; render(); return refreshMe();
     }
+    if (CHURCHSB) { try { await window.KoideSb.oauth(who || 'kakao'); } catch (e) { oops(e); } return; }
     location.href = 'https://kauth.kakao.com/oauth/authorize?response_type=code&client_id=' + encodeURIComponent(CFG.KAKAO_REST_KEY) + '&redirect_uri=' + encodeURIComponent(CFG.REDIRECT_URI);
   }
 
@@ -1991,6 +2032,12 @@ try { const p = JSON.parse(localStorage.getItem('koide-pref') || '{}'), d = docu
 
   // 아이폰 Safari 등 카톡 밖 브라우저: 카카오 로그인이 카톡 앱을 오가는데, 비공개 릴레이가 켜져 있으면 IP가 달라져 카카오가 막는다
   const iosSafari = () => (/iP(hone|ad|od)/.test(navigator.userAgent) || (/Macintosh/.test(navigator.userAgent) && navigator.maxTouchPoints > 1)) && !/KAKAOTALK/i.test(navigator.userAgent);
+  // 코이데 교회 Supabase 길의 로그인 단추: 서버가 켜 둔 방법(카카오·구글·애플)만. 노트 환영 화면과 같은 공식 모양(.sso-btn)
+  const SB_LABEL = { kakao: '카카오로 시작하기', google: 'Google로 시작하기', apple: 'Apple로 시작하기' };
+  const sbLoginButtons = () => {
+    if (!S.lp) { S.lp = []; window.KoideSb.providers().then(l => { S.lp = l; if (S.view === 'login') render(); }); }
+    return S.lp.length ? `<div class="choices">${S.lp.map(k => `<button class="btn wide sso-btn sso-${k}" data-act="login" data-v="${k}">${window.KoideSb.logos[k]}<span>${SB_LABEL[k]}</span></button>`).join('')}</div>` : '<p class="hint">불러오는 중…</p>';
+  };
 
   const VIEWS = {
     loading: () => '<p class="loading">불러오는 중…</p>',
@@ -2011,7 +2058,7 @@ try { const p = JSON.parse(localStorage.getItem('koide-pref') || '{}'), d = docu
           <button class="choice" data-act="login" data-v="한기쁨">데모: 한기쁨으로 들어가기 (청장년부 목사님)</button>
           <button class="choice" data-act="login" data-v="최운영">데모: 최운영으로 들어가기 (운영 지원 · 가정 없음)</button></div>
           <p class="hint">데모 모드에서는 카카오 대신 이 버튼으로 사람을 골라 들어가요.</p>`
-        : `<button class="kakao" data-act="login">${ICON.bubble}카카오로 시작하기</button>
+        : `${CHURCHSB ? sbLoginButtons() : `<button class="kakao" data-act="login">${ICON.bubble}카카오로 시작하기</button>`}
           <p class="hint wl-once">${HUB && lsGet(APPADMIN) ? '앱 관리자 보기는 카카오로 한 번 더 로그인해요.' : '처음 한 번만 로그인하면 돼요.<br>초대 링크를 받았다면 그 링크로 열어 주세요.'}</p>${HUB && lsGet(APPADMIN) ? '<button class="link" data-act="aaback">앱으로 돌아가기</button>' : ''}${frontDoor() && lsGet(DOOR) ? '<button class="link" data-act="tonote">‹ 코이데 노트로 시작하기</button>' : ''}${iosSafari() ? '<p class="hint">아이폰에서 \'접속 정보를 확인해 주세요\'가 나오면, 카톡 채팅방에서 이 링크를 눌러 열거나 설정 → iCloud → 비공개 릴레이를 끄고 다시 해 주세요.</p>' : ''}`}
         ${INTRO_VIDEO_ON ? '<button class="btn ghost wl-play" data-act="ividw"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M8 5.5v13l10.5-6.5z" fill="currentColor"/></svg>코이데 소개 영상</button>' : ''}
       </section>
@@ -2055,8 +2102,13 @@ try { const p = JSON.parse(localStorage.getItem('koide-pref') || '{}'), d = docu
           <button class="btn wide" type="submit" style="margin-top:12px" ${S.busy ? 'disabled' : ''}>다음</button></form>
         <p class="hint">코드는 교회나 코이데를 소개해 준 분에게 받아요.</p>
         ${frontDoor() ? '<button class="link" data-act="tonote">코이데 노트로 돌아가기</button>' : ''}
-        <button class="link" data-act="logout">다른 카카오 계정으로 로그인</button>`;
+        <button class="link" data-act="logout">${CHURCHSB ? '다른 계정으로 로그인' : '다른 카카오 계정으로 로그인'}</button>`;
     },
+    // 교회 코드로 들어왔지만 가정에 연결되기 전(코이데 교회 Supabase 길, 단계 ②): 가정 연결은 ③에서 열린다
+    churchjoined: () => `<p class="eyebrow">${esc((S.me && S.me.church && S.me.church.name) || '')}</p><h1>교회에 들어왔어요</h1>
+      <p>가정에 연결하는 기능을 준비하고 있어요. 준비가 끝나면 이어서 연결할 수 있어요.</p>
+      <button class="btn wide" data-act="tonote">코이데 노트로 가기</button>
+      <button class="link" data-act="logout">로그아웃</button>`,
     // 어떻게 시작할까요(교회 코드로 막 들어왔고 초대 링크가 없을 때 한 번): 공동체로(부서·소그룹을 골라 연결 신청) 또는 기도 노트만
     startpick: () => `<p class="eyebrow">${esc(lsGet('koide-church-name') || '처음 한 번만')}</p><h1>어떻게 시작할까요?</h1>
       <div class="choices start-pick">
@@ -3904,6 +3956,13 @@ try { const p = JSON.parse(localStorage.getItem('koide-pref') || '{}'), d = docu
     const seg = `<div class="seg2 admin-seg" role="tablist" aria-label="관리 화면">${[['manage', '관리'], ['analysis', '분석']].map(([k, l]) => `<button class="${tab === k ? 'on' : ''}" role="tab" aria-selected="${tab === k}" data-act="admintab" data-v="${k}">${l}</button>`).join('')}</div>`;
     const head = `${S.op ? (S.month.me.all ? `<button class="link back" data-act="church">${ICON.chevL}교회 전체</button>` : S.home ? `<button class="link back" data-act="tab" data-v="more">${ICON.chevL}더보기</button>` : '') : `<button class="link back" data-act="tab" data-v="more">${ICON.chevL}더보기</button>`}
       <div class="page-top"><div><p class="eyebrow">${S.month.dept && S.month.dept.name ? esc(S.month.dept.name) : '관리자'}${S.op ? (S.month.me.all ? ' · 교회 관리자' : ' · 운영 지원') : ''}${S.op && S.month.dept.closed ? ' · 닫힌 부서' : ''}</p><h1>${tab === 'analysis' ? '분석' : '관리'}</h1></div></div>${seg}`;
+    if (CHURCHSB) return `${head.replace(/<div class="seg2 admin-seg"[\s\S]*<\/div>\s*$/, '')}
+      <div class="two-col"><div class="col">
+        <p class="more-h">편성</p>${rosterCard()}
+      </div><div class="col side">
+        <p class="more-h">설정</p><section class="card mrows folds">${fold('group', '소그룹 이름', esc(grp()), groupCard())}</section>
+        <section class="card"><p class="hint" style="margin:0">가정 연결 승인, 초대 링크, 기도제목은 아직 준비 중이에요.</p></section>
+      </div></div>`;
     if (tab === 'analysis') return head + analysisView();
     // 관리 탭(더보기처럼 묶음): 왼쪽은 할 일과 소그룹과 사람, 오른쪽은 묶음마다 한 줄씩 접어 둔 메뉴(누르면 그 자리에서 펼침)
     const P = S.pending, O = S.ops, reqs = P ? P.requests : [];
@@ -4063,9 +4122,10 @@ try { const p = JSON.parse(localStorage.getItem('koide-pref') || '{}'), d = docu
   }
   async function loadChurchAnalysis() { S.canErr = ''; try { S.can = await api('churchAnalysis'); } catch (e) { S.can = null; S.canErr = e.code === 'bad' ? '서버를 새 버전으로 배포하면 볼 수 있어요.' : e.message; } render(); }
   function churchView() {
-    const ct = S.churchTab || 'home';
-    const head = `${S.home ? `<button class="link back" data-act="tab" data-v="more">${ICON.chevL}더보기</button>` : ''}<div class="page-top"><div><p class="eyebrow">교회 관리자</p><h1>교회 전체</h1></div>${HUB ? '<a class="link" href="./?appadmin">앱 관리자 보기 ›</a>' : ''}</div>
+    const ct = CHURCHSB ? 'home' : S.churchTab || 'home';
+    let head = `${S.home ? `<button class="link back" data-act="tab" data-v="more">${ICON.chevL}더보기</button>` : ''}<div class="page-top"><div><p class="eyebrow">교회 관리자</p><h1>교회 전체</h1></div>${HUB ? '<a class="link" href="./?appadmin">앱 관리자 보기 ›</a>' : ''}</div>
       <div class="seg2 admin-seg three" role="tablist" aria-label="교회 전체">${[['home', '한눈에'], ['survey', '의견과 설문'], ['analysis', '분석']].map(([k, l]) => `<button class="${ct === k ? 'on' : ''}" role="tab" aria-selected="${ct === k}" data-act="churchtab" data-v="${k}">${l}</button>`).join('')}</div>`;
+    if (CHURCHSB) head = head.replace(/\s*<div class="seg2 admin-seg three"[\s\S]*<\/div>\s*$/, '');
     if (ct === 'analysis') return head + analysisView(true);
     if (ct === 'survey') return head + surveyAdminView();
     const C = S.church;
@@ -4083,10 +4143,10 @@ try { const p = JSON.parse(localStorage.getItem('koide-pref') || '{}'), d = docu
         <section class="card"><div class="row"><h2>앱 상태</h2><span class="ops-dot${old || C.errors.n ? ' bad' : ''}" aria-hidden="true"></span></div>
           <p class="plain">서버 <b>${esc(C.version)}</b>${old ? ` · <span class="warn-text">Apps Script를 새 버전으로 배포해 주세요</span>` : ''}</p>
           <p class="hint">최근 7일 오류 ${C.errors.n ? C.errors.n + '번 · 마지막 ' + opsWhen(C.errors.last) : '없어요'} · ${Number(C.month.month.slice(5))}월 ${C.month.opened ? opsWhen(C.month.opened) + '에 처음 열림' : '아직 넘어온 기도제목이 없어요'}</p></section>
-        ${groupCloseCard()}
+        ${CHURCHSB ? '' : groupCloseCard()}
       </div><div class="col side">
         ${opsAdminCard()}${deptCard()}
-        <section class="card mrows folds">${fold('chgall', '변경 기록', '모든 부서 · 누가 언제 무엇을 바꿨는지', changesCard(true))}</section>
+        ${CHURCHSB ? '' : `<section class="card mrows folds">${fold('chgall', '변경 기록', '모든 부서 · 누가 언제 무엇을 바꿨는지', changesCard(true))}</section>`}
       </div></div>`;
   }
   // ── 함께 기도해요(부서 기도제목): 교역자·부서 관리자·교회 관리자가 쓰고, 회원은 이번 달 화면과 기도하기 › 우리 교회에서 본다 ──
@@ -4433,6 +4493,7 @@ try { const p = JSON.parse(localStorage.getItem('koide-pref') || '{}'), d = docu
   // 관리 화면을 열 때 함께 불러오는 것
   //  전환 화면이 닫히는 때를 알 수 있게, 처음 오는 자료가 다 오면 끝나는 약속을 돌려준다
   function loadAdmin() {
+    if (CHURCHSB) return Promise.allSettled([loadRoster()]);
     const all = [api('pending').then(r => { S.pending = r; render(); }, oops), loadReorg(), loadOps(), loadRoster()];
     if (S.adminTab === 'analysis') all.push(loadAnalysis());
     return Promise.allSettled(all);
@@ -4459,7 +4520,7 @@ try { const p = JSON.parse(localStorage.getItem('koide-pref') || '{}'), d = docu
     return `<section class="card"><h2>부서</h2>
       <ul class="staff-list">${scope.map(d => `<li><div><b>${esc(d.name)}</b>${d.closed ? '<span class="own-tag">닫음</span>' : ''}</div>
         <span class="foot-acts">${d.closed
-          ? `<button class="link" data-act="dpreopen" data-v="${esc(d.id)}" data-n="${esc(d.name)}">다시 열기</button><button class="link danger" data-act="dperase" data-v="${esc(d.id)}" data-n="${esc(d.name)}">기록 모두 지우기</button>`
+          ? `<button class="link" data-act="dpreopen" data-v="${esc(d.id)}" data-n="${esc(d.name)}">다시 열기</button>${CHURCHSB ? '' : `<button class="link danger" data-act="dperase" data-v="${esc(d.id)}" data-n="${esc(d.name)}">기록 모두 지우기</button>`}`
           : `<button class="link quiet" data-act="dpclose" data-v="${esc(d.id)}" data-n="${esc(d.name)}">닫기</button>`}</span></li>`).join('')}</ul>
       <p class="hint">닫으면 첫 접속 목록에서 빠지고 그 부서 사람은 들어오지 못해요. 기록은 남아서 다시 열 수 있어요. 닫은 부서 사람들은 1년이 지나면 개인정보 요청에 올라와요.</p>
       <form class="plain-form" data-form="deptsave" style="margin-top:10px">
@@ -5378,6 +5439,11 @@ try { const p = JSON.parse(localStorage.getItem('koide-pref') || '{}'), d = docu
       case 'ccagain': S.cc = { code: '' }; render(); { const f = $('#cc-a'); if (f) f.focus(); } return;
       case 'ccjoin': {
         S.busy = true; render();
+        if (CHURCHSB) {
+          try { await api('churchJoin', { code: S.cc.code }); }
+          catch (err) { S.busy = false; if (err.code !== 'login') { toast(err.message); render(); } return; }
+          lsSet(CODE_IN, null); S.busy = false; S.cc = null; S.view = 'loading'; render(); return refreshMe();
+        }
         let w; try { w = await hubApi('join', { code: S.cc.code }); } catch (err) { S.busy = false; if (err.code !== 'login') { toast(err.message); render(); } return; }
         lsSet(CHURCH_CODE, S.cc.code.trim().toUpperCase()); S.busy = false; S.cc = null;
         return enterChurchServer(w);
