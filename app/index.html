@@ -47,7 +47,8 @@
 /* 글씨: 휴대폰·태블릿 16px, PC 15px. 큰 글씨 모드는 약 1.2배 */
 @media (min-width: 1000px) { :root { --base: 15px; } }
 :root[data-big] { --base: 19px; }
-@media (min-width: 1000px) { :root[data-big] { --base: 18px; } }
+:root[data-big="2"] { --base: 22px; }
+@media (min-width: 1000px) { :root[data-big] { --base: 18px; } :root[data-big="2"] { --base: 20px; } }
 /* 색 테마(초록은 위 기본값). 시안의 THEMES와 같은 값: 밝은 화면 / 어두운 화면 */
 :root[data-accent="amber"] { --page:#EDE8E0;--surface:#F9F5EE;--surface-2:#ECE5DA;--ink:#2A221B;--ink-2:#6E6155;--line:#E0D6C8;--line-strong:#C9B9A3;--accent:#A9561B;--accent-mid:#E2B07F;--accent-soft:#F6E3CF;--on-accent:#FFFFFF;--private:#EFE8DE; }
 @media (prefers-color-scheme: dark) { :root[data-accent="amber"]:not([data-mode="light"]) { --page:#1A1612;--surface:#231E19;--surface-2:#2B241E;--ink:#EEE6DC;--ink-2:#AE9F8E;--line:#3A3129;--line-strong:#5A4D41;--accent:#E9A066;--accent-mid:#8A5A32;--accent-soft:#3A2818;--on-accent:#1E140C;--private:#2E2721; } }
@@ -113,6 +114,12 @@ button, a, label, summary, select, input, [role="button"], [data-act], .brand { 
 .set-row { display: flex; justify-content: space-between; align-items: center; gap: 12px; }
 .mdiv { height: 1px; background: var(--line); margin: .35em .3em; }
 @media (max-width: 420px) { .brand-name { display: none; } .brand.k-brand .brand-name { display: inline; } }
+/* 큰 글씨 선택칸: 위 두 줄(화면 모드·디자인)과 같은 왼쪽·오른쪽 끝에 맞춘다(메뉴 줄의 좌우 안쪽 여백을 빼고 글만 같은 들여쓰기) */
+.menu .mitem.big-row { padding-left: 0; padding-right: 0; }
+.menu .mitem.big-row > .mhead { margin-left: .7em; }
+.menu .mitem.big-row > .seg { margin: 0 .333em .333em; } /* 메뉴 줄 글씨가 .9배라 같은 간격이 되도록 */
+/* 아주 크게 + 좁은 휴대폰: 위쪽 막대가 넘쳐 톱니바퀴가 잘리지 않게 로고 글자를 숨기고 뱃지 여백을 줄인다 */
+@media (max-width: 430px) { :root[data-big="2"] .brand.k-brand .brand-name { display: none; } :root[data-big="2"] .topbar .wrap { gap: .4em; } :root[data-big="2"] .badge-btn { padding-left: .7em; gap: .3em; } }
 /* 스크롤을 내리면 상단 바와 하단 바가 함께 숨고, 조금이라도 올리면 다시 보인다 */
 body.hide-bars .topbar { transform: translateY(-100%); }
 body.hide-bars .tabs { transform: translateY(100%); }
@@ -1266,7 +1273,7 @@ try { const p = JSON.parse(localStorage.getItem('koide-pref') || '{}'), d = docu
   if (p.mode === 'light' || p.mode === 'dark') d.dataset.mode = p.mode;
   if (p.accent && p.accent !== 'green') d.dataset.accent = p.accent;
   if (p.style && p.style !== 'flat') d.dataset.style = p.style;
-  if (p.big) d.dataset.big = ''; } catch (e) { /* 무시 */ }
+  if (p.big) d.dataset.big = p.big === 2 ? '2' : ''; } catch (e) { /* 무시 */ }
 </script>
 <!-- 시작 화면이 뜨기 전에는 바탕을 시작 화면과 같은 단색으로(glass의 그라데이션, classic의 무늬가 잠깐 비치지 않게). splash.js가 시작 화면을 닫을 때 푼다 -->
 <script>document.documentElement.classList.add('booting'); setTimeout(() => document.documentElement.classList.remove('booting'), 5000);</script>
@@ -1490,7 +1497,10 @@ try { const p = JSON.parse(localStorage.getItem('koide-pref') || '{}'), d = docu
         S.tab = at;
         if (at === 'history') await loadHist();
       }
-      render(); return;
+      render();
+      // 공동체 첫 화면을 그린 직후 내 공동체 목록을 미리 받아 배지 메뉴를 곧바로 보여 준다.
+      loadCircleMenu();
+      return;
     }
     if (DEMO) {
       try { await loadDemo(); } catch (e) { if (TUT) return tutFail(); throw e; }
@@ -1767,9 +1777,9 @@ try { const p = JSON.parse(localStorage.getItem('koide-pref') || '{}'), d = docu
         // ① 써 보기: 글 칸은 비추지 않는다(직접 쓰지 않으니 키보드가 열리지 않는다)
         { mode: 'tap', target: () => tabBtn('mine'), text: '여기서 기도제목을 써요. 내 기도를 눌러 보세요.' },
         { mode: 'tap', target: () => $('[data-act=sample]'), wait: onMine, done: () => ev.sample && canSplit(),
-          text: '예시로 연습해 볼게요. 예시 넣어 보기를 눌러요.' },
+          text: '예시로 연습해 볼게요. 전구 기호(예시 넣어 보기)를 눌러요.' },
         { mode: 'tap', target: () => [$('#add-t'), $('[data-act=split]')], inert: () => $('#add-t'), wait: onMine, skip: () => !!S.preview, done: () => !!S.preview, text: '예시가 들어갔어요. 대상별로 정리하기를 눌러요.',
-          bounce: () => S.preview || canSplit() ? '' : '예시 넣어 보기를 먼저 눌러요.' },
+          bounce: () => S.preview || canSplit() ? '' : '전구 기호를 먼저 눌러요.' },
         { mode: 'tap', target: () => $('.preview'), wait: () => S.tab === 'mine' && S.preview, done: () => ev.added, back: () => !S.preview && !ev.added,
           text: '대상별로 정리됐네요. 추가하기를 눌러 보세요.' },
         // 추가한 뒤 어떻게 들어갔는지 먼저 보여 준다(목록 전체를 비춘다)
@@ -1859,7 +1869,7 @@ try { const p = JSON.parse(localStorage.getItem('koide-pref') || '{}'), d = docu
       if (KOINONIA && G.canWrite === false) return null;
       const GT = KOINONIA ? {
         home: lead ? ['k-lead', '모임장이 되었어요. 더보기에서 초대 링크를 복사해 카톡으로 보내면 신청이 와요. 신청은 이 공동체의 더보기에서 승인해요.']
-          : ['k-member', '이 공동체의 화면이에요. 이번 달, 내 기도, 기도하기가 모두 이 공동체 것이에요. 위쪽 배지를 누르면 공동체 목록으로 가요.'],
+          : ['k-member', '이 공동체의 화면이에요. 이번 달, 내 기도, 기도하기가 모두 이 공동체 것이에요. 위쪽 배지에서 다른 공동체로 옮겨 갈 수 있어요.'],
         more: lead ? ['k-more', '초대 링크를 받은 사람이 신청해요. 링크가 엉뚱한 곳에 퍼졌으면 새 링크를 만들어요. 신청을 승인하거나 함께하는 사람을 내보낼 수 있어요.'] : null
       } : {
         home: lead ? ['grp-lead', '모임장이 되었어요. 더보기 › 초대 링크 복사로 카톡에 보내면 신청이 와요. 신청이 오면 코이데 노트 › 내 모임에 "신청"으로 보이고, 이 모임의 더보기에서 승인해요. 이번 달·내 기도·기도하기가 모두 이 모임 것이에요.']
@@ -1901,6 +1911,7 @@ try { const p = JSON.parse(localStorage.getItem('koide-pref') || '{}'), d = docu
   const steps = n => `<div class="steps" aria-hidden="true">${[1, 2, 3, 4].map(k => `<span class="${k <= n ? 'on' : ''}"></span>`).join('')}</div>`;
   const svg = d => `<svg class="ic" viewBox="0 0 16 16" aria-hidden="true">${d}</svg>`;
   const ICON = {
+    bulb: svg('<path d="M5.5 11c0-1.5-2.5-2.4-2.5-5.1a5 5 0 0 1 10 0c0 2.7-2.5 3.6-2.5 5.1M5.5 11h5M6 13h4M6.8 14.5h2.4"/>'),
     bubble: '<svg viewBox="0 0 18 18" width="18" height="18" aria-hidden="true"><path fill="currentColor" d="M9 2.2c-4.1 0-7.4 2.6-7.4 5.8 0 2.1 1.4 3.9 3.5 4.9l-.8 2.9c-.1.3.2.5.4.3l3.4-2.3h.9c4.1 0 7.4-2.6 7.4-5.8S13.1 2.2 9 2.2z"/></svg>',
     home: svg('<path d="M2.5 7.5L8 3l5.5 4.5V13a1 1 0 0 1-1 1h-9a1 1 0 0 1-1-1z"/><path d="M6.5 14V10h3v4"/>'),
     pen: svg('<path d="M3 13l.8-3.2 6.7-6.7 2.4 2.4-6.7 6.7z"/><path d="M9.3 4.3l2.4 2.4"/>'),
@@ -2109,7 +2120,7 @@ try { const p = JSON.parse(localStorage.getItem('koide-pref') || '{}'), d = docu
       <p class="hint">${DEMO ? '데모: 로그아웃하고 그 부서의 리더(청장년부는 김도윤, 청년부는 윤하람)로 들어가 더보기에서 승인해 보세요.' : '보통 하루 안에 끝나요.'}</p>
       <button class="link" data-act="logout">로그아웃</button>`,
     app: () => KOINONIA && S.month && S.month.closed
-      ? '<section class="card"><h1>이 공동체는 닫혔어요</h1><a class="btn" href="koinonia.html">공동체 목록으로</a></section>'
+      ? '<section class="card"><h1>이 공동체는 닫혔어요</h1><a class="btn" href="note.html' + (KOINONIA_DEMO ? '?demo' : '') + '#my-groups">코이데 노트로</a></section>'
       : ({ home: homeView, mine: mineView, pray: prayView, history: historyView, more: moreView, about: aboutView, help: helpView, praytext: prayTextView, feedback: feedbackView, church: churchView, status: statusView, admin: adminView, import: importView, reorg: reorgView })[S.tab]() + (KOINONIA ? careSheet() : '')
   };
   // 고른 가정: 사랑방 가정, 또는 '목사님·장로님으로 들어가기'에서 고른 교역자 가정
@@ -2364,7 +2375,7 @@ try { const p = JSON.parse(localStorage.getItem('koide-pref') || '{}'), d = docu
     }
     const mine = mineFam(), items = mine.items, mm = Number(S.month.month.slice(5)), carried = mine.items.filter(i => i.same).length, ended = mine.ended || [];
     const P = S.preview;
-    return `<div class="page-top"><div><h1>내 기도 · ${mm}월 <span aria-hidden="true">✏️</span></h1></div><p class="saved" id="saved">${S.saved || ''}</p></div>
+    return `<div class="page-top"><div><h1>${mm}월의 기도제목 <span aria-hidden="true">✏️</span></h1></div><p class="saved" id="saved">${S.saved || ''}</p></div>
       <div class="two-col mine-grid"><div class="col mine-top">
         ${carried ? `<p class="notice">${mm === 1 ? 12 : mm - 1}월 기도제목 ${carried}개가 그대로 넘어와 있어요. 바뀐 것만 고치면 돼요.</p>` : ''}
         ${mine.status === 'same' ? '<button class="btn wide ghost" data-act="confirm">이번 달도 그대로예요</button>' : `<p class="hint">${mine.status === 'confirmed' ? (staffMe() ? '이번 달도 그대로라고 표시했어요.' : '이번 달도 그대로라고 리더에게 알렸어요.') : '이번 달 기도제목을 손봤어요. 따로 제출할 필요 없어요.'}</p>`}
@@ -2372,8 +2383,8 @@ try { const p = JSON.parse(localStorage.getItem('koide-pref') || '{}'), d = docu
       <div class="col side"><section class="card">
         <label class="label" for="add-t">새 기도제목 쓰기</label>
         <textarea id="add-t" class="field" rows="4" placeholder="${solo() ? '예)&#10;졸업 논문을 잘 마무리하도록&#10;가족ㅡ할머니 수술이 잘 끝나도록' : '예)&#10;남편ㅡ회사 일이 바빠도 지치지 않도록&#10;' + esc(mine.kids[0] || '아이') + 'ㅡ새 반에 잘 적응하도록'}">${esc(S.draft || '')}</textarea>
-        <div class="actions"><button class="btn" data-act="split">대상별로 정리하기</button><button class="link" data-act="sample">예시 넣어 보기</button></div>
-        ${P ? `<div class="preview"><p class="hint">${P.length}개로 정리했어요. 앞에 쓴 이름표로 대상을 붙였어요. 빼야 할 줄은 ×를 눌러요.</p>
+        <div class="actions"><button class="btn" data-act="split">대상별로 정리하기</button><button class="icon-btn" style="min-width:40px;min-height:40px" data-act="sample" aria-label="예시 넣어 보기" title="예시 넣어 보기">${ICON.bulb}</button></div>
+        ${P ? `<div class="preview">
           <ul class="items">${P.map((x, k) => `<li class="item s-room"><span class="tgt">${esc(x.target)}</span><div class="item-body"><p class="txt">${esc(x.text)}</p></div><button class="rm-x" data-act="prevrm" data-v="${k}" aria-label="이 항목 빼기" title="빼기">${ICON.x}</button></li>`).join('')}</ul>
           <div class="actions"><button class="btn" data-act="addparts">추가하기</button><button class="btn ghost" data-act="unsplit">다시 쓰기</button></div></div>` : ''}
       </section></div>
@@ -2604,7 +2615,7 @@ try { const p = JSON.parse(localStorage.getItem('koide-pref') || '{}'), d = docu
     if (!A || staffMe()) return '';
     const mo = Number(A.month.slice(5));
     return `<section class="card art-card" aria-label="${mo}월의 그림"><div class="row"><p class="label" style="margin:0">${mo}월의 그림 · ${esc(SCENES[sceneKey(A.month)].title.replace(/^\d+월 /, ''))}</p><span class="only">${ICON.lock}나만 보여요</span></div>
-      ${sceneHtml(A.month, artN(A), { fx: S.artFx })}${S.grp ? '<p class="hint">모든 곳에서 기도한 것을 함께 모아요.</p>' : ''}</section>`;
+      ${sceneHtml(A.month, artN(A), { fx: S.artFx })}</section>`;
   }
   // 기도했어요를 누른 순간 그림에 무엇이 생겼는지(서버를 기다리지 않고 먼저 늘린다)
   function artBump(f) {
@@ -2815,12 +2826,11 @@ try { const p = JSON.parse(localStorage.getItem('koide-pref') || '{}'), d = docu
       : `<td class="tl-cell on${m === t.from || k === 0 ? ' start' : ''}${m === t.to ? ' end' : ''}" title="${monthLabel(m, now)}"></td>`;
     const head = t => `<span class="tgt">${esc(t.target)}</span><span class="tl-text">${esc(t.text)}</span>`;
     return `<section class="card" style="margin-top:12px"><div class="row"><p class="label" style="margin:0">기도 타임라인${F ? ' · ' + esc(F) : ''}</p><span class="only">${ICON.lock}${F ? '목사님·장로님만' : esc(words().only) + ' 보여요'}</span></div>
-      <p class="hint">지금 이어지는 기도제목 ${live.length}개${live.length ? ` · 가장 오래된 것은 ${Math.max(...live.map(len))}개월째예요` : ''}. ${F ? `리더·목사님 항목까지 보이고, "${esc(words().only)}" 항목은 빠져요.` : '기도제목을 누르면 처음 올린 달의 기록으로 가요. 이번 달에 처음 쓴 것은 이번 달 화면으로 가요.'}</p>
       <div class="table-wrap"><table class="tl-table">
         <thead><tr><th scope="col"><span class="sr">기도제목</span></th>${cols.map(m => `<th scope="col"${m === now ? ' class="now"' : ''}>${Number(m.slice(5))}월</th>`).join('')}</tr></thead>
         <tbody>${rows.map(t => `<tr><th scope="row">${F ? `<span class="tl-go" title="${esc(t.text)}">${head(t)}</span>` : `<button class="tl-go" data-act="tlgo" data-v="${t.from}" title="${t.from >= now ? '이번 달 화면' : monthLabel(t.from, now) + ' 기록'}으로 가기: ${esc(t.text)}">${head(t)}</button>`}</th>${cols.map((m, k) => cell(t, m, k)).join('')}</tr>`).join('')}</tbody>
       </table></div>
-      <ul class="legend"><li><i class="sw edited"></i>그 달에 올린 기도제목</li><li>마침: 이뤄졌거나 맡겨 둠 · 내림: 더 올리지 않음</li></ul></section>`;
+      <ul class="legend"><li><i class="sw edited"></i>그 달에 올린 기도제목</li></ul></section>`;
   }
   async function loadHist(month) {
     // 지난 기록은 지난 달만: 이번 달을 달라고 하지 않고 비워 두면 서버가 가장 가까운 지난 달을 고른다
@@ -3592,7 +3602,7 @@ try { const p = JSON.parse(localStorage.getItem('koide-pref') || '{}'), d = docu
           <p class="more-h">앱 설정</p>
           <section class="card mrows">
             <button class="mrow" data-act="setopen" aria-expanded="${setOpen}"><span><b class="mhead">화면 설정</b><small>화면 모드 · 색 테마 · 디자인 · 큰 글씨</small></span><span class="ops-chev" aria-hidden="true">${ICON.chev}</span></button>
-            ${setOpen ? `<div class="mset">${themeControls()}<div class="set-row"><p class="mhead" style="margin:0">큰 글씨</p>${bigSwitch()}</div></div>` : ''}
+            ${setOpen ? `<div class="mset">${themeControls()}<div class="set-row" style="flex-direction:column;align-items:stretch"><p class="mhead" style="margin:0">큰 글씨</p>${bigControls()}</div></div>` : ''}
             ${STANDALONE ? '' : row('a2hsopen', '', '홈 화면에 앱처럼 두기', '아이콘을 눌러 바로 열 수 있게 해요')}
             ${KoidePilot.moreRows()}
           </section>
@@ -4183,7 +4193,7 @@ try { const p = JSON.parse(localStorage.getItem('koide-pref') || '{}'), d = docu
   }
   function leaveGroupView(toNote) {
     if (!S.grp) return;
-    if (KOINONIA) { location.replace('koinonia.html' + (KOINONIA_DEMO ? '?demo' : '')); return; }
+    if (KOINONIA) { location.replace('note.html' + (KOINONIA_DEMO ? '?demo' : '') + '#my-groups'); return; }
     if (toNote || !S.home) { location.replace('note.html' + (DEMO_LINK ? '?demo' : '')); return; }
     S.grp = null; S.month = S.home || S.month; S.home = null;
     Object.assign(S, { hist: null, myp: null, menu: null, todayId: null, ex: null, gEdit: null, tab: 'home', draft: '', draftTgt: '', preview: null });
@@ -4915,7 +4925,7 @@ try { const p = JSON.parse(localStorage.getItem('koide-pref') || '{}'), d = docu
     if (PREF.mode === 'light' || PREF.mode === 'dark') d.dataset.mode = PREF.mode; else delete d.dataset.mode;
     if (PREF.accent && PREF.accent !== 'green') d.dataset.accent = PREF.accent; else delete d.dataset.accent;
     if (PREF.style && PREF.style !== 'flat') d.dataset.style = PREF.style; else delete d.dataset.style;
-    if (PREF.big) d.dataset.big = ''; else delete d.dataset.big;
+    if (PREF.big) d.dataset.big = PREF.big === 2 ? '2' : ''; else delete d.dataset.big;
   }
   const themeControls = () => {
     const mode = PREF.mode || 'system', accent = PREF.accent || 'green', style = PREF.style || 'flat';
@@ -4923,7 +4933,7 @@ try { const p = JSON.parse(localStorage.getItem('koide-pref') || '{}'), d = docu
       <div class="swatches" role="radiogroup" aria-label="색 테마">${ACCENTS.map(([k, l, c]) => `<button class="swatch${accent === k ? ' on' : ''}" role="radio" aria-checked="${accent === k}" data-act="accent" data-v="${k}" aria-label="${l}" title="${l}"><i style="background:${c}"></i></button>`).join('')}</div>
       <div class="seg" style="--n:4" role="radiogroup" aria-label="디자인">${STYLES.map(([k, l]) => `<button class="${style === k ? 'on' : ''}" role="radio" aria-checked="${style === k}" data-act="style" data-v="${k}">${l}</button>`).join('')}</div>`;
   };
-  const bigSwitch = () => `<button class="switch${PREF.big ? ' on' : ''}" role="switch" aria-checked="${!!PREF.big}" aria-label="큰 글씨 모드" data-act="big"><span></span></button>`;
+  const bigControls = () => `<div class="seg" style="--n:3" role="radiogroup" aria-label="큰 글씨">${[[0,'보통'],[1,'크게'],[2,'아주 크게']].map(([k,l]) => `<button class="${(PREF.big === true ? 1 : Number(PREF.big) || 0) === k ? 'on' : ''}" role="radio" aria-checked="${(PREF.big === true ? 1 : Number(PREF.big) || 0) === k}" data-act="big" data-v="${k}">${l}</button>`).join('')}</div>`;
 
   const tabOn = (t = S.tab) => S.op || ['import', 'status', 'admin', 'reorg', 'about', 'help', 'church', 'feedback', 'praytext'].includes(t) ? 'more' : t;
   // 상단 바: 로고(누르면 이번 달), PC에서는 메뉴, 사랑방 배지(누르면 사랑방 정보), 설정
@@ -4938,7 +4948,7 @@ try { const p = JSON.parse(localStorage.getItem('koide-pref') || '{}'), d = docu
           <div class="mdiv"></div>${S.me.link && S.me.link.status === '연결' ? '<button class="mitem" role="menuitem" data-act="opsleave"><span>내 화면으로 돌아가기</span></button>' : ''}
           <button class="mitem" role="menuitem" data-act="logout"><span>이 기기에서 로그아웃</span></button></div>`
         : S.menu === 'settings' ? `<div class="menu" role="menu" aria-label="설정"><p class="mlabel mhead">화면 설정</p>${themeControls()}<div class="mdiv"></div>
-          <div class="mitem static set-row" style="flex-direction:row;align-items:center"><span class="mhead">큰 글씨</span>${bigSwitch()}</div></div>` : '';
+          <div class="mitem static set-row big-row" style="flex-direction:column;align-items:stretch"><span class="mhead">큰 글씨</span>${bigControls()}</div></div>` : '';
       return `<div class="wrap">${S.home ? brand : brand.replace(' data-act="tab" data-v="home"', '')}${S.home ? `<nav class="topnav" aria-label="주 메뉴">${TABS.map(([k, l]) => `<button class="${k === 'more' ? 'on' : ''}" data-act="tab" data-v="${k}" ${k === 'more' ? 'aria-current="page"' : ''}>${l}</button>`).join('')}</nav>` : ''}<span class="spacer"></span>
         <button class="badge-btn" data-act="menu" data-v="badge" aria-haspopup="menu" aria-expanded="${S.menu === 'badge'}">${S.tab === 'church' ? '교회 전체' : esc(M.dept.name)}<span class="role-tag admin">${M.me.all ? '교회 관리자' : '지원'}</span></button>
         <button class="icon-btn" data-act="menu" data-v="settings" aria-haspopup="menu" aria-expanded="${S.menu === 'settings'}" aria-label="설정">${ICON.gear}</button>${opMenu}</div>`;
@@ -4947,11 +4957,11 @@ try { const p = JSON.parse(localStorage.getItem('koide-pref') || '{}'), d = docu
     const H = S.grp ? S.home : M;
     if (KOINONIA) {
       const badgeMenu = S.menu === 'badge' ? `<div class="menu" role="menu" aria-label="공동체">
-        ${koidePlaces.html({cur:KOINONIA_ID, linked:false, demo:KOINONIA_DEMO, circles:CIRCLE_MENU.list, circleMake:CIRCLE_MENU.session && koidePlaces.canMake(false,CIRCLE_MENU.list), circleList:true, groups:[],
-          attr:(k,id)=>k==='note' ? `href="note.html${KOINONIA_DEMO?'?demo':''}"` : k==='circle' ? `href="index.html${KOINONIA_DEMO?'?demo&c=':'?c='}${encodeURIComponent(id)}"` : k==='circleList' ? `href="koinonia.html${KOINONIA_DEMO?'?demo':''}"` : `href="koinonia.html${KOINONIA_DEMO?'?demo&new':'?new'}"`})}</div>`
+        ${koidePlaces.html({cur:KOINONIA_ID, linked:false, demo:KOINONIA_DEMO, circles:CIRCLE_MENU.list, circleMake:CIRCLE_MENU.session && koidePlaces.canMake(false,CIRCLE_MENU.list), groups:[],
+          attr:(k,id)=>k==='note' ? `href="note.html${KOINONIA_DEMO?'?demo':''}"` : k==='circle' ? `href="index.html${KOINONIA_DEMO?'?demo&c=':'?c='}${encodeURIComponent(id)}"` : `href="koinonia.html${KOINONIA_DEMO?'?demo&new':'?new'}"`})}</div>`
         : S.menu === 'settings' ? `<div class="menu" role="menu" aria-label="설정">
           <p class="mlabel mhead">화면 설정</p>${themeControls()}
-          <div class="mdiv"></div><div class="mitem static set-row" style="flex-direction:row;align-items:center"><span class="mhead">큰 글씨</span>${bigSwitch()}</div></div>` : '';
+          <div class="mdiv"></div><div class="mitem static set-row big-row" style="flex-direction:column;align-items:stretch"><span class="mhead">큰 글씨</span>${bigControls()}</div></div>` : '';
       return `<div class="wrap">${brand.replace('class="brand"', 'class="brand k-brand"')}
         <nav class="topnav" aria-label="주 메뉴">${TABS.map(([k,l])=>`<button class="${on===k?'on':''}" data-act="tab" data-v="${k}" ${on===k?'aria-current="page"':''}>${l}</button>`).join('')}</nav>
         <span class="spacer"></span>
@@ -4960,9 +4970,9 @@ try { const p = JSON.parse(localStorage.getItem('koide-pref') || '{}'), d = docu
     }
     // 함께하는 곳: 노트의 위쪽 막대와 같은 목록(places.js 하나로 그린다). 자율 모임은 기도 노트 소속이라 만들기만 노트로 보내고, 열기는 여기서 바로 된다
     const linked = !!(S.me && S.me.link && S.me.link.status === '연결'), G = myGroups();
-    const places = !linked && !S.grp && !G.length ? '' : `<div class="mdiv"></div>` + koidePlaces.html({ cur: S.grp || 'room', linked, demo: DEMO_LINK, groups: G, circles: CIRCLE_MENU.list, circleMake: communityOn() && CIRCLE_MENU.session && koidePlaces.canMake(false, CIRCLE_MENU.list), circleList: communityOn(),
+    const places = !linked && !S.grp && !G.length ? '' : `<div class="mdiv"></div>` + koidePlaces.html({ cur: S.grp || 'room', linked, demo: DEMO_LINK, groups: G, circles: CIRCLE_MENU.list, circleMake: communityOn() && CIRCLE_MENU.session && koidePlaces.canMake(false, CIRCLE_MENU.list),
       room: linked && H && H.room ? { name: H.room.name, group: H.dept && H.dept.group } : null,
-      attr: (k, id) => k === 'note' ? `href="note.html${DEMO_LINK ? '?demo' : ''}"` : k === 'circleMake' ? `href="koinonia.html${DEMO_LINK?'?demo&new':'?new'}"` : k === 'circleList' ? `href="koinonia.html${DEMO_LINK?'?demo':''}"` : k === 'circle' ? `href="index.html${DEMO_LINK?'?demo&c=':'?c='}${encodeURIComponent(id)}"` : k === 'room' ? 'data-act="gback"' : `data-act="gopen" data-v="${esc(id)}"` });
+      attr: (k, id) => k === 'note' ? `href="note.html${DEMO_LINK ? '?demo' : ''}"` : k === 'circleMake' ? `href="koinonia.html${DEMO_LINK?'?demo&new':'?new'}"` : k === 'circle' ? `href="index.html${DEMO_LINK?'?demo&c=':'?c='}${encodeURIComponent(id)}"` : k === 'room' ? 'data-act="gback"' : `data-act="gopen" data-v="${esc(id)}"` });
     const menu = S.menu === 'badge' ? `<div class="menu" role="menu" aria-label="사랑방">
         <p class="mlabel">${esc(grp())}</p><div class="mitem static"><b>${S.grp ? esc(M.room.name) : '코이데 교회'}</b><small>${S.grp ? '' : esc(M.room.name) + ' · '}${S.grp ? `모임 · ${M.families.length}명` : ''}${S.grp ? '' : M.dept && M.dept.name ? esc(M.dept.name) + ' · ' : ''}${S.grp ? '' : me.staff ? `${grp()} ${(M.rooms || []).length}곳 · ${(M.rooms || []).reduce((a, r) => a + r.n, 0)}${words().count}` : `${M.term || M.month.slice(0, 4)}년 편성 · ${M.families.length}${words().count}`}</small></div>${places}
         ${!opsDepts().length ? '' : S.me.ops.all ? `<div class="mdiv"></div><p class="mlabel">교회 관리</p><button class="mitem" role="menuitem" data-act="church"><span>교회 전체</span><small>모든 부서 한눈에</small></button>`
@@ -4970,7 +4980,7 @@ try { const p = JSON.parse(localStorage.getItem('koide-pref') || '{}'), d = docu
         ${me.admin && !DEMO ? '<div class="mdiv"></div><a class="mitem" role="menuitem" href="?demo" target="_blank" rel="noopener"><span>데모로 둘러보기</span><small>예시 데이터</small></a>' : ''}</div>`
       : S.menu === 'settings' ? `<div class="menu" role="menu" aria-label="설정">
         <p class="mlabel mhead">화면 설정</p>${themeControls()}<div class="mdiv"></div>
-        <div class="mitem static set-row" style="flex-direction:row;align-items:center"><span class="mhead">큰 글씨</span>${bigSwitch()}</div>
+        <div class="mitem static set-row big-row" style="flex-direction:column;align-items:stretch"><span class="mhead">큰 글씨</span>${bigControls()}</div>
         <button class="mitem" role="menuitem" data-act="tab" data-v="more"><span>${solo() ? '내 정보' : '우리 가정 정보'}</span></button>
         <div class="mdiv"></div><button class="mitem" role="menuitem" data-act="logout"><span>이 기기에서 로그아웃</span></button></div>` : '';
     return `<div class="wrap">${brand}
@@ -5607,7 +5617,7 @@ try { const p = JSON.parse(localStorage.getItem('koide-pref') || '{}'), d = docu
       case 'kiddel': keepFam(); S.famEdit.kids.splice(Number(v), 1); return render();
       case 'kidup': { keepFam(); const k = S.famEdit.kids, n = Number(v); [k[n - 1], k[n]] = [k[n], k[n - 1]]; return render(); }
       case 'mode': case 'accent': case 'style': setPref(b.dataset.act, v); KoidePilot.done('c-style'); return render();
-      case 'big': setPref('big', !PREF.big); return render();
+      case 'big': setPref('big', Number(v)); return render();
       case 'tip': try { localStorage.setItem('koide-tip-' + b.dataset.v, '1'); } catch (err) { /* 무시 */ } return render();
       case 'guidere': return TourC.goTutorial(false);
       case 'sample': S.draft = solo() ? '나ㅡ졸업 논문 마감이 다가와요. 지치지 않고 끝까지 잘 마무리하도록\n\n가족ㅡ할머니가 다음 주에 수술을 받으세요. 수술이 잘 끝나고 회복이 빠르도록\n\n친구ㅡ교회에 처음 나온 친구가 공동체에 잘 적응하도록'
