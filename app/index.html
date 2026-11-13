@@ -131,6 +131,10 @@ main.wrap { padding-top: 14px; padding-bottom: calc(110px + env(safe-area-inset-
 .page-top { display: flex; justify-content: space-between; align-items: center; gap: 12px; min-height: 44px; }
 /* 화면 제목: 디다코 노트와 같은 크기(큰 글씨 모드에서는 기본 글씨와 함께 커진다) */
 .page-top h1 { font: 700 calc(var(--base) * 1.375)/1.4 var(--f-display); margin: 0; }
+/* 화면 제목의 그림은 글자 크기에 맞춰 커지고, 밝은·어두운 테마의 글자색을 따른다. */
+.h-ic { display:inline-flex; width:1.1em; height:1.1em; align-items:center; justify-content:center; vertical-align:-.16em; flex:none; color:inherit; }
+.h-ic svg { display:block; width:100%; height:100%; overflow:visible; }
+
 .who-sep { display: inline-block; width: 1px; height: .9em; background: currentColor; opacity: .45; margin: 0 .6em; vertical-align: -.1em; }
   .eyebrow { margin-top: 0; }
 .page-top-r { display: flex; flex-direction: column; align-items: flex-end; gap: 6px; }
@@ -1252,6 +1256,9 @@ body.pop-open { overflow: hidden; }
 .edit-foot .prayer-action:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
 
 .kc-back { position: fixed; inset: 0; z-index: 150; background: #0008; display: grid; place-items: center; padding: 18px; }
+.kc-back.mv-back { place-items: end center; padding: 0 12px max(12px, env(safe-area-inset-bottom, 0px)); }
+.kc-panel.mv-panel { width: min(100%, 480px); margin: 0 auto; border-radius: 20px 20px 0 0; max-height: 85vh; overflow: auto; }
+.kc-panel.mv-panel .mrow { width: 100%; text-align: left; }
 .kc-panel { width: min(100%, 420px); max-height: 90vh; overflow: auto; background: var(--surface); color: var(--ink); border-radius: 20px; padding: 22px; box-shadow: 0 15px 40px #0003; display: grid; gap: 14px; }
 .kc-card .kc-head { display: flex; align-items: baseline; justify-content: space-between; gap: 10px; padding: .6em 0 .4em; }
 .kc-card .kc-head h3 { margin: 0; } .kc-card .kc-n { color: var(--ink-2); font-size: .9em; }
@@ -1712,7 +1719,7 @@ try { const p = JSON.parse(localStorage.getItem('koide-pref') || '{}'), d = docu
   const tipsSeen = () => { try { return JSON.parse(localStorage.getItem(TIPS_KEY()) || '{}'); } catch (e) { return {}; } };
   function tipDone(k) { try { const t = tipsSeen(); t[k] = 1; localStorage.setItem(TIPS_KEY(), JSON.stringify(t)); } catch (e) { /* 이번만 */ } }
   // 따라 하기(처음 쓰는 회원, 결정 기록 2026-10-22): 이번 달 기도제목이 하나도 없는 회원이 처음 열면 저절로 시작한다.
-  //  ① 써 보기(내 기도 › 예시 넣어 보기 › 대상별로 정리하기 › 추가하기 › 공개 범위) ② 기도해 보기(기도하기 › 기도했어요) ③ 둘러보기 ④ 이제 직접 써 보세요(쓰기 칸을 비춤). 모양과 움직임은 guide.js
+  //  ① 써 보기(내 기도 › 예시 자동 채우기 › 대상별로 정리하기 › 추가하기 › 공개 범위) ② 기도해 보기(기도하기 › 기도했어요) ③ 둘러보기 ④ 이제 직접 써 보세요(쓰기 칸을 비춤). 모양과 움직임은 guide.js
   //  직접 쓰는 단계는 없다(키보드가 열리지 않게 예시로만 연습). 연습으로 더한 기도제목은 연습 페이지의 데모 서버(메모리)에만 있고, 마지막 단계에서 목록에서 지우며 페이지를 떠나면 사라진다
   //  (2026-10-23) 진짜 이번 달 화면 위에서 돌리지 않고 따로 연 연습 페이지(?tutorial)에서 돈다: 로그인한 뒤 이번 달 기도제목이 없고 아직 안 봤으면 그리로 보내고,
   //  마치면 진짜 앱(?tutdone)으로 돌아와 마침을 적는다. 연습 페이지는 서버와 이야기하지 않고 데모 서버(브라우저 안, 메모리 저장)로 돈다. 연습 회원은 지어낸 사람이다(gas-shim의 addTutorialPerson)
@@ -1720,6 +1727,9 @@ try { const p = JSON.parse(localStorage.getItem('koide-pref') || '{}'), d = docu
   //  마쳤는지는 서버가 사람마다 기억하고(me.tourDone), 서버가 옛 버전이면 이 기기에만 적어 둔다(GUIDE_KEY). 교역자는 이번에는 안 나온다.
   //  더보기 › 따라 하기 다시 하기는 기도제목이 있어도, 마쳤어도 연다(마침은 다시 적지 않아도 같다)
   const GUIDE_KEY = () => TOUR_KEY().replace('koide-tour', 'koide-guide');
+  // 따라 하기 전용 예시: 예전 '예시 넣어 보기' 버튼에서 쓰던 글을 그대로 채운다.
+  const tutorialSampleText = () => solo() ? '나ㅡ졸업 논문 마감이 다가와요. 지치지 않고 끝까지 잘 마무리하도록\n\n가족ㅡ할머니가 다음 주에 수술을 받으세요. 수술이 잘 끝나고 회복이 빠르도록\n\n친구ㅡ교회에 처음 나온 친구가 공동체에 잘 적응하도록'
+          : '형제ㅡ연말이라 회사 일이 몰려서 마음에 여유가 없어요. 지치지 않고 지혜롭게 마무리할 수 있도록 기도해 주세요.\n\n자매ㅡ다음 주에 복직 준비 교육을 마쳐요. 끝까지 건강하게 마치고, 복직 전까지 쉼이 있는 시간을 보낼 수 있도록\n\n' + (mineFam().kids[0] || '아이') + 'ㅡ감기가 2주째 이어지고 있어요. 빨리 낫고 다시 즐겁게 지내도록\n\n함께- 시댁 식구들이 하나님을 믿을 수 있도록';
   const TourC = (() => {
     let ev = null, timer = 0, leaving = false;
     // 둘러볼 수 있는 회원인지: 가정에 연결된 회원 화면(교역자·운영·모임 화면은 아니다)
@@ -1771,15 +1781,13 @@ try { const p = JSON.parse(localStorage.getItem('koide-pref') || '{}'), d = docu
     const homeSpot = () => { const c = $('.card.today'), k = c && c.querySelector('.cord'); return c && (!k || c.offsetHeight <= innerHeight * .6) ? c : k || $('#main .page-top'); };
     const steps = () => {
       const w = words(), onMine = () => S.tab === 'mine' && $('#add-t');
-      // 예시가 칸에 들어갔는지(빈 칸이거나 'ㅡ'만 있으면 아니다)
-      const canSplit = () => { const t = $('#add-t'); return !!t && splitDraft(t.value).length > 0; };
       return [
         // ① 써 보기: 글 칸은 비추지 않는다(직접 쓰지 않으니 키보드가 열리지 않는다)
         { mode: 'tap', target: () => tabBtn('mine'), text: '여기서 기도제목을 써요. 내 기도를 눌러 보세요.' },
-        { mode: 'tap', target: () => $('[data-act=sample]'), wait: onMine, done: () => ev.sample && canSplit(),
-          text: '예시로 연습해 볼게요. 전구 기호(예시 넣어 보기)를 눌러요.' },
-        { mode: 'tap', target: () => [$('#add-t'), $('[data-act=split]')], inert: () => $('#add-t'), wait: onMine, skip: () => !!S.preview, done: () => !!S.preview, text: '예시가 들어갔어요. 대상별로 정리하기를 눌러요.',
-          bounce: () => S.preview || canSplit() ? '' : '전구 기호를 먼저 눌러요.' },
+        { mode: 'tap', target: () => [$('#add-t'), $('[data-act=split]')], inert: () => $('#add-t'), wait: onMine,
+          before: () => { if (TUT && ev && !ev.sample) { S.draft = tutorialSampleText(); S.preview = null; ev.sample = true; render(); } },
+          skip: () => !!S.preview, done: () => !!S.preview,
+          text: '예시를 넣어 두었어요. 대상별로 정리하기를 눌러요.' },
         { mode: 'tap', target: () => $('.preview'), wait: () => S.tab === 'mine' && S.preview, done: () => ev.added, back: () => !S.preview && !ev.added,
           text: '대상별로 정리됐네요. 추가하기를 눌러 보세요.' },
         // 추가한 뒤 어떻게 들어갔는지 먼저 보여 준다(목록 전체를 비춘다)
@@ -1847,7 +1855,6 @@ try { const p = JSON.parse(localStorage.getItem('koide-pref') || '{}'), d = docu
       // 연습 페이지에서 안내가 한 번이라도 시작됐거나 마치고 돌아가는 중인지
       begun: () => !!ev || leaving,
       // 눌러 보며 한 일을 기억한다(앱의 누름 처리가 부른다)
-      sample() { if (ev && KoideGuide.running()) ev.sample = true; },
       scope() { if (ev && KoideGuide.running()) ev.scoped = true; },
       // 추가하기: 안내 중이고 예시에서 나온 줄이면 추가했다고 기억만 한다(저장은 보통대로)
       sawAdd() { if (ev && KoideGuide.running() && ev.sample) ev.added = true; }
@@ -1910,8 +1917,14 @@ try { const p = JSON.parse(localStorage.getItem('koide-pref') || '{}'), d = docu
     : i.isNew ? whoDid(i.editedBy) + ' 새로 씀' : i.same ? '지난달과 같음 · ' + whoDid(i.editedBy) + ' 씀' : whoDid(i.editedBy) + ' 고침' + (i.editedAt ? ' · ' + i.editedAt : '');
   const steps = n => `<div class="steps" aria-hidden="true">${[1, 2, 3, 4].map(k => `<span class="${k <= n ? 'on' : ''}"></span>`).join('')}</div>`;
   const svg = d => `<svg class="ic" viewBox="0 0 16 16" aria-hidden="true">${d}</svg>`;
+  // 화면 제목에 쓰는 그림: 글자색(currentColor)을 그대로 따르는 인라인 SVG 네 가지.
+  const HEAD_ICON = {
+    hands: "<span class=\"h-ic\" aria-hidden=\"true\"><svg viewBox=\"0 0 64 64\"><path d=\"M28 5c-2-1-4 0-5 3L9 35c-2 5-1 10 3 14l10 10 10-17V14c0-4-2-7-4-9Z\" fill=\"currentColor\" fill-opacity=\".10\" stroke=\"currentColor\" stroke-width=\"3.6\" stroke-linejoin=\"round\"/><path d=\"M36 5c2-1 4 0 5 3l14 27c2 5 1 10-3 14L42 59 32 42V14c0-4 2-7 4-9Z\" fill=\"currentColor\" fill-opacity=\".10\" stroke=\"currentColor\" stroke-width=\"3.6\" stroke-linejoin=\"round\"/><path d=\"M25 15 18 35M39 15l7 20M32 13v29\" stroke=\"currentColor\" stroke-width=\"3.3\" stroke-linecap=\"round\"/><path d=\"m12 47 12 12-5 3L5 51Z\" fill=\"currentColor\" fill-opacity=\".28\" stroke=\"currentColor\" stroke-width=\"3.2\" stroke-linejoin=\"round\"/><path d=\"M52 47 40 59l5 3 14-11Z\" fill=\"currentColor\" fill-opacity=\".28\" stroke=\"currentColor\" stroke-width=\"3.2\" stroke-linejoin=\"round\"/></svg></span>",
+    pencil: "<span class=\"h-ic\" aria-hidden=\"true\"><svg viewBox=\"0 0 64 64\"><g transform=\"rotate(42 32 32)\"><rect x=\"23\" y=\"3\" width=\"18\" height=\"43\" rx=\"3\" fill=\"currentColor\" fill-opacity=\".10\" stroke=\"currentColor\" stroke-width=\"3.5\"/><path d=\"M23 42h18v4l-9 15-9-15v-4Z\" fill=\"currentColor\" fill-opacity=\".22\" stroke=\"currentColor\" stroke-width=\"3.5\" stroke-linejoin=\"round\"/><path d=\"m28 54 4 7 4-7\" fill=\"currentColor\"/><path d=\"M29 15v23M35 15v23\" stroke=\"currentColor\" stroke-opacity=\".65\" stroke-width=\"2.6\" stroke-linecap=\"round\"/><path d=\"M23 10V7a4 4 0 0 1 4-4h10a4 4 0 0 1 4 4v7H23v-4Z\" fill=\"currentColor\" fill-opacity=\".30\" stroke=\"currentColor\" stroke-width=\"3.5\"/></g></svg></span>",
+    candle: "<span class=\"h-ic\" aria-hidden=\"true\"><svg viewBox=\"0 0 64 64\"><path d=\"M32 3C24 13 20 19 20 25a12 12 0 0 0 24 0c0-6-4-12-12-22Z\" fill=\"#EDC47C\" stroke=\"currentColor\" stroke-width=\"3.5\" stroke-linejoin=\"round\"/><path d=\"M32 15c-4 5-6 8-6 12a6 6 0 0 0 12 0c0-4-2-7-6-12Z\" fill=\"#FFF1CF\"/><path d=\"M32 32v7\" stroke=\"currentColor\" stroke-width=\"3.5\" stroke-linecap=\"round\"/><path d=\"M17 40c0-4 4-6 8-6h14c4 0 8 2 8 6v17c0 3-3 5-7 5H24c-4 0-7-2-7-5V40Z\" fill=\"currentColor\" fill-opacity=\".10\" stroke=\"currentColor\" stroke-width=\"3.7\" stroke-linejoin=\"round\"/><path d=\"M17 41c4-2 6 0 8 4 2 5 6 5 8 0 2-4 5-5 8-3 2 1 4 1 6-1\" stroke=\"currentColor\" stroke-width=\"3.1\" stroke-linecap=\"round\"/></svg></span>",
+    bible: "<span class=\"h-ic\" aria-hidden=\"true\"><svg viewBox=\"0 0 64 64\"><path d=\"M4 14c11-5 21-5 28 2 7-7 17-7 28-2v39c-11-4-21-4-28 3-7-7-17-7-28-3V14Z\" fill=\"currentColor\" fill-opacity=\".24\" stroke=\"currentColor\" stroke-width=\"3.7\" stroke-linejoin=\"round\"/><path d=\"M7 9c9-4 18-3 25 4 7-7 16-8 25-4v39c-9-3-18-2-25 5-7-7-16-8-25-5V9Z\" fill=\"currentColor\" fill-opacity=\".08\" stroke=\"currentColor\" stroke-width=\"3.7\" stroke-linejoin=\"round\"/><path d=\"M32 13v40\" stroke=\"currentColor\" stroke-width=\"3.1\" stroke-linecap=\"round\"/><path d=\"M13 20c5-1 9 0 13 2M13 29c5-1 9 0 13 2M13 38c5-1 9 0 13 2M38 22c4-2 8-3 13-2M38 31c4-2 8-3 13-2M38 40c4-2 8-3 13-2\" stroke=\"currentColor\" stroke-opacity=\".65\" stroke-width=\"2.8\" stroke-linecap=\"round\"/></svg></span>"
+  };
   const ICON = {
-    bulb: svg('<path d="M5.5 11c0-1.5-2.5-2.4-2.5-5.1a5 5 0 0 1 10 0c0 2.7-2.5 3.6-2.5 5.1M5.5 11h5M6 13h4M6.8 14.5h2.4"/>'),
     bubble: '<svg viewBox="0 0 18 18" width="18" height="18" aria-hidden="true"><path fill="currentColor" d="M9 2.2c-4.1 0-7.4 2.6-7.4 5.8 0 2.1 1.4 3.9 3.5 4.9l-.8 2.9c-.1.3.2.5.4.3l3.4-2.3h.9c4.1 0 7.4-2.6 7.4-5.8S13.1 2.2 9 2.2z"/></svg>',
     home: svg('<path d="M2.5 7.5L8 3l5.5 4.5V13a1 1 0 0 1-1 1h-9a1 1 0 0 1-1-1z"/><path d="M6.5 14V10h3v4"/>'),
     pen: svg('<path d="M3 13l.8-3.2 6.7-6.7 2.4 2.4-6.7 6.7z"/><path d="M9.3 4.3l2.4 2.4"/>'),
@@ -2121,7 +2134,7 @@ try { const p = JSON.parse(localStorage.getItem('koide-pref') || '{}'), d = docu
       <button class="link" data-act="logout">로그아웃</button>`,
     app: () => KOINONIA && S.month && S.month.closed
       ? '<section class="card"><h1>이 공동체는 닫혔어요</h1><a class="btn" href="note.html' + (KOINONIA_DEMO ? '?demo' : '') + '#my-groups">코이데 노트로</a></section>'
-      : ({ home: homeView, mine: mineView, pray: prayView, history: historyView, more: moreView, about: aboutView, help: helpView, praytext: prayTextView, feedback: feedbackView, church: churchView, status: statusView, admin: adminView, import: importView, reorg: reorgView })[S.tab]() + (KOINONIA ? careSheet() : '')
+      : ({ home: homeView, mine: mineView, pray: prayView, history: historyView, more: moreView, about: aboutView, help: helpView, praytext: prayTextView, feedback: feedbackView, church: churchView, status: statusView, admin: adminView, import: importView, reorg: reorgView })[S.tab]() + (KOINONIA ? careSheet() : '') + mvGroupSheet()
   };
   // 고른 가정: 사랑방 가정, 또는 '목사님·장로님으로 들어가기'에서 고른 교역자 가정
   const famPicked = () => S.pick.staff ? (dept().staff || []).find(f => f.id === S.pick.familyId) : S.rooms.find(x => x.id === S.pick.roomId).families.find(f => f.id === S.pick.familyId);
@@ -2223,7 +2236,7 @@ try { const p = JSON.parse(localStorage.getItem('koide-pref') || '{}'), d = docu
   function homeView() {
     if (staffMe()) return staffHomeView();
     const M = S.month, others = M.families.filter(f => !f.own), t = todayFam();
-    return `<div class="page-top"><div><p class="eyebrow">${esc(M.room.name)}${S.grp && !KOINONIA ? ' · 모임' + (M.group && M.group.left != null ? ' · ' + koidePlaces.dday(M.group) : '') : ''}</p><h1>${Number(M.month.slice(5))}월 기도제목 <span aria-hidden="true">🙏</span></h1></div><p class="date">${todayLabel()}</p></div>
+    return `<div class="page-top"><div><p class="eyebrow">${esc(M.room.name)}${S.grp && !KOINONIA ? ' · 모임' + (M.group && M.group.left != null ? ' · ' + koidePlaces.dday(M.group) : '') : ''}</p><h1>${Number(M.month.slice(5))}월 기도제목 ${HEAD_ICON.hands}</h1></div><p class="date">${todayLabel()}</p></div>
       ${KOINONIA ? groupEndCard() : ''}${S.grp && !KOINONIA ? `<p class="hint grp-note">${ICON.people}모임 사람들과 함께 봐요 · 내 모임은 <a href="note.html${DEMO_LINK ? '?demo' : ''}">코이데 노트</a>에 있어요</p>${groupEndCard()}` : ''}${newsCard()}${shiftCard()}<div class="home-grid"><div class="col side">${t ? `<section class="card today" aria-label="지금 함께 기도할 ${words().one}"><p class="today-tag">${ICON.hands}지금 함께 기도할 ${words().one}</p><h2>${esc(t.name)}</h2>
           <div class="today-body" data-id="${esc(t.id)}" tabindex="0" aria-label="${esc(t.name)} 기도제목">${t.items.length ? itemList(t.items, false) : `<p class="hint">아직 올린 기도제목이 없어요. 이 ${words().one}을 떠올리며 기도해요.</p>`}</div>
           <div class="pray-hero"><div class="pray-row">${prayBtn(t, false, true)}<button class="btn next${t.today ? '' : ' ghost'}" data-act="nexttoday">다음 ${words().one}</button></div>
@@ -2266,7 +2279,7 @@ try { const p = JSON.parse(localStorage.getItem('koide-pref') || '{}'), d = docu
     if (S.openRoom) return staffRoomView();
     const M = S.month, rooms = M.rooms || [], sum = k => rooms.reduce((a, r) => a + r[k], 0);
     const stat = (n, l) => `<div class="stat"><b>${n}</b><span>${l}</span></div>`;
-    return `<div class="page-top"><div><h1>${Number(M.month.slice(5))}월 기도제목 <span aria-hidden="true">🙏</span></h1></div><p class="date">${todayLabel()}</p></div>
+    return `<div class="page-top"><div><h1>${Number(M.month.slice(5))}월 기도제목 ${HEAD_ICON.hands}</h1></div><p class="date">${todayLabel()}</p></div>
       <div class="home-grid"><div class="col side">
         <section class="card"><div class="stats">${stat(rooms.length, grp())}${stat(sum('n'), words().count)}${stat(sum('edited') + sum('confirmed'), '이번 달 손봄·확인')}</div></section>
         ${rooms.length ? `<section class="card">${roomCordHtml()}<p class="hint">매듭을 누르면 그 ${esc(gj('을/를'))} 위해 기도하러 가요.</p></section>` : ''}
@@ -2375,7 +2388,7 @@ try { const p = JSON.parse(localStorage.getItem('koide-pref') || '{}'), d = docu
     }
     const mine = mineFam(), items = mine.items, mm = Number(S.month.month.slice(5)), carried = mine.items.filter(i => i.same).length, ended = mine.ended || [];
     const P = S.preview;
-    return `<div class="page-top"><div><h1>${mm}월의 기도제목 <span aria-hidden="true">✏️</span></h1></div><p class="saved" id="saved">${S.saved || ''}</p></div>
+    return `<div class="page-top"><div><h1>${mm}월의 기도제목 ${HEAD_ICON.pencil}</h1></div><p class="saved" id="saved">${S.saved || ''}</p></div>
       <div class="two-col mine-grid"><div class="col mine-top">
         ${carried ? `<p class="notice">${mm === 1 ? 12 : mm - 1}월 기도제목 ${carried}개가 그대로 넘어와 있어요. 바뀐 것만 고치면 돼요.</p>` : ''}
         ${mine.status === 'same' ? '<button class="btn wide ghost" data-act="confirm">이번 달도 그대로예요</button>' : `<p class="hint">${mine.status === 'confirmed' ? (staffMe() ? '이번 달도 그대로라고 표시했어요.' : '이번 달도 그대로라고 리더에게 알렸어요.') : '이번 달 기도제목을 손봤어요. 따로 제출할 필요 없어요.'}</p>`}
@@ -2383,7 +2396,7 @@ try { const p = JSON.parse(localStorage.getItem('koide-pref') || '{}'), d = docu
       <div class="col side"><section class="card">
         <label class="label" for="add-t">새 기도제목 쓰기</label>
         <textarea id="add-t" class="field" rows="4" placeholder="${solo() ? '예)&#10;졸업 논문을 잘 마무리하도록&#10;가족ㅡ할머니 수술이 잘 끝나도록' : '예)&#10;남편ㅡ회사 일이 바빠도 지치지 않도록&#10;' + esc(mine.kids[0] || '아이') + 'ㅡ새 반에 잘 적응하도록'}">${esc(S.draft || '')}</textarea>
-        <div class="actions"><button class="btn" data-act="split">대상별로 정리하기</button><button class="icon-btn" style="min-width:40px;min-height:40px" data-act="sample" aria-label="예시 넣어 보기" title="예시 넣어 보기">${ICON.bulb}</button></div>
+        <div class="actions"><button class="btn" data-act="split">대상별로 정리하기</button></div>
         ${P ? `<div class="preview">
           <ul class="items">${P.map((x, k) => `<li class="item s-room"><span class="tgt">${esc(x.target)}</span><div class="item-body"><p class="txt">${esc(x.text)}</p></div><button class="rm-x" data-act="prevrm" data-v="${k}" aria-label="이 항목 빼기" title="빼기">${ICON.x}</button></li>`).join('')}</ul>
           <div class="actions"><button class="btn" data-act="addparts">추가하기</button><button class="btn ghost" data-act="unsplit">다시 쓰기</button></div></div>` : ''}
@@ -2788,7 +2801,7 @@ try { const p = JSON.parse(localStorage.getItem('koide-pref') || '{}'), d = docu
   function historyView() {
     // 회원은 사랑방·타임라인·나의 기도, 목사님·장로님은 우리 가정이 하나 더(옛 값 'mine'이 남아 있어도 회원은 사랑방으로)
     const H = S.hist, staff = staffMe(), tab = S.histTab === 'mine' && !staff ? 'room' : S.histTab || 'room';
-    const head = `<div class="page-top"><div><h1>돌아보기 <span aria-hidden="true">📖</span></h1></div></div>
+    const head = `<div class="page-top"><div><h1>돌아보기 ${HEAD_ICON.bible}</h1></div></div>
       ${KOINONIA ? '' : `<form class="kid-form hist-q" data-form="histq" role="search"><input class="field" type="search" name="q" placeholder="낱말로 찾기 (예: 이사)" aria-label="지난 기도제목에서 찾기" maxlength="20" autocomplete="off" value="${esc(S.sr ? S.sr.q : '')}"><button class="btn small" type="submit">찾기</button></form>`}
       <div class="seg fit" style="--n:${KOINONIA ? 2 : staff ? 4 : 3}" role="tablist" aria-label="돌아보기">${[['room', grp() + (staff ? '별' : '')], ...(staff ? [['mine', words().mine]] : []), ['timeline', '타임라인'], ...(KOINONIA ? [] : [['pray', '나의 기도']])].map(([k, l]) => `<button class="${tab === k ? 'on' : ''}" role="tab" aria-selected="${tab === k}" data-act="histtab" data-v="${k}">${l}</button>`).join('')}</div>`;
     if (S.sr) return head + searchView(S.sr);
@@ -3181,7 +3194,7 @@ try { const p = JSON.parse(localStorage.getItem('koide-pref') || '{}'), d = docu
     const list = psList(), seg = (items, cur, act, n, mark) => `<div class="seg" style="--n:${n || items.length}" role="group">${items.map(([k, l]) => { const on = Array.isArray(cur) ? cur.includes(k) : cur === k;
       return `<button class="${on ? 'on' : ''}" data-act="${act}" data-v="${k}" aria-pressed="${on}">${mark && on ? ICON.check + ' ' : ''}${l}</button>`; }).join('')}</div>`;
     const HY = Array.from({ length: 8 }, (_, i) => [i, (i + 1) + '장']);
-    return `<div class="page-top"><div><h1>기도하기 <span aria-hidden="true">🕯️</span></h1></div><p class="date">${todayLabel()}</p></div>
+    return `<div class="page-top"><div><h1>기도하기 ${HEAD_ICON.candle}</h1></div><p class="date">${todayLabel()}</p></div>
       <div class="two-col"><div class="col"><section class="card"><p style="margin-top:0">조용한 화면에서 <b>한 장씩</b> 넘기며 기도해요. ${esc(grp())} ${KOINONIA ? '지체는' : solo() ? '식구는' : '가정은'} 오늘 아직 기도하지 않은 ${words().one}부터 나와요.</p>
         <p class="label">무엇을 위해 기도할까요?</p>${seg(PS_KINDS(), PSET.kinds, 'pskind')}
         ${staffRoom ? `<p class="label" style="margin-top:14px">오늘의 ${esc(grp())}</p><div class="chips">${S.month.rooms.map(r => `<button class="chip-btn${r.id === staffRoom ? ' on' : ''}" data-act="psroom" data-v="${esc(r.id)}" aria-pressed="${r.id === staffRoom}">${esc(r.name)}</button>`).join('')}</div>` : ''}
@@ -4228,6 +4241,60 @@ try { const p = JSON.parse(localStorage.getItem('koide-pref') || '{}'), d = docu
       <button class="btn danger" data-act="kcend">공동체 끝맺기</button>
       <button class="link" data-act="kcclose">닫기</button></section>`;
     return `<div class="kc-back" role="presentation">${inner}</div>`;
+  }
+  // 공동체·모임에서 노트로 가져갈 제목을 먼저 고른다. 이동은 노트 화면에서만 저장한다.
+  async function mvOpenGroup() {
+    const id = KOINONIA ? 'c:' + KOINONIA_ID : S.grp;
+    if (!id || (KOINONIA && S.month && S.month.group && S.month.group.state === '닫음')) return;
+    S.gmv = { id, loading: true, sel: {} }; render();
+    try {
+      let r;
+      if (KOINONIA) {
+        if (DEMO) {
+          if (!window.koideKoinoniaDemo) await loadCircleMenu();
+          if (!window.koideKoinoniaDemo) throw new Error('데모 자료를 불러오지 못했어요.');
+          r = await window.koideKoinoniaDemo.call('community_export', { p_id: KOINONIA_ID });
+        } else {
+          if (!window.KoideSb || !(await window.KoideSb.session())) throw new Error('공동체에 다시 로그인해 주세요.');
+          r = await window.KoideSb.rpc('community_export', { p_id: KOINONIA_ID });
+        }
+      } else r = await api('groupExport', { grp: id });
+      if (!S.gmv || S.gmv.id !== id) return;
+      const list = (r.items || []).filter(x => !x.ended);
+      S.gmv = { id, name: r.name, endsAt: r.endsAt, left: r.left, list, sel: Object.fromEntries(list.map((_, i) => [i, true])) };
+    } catch (e) {
+      S.gmv = null;
+      toast(e.code === 'bad' && /모르는 요청/.test(e.message || '') ? '서버를 새 버전으로 배포하면 옮길 수 있어요.' : (e.message || '불러오지 못했어요.'));
+    }
+    render();
+  }
+  function mvGroupSheet() {
+    const M = S.gmv;
+    if (!M) return '';
+    const head = '<h2 id="gmv-title">코이데 노트로 옮기기</h2>';
+    if (M.loading) return `<div class="kc-back mv-back"><section class="kc-panel mv-panel" role="dialog" aria-modal="true" aria-labelledby="gmv-title">${head}<p class="hint">불러오는 중…</p><button class="btn ghost" data-act="gmvclose">닫기</button></section></div>`;
+    const by = [];
+    M.list.forEach((x, i) => { let g = by.find(b => b.who === x.who); if (!g) by.push(g = { who: x.who, own: x.own, rows: [] }); g.rows.push([x, i]); });
+    const n = M.list.filter((_, i) => M.sel[i]).length;
+    return `<div class="kc-back mv-back"><section class="kc-panel mv-panel" role="dialog" aria-modal="true" aria-labelledby="gmv-title">
+      ${head}
+      <p class="plain"><b>${esc(M.name || '')}</b>${M.left != null ? ' · ' + koidePlaces.dday(M) : ''}${M.endsAt ? ' (' + gDay(M.endsAt) + '까지)' : ''}</p>
+      <p class="hint">남기고 싶은 기도제목을 골라 코이데 노트로 옮길 수 있어요.</p>
+      ${M.list.length ? `<div class="row" style="justify-content:flex-start;gap:12px"><button class="link quiet" data-act="gmvall" data-v="1">전체 선택</button><button class="link quiet" data-act="gmvall" data-v="0">전체 해제</button></div>
+        ${by.map(g => `<p class="label" style="margin:.4em 0 0">${g.own ? '내 기도제목' : esc(g.who) + ' 님의 기도제목'}</p>${g.rows.map(([x, i]) => `<button class="mrow" role="checkbox" aria-checked="${!!M.sel[i]}" data-act="gmvtog" data-v="${i}"><span><b>${M.sel[i] ? '☑' : '☐'} ${esc(x.text)}</b><small>${esc(x.target && x.target !== '나' ? x.target + ' · ' : '')}${esc(x.month || '')}</small></span></button>`).join('')}`).join('')}` : '<p class="hint">옮길 기도제목이 아직 없어요.</p>'}
+      <div class="actions" style="justify-content:flex-end"><button class="btn ghost" data-act="gmvclose">닫기</button>${M.list.length ? `<button class="btn" data-act="gmvgo"${n ? '' : ' disabled'}>${n}개 옮기기</button>` : ''}</div>
+    </section></div>`;
+  }
+  function mvGroupGo() {
+    const M = S.gmv;
+    if (!M || !M.list) return;
+    const items = M.list.filter((_, i) => M.sel[i]);
+    if (!items.length) return;
+    try {
+      sessionStorage.setItem('koide-move-pick', JSON.stringify({ id: M.id, name: M.name, items }));
+    } catch (e) { return toast('옮길 제목을 임시로 보관하지 못했어요. 다시 해 주세요.'); }
+    if (window.koideSpace) window.koideSpace.going('note');
+    location.href = 'note.html?' + (DEMO_LINK ? 'demo&' : '') + 'move=' + encodeURIComponent(M.id) + '&pick';
   }
   // 더보기(모임 화면): 모임 사람, 모임장에게는 신청 승인·초대 링크·이름 바꾸기
   function groupMoreCard() {
@@ -5301,7 +5368,7 @@ try { const p = JSON.parse(localStorage.getItem('koide-pref') || '{}'), d = docu
       case 'demoreset': window.koideDemo && window.koideDemo.reset(); setToken(null); location.replace(location.pathname + location.search); return;
       case 'logout': try { if (getToken()) await api('logout'); } catch (err) { /* 이미 끝난 로그인 */ } setToken(null); lsSet(HUB_TOKEN, null); if (frontDoor()) lsSet(DOOR, 'church'); S.cc = null; S.view = 'login'; S.tab = 'home'; S.pending = null; S.hist = null; S.histTab = null;
         // 한 기기를 여럿이 쓰면 앞사람이 보던 화면·쓰던 글이 다음 사람에게 남지 않게
-        S.op = null; S.grp = null; S.home = null; S.ops = null; S.rost = null; S.mv = null; S.before = null; try { localStorage.removeItem(OP_KEY); } catch (err) { /* 무시 */ }
+        S.op = null; S.grp = null; S.home = null; S.ops = null; S.rost = null; S.mv = null; S.gmv = null; S.before = null; try { localStorage.removeItem(OP_KEY); } catch (err) { /* 무시 */ }
         Object.assign(S, { famEdit: null, famMsg: '', a2hs: false, homeView: null, ex: null, draft: '', draftTgt: '', todayId: null, shareId: null, menu: null, imp: null, preview: null, tgtOpen: null, delAsk: null }); S.openItems.clear(); S.openFams.clear();
         return render();
       case 'pickdept': pickDept(v); return render();
@@ -5451,7 +5518,11 @@ try { const p = JSON.parse(localStorage.getItem('koide-pref') || '{}'), d = docu
         catch (err) { S.gaFound = null; oops(err); }
         S.busy = false; return render();
       }
-      case 'gmove': { const id = S.grp; if (!id) return; if (window.koideSpace) window.koideSpace.going('note'); location.href = 'note.html?' + (DEMO_LINK ? 'demo&' : '') + 'move=' + encodeURIComponent(KOINONIA ? 'c:' + KOINONIA_ID : id); return; }
+      case 'gmove': return mvOpenGroup();
+      case 'gmvclose': S.gmv = null; return render();
+      case 'gmvtog': if (S.gmv && S.gmv.list) S.gmv.sel[v] = !S.gmv.sel[v]; return render();
+      case 'gmvall': if (S.gmv && S.gmv.list) S.gmv.list.forEach((_, i) => { S.gmv.sel[i] = v === '1'; }); return render();
+      case 'gmvgo': return mvGroupGo();
       case 'gweave': { const id = S.grp, d = weaveOf(); if (!id || !d) return toast('서버를 새 버전으로 배포하면 그물을 담을 수 있어요.'); try { sessionStorage.setItem('koide-weave-pack', JSON.stringify(weavePack(d))); } catch (err) { return toast('이 기기에서는 그물을 담지 못했어요.'); } if (window.koideSpace) window.koideSpace.going('note'); location.href = 'note.html?' + (DEMO_LINK ? 'demo&' : '') + 'weave=' + encodeURIComponent(id); return; }
       case 'wbig': S.wbig = true; return render();
       case 'wbigclose': S.wbig = false; return render();
@@ -5620,9 +5691,6 @@ try { const p = JSON.parse(localStorage.getItem('koide-pref') || '{}'), d = docu
       case 'big': setPref('big', Number(v)); return render();
       case 'tip': try { localStorage.setItem('koide-tip-' + b.dataset.v, '1'); } catch (err) { /* 무시 */ } return render();
       case 'guidere': return TourC.goTutorial(false);
-      case 'sample': S.draft = solo() ? '나ㅡ졸업 논문 마감이 다가와요. 지치지 않고 끝까지 잘 마무리하도록\n\n가족ㅡ할머니가 다음 주에 수술을 받으세요. 수술이 잘 끝나고 회복이 빠르도록\n\n친구ㅡ교회에 처음 나온 친구가 공동체에 잘 적응하도록'
-          : '형제ㅡ연말이라 회사 일이 몰려서 마음에 여유가 없어요. 지치지 않고 지혜롭게 마무리할 수 있도록 기도해 주세요.\n\n자매ㅡ다음 주에 복직 준비 교육을 마쳐요. 끝까지 건강하게 마치고, 복직 전까지 쉼이 있는 시간을 보낼 수 있도록\n\n' + (mineFam().kids[0] || '아이') + 'ㅡ감기가 2주째 이어지고 있어요. 빨리 낫고 다시 즐겁게 지내도록\n\n함께- 시댁 식구들이 하나님을 믿을 수 있도록';
-        S.preview = null; { const at = $('#add-t'); if (at) at.value = S.draft; } TourC.sample(); return render();
       case 'split': { S.draft = $('#add-t').value; const parts = splitDraft(S.draft); if (!parts.length) return toast('내용을 적어 주세요.'); S.preview = parts; return render(); }
       case 'unsplit': S.preview = null; return render();
       case 'prevrm': S.preview.splice(Number(v), 1); if (!S.preview.length) S.preview = null; return render();

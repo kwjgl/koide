@@ -3,7 +3,7 @@
   const CFG=window.KOIDE_CONFIG||{}, q=new URLSearchParams(location.search);
   const scene=q.get('as')||'', explicitDemo=q.has('demo'), demo=explicitDemo||!CFG.SUPABASE_URL;
   const S={page:'load',list:[],places:3,info:null,peek:null,invite:q.get('invite')||'',sheet:'',busy:false,
-    error:'',msg:'',months:3,limited:false,loginProviders:['kakao'],id:'',joinError:'',sheetError:'',draftName:'',draftPerson:'',draftJoin:''};
+    error:'',msg:'',months:3,limited:false,loginProviders:['kakao'],id:'',joinError:'',sheetError:'',draftName:'',draftPerson:'',draftJoin:'',navigating:false};
   const $=id=>document.getElementById(id), esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;','\'':'&#39;'}[c]));
   const nick=()=>{try{return localStorage.getItem('koide-koinonia-name')||'';}catch(e){return '';}};
   const remember=s=>{try{localStorage.setItem('koide-koinonia-name',s);}catch(e){}};
@@ -68,7 +68,7 @@
     '</div></header>';
   const notice=()=>S.msg?'<p class="hint" role="status">'+esc(S.msg)+'</p>':'';
   const error=()=>S.error?'<p class="error" role="alert">'+esc(S.error)+'</p>':'';
-  const layout=inner=>banner()+head()+'<main class="wrap">'+inner+'</main>'+sheet();
+  const layout=inner=>banner()+(q.has('new')&&(S.page==='create'||S.page==='load')?'':head())+'<main class="wrap'+(S.page==='create'?' create-wrap':'')+'">'+inner+'</main>';
   function login(){
     return '<div class="card" style="max-width:460px;margin:45px auto;align-items:center;text-align:center">'+
       '<span class="wl-mark" aria-hidden="true">'+KNOT+'</span><h1>코이데 공동체</h1>'+
@@ -87,26 +87,29 @@
   }
   const waiting=()=>'<div class="card"><h1>함께하기를 신청했어요</h1><p>모임장이 승인하면 들어갈 수 있어요.</p><button class="btn ghost" data-a="back">코이데 노트로</button></div>';
   const failed=()=>'<div class="card"><h1>초대 링크를 열 수 없어요</h1>'+error()+'<button class="btn ghost" data-a="back">코이데 노트로</button></div>';
-  function sheet(){
-    if(!S.sheet)return '';
-    if(S.sheet==='create'){
-      return '<div class="sheet-back" data-a="close"><section class="sheet" role="dialog" aria-modal="true" aria-label="새 공동체" data-stop>'+
-        '<h2>새 공동체</h2><label class="label" for="create-name">공동체 이름</label>'+
-        '<input class="field" id="create-name" maxlength="16" value="'+esc(S.draftName)+'" placeholder="금요 기도 모임">'+
-        '<label class="label" for="create-person">공동체에서 쓸 내 이름</label>'+
-        '<input class="field" id="create-person" maxlength="10" value="'+esc(S.draftPerson||nick())+'" placeholder="이름을 적어 주세요">'+
-        '<div class="row"><span>끝나는 날 정하기</span><button class="switch'+(S.limited?' on':'')+'" data-a="limit" role="switch" aria-checked="'+S.limited+'"><span></span></button></div>'+
-        (S.limited?'<div class="seg">'+[1,3,6,12].map(m=>'<button data-a="months" data-v="'+m+'" class="'+(S.months===m?'on':'')+'">'+m+'개월<small>'+krday(addMonthsStr(m))+'까지</small></button>').join('')+'</div>':'')+
-        agree()+(S.sheetError?'<p class="error" role="alert">'+esc(S.sheetError)+'</p>':'')+
-        '<div class="row"><button class="btn ghost" data-a="close">취소</button><button class="btn" data-a="create"'+(S.busy?' disabled':'')+'>동의하고 만들기</button></div></section></div>';
-    }
-    return '';
+  // 공동체 만들기는 겹쳐 뜨는 창 대신 독립된 카드 페이지로 보여 준다.
+  function createPage(){
+    const back='<a class="link create-back" href="note.html'+(explicitDemo?'?demo':'')+'#my-groups">‹ 코이데 노트로</a>';
+    if(S.error)return back+'<div class="card"><h1>새 공동체 만들기</h1>'+error()+
+      '<button class="btn ghost" data-a="retry">다시 불러오기</button></div>';
+    if(S.places<=0)return back+'<div class="card"><h1>새 공동체 만들기</h1>'+
+      '<p>코이데 공동체는 세 곳까지 함께할 수 있어요.</p>'+
+      '<button class="btn wide" data-a="back">코이데 노트로</button></div>';
+    return back+'<div class="card"><h1>새 공동체 만들기</h1>'+
+      '<label class="label" for="create-name">공동체 이름</label>'+
+      '<input class="field" id="create-name" maxlength="16" value="'+esc(S.draftName)+'" placeholder="금요 기도 모임">'+
+      '<label class="label" for="create-person">공동체에서 쓸 내 이름</label>'+
+      '<input class="field" id="create-person" maxlength="10" value="'+esc(S.draftPerson)+'" placeholder="이름을 적어 주세요">'+
+      '<div class="row"><span>끝나는 날 정하기</span><button class="switch'+(S.limited?' on':'')+'" data-a="limit" role="switch" aria-checked="'+S.limited+'"><span></span></button></div>'+
+      (S.limited?'<div class="seg">'+[1,3,6,12].map(m=>'<button data-a="months" data-v="'+m+'" class="'+(S.months===m?'on':'')+'">'+m+'개월<small>'+krday(addMonthsStr(m))+'까지</small></button>').join('')+'</div>':'')+
+      agree()+(S.sheetError?'<p class="error" role="alert">'+esc(S.sheetError)+'</p>':'')+
+      '<button class="btn wide" data-a="create"'+(S.busy?' disabled':'')+'>'+(S.busy?'만드는 중…':'동의하고 만들기')+'</button></div>';
   }
   function render(){
     let inside='';
     if(S.page==='off')inside='<div class="card"><h1>코이데 공동체는 곧 열려요.</h1><a class="btn ghost" href="note.html">코이데 노트로</a></div>';
     else if(S.page==='login')inside=login();
-    else if(S.page==='create')inside='<h1>코이데 공동체 만들기</h1>'+error()+notice()+(S.sheet?'':'<button class="btn ghost" data-a="back">코이데 노트로</button>');
+    else if(S.page==='create')inside=createPage();
     else if(S.page==='invite')inside=invite();
     else if(S.page==='waiting')inside=waiting();
     else if(S.page==='error')inside=failed();
@@ -124,8 +127,7 @@
     try {
       const a=await kApi('community_mine');
       S.list=a.list||[];S.places=a.places??3;S.page='create';
-      if(S.places>0){S.sheet='create';S.limited=false;S.draftName='';S.draftPerson=nick();}
-      else S.msg='세 곳이 다 찼어요.';
+      S.sheet='';S.sheetError='';S.limited=false;S.draftName='';S.draftPerson=nick();
     } catch(e) {
       if(e.code==='login'&&!demo){S.page='login';S.loginProviders=await window.KoideSb.providers();}
       else {S.page='create';S.error=err(e);}
@@ -157,7 +159,7 @@
     try{await run();}catch(e){
       if(e.code==='login'&&!demo){S.page='login';S.sheet='';S.loginProviders=await window.KoideSb.providers();}
       else if(where==='sheet')S.sheetError=err(e);else if(where==='join')S.joinError=err(e);else S.error=err(e);
-    }finally{S.busy=false;render();}
+    }finally{S.busy=false;if(!S.navigating)render();}
   }
   const $v=id=>$(id)?.value||'';
   async function init(){
@@ -195,9 +197,10 @@
     if(ev.target.closest('[data-stop]')&&!b.closest('[data-stop]'))return;
     const a=b.dataset.a,v=b.dataset.v;
     if(a==='none')return;
-    if(a==='close'){if(ev.target.closest('[data-stop]')&&!b.closest('[data-stop]'))return;S.sheet='';S.sheetError='';return noteMore();}
+    if(a==='close'){S.sheet='';S.sheetError='';return noteMore();}
     if(a==='back'){clearInvite();S.sheet='';return noteMore();}
-    if(a==='new'){S.sheet='create';S.sheetError='';S.limited=false;S.draftName='';S.draftPerson=nick();return render();}
+    if(a==='new')return location.assign('koinonia.html'+(explicitDemo?'?demo&new':'?new'));
+    if(a==='retry')return loadCreate();
     if(a==='limit'){S.limited=!S.limited;return render();}
     if(a==='months'){S.months=Number(v);return render();}
     if(a==='open')return open(v);
@@ -207,7 +210,8 @@
       const name=$v('create-name'),person=$v('create-person');
       return busy(async()=>{
       const res=await kApi('community_create',{p_name:name,p_person:person,p_months:S.limited?S.months:null});
-      remember(person.trim());S.draftName='';S.draftPerson='';S.sheet='';await open(res.id);
+      remember(person.trim());S.navigating=true;
+      location.replace('index.html'+(explicitDemo?'?demo&c=':'?c=')+encodeURIComponent(res.id));
     },'sheet'); }
     if(a==='join'){
       const person=$v('join-person');
