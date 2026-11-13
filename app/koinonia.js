@@ -1,4 +1,4 @@
-// 코이데 공동체 목록·가입·초대. 공동체 안의 기도 화면은 index.html 모임 모드를 쓴다.
+// 코이데 공동체 만들기·로그인·초대 신청. 공동체 안의 기도 화면은 index.html 모임 모드를 쓴다.
 (() => {
   const CFG=window.KOIDE_CONFIG||{}, q=new URLSearchParams(location.search);
   const scene=q.get('as')||'', explicitDemo=q.has('demo'), demo=explicitDemo||!CFG.SUPABASE_URL;
@@ -8,6 +8,8 @@
   const nick=()=>{try{return localStorage.getItem('koide-koinonia-name')||'';}catch(e){return '';}};
   const remember=s=>{try{localStorage.setItem('koide-koinonia-name',s);}catch(e){}};
   const err=e=>(e&&e.message)||'다시 시도해 주세요.';
+  // 목록 화면 대신 노트의 공동체 카드로 돌아간다. ?c=는 로그인 복귀용이므로 여기서 건드리지 않는다.
+  const noteMore=()=>location.replace('note.html'+(explicitDemo?'?demo':'')+'#my-groups');
   let demoLoad=null;
   async function fake(){
     if(window.koideKoinoniaDemo)return window.koideKoinoniaDemo;
@@ -37,14 +39,18 @@
     if(PREF.mode==='light'||PREF.mode==='dark')d.dataset.mode=PREF.mode;else delete d.dataset.mode;
     if(PREF.accent&&PREF.accent!=='green')d.dataset.accent=PREF.accent;else delete d.dataset.accent;
     if(PREF.style&&PREF.style!=='flat')d.dataset.style=PREF.style;else delete d.dataset.style;
-    if(PREF.big)d.dataset.big='';else delete d.dataset.big;
+    if(PREF.big)d.dataset.big=PREF.big===2?'2':'';else delete d.dataset.big;
+  }
+  function bigControls(){
+    const level=PREF.big===true?1:Number(PREF.big)||0;
+    return '<div class="seg" role="radiogroup" aria-label="큰 글씨">'+[[0,'보통'],[1,'크게'],[2,'아주 크게']].map(([k,l])=>'<button class="'+(level===k?'on':'')+'" role="radio" aria-checked="'+(level===k)+'" data-a="pref" data-k="big" data-v="'+k+'">'+l+'</button>').join('')+'</div>';
   }
   function screenControls(){
     const mode=PREF.mode||'system',accent=PREF.accent||'green',style=PREF.style||'flat';
     return '<div class="seg" role="radiogroup" aria-label="화면 모드">'+MODES.map(([k,l])=>'<button class="'+(mode===k?'on':'')+'" role="radio" aria-checked="'+(mode===k)+'" data-a="pref" data-k="mode" data-v="'+k+'">'+l+'</button>').join('')+'</div>'+
       '<div class="swatches" role="radiogroup" aria-label="색 테마">'+ACCENTS.map(([k,l,c])=>'<button class="swatch'+(accent===k?' on':'')+'" role="radio" aria-checked="'+(accent===k)+'" data-a="pref" data-k="accent" data-v="'+k+'" aria-label="'+l+'" title="'+l+'"><i style="background:'+c+'"></i></button>').join('')+'</div>'+
       '<div class="seg" role="radiogroup" aria-label="디자인">'+STYLES.map(([k,l])=>'<button class="'+(style===k?'on':'')+'" role="radio" aria-checked="'+(style===k)+'" data-a="pref" data-k="style" data-v="'+k+'">'+l+'</button>').join('')+'</div>'+
-      '<div class="row"><span class="mhead">큰 글씨</span><button class="switch'+(PREF.big?' on':'')+'" role="switch" aria-checked="'+!!PREF.big+'" aria-label="큰 글씨" data-a="pref" data-k="big"><span></span></button></div>';
+      '<div class="row"><span class="mhead">큰 글씨</span></div>'+bigControls();
   }
   const GEAR='<svg class="ic" viewBox="0 0 16 16" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"><circle cx="8" cy="8" r="2"/><path d="M8 1.8v1.6M8 12.6v1.6M3.6 3.6l1.1 1.1M11.3 11.3l1.1 1.1M1.8 8h1.6M12.6 8h1.6M3.6 12.4l1.1-1.1M11.3 4.7l1.1-1.1"/></svg>';
   // 함께하는 곳 메뉴: 노트·교회 화면과 같은 places.js로 그린다(교회 사랑방은 이 기기에 남은 교회 화면에서 이름을 가져온다)
@@ -69,24 +75,9 @@
       '<div style="width:100%;display:grid;gap:8px">'+S.loginProviders.map(k=>'<button class="btn sso-btn sso-'+k+'" data-a="oauth" data-v="'+k+'">'+(window.KoideSb.logos[k]||'')+
       '<span>'+({kakao:'카카오로 계속',google:'Google로 계속',apple:'Apple로 계속'}[k]||'로그인')+'</span></button>').join('')+'</div>'+error()+'</div>';
   }
-  const chip=(label,extra='')=>'<span class="role-chip'+(extra?' '+extra:'')+'">'+esc(label)+'</span>';
-  function list(){
-    return '<h1>코이데 공동체</h1>'+error()+notice()+
-      (S.list.length?'<div class="mlist">'+S.list.map(c=>{
-        const closed=c.state==='닫음',ended=c.state==='끝남'||c.state==='끝맺음',
-          wait=c.status==='요청',leader=c.role==='모임장';
-        return '<button class="mrow" data-a="'+(wait||closed?'none':'open')+'" data-v="'+esc(c.id)+'"'+(wait||closed?' disabled':'')+'><span>'+
-          '<b class="name-chips">'+esc(c.name)+(leader?chip('모임장'):'')+'</b><small>'+
-          (closed?'닫힌 공동체예요':ended?(c.eraseOn?krday(c.eraseOn)+'에 지워져요':'끝난 공동체예요'):wait?'모임장의 승인을 기다려요':c.n+'명'+endText(c.endsOn))+
-          '</small></span><span class="row mrow-end">'+(leader&&c.asks?chip('신청 '+c.asks,'ask-chip'):'')+
-          (wait||closed?'':'<span aria-hidden="true">›</span>')+'</span></button>';
-      }).join('')+'</div>':
-      '<div class="card"><p>아직 함께하는 공동체가 없어요.</p></div>')+
-      (S.places>0?'<button class="btn new-community" data-a="new">+ 공동체 만들기</button>':'<p class="hint">세 곳이 다 찼어요.</p>');
-  }
   const inviteUrl=t=>location.origin+location.pathname+(demo?'?demo&invite=':'?invite=')+encodeURIComponent(t);
   function invite(){
-    const p=S.peek;return '<button class="link" data-a="back">‹ 목록으로</button><h1>'+esc(p.name)+'</h1>'+
+    const p=S.peek;return '<button class="link" data-a="back">‹ 코이데 노트로</button><h1>'+esc(p.name)+'</h1>'+
       '<p class="hint" style="margin-bottom:18px">모임장 '+esc(p.lead||'')+(p.endsOn?', '+esc(krday(p.endsOn))+'까지':'')+'</p>'+
       '<div class="card">'+agree()+'<label class="label" for="join-person">공동체에서 쓸 내 이름</label>'+
       '<input class="field" id="join-person" maxlength="10" autocomplete="name" value="'+esc(S.draftJoin||nick())+'" placeholder="이름을 적어 주세요">'+
@@ -94,8 +85,8 @@
       '<button class="btn" data-a="join"'+(S.busy?' disabled':'')+'>동의하고 함께하기 신청</button>'+
       '<button class="link" data-a="back">나중에 할게요</button></div>';
   }
-  const waiting=()=>'<div class="card"><h1>함께하기를 신청했어요</h1><p>모임장이 승인하면 들어갈 수 있어요.</p><button class="btn ghost" data-a="back">목록으로</button></div>';
-  const failed=()=>'<div class="card"><h1>초대 링크를 열 수 없어요</h1>'+error()+'<button class="btn ghost" data-a="back">목록으로</button></div>';
+  const waiting=()=>'<div class="card"><h1>함께하기를 신청했어요</h1><p>모임장이 승인하면 들어갈 수 있어요.</p><button class="btn ghost" data-a="back">코이데 노트로</button></div>';
+  const failed=()=>'<div class="card"><h1>초대 링크를 열 수 없어요</h1>'+error()+'<button class="btn ghost" data-a="back">코이데 노트로</button></div>';
   function sheet(){
     if(!S.sheet)return '';
     if(S.sheet==='create'){
@@ -115,7 +106,7 @@
     let inside='';
     if(S.page==='off')inside='<div class="card"><h1>코이데 공동체는 곧 열려요.</h1><a class="btn ghost" href="note.html">코이데 노트로</a></div>';
     else if(S.page==='login')inside=login();
-    else if(S.page==='list')inside=list();
+    else if(S.page==='create')inside='<h1>코이데 공동체 만들기</h1>'+error()+notice()+(S.sheet?'':'<button class="btn ghost" data-a="back">코이데 노트로</button>');
     else if(S.page==='invite')inside=invite();
     else if(S.page==='waiting')inside=waiting();
     else if(S.page==='error')inside=failed();
@@ -128,12 +119,17 @@
     S.invite='';S.peek=null;S.joinError='';
     const u=new URL(location.href);u.searchParams.delete('invite');history.replaceState(null,'',u.pathname+u.search+u.hash);
   }
-  async function loadList(){
+  async function loadCreate(){
     S.page='load';S.error='';render();
-    try{const a=await kApi('community_mine');S.list=a.list||[];S.places=a.places??3;S.page='list';}
-    catch(e){if(e.code==='login'&&!demo){S.page='login';S.loginProviders=await window.KoideSb.providers();}
-      else{S.page='list';S.error=err(e);}}
-    if(q.has('new') && S.page==='list'){const u=new URL(location.href);u.searchParams.delete('new');history.replaceState(null,'',u.pathname+u.search+u.hash);if(S.places>0){S.sheet='create';S.limited=false;S.draftName='';S.draftPerson=nick();}else S.msg='세 곳이 다 찼어요.';render();}
+    try {
+      const a=await kApi('community_mine');
+      S.list=a.list||[];S.places=a.places??3;S.page='create';
+      if(S.places>0){S.sheet='create';S.limited=false;S.draftName='';S.draftPerson=nick();}
+      else S.msg='세 곳이 다 찼어요.';
+    } catch(e) {
+      if(e.code==='login'&&!demo){S.page='login';S.loginProviders=await window.KoideSb.providers();}
+      else {S.page='create';S.error=err(e);}
+    }
     render();
   }
   function open(id){
@@ -141,7 +137,7 @@
     location.href='index.html'+(demo?'?demo&c=':'?c=')+encodeURIComponent(id);
   }
   async function loadInvite(){
-    if(!S.invite)return loadList();
+    if(!S.invite)return noteMore();
     S.page='load';S.error='';render();
     try{
       const p=await kApi('community_peek',{p_token:S.invite});S.peek=p;
@@ -166,6 +162,7 @@
   const $v=id=>$(id)?.value||'';
   async function init(){
     const mode=scene==='off'?'off':scene==='login'?'login':null;
+    if(!S.invite&&!q.has('new')&&!q.get('c')&&!mode&&scene!=='invite'&&scene!=='expired')return noteMore();
     if(mode==='off'){S.page='off';return render();}
     if(!demo&&!(CFG.COMMUNITY==='on'&&window.KoideSb.ready())){S.page='off';return render();}
     if(demo){
@@ -173,7 +170,7 @@
       if(scene==='invite'||scene==='expired')S.invite=d.initialInvite();
       if(mode==='login'){S.page='login';return render();}
       if(q.get('c'))return open(q.get('c'));
-      return S.invite?loadInvite():loadList();
+      return S.invite?loadInvite():q.has('new')?loadCreate():noteMore();
     }
     try{const session=await window.KoideSb.session();
       if(!session){S.page='login';S.loginProviders=await window.KoideSb.providers();return render();}
@@ -185,7 +182,7 @@
       }
       if(!S.invite&&u.searchParams.has('error_description'))S.error='로그인이 끝나지 않았어요.';
       if(q.get('c'))return open(q.get('c'));
-      return S.invite?loadInvite():loadList();
+      return S.invite?loadInvite():q.has('new')?loadCreate():noteMore();
     }catch(e){S.page='login';S.error=err(e);S.loginProviders=await window.KoideSb.providers();render();}
   }
   document.addEventListener('input',ev=>{const id=ev.target.id;if(id==='create-name')S.draftName=ev.target.value;else if(id==='create-person')S.draftPerson=ev.target.value;else if(id==='join-person')S.draftJoin=ev.target.value;});
@@ -194,18 +191,18 @@
     if(S.menu&&!ev.target.closest('.menu')&&!(b&&b.dataset.a==='menu')){S.menu=null;render();if(!b)return;}
     if(!b)return;
     if(b.dataset.a==='menu'){S.menu=S.menu===b.dataset.v?null:b.dataset.v;return render();}
-    if(b.dataset.a==='pref'){const k=b.dataset.k;setPref(k,k==='big'?!PREF.big:b.dataset.v);return render();}
+    if(b.dataset.a==='pref'){const k=b.dataset.k;setPref(k,k==='big'?Number(b.dataset.v):b.dataset.v);return render();}
     if(ev.target.closest('[data-stop]')&&!b.closest('[data-stop]'))return;
     const a=b.dataset.a,v=b.dataset.v;
     if(a==='none')return;
-    if(a==='close'){if(ev.target.closest('[data-stop]')&&!b.closest('[data-stop]'))return;S.sheet='';S.sheetError='';return render();}
-    if(a==='back'){clearInvite();S.sheet='';return loadList();}
+    if(a==='close'){if(ev.target.closest('[data-stop]')&&!b.closest('[data-stop]'))return;S.sheet='';S.sheetError='';return noteMore();}
+    if(a==='back'){clearInvite();S.sheet='';return noteMore();}
     if(a==='new'){S.sheet='create';S.sheetError='';S.limited=false;S.draftName='';S.draftPerson=nick();return render();}
     if(a==='limit'){S.limited=!S.limited;return render();}
     if(a==='months'){S.months=Number(v);return render();}
     if(a==='open')return open(v);
     if(a==='oauth')return busy(async()=>window.KoideSb.oauth(v));
-    if(a==='reset'){(await fake()).reset();clearInvite();return loadList();}
+    if(a==='reset'){(await fake()).reset();clearInvite();return q.has('new')?loadCreate():noteMore();}
     if(a==='create'){
       const name=$v('create-name'),person=$v('create-person');
       return busy(async()=>{

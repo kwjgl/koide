@@ -20,7 +20,7 @@ try { const p=JSON.parse(localStorage.getItem('koide-pref')||'{}'),d=document.do
 if(p.mode==='light'||p.mode==='dark')d.dataset.mode=p.mode;
 if(p.accent&&p.accent!=='green')d.dataset.accent=p.accent;
 if(p.style&&p.style!=='flat')d.dataset.style=p.style;
-if(p.big)d.dataset.big='';}catch(e){}
+if(p.big)d.dataset.big=p.big===2?'2':'';}catch(e){}
 </script>
 <link rel="stylesheet" href="koinonia.css">
 <link rel="stylesheet" href="design-styles.css">

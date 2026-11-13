@@ -1,4 +1,4 @@
-// '함께하는 곳' 공통 메뉴. 노트 → 코이데 공동체 → 예전 모임 → 공동체 만들기 · 공동체 목록 → 코이데 교회(맨 아래). 노트와 공동체 화면이 같은 순서.
+// '함께하는 곳' 공통 메뉴. 노트 → 코이데 공동체 → 예전 모임 → 공동체 만들기 → 코이데 교회(맨 아래). 노트와 공동체 화면이 같은 순서.
 (() => {
   const MAX = 3; // 코이데 공동체만 센다. 교회와 예전 모임은 따로
   const esc = s => String(s == null ? '' : s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
@@ -7,8 +7,8 @@
   // 끝나거나 닫힌 공동체는 자리를 차지하지 않는다.
   const canMake = (_linked, circles = []) => circles.filter(c => !['끝남','끝맺음','닫음'].includes(c.state)).length < MAX;
   // o.cur: 지금 보는 곳('note' | 'room' | 모임ID) · o.room: { name, group }(교회 사랑방에 연결됐을 때만) · o.groups: [{ id, name, role, wait, asks }]
-  // o.circles: 코이데 공동체 · o.circleMake: 새 공동체 만들기 보일지 · o.circleList: 공동체 목록 보일지 · o.linked: 공동체에 연결돼 있는지 · o.demo: 데모 주소인지
-  // o.attr(kind, id): 누르면 하는 일. 'href="…"'로 시작하면 링크, 아니면 버튼의 속성. kind는 note | room | circle | group | circleMake | circleList
+  // o.circles: 코이데 공동체 · o.circleMake: 새 공동체 만들기 보일지 · o.linked: 공동체에 연결돼 있는지 · o.demo: 데모 주소인지
+  // o.attr(kind, id): 누르면 하는 일. 'href="…"'로 시작하면 링크, 아니면 버튼의 속성. kind는 note | room | circle | group | circleMake
   function html(o) {
     const G = o.groups || [], C = o.circles || [], item = (kind, id, name, sub) => {
       const on = kind === 'group' || kind === 'circle' ? o.cur === id : o.cur === kind, a = o.attr(kind, id), tag = /^\s*href=/.test(a) ? 'a' : 'button';
@@ -26,9 +26,8 @@
             })())).join('')}
         ${G.map(g => g.wait ? `<div class="mitem" role="menuitem" aria-disabled="true"><span>${esc(g.name)}</span><small>승인을 기다려요</small></div>`
           : item('group', g.id, g.name, [o.cur === g.id ? here : '예전 모임', dday(g), g.asks ? '신청 ' + g.asks : ''].filter(Boolean).join(', '))).join('')}
-        ${o.circleMake || o.circleList ? '<div class="mdiv"></div>' : ''}
+        ${o.circleMake ? '<div class="mdiv"></div>' : ''}
         ${o.circleMake ? `<a class="mitem" role="menuitem" ${o.attr('circleMake', '')}><span>+ 공동체 만들기</span></a>` : ''}
-        ${o.circleList ? `<a class="mitem" role="menuitem" ${o.attr('circleList', '')}><span>공동체 목록</span></a>` : ''}
         ${o.room || !o.linked ? '<div class="mdiv"></div>' : ''}
         ${o.room ? item('room', '', '코이데 교회', o.cur === 'room' ? here : esc(o.room.name))
           : o.linked ? '' : `<a class="mitem" role="menuitem" href="index.html${o.demo ? '?demo&connect' : '?connect'}"><span>코이데 교회</span><small>교회 코드로 들어가기</small></a>`}`;

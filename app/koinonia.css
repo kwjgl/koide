@@ -22,7 +22,8 @@
   --warm: #E2A563; --warm-soft: #3A2C1B; --shadow: rgba(0, 0, 0, .5); --leader: #B6A8EA; --private: #252E2B; --neu-hi: rgba(255, 255, 255, .06); --neu-lo: rgba(0, 0, 0, .6); --wood: #7A5636; --wood-back: #3A2E24; --plaque: #2B2620; --linen: #3A3328; color-scheme: dark; }
 /* 큰 글씨와 색 테마: 공동체 앱과 같은 값 */
 :root[data-big] { --base: 19px; }
-@media (min-width: 1000px) { :root[data-big] { --base: 18px; } }
+:root[data-big="2"] { --base: 22px; }
+@media (min-width: 1000px) { :root[data-big] { --base: 18px; } :root[data-big="2"] { --base: 20px; } }
 :root[data-accent="amber"] { --page:#EDE8E0;--surface:#F9F5EE;--surface-2:#ECE5DA;--ink:#2A221B;--ink-2:#6E6155;--line:#E0D6C8;--line-strong:#C9B9A3;--accent:#A9561B;--accent-mid:#E2B07F;--accent-soft:#F6E3CF;--on-accent:#FFFFFF;--private:#EFE8DE; }
 @media (prefers-color-scheme: dark) { :root[data-accent="amber"]:not([data-mode="light"]) { --page:#1A1612;--surface:#231E19;--surface-2:#2B241E;--ink:#EEE6DC;--ink-2:#AE9F8E;--line:#3A3129;--line-strong:#5A4D41;--accent:#E9A066;--accent-mid:#8A5A32;--accent-soft:#3A2818;--on-accent:#1E140C;--private:#2E2721; } }
 :root[data-accent="amber"][data-mode="dark"] { --page:#1A1612;--surface:#231E19;--surface-2:#2B241E;--ink:#EEE6DC;--ink-2:#AE9F8E;--line:#3A3129;--line-strong:#5A4D41;--accent:#E9A066;--accent-mid:#8A5A32;--accent-soft:#3A2818;--on-accent:#1E140C;--private:#2E2721; }
