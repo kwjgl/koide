@@ -411,7 +411,11 @@ html.kg-on body.hide-bars .topbar, html.kg-on body.hide-bars .tabs { transform: 
 .na-page .plain,.na-page .hint{margin:0;line-height:1.7;word-break:keep-all}
 .na-hero{align-items:center;text-align:center;padding:1.6em 1.2em}
 .na-mark{display:grid;place-items:center;width:64px;height:64px;border-radius:50%;background:var(--accent);color:var(--on-accent)}
-.na-mark svg{width:40px;height:40px;fill:none;stroke:currentColor;stroke-width:2.7;stroke-linecap:round;stroke-linejoin:round}
+.na-mark svg{width:38px;height:38px;stroke-width:1.4}
+.na-mark svg path{stroke-dasharray:40;stroke-dashoffset:40;animation:na-tie .9s .1s ease-out forwards}
+.na-mark svg path+path{animation-delay:.45s}
+@keyframes na-tie{to{stroke-dashoffset:0}}
+@media (prefers-reduced-motion:reduce){.na-mark svg path{animation:none;stroke-dashoffset:0}}
 .na-hero h1{margin:.15em 0 0;font:700 1.8em/1.3 var(--f-display)}
 .na-tag{margin:0;color:var(--ink-2);font-size:.92em}
 .na-words{display:flex;align-items:center;justify-content:center;gap:.5em;flex-wrap:wrap;margin:.5em 0}
@@ -2567,12 +2571,13 @@ button.pg-tag::before { content: ''; position: absolute; inset: -10px; }
   }
   // 사용법(더보기 › 사용법): 위는 따라 하기 시작, 아래는 궁금한 것 찾아보기(질문을 누르면 풀이와 그 화면으로 가는 링크). 글은 실제 동작과 같게 쓴다
   const HELP = [
-    ['기도제목은 어떻게 써요?', ['기도 제목의 "새 기도제목 쓰기" 칸에 한 줄에 하나씩 써요.', '줄 앞에 "엄마ㅡ"처럼 이름을 쓰고 ㅡ를 붙이면 그 사람을 위한 기도제목이 돼요.', '대상별로 정리하기를 누르고, 미리보기에서 괜찮으면 추가하기를 눌러요.'], '기도 제목으로 가기', 'note'],
-    ['오늘의 기도 화면의 세 개는 뭐예요?', ['오늘 기도할 제목을 하루에 세 개만 골라 보여 줘요. 그날은 바뀌지 않아요.', '오래 기도하지 않은 것부터 나와요. 기도하고 기도했어요를 눌러요.'], '오늘의 기도로 가기', 'today'],
-    ['기도의 순례길은 뭐예요?', ['오늘의 기도 화면의 순례길 카드는 기도한 날마다 길을 한 구간씩 걷는 작은 지도예요(처음 길은 아브라함의 길). 하루에 여러 번 기도해도 한 구간이에요.', '며칠 쉬어도 뒤로 가지 않고, 순례자가 길가에서 쉬었다가 기도하면 다시 걸어요. 응답받았어요로 마친 기도는 그날 걷던 길가에 돌로 서요.', '장소에 처음 닿으면 이야기가 한 번 나오고, 길을 다 걸으면 나의 배지가 생겨요. 아브라함의 길을 다 걸으면 광야의 길이, 광야의 길을 다 걸으면 약속의 땅이, 약속의 땅을 다 걸으면 다윗의 길이 이어서 열리고, 순례길 화면 위의 지나온 길 단추로 다 걸은 길을 다시 볼 수 있어요. 나만 보는 노트라 남과 견주지 않아요.'], '오늘의 기도로 가기', 'today'],
-    ['기도의 끈은 뭐예요?', ['오늘의 기도 화면의 끈은 내가 기도하는 사람마다 매듭이 하나씩이에요.', '이번 주(주일부터) 그 사람을 위해 기도하면 매듭이 지어지고, 매주 주일에 새로 시작해요. 더보기에서 사람을 더하면 끈이 생겨요.'], '오늘의 기도로 가기', 'today'],
-    ['돌아보기에서는 무엇을 볼 수 있어요?', ['달마다 기도한 날 달력과 감사·응답, 마친 기도를 볼 수 있어요.', '달력과 감사 아래 지난 기록에는 올해 기도한 날, 기억한 사람, 감사와 응답 기록, 달마다 기도한 날이 모여요. 그 아래 나의 배지에는 노트에서 해 볼 일과 기념일(아브라함의 길 · 광야의 길 · 약속의 땅을 다 걸은 날 포함)이 처음부터 모두 보여요. 해 보면 그 배지에 색이 들어오고, 색이 없는 배지를 누르면 어떻게 하는지 알려 줘요.', '지난 기록 카드 제목 오른쪽의 격자 단추를 누르면 최근 1년 동안 기도한 날을 칸으로 한눈에 볼 수 있어요. 위가 옛날, 아래가 오늘이에요.', '나만 보는 기록이에요. 비어 있는 날이 있어도 괜찮아요.'], '돌아보기 열기', 'look'],
-    ['휴대폰을 바꿔도 이어지게 하려면?', ['코이데 노트는 이 휴대폰에만 있어요. 더보기 › 계정과 동기화에서 동기화를 켜면 로그인한 계정과 비밀번호로 암호화하여 보관해요.', '새 휴대폰에서는 같은 계정으로 로그인한 뒤 더보기 › 계정과 동기화에서 동기화를 켜고 같은 비밀번호를 넣으면 보관한 기록이 합쳐져요.', '비밀번호를 잊을 때를 위해 복구용 낱말도 만들어 두세요. 비밀번호·복구용 낱말을 모두 잃으면 기록을 불러올 수 없어요.'], '계정과 동기화로 가기', 'sync']
+    ['기도제목은 어떻게 써요?', '기도 제목의 "새 기도제목 쓰기" 칸에 한 줄에 하나씩 쓰고, 줄 앞에 "엄마ㅡ"처럼 이름과 ㅡ를 붙이면 그 사람을 위한 기도제목이 돼요. 대상별로 정리하기를 누르고 미리보기에서 괜찮으면 추가하기를 눌러요.', '기도 제목으로 가기', 'note'],
+    ['오늘 기도할 제목은 어떻게 정해져요?', '오늘의 기도 화면에는 오래 기도하지 않은 기도제목부터 하루에 세 개가 나오고, 그날은 바뀌지 않아요. 기도하고 기도했어요를 누르거나, 한 장씩 기도하기로 조용히 넘기며 기도해요.', '오늘의 기도로 가기', 'today'],
+    ['기도의 순례길은 뭐예요?', '오늘의 기도 화면의 순례길 카드는 기도한 날마다 길을 한 구간씩 걷는 작은 지도예요(하루에 여러 번 기도해도 한 구간이에요). 며칠 쉬어도 뒤로 가지 않고, 응답받았어요로 마친 기도는 길가에 돌로 서요. 길을 다 걸으면 나의 배지가 생기고 다음 길(아브라함의 길, 광야의 길, 약속의 땅, 다윗의 길)이 이어서 열려요. 나만 보는 노트라 남과 견주지 않아요.', '오늘의 기도로 가기', 'today'],
+    ['기도의 끈은 뭐예요?', '오늘의 기도 화면의 끈에는 나와 내가 기도하는 사람마다 매듭이 하나씩 있어요. 이번 주(주일부터) 그 사람을 위해 기도하면 매듭이 지어지고, 매주 주일에 새로 시작해요. 더보기 › 내가 기도하는 사람들에서 사람을 더하면 끈이 나타나요.', '오늘의 기도로 가기', 'today'],
+    ['기도를 마치거나 감사를 남기려면?', '기도제목의 마치기를 누르면 "응답받았어요"나 "맡겨 둘게요"로 마칠 수 있고, 마친 기도는 돌아보기에 남아요. 오늘의 기도 화면의 오늘 감사한 것에는 한 줄씩 감사를 남겨요.', '기도 제목으로 가기', 'note'],
+    ['돌아보기에서는 무엇을 볼 수 있어요?', '달마다 기도한 날 달력과 감사·응답, 마친 기도를 볼 수 있어요. 그 아래 지난 기록에는 올해 기도한 모습이, 나의 배지에는 노트에서 해 볼 일과 기념일이 모여요(색이 없는 배지를 누르면 어떻게 하는지 알려 줘요). 지난 기록 오른쪽 격자 단추로는 1년 동안 기도한 날도 한눈에 볼 수 있어요. 나만 보는 기록이라 비어 있는 날이 있어도 괜찮아요.', '돌아보기 열기', 'look'],
+    ['휴대폰을 바꿔도 이어지게 하려면?', '코이데 노트는 먼저 이 휴대폰에 저장돼요. 더보기 › 계정과 동기화에서 동기화를 켜고 비밀번호를 정하면 기록을 암호화해서 보관해요. 새 휴대폰에서는 같은 계정으로 로그인해 동기화를 켜고 같은 비밀번호를 넣으면 기록이 합쳐져요. 비밀번호를 잊을 때를 위해 복구용 낱말도 만들어 두세요. 둘 다 잃으면 기록을 불러올 수 없어요.', '계정과 동기화로 가기', 'sync']
   ];
   // 노트 소개: 교회와 같은 이름·기도 이해를 개인 기록과 동기화에 맞게 설명한다.
   function aboutView() {
@@ -2591,7 +2596,7 @@ button.pg-tag::before { content: ''; position: absolute; inset: -10px; }
     ];
     return `<button class="link" data-a="tab" data-v="more">‹ 더보기</button>
       <div class="na-page">
-        <section class="card na-hero"><span class="na-mark" aria-hidden="true"><svg viewBox="0 0 48 48"><path d="M11 24c4-13 13-18 22-9 7 7 4 17-4 19-8 2-13-5-9-11 4-5 10-1 9 3"/><path d="M37 24c-4 13-13 18-22 9-7-7-4-17 4-19 8-2 13 5 9 11-4 5-10 1-9-3"/></svg></span>
+        <section class="card na-hero"><span class="na-mark" aria-hidden="true">${TOP_ICON.knot}</span>
           <h1>코이데</h1><p class="na-tag">나의 기도가 쌓이는 곳</p>
           <div class="na-words"><span><b>코이노니아</b><i>κοινωνία</i><small>교제</small></span><em>+</em><span><b>데에시스</b><i>δέησις</i><small>간구</small></span></div>
           <p class="na-lead">코이데는 '교제'를 뜻하는 코이노니아와 '간구'를 뜻하는 데에시스에서 영감을 얻은 이름이에요. 하나님께 기도하며, 나와 이웃의 삶을 기억하는 자리가 되길 바라요.</p>
@@ -2610,12 +2615,12 @@ button.pg-tag::before { content: ''; position: absolute; inset: -10px; }
   function helpView() {
     return `<button class="link" data-a="tab" data-v="more" style="align-self:flex-start;margin-bottom:6px">‹ 더보기</button>
       <header class="top"><div><h1>사용법</h1></div></header>
-      <section class="card"><p class="label">처음처럼 따라 해 보기</p><p class="plain">예시로 쓰기와 기도하기를 직접 눌러 보며 한 걸음씩 익혀요. 연습한 것은 지워져요.</p>
+      <section class="card"><p class="label">처음처럼 따라 해 보기</p><p class="plain">예시로 쓰기와 기도하기를 직접 눌러 보며 한 걸음씩 익혀요.</p>
         <button class="btn wide help-go" data-a="guidere">▶ 따라 하기 시작</button></section>
       <section class="card mrows"><p class="label">궁금한 것 찾아보기</p>
-        ${HELP.map(([q, lines, go, to], k) => { const on = S.helpQ === k;
+        ${HELP.map(([q, text, go, to], k) => { const on = S.helpQ === k;
           return `<button class="mrow" data-a="helpq" data-v="${k}" aria-expanded="${on}"><span><b>${q}</b></span><span class="chev" aria-hidden="true">›</span></button>
-            ${on ? `<div class="help-body">${lines.map(t => `<p class="plain">${t}</p>`).join('')}<button class="link" data-a="helpgo" data-v="${to}">${go} ›</button></div>` : ''}`; }).join('')}</section>`;
+            ${on ? `<div class="help-body"><p class="plain">${text}</p><button class="link" data-a="helpgo" data-v="${to}">${go} ›</button></div>` : ''}`; }).join('')}</section>`;
   }
   // 더보기의 '내가 기도하는 사람들' 한 줄(동기화 줄과 같은 모양): 앞 세 사람 이름과 사람 수. 누르면 사람 화면으로 간다
   function peopleRow() {
