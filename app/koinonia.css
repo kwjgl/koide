@@ -83,15 +83,13 @@ h1,h2 {font-family:var(--f-display); line-height:1.45;} h1 {font-size:1.45em; ma
 .switch{border:1px solid var(--line-strong);background:var(--surface-2);border-radius:50px;width:49px;height:28px;display:flex;align-items:center;padding:3px;cursor:pointer}
 .switch span{width:20px;height:20px;border-radius:50%;background:var(--ink-2);transition:transform .15s}.switch.on{background:var(--accent-soft);border-color:var(--accent)}.switch.on span{background:var(--accent);transform:translateX(20px)}
 .seg{display:grid;grid-template-columns:repeat(4,1fr);gap:7px}.seg button{background:var(--surface);border:1px solid var(--line-strong);border-radius:10px;padding:9px 4px;cursor:pointer;font:inherit;min-height:54px}.seg button.on{background:var(--accent-soft);color:var(--accent);border-color:var(--accent)}.seg small{display:block;font-size:.72em;white-space:nowrap;margin-top:3px}
-.sheet-back{position:fixed;inset:0;z-index:35;background:rgba(0,0,0,.36);display:flex;align-items:flex-end;justify-content:center;padding:0;}
-.sheet {background:var(--surface);color:var(--ink);border:1px solid var(--line);border-radius:18px 18px 0 0;width:min(100%,560px);max-height:91vh;overflow-y:auto;padding:24px 18px calc(18px + env(safe-area-inset-bottom,0px));display:flex;flex-direction:column;gap:14px;box-shadow:0 10px 40px var(--shadow);}
 .agree {margin:2px 0 0;padding-left:1.1em;display:flex;flex-direction:column;gap:3px;font-size:.82em;color:var(--ink-2)}.agree li{margin:0}
 .sso-btn{display:flex;align-items:center;justify-content:center;gap:10px;width:100%;}.sso-btn svg{width:24px;height:24px;flex:none}
 .sso-kakao{background:#FEE500;color:#191919;border:1px solid #FEE500}.sso-google{background:white;color:#1f1f1f;border:1px solid #dadce0}.sso-apple{background:black;color:white;border:1px solid black}
 :root[data-mode="dark"] .sso-apple{background:white;color:black;border-color:white}
 .demo-banner{background:var(--accent-soft);color:var(--ink);padding:8px 16px;display:flex;gap:12px;justify-content:center;align-items:center;flex-wrap:wrap;font-size:.84em}
 .error{color:var(--warm);word-break:keep-all}.notice{font-size:.86em;color:var(--ink-2);line-height:1.65}.muted{color:var(--ink-2)}
-@media (min-width: 1000px){.wrap{max-width:900px;padding-top:36px}.sheet-back{align-items:center;padding:24px}.sheet{border-radius:18px}.grid-two{display:grid;grid-template-columns:1fr 1fr;gap:14px}}
+@media (min-width: 1000px){.wrap{max-width:900px;padding-top:36px}.grid-two{display:grid;grid-template-columns:1fr 1fr;gap:14px}}
 
 /* 위쪽 바의 배지 메뉴·화면 설정: 노트(note.html)와 같은 모양 */
 .role-tag { font-size: .93em; padding: .15em .6em; border-radius: 999px; background: var(--surface); color: var(--ink-2); border: 1px solid var(--line); }
@@ -113,3 +111,13 @@ h1,h2 {font-family:var(--f-display); line-height:1.45;} h1 {font-size:1.45em; ma
 .swatch i { width: 28px; height: 28px; border-radius: 50%; display: block; box-shadow: inset 0 0 0 1px rgba(0, 0, 0, .12); }
 .swatch.on { border-color: var(--ink); }
 .topbar .inner { position: relative; }
+
+/* 공동체 만들기는 시트가 아닌, 가운데 폭을 좁힌 한 장짜리 페이지 */
+.create-wrap{max-width:560px;padding-top:22px}
+.create-back{display:inline-flex;align-items:center;min-height:44px;text-decoration:none;margin-bottom:14px}
+.create-wrap .card{gap:14px}
+.create-wrap .card h1{margin-bottom:2px}
+.create-wrap .seg{min-width:0}
+.create-wrap .seg button{min-width:0;font-size:.88em}
+.create-wrap .seg small{white-space:normal;word-break:keep-all;overflow-wrap:normal}
+@media (min-width:1000px){.create-wrap{max-width:560px}}

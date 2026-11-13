@@ -1213,7 +1213,6 @@ button.pg-tag::before { content: ''; position: absolute; inset: -10px; }
   const short = k => { const [, m, d] = k.split('-').map(Number); return `${m}월 ${d}일`; };
   const daysSince = k => Math.max(1, Math.round((new Date(TODAY()) - new Date(k)) / 864e5) + 1);
   const ICON = {
-    bulb: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 17c0-2.5-4-3.6-4-7a7 7 0 0 1 14 0c0 3.4-4 4.5-4 7M9 17h6M10 20h4M10.5 22h3"/></svg>',
     sun: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><circle cx="12" cy="12" r="4"/><path d="M12 2.5v2M12 19.5v2M2.5 12h2M19.5 12h2M5.3 5.3l1.4 1.4M17.3 17.3l1.4 1.4M5.3 18.7l1.4-1.4M17.3 6.7l1.4-1.4"/></svg>',
     grip: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true"><path d="M5 8h14M5 12h14M5 16h14"/></svg>',
     pen: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 20h4L19 9l-4-4L4 16z"/><path d="M14 6l4 4"/></svg>',
@@ -1381,7 +1380,7 @@ button.pg-tag::before { content: ''; position: absolute; inset: -10px; }
       <button class="btn wide" data-a="a2hsoff">알겠어요</button></section></div>`;
   }
   // ── 따라 하기(처음 쓰는 사람, 결정 기록 2026-10-22): 로그인한 뒤 노트를 처음 열었는데 기도제목이 하나도 없는 사람이 열면 저절로 시작한다 ──
-  //  ① 써 보기(내 기도 › 예시 넣어 보기 › 대상별로 정리하기 › 추가하기) ② 기도해 보기(오늘 › 기도했어요) ③ 둘러보기(기도하기·지난 기록·더보기 › 동기화) ④ 이제 직접 써 보세요(쓰기 칸을 비춤). 모양과 움직임은 guide.js(공동체와 같은 틀)
+  //  ① 써 보기(내 기도 › 예시 자동 채우기 › 대상별로 정리하기 › 추가하기) ② 기도해 보기(오늘 › 기도했어요) ③ 둘러보기(기도하기·지난 기록·더보기 › 동기화) ④ 이제 직접 써 보세요(쓰기 칸을 비춤). 모양과 움직임은 guide.js(공동체와 같은 틀)
   //  직접 쓰는 단계는 없다(키보드가 열리지 않게 예시로만 연습). 연습으로 더한 기도제목·사람은 practice 표시를 달고, ④에 들어갈 때 기도 기록과 함께 저절로 지운다(지움 표시 D.gone을 남겨 동기화로 되살아나지 않게)
   //  (2026-10-23) 진짜 노트 위에서 돌리지 않고 따로 연 연습 페이지(?tutorial)에서 돈다: 로그인한 뒤 기도제목이 없고 아직 안 봤으면 그리로 보내고, 마치면 진짜 노트(?tutdone)로 돌아온다.
   //  마쳤는지는 노트 기록(D.guide, 동기화하면 기기 사이에 따라간다)과 서버의 tourDone(공동체에서 마쳤거나 노트에서 마치면 연결된 사람만 적힌다) 둘 다 본다. 옛 GUIDE_KEY도 마친 것으로 센다
@@ -1389,6 +1388,8 @@ button.pg-tag::before { content: ''; position: absolute; inset: -10px; }
   //  연습 페이지가 뜬 뒤 6초 안에 안내가 시작되지 않으면 진짜 노트(?tutdone=fail)로 돌려보내고 마침은 적지 않는다. 이 창에서는 다시 보내지 않는다(sessionStorage koide-note-tut-off: 무한 반복 방지)
   //  하나만 궁금할 때는 더보기 › 사용법(helpView)에서 찾는다. 예전 사용법 카드는 없앴다(결정 기록 2026-10-22)
   const GUIDE_KEY = DEMO_LINK ? 'koide-demo-note-guide' : 'koide-note-guide';
+  // 따라 하기에서만 자동으로 채우는 예시(전구 버튼에서 쓰던 글과 같다).
+  const tutorialSampleText = '회사 일이 바빠도 지치지 않도록\n엄마ㅡ다음 주 수술이 잘 끝나고 회복이 빠르도록\n교회ㅡ새로 온 가정들이 잘 정착하도록\n나라ㅡ재난을 겪은 이웃들이 다시 일어서도록';
   const NoteGuide = (() => {
     let ev = null, timer = 0, leaving = false;
     const tutOff = () => { try { return !!sessionStorage.getItem('koide-note-tut-off'); } catch (e) { return false; } };
@@ -1413,15 +1414,13 @@ button.pg-tag::before { content: ''; position: absolute; inset: -10px; }
     const cord = () => document.querySelector('.cord');
     const steps = () => {
       const onNote = () => S.tab === 'note' && $('#it-text');
-      // 예시가 칸에 들어갔는지(빈 칸이거나 'ㅡ'만 있으면 아니다)
-      const canSplit = () => { const t = $('#it-text'); return !!t && splitNote(t.value).length > 0; };
       return [
         // ① 써 보기: 글 칸은 비추지 않는다(직접 쓰지 않으니 키보드가 열리지 않는다)
         { mode: 'tap', target: () => tabBtn('note'), before: () => { if (S.tab !== 'today') goTab('today'); }, text: '여기서 기도제목을 써요. 기도 제목을 눌러 보세요.' },
-        { mode: 'tap', target: () => $('[data-a=sample]'), wait: onNote, done: () => ev.sample && canSplit(),
-          text: '예시로 연습해 볼게요. 전구 기호(예시 넣어 보기)를 눌러요.' },
-        { mode: 'tap', target: () => [$('#it-text'), $('[data-a=split]')], inert: () => $('#it-text'), wait: onNote, skip: () => !!S.preview, done: () => !!S.preview, text: '예시가 들어갔어요. 대상별로 정리하기를 눌러요.',
-          bounce: () => S.preview || canSplit() ? '' : '전구 기호를 먼저 눌러요.' },
+        { mode: 'tap', target: () => [$('#it-text'), $('[data-a=split]')], inert: () => $('#it-text'), wait: onNote,
+          before: () => { if (TUT && ev && !ev.sample) { S.draft = tutorialSampleText; S.preview = null; ev.sample = true; render(); } },
+          skip: () => !!S.preview, done: () => !!S.preview,
+          text: '예시를 넣어 두었어요. 대상별로 정리하기를 눌러요.' },
         { mode: 'tap', target: () => $('.preview'), wait: () => S.tab === 'note' && S.preview, done: () => ev.added, back: () => !S.preview && !ev.added,
           text: '대상별로 정리됐네요. 추가하기를 눌러 보세요.' },
         // 추가한 뒤 어떻게 들어갔는지 먼저 보여 준다(기도제목마다 카드 하나, 위의 대상 칩으로 걸러 볼 수 있음)
@@ -1481,7 +1480,6 @@ button.pg-tag::before { content: ''; position: absolute; inset: -10px; }
       // 연습 페이지에서 안내가 한 번이라도 시작됐거나 마치고 돌아가는 중인지(안 시작됐으면 비상구가 진짜 노트로 돌려보낸다)
       begun: () => !!ev || leaving,
       // 눌러 보며 한 일을 기억한다(앱의 누름 처리가 부른다)
-      sample() { if (ev && KoideGuide.running()) ev.sample = true; },
       // 연습으로 더한 줄에 practice 표시를 달아 준다(추가하기가 부른다). 안내 중이고 예시에서 나온 줄이면 true
       add(parts) { if (ev && KoideGuide.running() && ev.sample) { ev.added = true; return true; } return false; },
       pray(on) { if (ev && KoideGuide.running() && on) ev.prayed = true; }
@@ -2201,7 +2199,7 @@ button.pg-tag::before { content: ''; position: absolute; inset: -10px; }
     const P = S.preview;
     const form = `<section class="card"><label class="label" for="it-text">새 기도제목 쓰기</label>
       <textarea class="field" id="it-text" maxlength="3000" rows="4" placeholder="예)&#10;회사 일이 바빠도 지치지 않도록&#10;엄마ㅡ수술이 잘 끝나도록&#10;교회ㅡ새로 온 가정들이 잘 정착하도록">${esc(S.draft || '')}</textarea>
-        <div class="row" style="justify-content:flex-start"><button class="btn" data-a="split">대상별로 정리하기</button><button class="icon-btn" style="min-width:40px;min-height:40px" data-a="sample" aria-label="예시 넣어 보기" title="예시 넣어 보기">${ICON.bulb}</button></div>
+        <div class="row" style="justify-content:flex-start"><button class="btn" data-a="split">대상별로 정리하기</button></div>
         ${P ? `<div class="preview">
           ${P.map((x, k) => `<div class="prev-row"><select class="prev-t" data-k="${k}" aria-label="대상">${prevTargets(x.target).map(([t, n]) => `<option value="${esc(t)}"${t === x.target ? ' selected' : ''}>${esc(n)}</option>`).join('')}</select><p>${esc(x.text)}</p><button class="link quiet" data-a="prevrm" data-v="${k}" aria-label="이 항목 빼기">×</button></div>`).join('')}
           <div class="row" style="justify-content:flex-start"><button class="btn" data-a="addparts">추가하기</button><button class="btn ghost" data-a="unsplit">다시 쓰기</button></div></div>` : ''}</section>`;
@@ -2750,9 +2748,9 @@ button.pg-tag::before { content: ''; position: absolute; inset: -10px; }
     const t = String(x.target || '').trim();
     return [person(x.who), t && t !== '나' ? '(' + t + ') ' + x.text : x.text];
   }
-  function mvGo() {
-    const M = S.mv; if (!M || !M.list) return;
-    const made = [], pick = M.list.filter((_, i) => M.sel[i]); let n = 0, skip = 0;
+  // 노트에서 직접 고르거나 공동체에서 고른 제목을 받아도 같은 규칙으로 저장한다.
+  function mvAddItems(pick) {
+    const made = []; let n = 0, skip = 0;
     pick.forEach(x => {
       const [target, text] = mvTarget(x, made);
       if (D.items.some(i => i.target === target && i.text === text)) { skip++; return; }
@@ -2762,6 +2760,12 @@ button.pg-tag::before { content: ''; position: absolute; inset: -10px; }
     save(); S.mv = null;
     toast(`${n}개를 노트에 옮겼어요` + (skip ? ` · 같은 글 ${skip}개는 건너뛰었어요` : '') + (made.length ? ` · 새 사람 ${made.join(', ')}` : ''));
   }
+  function mvGo() {
+    const M = S.mv; if (!M || !M.list) return;
+    const pick = M.list.filter((_, i) => M.sel[i]);
+    if (!pick.length) return;
+    mvAddItems(pick);
+  }
   function mvSheet() {
     const M = S.mv; if (!M) return '';
     const head = `<h2 id="mv-t">코이데 노트로 옮기기</h2>`;
@@ -2770,8 +2774,8 @@ button.pg-tag::before { content: ''; position: absolute; inset: -10px; }
     const n = Object.keys(M.sel).filter(k => M.sel[k]).length;
     return `<div class="sheet-back" data-a="mvclose"><section class="sheet" role="dialog" aria-modal="true" aria-labelledby="mv-t" data-stop>${head}
       <p class="plain"><b>${esc(M.name)}</b>${M.left != null ? ' · ' + koidePlaces.dday(M) : ''}${M.endsAt ? ' (' + dayLabel(M.endsAt) + '까지)' : ''}</p>
-      <p class="hint">${String(M.id || '').startsWith('c:') ? '남기고 싶은 기도제목을 골라 이 휴대폰의 노트에 옮겨요. 공동체의 글은 그대로 남아요. 노트에 같은 글이 이미 있으면 건너뛰어요.' : '모임은 끝나는 날에 기록과 함께 사라져요. 남기고 싶은 기도제목을 골라 이 휴대폰의 노트에 옮겨요. 모임의 글은 그대로 남아요. 노트에 같은 글이 이미 있으면 건너뛰어요.'}</p>
-      ${M.list.length ? `<div class="row" style="justify-content:flex-start;gap:12px"><button class="link quiet" data-a="mvall" data-v="1">모두 고르기</button><button class="link quiet" data-a="mvall" data-v="0">모두 빼기</button></div>
+      <p class="hint">남기고 싶은 기도제목을 골라 코이데 노트로 옮길 수 있어요.</p>
+      ${M.list.length ? `<div class="row" style="justify-content:flex-start;gap:12px"><button class="link quiet" data-a="mvall" data-v="1">전체 선택</button><button class="link quiet" data-a="mvall" data-v="0">전체 해제</button></div>
       ${by.map(g => `<p class="label" style="margin:.4em 0 0">${g.own ? '내 기도제목' : esc(g.who) + ' 님의 기도제목'}</p>${g.rows.map(([x, i]) => `<button class="mrow" role="checkbox" aria-checked="${!!M.sel[i]}" data-a="mvtog" data-v="${i}"><span><b>${M.sel[i] ? '☑' : '☐'} ${esc(x.text)}</b><small>${esc(x.target && x.target !== '나' ? x.target + ' · ' : '')}${esc(x.month || '')}</small></span></button>`).join('')}`).join('')}`
         : '<p class="hint">옮길 기도제목이 아직 없어요.</p>'}
       <div class="row" style="justify-content:flex-end;gap:8px"><button class="btn ghost" data-a="mvclose">닫기</button>${M.list.length ? `<button class="btn" data-a="mvgo"${n ? '' : ' disabled'}>${n}개 옮기기</button>` : ''}</div></section></div>`;
@@ -3238,7 +3242,6 @@ button.pg-tag::before { content: ''; position: absolute; inset: -10px; }
       case 'split': { S.draft = $('#it-text').value; const parts = splitNote(S.draft); if (!parts.length) { toast('내용을 적어 주세요.'); return $('#it-text').focus(); } S.preview = parts; return render(); }
       case 'unsplit': S.preview = null; return render();
       case 'prevrm': S.preview.splice(Number(v), 1); if (!S.preview.length) S.preview = null; return render();
-      case 'sample': S.draft = '회사 일이 바빠도 지치지 않도록\n엄마ㅡ다음 주 수술이 잘 끝나고 회복이 빠르도록\n교회ㅡ새로 온 가정들이 잘 정착하도록\n나라ㅡ재난을 겪은 이웃들이 다시 일어서도록'; S.preview = null; NoteGuide.sample(); return render();
       case 'addparts': {
         // 새 사람(처음 나온 이름표)은 내가 기도하는 사람에 더하고, 항목을 차례대로 내 기도에 넣는다
         const made = {}, parts = S.preview || [];
@@ -3534,8 +3537,26 @@ button.pg-tag::before { content: ''; position: absolute; inset: -10px; }
   if (!QUIET && !getToken() && !sbReady()) { if (window.koideSpace) window.koideSpace.going('community'); location.replace('index.html' + QS); return; }
   // 공동체의 '함께하는 곳' 메뉴에서 '+ 모임 만들기'로 오면(?new) 더보기 › 내 모임의 만들기 창을 바로 연다
   { const q = new URLSearchParams(location.search); if (q.has('new')) { location.replace('koinonia.html' + (DEMO ? '?demo&new' : '?new')); } }
-  // 모임 화면의 '내 기도 노트로 옮기기'로 오면(?move=모임ID) 옮길 기도제목 고르는 창을 바로 연다
-  { const q = new URLSearchParams(location.search), mid = q.get('move'); if (mid) { q.delete('move'); history.replaceState(null, '', location.pathname + (q.toString() ? '?' + q.toString().replace(/=(&|$)/g, '$1') : '')); if (!SC) setTimeout(() => mvOpen(mid), 0); } }
+  // 공동체에서 골라 전달한 제목은 노트에 바로 저장한다. 임시 자료가 없으면 옛 고르기 창을 연다.
+  { const q = new URLSearchParams(location.search), mid = q.get('move'), picked = q.has('pick');
+    if (mid) {
+      q.delete('move'); q.delete('pick');
+      history.replaceState(null, '', location.pathname + (q.toString() ? '?' + q.toString().replace(/=(&|$)/g, '$1') : ''));
+      let pack = null;
+      if (picked) {
+        try {
+          pack = JSON.parse(sessionStorage.getItem('koide-move-pick') || 'null');
+          sessionStorage.removeItem('koide-move-pick');
+        } catch (e) { pack = null; }
+      }
+      if (!SC) setTimeout(() => {
+        if (pack && pack.id === mid && Array.isArray(pack.items) && pack.items.length) {
+          S.tab = 'note';
+          mvAddItems(pack.items);
+        } else mvOpen(mid);
+      }, 0);
+    }
+  }
   // 공동체 목록에서 돌아오면 더보기의 공동체 카드로 바로 간다.
   if (location.hash === '#my-groups') {
     S.tab = 'more';
