@@ -1,5 +1,5 @@
 // 시작 화면(공동체 index.html과 기도 노트 note.html이 함께 쓴다). <body> 맨 앞에서 불러, 화면이 그려지기 전에 고른다.
-//  ① 앱을 새로 켰을 때(이번 창에서 처음): 코이데 시작 화면(매듭이 지어지고 "코이데"). 마지막에 기도 노트를 쓰다 껐으면 기도 노트로 바로 간다
+//  ① 앱을 새로 켰을 때(이번 창에서 처음): 코이데 시작 화면(매듭이 지어지고 "코이데"). 마지막에 기도 노트나 코이데 공동체를 쓰다 껐으면 그곳으로 바로 간다
 //  ② 공동체 ↔ 기도 노트를 오갈 때: 가는 곳의 전환 화면(기도 노트 / 공동체). 짧게 보여 준다
 //  ③ 같은 곳을 다시 열 때(새로고침, 카카오 로그인을 다녀옴 등): 시작 화면 없이
 //  ④ 자율 모임으로 들어갈 때(기도 노트의 '내 모임', 함께하는 곳 메뉴): 모임 전환 화면(수틀에 실이 걸림 · 모임 이름). 모임 자료가 올 때까지 계속 보인다
@@ -29,7 +29,7 @@
     document.documentElement.classList.remove('booting');
     return;
   }
-  const SPACE_KEY = demo ? 'koide-demo-space' : 'koide-space', LAST = 'koide-last-space', TOKEN = demo ? 'koide-demo-token' : 'koide-token';
+  const SPACE_KEY = demo ? 'koide-demo-space' : 'koide-space', LAST_CIRCLE = demo ? 'koide-demo-last-circle' : 'koide-last-circle', LAST = 'koide-last-space', TOKEN = demo ? 'koide-demo-token' : 'koide-token';
   const get = (st, k) => { try { return st.getItem(k); } catch (e) { return null; } };
   const set = (st, k, v) => { try { st.setItem(k, v); } catch (e) { /* 이번만 */ } };
   // 이 화면이 어느 곳인지: 공동체 화면이라도 기도 노트의 '내 모임'에서 연 모임(?grp=)은 기도 노트 쪽이다
@@ -41,6 +41,14 @@
   if (!prev && page === 'community' && !special && get(localStorage, SPACE_KEY) === 'note' && (get(localStorage, TOKEN) || get(localStorage, 'koide-note-sbh')) && !get(localStorage, 'koide-share')) {
     location.replace('note.html' + (demo ? '?demo' : '')); return;
   }
+  // 공동체는 여러 곳일 수 있어 마지막으로 연 공동체 ID도 함께 기억한다.
+  // 로그인 상태와 ID가 유효할 때만 자동으로 돌아가고, ?c= 직접 연 링크는 건드리지 않는다.
+  const lastCircle = get(localStorage, LAST_CIRCLE);
+  if (!prev && page === 'community' && !special && get(localStorage, SPACE_KEY) === 'koinonia'
+      && lastCircle && /^[\w-]{1,64}$/.test(lastCircle)
+      && (demo || get(localStorage, 'koide-note-sb'))) {
+    location.replace('index.html' + (demo ? '?demo&c=' : '?c=') + encodeURIComponent(lastCircle)); return;
+  }
   // 기도 노트에서 모임 화면(?grp=)을 열면 모임 전환 화면. 모임 이름(gn)과 남은 날(gl)을 알고 넘어왔으면 바로 보여 준다
   const mode = !prev ? 'main' : page === 'community' && q.has('grp') ? 'group' : prev !== space ? 'switch' : 'quiet';
   set(sessionStorage, LAST, space);
@@ -48,7 +56,7 @@
     // 다른 곳으로 바로 넘길 때(예: 혼자 시작한 사람을 기도 노트로) 전환 화면이 두 번 나오지 않게 미리 적어 둔다
     going: s => set(sessionStorage, LAST, s),
     // 마지막에 쓴 곳: 화면이 실제로 그 곳을 보여 줄 때 적는다
-    used: s => set(localStorage, SPACE_KEY, s)
+    used: (s, id) => { set(localStorage, SPACE_KEY, s); if (s === 'koinonia' && id && /^[\w-]{1,64}$/.test(id)) set(localStorage, LAST_CIRCLE, id); }
   };
   const css = `.splash { position: fixed; inset: 0; z-index: 60; background: var(--page); display: flex; flex-direction: column; align-items: center; justify-content: center; gap: .5em; padding: 24px; text-align: center; transition: opacity .25s ease-out; }
 .splash.out { opacity: 0; pointer-events: none; }
