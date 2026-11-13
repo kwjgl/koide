@@ -134,14 +134,15 @@ window.koideCommunityApi = (() => {
       case 'sendFeedback':
         return rpc('feedback_put',{p_kind:body.kind,p_text:body.text,p_named:!!body.named,p_ver:body.ver||'',p_width:body.width||''});
       case 'usage': return {kept:true,n:0};
-      case 'tourDone': return {ok:true};
+      case 'tourDone': await rpc('tour_mark').catch(() => {}); return {ok:true};
+      case 'tourSeen': return {seen:!!(await rpc('tour_seen'))};
       case 'surveyState': return {survey:body.survey||{}};
       default: throw unsupported();
     }
   }
   async function call(body) {
     try {
-      if (!body || !body.grp && !['usage','tourDone','surveyState','sendFeedback'].includes(body.action)) return unsupported();
+      if (!body || !body.grp && !['usage','tourDone','tourSeen','surveyState','sendFeedback'].includes(body.action)) return unsupported();
       return {ok:true,data:await handle(body)};
     } catch(e) {
       if (e && e.ok===false) return e;

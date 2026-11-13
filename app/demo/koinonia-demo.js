@@ -211,6 +211,8 @@ window.koideKoinoniaDemo = (() => {
     const d=read();let c,m,n;
     ensure(d);
     switch(name) {
+      case 'tour_seen': return !!d.tour;
+      case 'tour_mark': d.tour = true; save(d); return true;
       case 'community_status':
         c=room(d,a.p_id);accessible(c);return status(c);
       case 'community_leave':{

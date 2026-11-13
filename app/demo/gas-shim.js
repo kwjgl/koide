@@ -76,8 +76,11 @@
   function addTutor() {
     if ((db['가정'] || []).some(r => r[0] === 'FT')) return;
     const today = Utilities.formatDate(new Date(), 'Asia/Seoul', 'yyyy-MM-dd');
-    append_('families', { id: 'FT', name: '류다윗 · 윤마리아', kids: '', status: '활동', admin: '' });
-    append_('roster', { year: termNow_(deptOfRoom_('R1').id), roomId: 'R1', familyId: 'FT', role: '회원' });
+    // 공동체에서 온 연습은 개인 단위인 청년부 1순에 둬서 '사람/나'로 안내한다.
+    const fromCircle = new URLSearchParams(location.search).has('from');
+    const roomId = fromCircle ? 'R3' : 'R1';
+    append_('families', { id: 'FT', name: fromCircle ? '류다윗' : '류다윗 · 윤마리아', kids: '', status: '활동', admin: '' });
+    append_('roster', { year: termNow_(deptOfRoom_(roomId).id), roomId, familyId: 'FT', role: '회원' });
     db['연결'].push(['d-연습', DEMO_NICK['연습'], 'FT', '류다윗', '연결', today, '데모', today]);
     save();
   }

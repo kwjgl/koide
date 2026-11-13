@@ -1312,6 +1312,7 @@ try { const p = JSON.parse(localStorage.getItem('koide-pref') || '{}'), d = docu
 <script>
 (function () {
   const CFG = window.KOIDE_CONFIG || {};
+  const INTRO_VIDEO_ON = false; // 소개 영상이 지금 화면과 달라서 진입점만 숨김(2026-11-13). 다시 켜려면 true
   // ?c=가 있을 때만 교회 화면을 새 코이데 공동체의 데이터로 연다.
   const KOINONIA_ID = new URLSearchParams(location.search).get('c');
   const KOINONIA = !!KOINONIA_ID;
@@ -1320,6 +1321,8 @@ try { const p = JSON.parse(localStorage.getItem('koide-pref') || '{}'), d = docu
   //  ?demo로 연 데모는 실제 앱과 같은 주소라서, 로그인·화면 기억을 따로 둬서 실제 로그인을 건드리지 않는다
   //  따라 하기 연습 페이지(?tutorial)도 데모 서버를 쓴다: 연습한 것이 진짜 데이터에 섞이지 않고, 서버와 이야기하지 않는다
   const TUT = new URLSearchParams(location.search).has('tutorial');
+  const fromCircle = new URLSearchParams(location.search).get('from');
+  const TUT_FROM = TUT && fromCircle && /^[\w-]{1,64}$/.test(fromCircle) ? fromCircle : '';
   const DEMO_LINK = KOINONIA ? KOINONIA_DEMO : !!CFG.API_URL && new URLSearchParams(location.search).has('demo'), DEMO = KOINONIA ? KOINONIA_DEMO : !CFG.API_URL || DEMO_LINK || TUT;
   // 장면 모드(?as=사람&at=화면, 데모에서만): 그 사람으로 바로 들어가 그 화면을 연다. 화면 지도(demo/map.html)가 쓴다.
   //  이 창의 localStorage는 splash.js가 메모리 판으로 바꿔 놓아서, 로그인·화면 기억이 다른 창과 섞이지 않는다.
@@ -1333,7 +1336,8 @@ try { const p = JSON.parse(localStorage.getItem('koide-pref') || '{}'), d = docu
   // 연습 페이지를 열지 못했을 때(데모 서버 코드를 못 받음, 연습 회원 로그인 실패): 진짜 앱으로 돌아간다. 이 창에서는 다시 보내지 않게 표시를 남긴다(무한 반복 방지)
   function tutFail() {
     try { sessionStorage.setItem('koide-tut-off', '1'); } catch (e) { /* 표시를 못 남겨도 돌아간다 */ }
-    location.replace('index.html?tutdone=fail' + (DEMO_LINK ? '&demo' : ''));
+    const to = TUT_FROM ? 'index.html?' + (DEMO_LINK ? 'demo&' : '') + 'c=' + encodeURIComponent(TUT_FROM) + '&tutdone=fail' : 'index.html?tutdone=fail' + (DEMO_LINK ? '&demo' : '');
+    location.replace(to);
   }
   const $ = s => document.querySelector(s);
   const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
@@ -1485,6 +1489,9 @@ try { const p = JSON.parse(localStorage.getItem('koide-pref') || '{}'), d = docu
 
   // ── 시작: 카카오에서 돌아왔으면(code) 로그인부터, 아니면 내 상태를 확인 ──
   async function boot() {
+    // 교회·공동체 모두 연습에서 돌아온 표시를 화면을 열기 전에 읽는다.
+    const returnQ = new URLSearchParams(location.search);
+    if (returnQ.has('tutdone')) { TUTDONE = returnQ.get('tutdone') || 'done'; returnQ.delete('tutdone'); history.replaceState(null, '', location.pathname + (returnQ.toString() ? '?' + returnQ.toString().replace(/=(&|$)/g, '$1') : '')); }
     if (KOINONIA) {
       if (!KOINONIA_DEMO) {
         if (CFG.COMMUNITY !== 'on' || !window.KoideSb || !window.KoideSb.ready()) {
@@ -1497,8 +1504,28 @@ try { const p = JSON.parse(localStorage.getItem('koide-pref') || '{}'), d = docu
       S.view = 'app';
       S.me = {groups:[],ops:{depts:[]}};
       await enterGroup(KOINONIA_ID);
-      if (!S.month) return;
+      if (!S.month) {
+        // 인터넷이 잠깐 안 되거나(net) 늦거나(slow) 로그인이 풀린(login) 때는 다음에 다시 열 수 있게 기억을 남긴다.
+        // 사라졌거나 접근할 수 없는 공동체만 다음 실행 때 자동으로 열지 않는다.
+        const code = S.err && S.err.code;
+        if (!['net', 'slow', 'login'].includes(code)) {
+          try {
+            localStorage.removeItem(KOINONIA_DEMO ? 'koide-demo-last-circle' : 'koide-last-circle');
+            localStorage.setItem(KOINONIA_DEMO ? 'koide-demo-space' : 'koide-space', 'community');
+          } catch (e) { /* 저장소 접근이 막혔으면 이번 오류 화면만 보여 준다 */ }
+        }
+        return;
+      }
       S.me = {...S.me,...S.month.me,groups:[],ops:{depts:[]}};
+      if (personSeen()) { circleTourStatus = 'ready'; }
+      else {
+        // 서버 답을 기다리지 않고 화면을 먼저 그린다. 답이 오면 다시 그리며 자동 시작 여부를 본다.
+        // 인터넷이 안 되면(net) 이번 자동 시작은 건너뛰고, SQL 함수가 아직 없는 등 그 밖의 오류는 기기 기록만으로 판단한다.
+        circleTourStatus = 'pending';
+        api('tourSeen').then(data => { if (data && data.seen) setPersonSeen(); circleTourStatus = 'ready'; })
+          .catch(e => { circleTourStatus = e && e.code === 'net' ? 'offline' : 'ready'; })
+          .finally(() => { if (S.view === 'app') render(); });
+      }
       const at = new URLSearchParams(location.search).get('at');
       if (KOINONIA_DEMO && ['home','mine','pray','history','more'].includes(at)) {
         S.tab = at;
@@ -1516,8 +1543,7 @@ try { const p = JSON.parse(localStorage.getItem('koide-pref') || '{}'), d = docu
       $('#demo').hidden = QUIET; $('#demo').innerHTML = '데모 모드 · 지어낸 예시 데이터예요 ' + demoPicker() + '<button data-act="demoreset">데모 데이터 지우기</button>' + (DEMO_LINK ? ' · <a href="./">실제 앱으로</a>' : '');
     }
     const q = new URLSearchParams(location.search);
-    // 연습 페이지에서 돌아오면(?tutdone=…) 마침을 적을 준비만 하고 주소에서 지운다. 적는 일은 이번 달 화면이 뜬 뒤(TourC.maybe)
-    if (q.has('tutdone')) { TUTDONE = q.get('tutdone') || 'done'; q.delete('tutdone'); history.replaceState(null, '', location.pathname + (q.toString() ? '?' + q.toString().replace(/=(&|$)/g, '$1') : '')); }
+
     // 초대 링크: 카카오 로그인을 다녀와도 남게 기기에 적어 두고 주소에서 뺀다
     // 기도 노트의 '내 모임'에서 모임을 열면 ?grp=모임ID로 온다(한 번만 쓴다)
     if (q.get('grp')) { GOPEN = q.get('grp'); q.delete('grp'); q.delete('gn'); q.delete('gl'); history.replaceState(null, '', location.pathname + (q.toString() ? '?' + q.toString().replace(/=(&|$)/g, '$1') : '')); }
@@ -1727,20 +1753,32 @@ try { const p = JSON.parse(localStorage.getItem('koide-pref') || '{}'), d = docu
   //  마쳤는지는 서버가 사람마다 기억하고(me.tourDone), 서버가 옛 버전이면 이 기기에만 적어 둔다(GUIDE_KEY). 교역자는 이번에는 안 나온다.
   //  더보기 › 따라 하기 다시 하기는 기도제목이 있어도, 마쳤어도 연다(마침은 다시 적지 않아도 같다)
   const GUIDE_KEY = () => TOUR_KEY().replace('koide-tour', 'koide-guide');
+  const PERSON_TOUR_KEY = KOINONIA_DEMO || DEMO_LINK ? 'koide-demo-tour-seen' : 'koide-tour-seen';
+  // 공동체는 기기와 서버의 완료 기록을 함께 확인한다. 서버에 닿지 않으면 자동 시작하지 않는다.
+  let circleTourStatus = 'pending';
+  const personSeen = () => { try {
+    if (localStorage.getItem(PERSON_TOUR_KEY) || localStorage.getItem(KOINONIA_DEMO || DEMO_LINK ? 'koide-demo-note-guide' : 'koide-note-guide') || localStorage.getItem(GUIDE_KEY())) return true;
+    // 이전 교회 안내를 마친 기록도 인정해 공동체마다 새로 시작하지 않게 한다.
+    for (let i = 0; i < localStorage.length; i++) { const key = localStorage.key(i); if (key && key.startsWith('koide-guide:') && localStorage.getItem(key)) return true; }
+    return false;
+  } catch (e) { return true; } };
+  const setPersonSeen = () => { try { localStorage.setItem(PERSON_TOUR_KEY, new Date().toISOString().slice(0, 10)); } catch (e) { /* 이번 기기만 */ } };
   // 따라 하기 전용 예시: 예전 '예시 넣어 보기' 버튼에서 쓰던 글을 그대로 채운다.
   const tutorialSampleText = () => solo() ? '나ㅡ졸업 논문 마감이 다가와요. 지치지 않고 끝까지 잘 마무리하도록\n\n가족ㅡ할머니가 다음 주에 수술을 받으세요. 수술이 잘 끝나고 회복이 빠르도록\n\n친구ㅡ교회에 처음 나온 친구가 공동체에 잘 적응하도록'
           : '형제ㅡ연말이라 회사 일이 몰려서 마음에 여유가 없어요. 지치지 않고 지혜롭게 마무리할 수 있도록 기도해 주세요.\n\n자매ㅡ다음 주에 복직 준비 교육을 마쳐요. 끝까지 건강하게 마치고, 복직 전까지 쉼이 있는 시간을 보낼 수 있도록\n\n' + (mineFam().kids[0] || '아이') + 'ㅡ감기가 2주째 이어지고 있어요. 빨리 낫고 다시 즐겁게 지내도록\n\n함께- 시댁 식구들이 하나님을 믿을 수 있도록';
   const TourC = (() => {
     let ev = null, timer = 0, leaving = false;
     // 둘러볼 수 있는 회원인지: 가정에 연결된 회원 화면(교역자·운영·모임 화면은 아니다)
-    const can = () => !SC && S.view === 'app' && !S.op && !S.grp && !!S.month && !!S.month.me && !S.month.me.staff && !!S.month.me.familyId && !!mineFam();
+    const can = () => !SC && S.view === 'app' && !S.op && (KOINONIA || !S.grp) && !!S.month && !!S.month.me && !S.month.me.staff && !!S.month.me.familyId && !!mineFam() && (!KOINONIA || (!!S.month.group && S.month.group.canWrite !== false && !S.month.closed));
     const done = () => {
       if (S.month.me.tourDone === true) return true;
+      if (KOINONIA && (circleTourStatus !== 'ready' || personSeen())) return true;
       try { return !!localStorage.getItem(GUIDE_KEY()); } catch (e) { return true; }
     };
     // 연습 페이지에서 돌아오면(?tutdone) 마침을 적는다(how: 'done' 끝까지, 'skip' 이미 써 봤어요)
     function markDone(how) {
       try { localStorage.setItem(GUIDE_KEY(), new Date().toISOString().slice(0, 10)); } catch (e) { /* 이번만 */ }
+      setPersonSeen();
       if (S.month && S.month.me && typeof S.month.me.tourDone === 'boolean') S.month.me.tourDone = true;
       // 옛 서버는 모르는 요청이라 bad로 답한다. 그래도 기기에는 적어 뒀으니 조용히 넘어간다
       api('tourDone').catch(() => { /* 서버가 옛 버전이거나 잠깐 안 됨: 이 기기에서는 다시 안 나온다 */ });
@@ -1750,12 +1788,12 @@ try { const p = JSON.parse(localStorage.getItem('koide-pref') || '{}'), d = docu
     //  저절로 보낼 때(auto)는 replace: 방문 기록에 마치지 않은 이번 달 화면을 남기면 연습 중 '뒤로 가기'가 그리로 돌아가 다시 끌려온다. 더보기에서 누를 때는 href로 충분하다
     const goTutorial = auto => {
       track('따라 하기 시작', { again: auto !== true });
-      if (window.koideSpace) window.koideSpace.going('community');
-      const to = 'index.html?tutorial' + (DEMO_LINK ? '&demo' : '');
+      if (window.koideSpace) window.koideSpace.going(KOINONIA ? 'koinonia' : 'community');
+      const to = 'index.html?tutorial' + (KOINONIA ? '&from=' + encodeURIComponent(KOINONIA_ID) : '') + (DEMO_LINK ? '&demo' : '');
       if (auto === true) location.replace(to); else location.href = to;
     };
     // 연습 페이지에서 진짜 앱으로 돌아간다(how: 'done' | 'skip'). 마침은 돌아간 쪽이 적는다
-    const back = how => { leaving = true; location.replace('index.html?tutdone' + (how === 'skip' ? '=skip' : '') + (DEMO_LINK ? '&demo' : '')); };
+    const back = how => { leaving = true; const q = 'tutdone' + (how === 'skip' ? '=skip' : ''); location.replace(TUT_FROM ? 'index.html?' + (DEMO_LINK ? 'demo&' : '') + 'c=' + encodeURIComponent(TUT_FROM) + '&' + q : 'index.html?' + q + (DEMO_LINK ? '&demo' : '')); };
     // 누를 탭: 휴대폰은 아래 탭, 넓은 화면은 위 메뉴
     const tabBtn = k => [...document.querySelectorAll(`#tabs [data-v="${k}"], .topnav [data-v="${k}"]`)].find(b => b.offsetWidth > 0);
     const goTab = k => { const b = document.createElement('button'); b.dataset.act = 'tab'; b.dataset.v = k; document.body.appendChild(b); b.click(); b.remove(); };
@@ -1844,10 +1882,10 @@ try { const p = JSON.parse(localStorage.getItem('koide-pref') || '{}'), d = docu
         return;
       }
       // 기억해 둔 화면을 보여 주는 중(서버의 최신을 받기 전)에는 시작하지 않는다: 다른 기기에서 이미 마쳤을 수 있다
-      if (timer || leaving || S.stale || KoideGuide.running() || !can()) return;
+      if (timer || leaving || S.stale || KoideGuide.running() || !can() || (KOINONIA && circleTourStatus !== 'ready')) return;
       if (S.tab !== 'home' || S.ps || S.meet != null || S.a2hs || document.documentElement.classList.contains('booting')) return;
       if (TUT) { timer = setTimeout(() => { timer = 0; if (S.tab === 'home' && !S.ps && !leaving && can() && !KoideGuide.running()) start(false); }, 700); return; }
-      if (waiting || done() || mineFam().items.length || tutOff()) return;
+      if (waiting || done() || mineFam().items.length || tutOff() || QUIET) return;
       timer = setTimeout(() => { timer = 0; if (S.tab === 'home' && !S.ps && !S.a2hs && can() && !done() && !mineFam().items.length && !tutOff()) goTutorial(true); }, 700);
     }
     return {
@@ -1871,14 +1909,11 @@ try { const p = JSON.parse(localStorage.getItem('koide-pref') || '{}'), d = docu
     if (S.op) { const t = S.tab === 'church' ? ['church', '교회 전체 화면이에요. 부서마다 할 일과 앱 상태를 보고, 부서 카드를 누르면 그 부서의 관리 화면으로 가요. 기도제목 내용은 보이지 않아요.'] : ['ops', '부서 관리 화면이에요. 편성, 연결, 개편, 앱 상태를 다루고, 기도제목 내용은 보이지 않아요.']; return tipsSeen()[t[0]] ? null : t; }
     // 자율 모임: 처음 연 모임 화면, 모임장은 처음 연 모임 더보기(초대·승인하는 곳)
     if (S.grp) {
+      if (KOINONIA) return null; // 공동체의 첫 안내는 따라 하기가 맡는다.
       const G = S.month.group || {}, lead = !!G.lead;
       // 새 코이데 공동체: 노트의 '내 모임'이 아니라 공동체 목록·더보기에서 초대하고 승인한다
       if (KOINONIA && G.canWrite === false) return null;
-      const GT = KOINONIA ? {
-        home: lead ? ['k-lead', '모임장이 되었어요. 더보기에서 초대 링크를 복사해 카톡으로 보내면 신청이 와요. 신청은 이 공동체의 더보기에서 승인해요.']
-          : ['k-member', '이 공동체의 화면이에요. 이번 달, 내 기도, 기도하기가 모두 이 공동체 것이에요. 위쪽 배지에서 다른 공동체로 옮겨 갈 수 있어요.'],
-        more: lead ? ['k-more', '초대 링크를 받은 사람이 신청해요. 링크가 엉뚱한 곳에 퍼졌으면 새 링크를 만들어요. 신청을 승인하거나 함께하는 사람을 내보낼 수 있어요.'] : null
-      } : {
+      const GT = {
         home: lead ? ['grp-lead', '모임장이 되었어요. 더보기 › 초대 링크 복사로 카톡에 보내면 신청이 와요. 신청이 오면 코이데 노트 › 내 모임에 "신청"으로 보이고, 이 모임의 더보기에서 승인해요. 이번 달·내 기도·기도하기가 모두 이 모임 것이에요.']
           : ['grp', `이 모임의 화면이에요. 이번 달·내 기도·기도하기가 모두 이 모임 것이고, 기도제목은 ${esc(gj('과/와'))} 따로 써요. 위쪽 배지를 누르면 내 ${esc(gj('으로/로'))} 돌아가요.`],
         more: lead ? ['grp-more', '초대 링크는 교회에 연결된 회원만 신청할 수 있어요. 링크가 엉뚱한 곳에 퍼졌으면 새 링크를 만들어요. 신청을 승인하거나, 함께하는 사람을 내보낼 수 있어요. 한 모임은 12명까지예요. 모임은 끝나는 날에 기록과 함께 사라지니, 남기고 싶은 기도제목은 코이데 노트로 옮겨 두세요.'] : null
@@ -1978,7 +2013,7 @@ try { const p = JSON.parse(localStorage.getItem('koide-pref') || '{}'), d = docu
           <p class="hint">데모 모드에서는 카카오 대신 이 버튼으로 사람을 골라 들어가요.</p>`
         : `<button class="kakao" data-act="login">${ICON.bubble}카카오로 시작하기</button>
           <p class="hint wl-once">${HUB && lsGet(APPADMIN) ? '앱 관리자 보기는 카카오로 한 번 더 로그인해요.' : '처음 한 번만 로그인하면 돼요.<br>초대 링크를 받았다면 그 링크로 열어 주세요.'}</p>${HUB && lsGet(APPADMIN) ? '<button class="link" data-act="aaback">앱으로 돌아가기</button>' : ''}${frontDoor() && lsGet(DOOR) ? '<button class="link" data-act="tonote">‹ 코이데 노트로 시작하기</button>' : ''}${iosSafari() ? '<p class="hint">아이폰에서 \'접속 정보를 확인해 주세요\'가 나오면, 카톡 채팅방에서 이 링크를 눌러 열거나 설정 → iCloud → 비공개 릴레이를 끄고 다시 해 주세요.</p>' : ''}`}
-        <button class="btn ghost wl-play" data-act="ividw"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M8 5.5v13l10.5-6.5z" fill="currentColor"/></svg>코이데 소개 영상</button>
+        ${INTRO_VIDEO_ON ? '<button class="btn ghost wl-play" data-act="ividw"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M8 5.5v13l10.5-6.5z" fill="currentColor"/></svg>코이데 소개 영상</button>' : ''}
       </section>
       <ul class="wl-feat">
         <li><span class="wl-ico">${ICON.people}</span><div><b>기도제목을 나눠요</b><span>달마다 기도제목을 올리고, 우리 공동체의 기도제목을 한곳에서 봐요.</span></div></li>
@@ -3657,7 +3692,7 @@ try { const p = JSON.parse(localStorage.getItem('koide-pref') || '{}'), d = docu
       <section class="card ab-hero">
         <span class="ab-mark" aria-hidden="true">${ICON.knot}</span>
         <h1>코이데</h1><p class="ab-tag">나의 기도가 쌓이는 곳</p>
-        <button class="btn ab-play" data-act="ivid"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M8 5.5v13l10.5-6.5z" fill="currentColor"/></svg>영상으로 보기</button>
+        ${INTRO_VIDEO_ON ? '<button class="btn ab-play" data-act="ivid"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M8 5.5v13l10.5-6.5z" fill="currentColor"/></svg>영상으로 보기</button>' : ''}
         <div class="ab-words" aria-hidden="true"><span><b>코이노니아</b><i>κοινωνία</i><small>교제</small></span><em>+</em><span><b>데에시스</b><i>δέησις</i><small>간구</small></span></div>
         <p class="ab-lead">코이데는 '교제'를 뜻하는 코이노니아(κοινωνία, koinōnia)와 '간구'를 뜻하는 데에시스(δέησις, deēsis)에서 영감을 얻은 이름입니다. 서로의 기도를 나누고, 함께 기도하는 공동체를 뜻합니다. 우리를 잇는 끈은 성령의 교통하심(코이노니아)입니다.</p>
         <p class="hint">"성령의 교통하심" · 고린도후서 13:13</p>
@@ -4195,7 +4230,7 @@ try { const p = JSON.parse(localStorage.getItem('koide-pref') || '{}'), d = docu
       GWAIT = false; S.grp = keep; if (!keep) { S.month = S.home; S.home = null; }
       const msg = e.code === 'bad' && !KOINONIA ? '서버를 새 버전으로 배포하면 모임을 열 수 있어요.' : e.message;
       // 보여 줄 공동체 화면이 아직 없으면(기도 노트에서 바로 열었을 때) 오류 안내 화면으로
-      if (!S.month) { S.view = 'error'; S.err = { message: msg }; return render(); }
+      if (!S.month) { S.view = 'error'; S.err = { message: msg, code: e && e.code }; return render(); }
       toast(msg); return render();
     }
     finally { clearTimeout(timer); }
@@ -5196,7 +5231,7 @@ try { const p = JSON.parse(localStorage.getItem('koide-pref') || '{}'), d = docu
     if (app && !S.op && !S.grp && S.month && S.month.me) KOIDE_SURVEY.adopt(S.month.me.survey);
     if (S.view !== 'loading' && !GWAIT) hideSplash();
     // 마지막에 쓴 곳: 다시 켤 때 그곳으로 시작한다(모임 화면은 기도 노트의 '내 모임'에서 여는 곳이라 기도 노트로)
-    if (app && window.koideSpace) window.koideSpace.used(KOINONIA ? 'koinonia' : S.grp ? 'note' : 'community');
+    if (app && window.koideSpace) window.koideSpace.used(KOINONIA ? 'koinonia' : S.grp ? 'note' : 'community', KOINONIA ? KOINONIA_ID : undefined);
     if (app && !S.op && !S.grp) writeCache();
     // 관리(교회 전체·운영) 화면은 더보기 안의 하위 화면이다. 내 가정이 있으면 탭을 그대로 두고, 관리만 맡은 사람(가정 없음)은 감춘다
     $('#tabs').hidden = !app || (!!S.op && !S.home);
