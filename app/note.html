@@ -468,6 +468,12 @@ html.kg-on body.hide-bars .topbar, html.kg-on body.hide-bars .tabs { transform: 
 .na-n{display:grid;place-items:center;width:1.8em;height:1.8em;border-radius:50%;background:var(--accent-soft);color:var(--accent);font-size:.9em;font-weight:700}
 .na-keep{list-style:none;margin:0;padding:0}.na-keep li{display:grid;grid-template-columns:minmax(6em,36%) 1fr;gap:.7em;padding:.7em 0;border-top:1px solid var(--line);font-size:.92em;line-height:1.65;word-break:keep-all}
 .na-keep li:first-child{border-top:0;padding-top:0}.na-keep b{color:var(--accent)}
+/* 코이데 소개 맨 위 영상(첫 화면 영상과 같은 파일). 가로로 눕힌 둥근 칸이라 위쪽 손·노트가 보이게 아래쪽을 맞춘다(object-position). 꾸미는 영상이라 글은 없다 */
+.na-film{position:relative;overflow:hidden;border-radius:16px;border:1px solid var(--line);aspect-ratio:4/3;background:radial-gradient(circle at 50% 46%,var(--surface) 0,var(--accent-soft) 72%)}
+.na-film video,.na-film .na-film-poster{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;object-position:50% 72%}
+.na-film video{opacity:0;transition:opacity .8s ease}.na-film video.on{opacity:1}
+@media(min-width:900px){.na-film{aspect-ratio:16/10;width:100%;max-width:640px;margin-inline:auto}}
+@media (prefers-reduced-motion:reduce){.na-film video{transition:none}}
 /* 더보기: 작은 제목 아래에 카드와 줄로 묶는다(공동체 더보기와 같은 짜임) */
 .more-h { font-size: .8em; font-weight: 600; color: var(--ink-2); margin: 24px 4px 8px; line-height: 1.2; letter-spacing: .02em; }
 .mrows { padding-top: 4px; padding-bottom: 4px; gap: 0; }
@@ -1202,6 +1208,35 @@ button.pg-tag::before { content: ''; position: absolute; inset: -10px; }
     v.addEventListener('error', () => v.remove());                // 못 불러오면 대체 화면(포스터)이 그대로 남는다
     wlEl.appendChild(v);
     v.src = LOGIN_FILM.src; v.play().catch(() => {});
+  }
+  // ── 코이데 소개 맨 위 영상. 첫 화면 영상(wlFilm)과 같은 파일(LOGIN_FILM)·같은 절약 규칙(wlLite)을 쓴다.
+  //  render()가 #root를 통째로 다시 그려도 영상 요소는 하나를 계속 쓴다(그릴 때마다 빈 칸 .na-film을 이 요소로 바꿔 끼운다). 소개 화면을 떠나면 받기를 멈추고 지운다
+  let afEl = null, afBound = false;
+  const afVideo = () => afEl && afEl.querySelector('video');
+  function afOff() {
+    if (!afEl) return;
+    const v = afVideo(); if (v) { v.pause(); v.removeAttribute('src'); v.load(); }
+    afEl.remove(); afEl = null;
+  }
+  function afMount() {
+    const ph = S.tab === 'about' && $('#root .na-film');
+    if (!ph || !LOGIN_FILM) return afOff();
+    if (!afBound) { afBound = true; document.addEventListener('visibilitychange', () => { const v = afVideo(); if (!v) return; if (document.hidden) v.pause(); else if (!wlLite()) v.play().catch(() => {}); }); }
+    if (!afEl) {
+      afEl = document.createElement('div'); afEl.className = 'na-film'; afEl.setAttribute('aria-hidden', 'true');
+      if (LOGIN_FILM.poster) { const im = new Image(); im.className = 'na-film-poster'; im.alt = ''; im.onerror = () => im.remove(); im.src = LOGIN_FILM.poster; afEl.appendChild(im); }
+      if (!wlLite()) { // 움직임 줄이기·데이터 절약: 영상은 받지 않고 포스터 한 장만
+        const v = document.createElement('video');
+        v.muted = true; v.loop = true; v.autoplay = true; v.playsInline = true; v.preload = 'none'; v.tabIndex = -1; v.disablePictureInPicture = true;
+        v.setAttribute('muted', ''); v.setAttribute('playsinline', ''); v.setAttribute('aria-hidden', 'true');
+        if (LOGIN_FILM.poster) v.poster = LOGIN_FILM.poster;
+        v.addEventListener('playing', () => v.classList.add('on'));
+        v.addEventListener('error', () => v.remove());
+        afEl.appendChild(v); v.src = LOGIN_FILM.src;
+      }
+    }
+    ph.replaceWith(afEl);
+    const v = afVideo(); if (v && v.paused && !document.hidden && !wlLite()) v.play().catch(() => {}); // 다시 끼우는 동안 멈췄으면 이어서
   }
   async function deriveKey(pass, salt) {
     const base = await crypto.subtle.importKey('raw', te.encode(pass), 'PBKDF2', false, ['deriveKey']);
@@ -2674,6 +2709,7 @@ button.pg-tag::before { content: ''; position: absolute; inset: -10px; }
     ];
     return `<button class="link" data-a="tab" data-v="more">‹ 더보기</button>
       <div class="na-page">
+        <div class="na-film" aria-hidden="true"></div>
         <section class="card na-hero"><span class="na-mark" aria-hidden="true">${TOP_ICON.knot}</span>
           <h1>코이데</h1><p class="na-tag">나의 기도가 쌓이는 곳</p>
           <div class="na-words"><span><b>코이노니아</b><i>κοινωνία</i><small>교제</small></span><em>+</em><span><b>데에시스</b><i>δέησις</i><small>간구</small></span></div>
@@ -3272,7 +3308,7 @@ button.pg-tag::before { content: ''; position: absolute; inset: -10px; }
   }
   function render() {
     // 앞문: 교회 로그인도 Supabase 로그인도 없는 첫 방문은 환영 화면만(노트 화면·아래 탭 없이)
-    if (welcomeOn()) { if (!S.wl) welcomeInit(); $('#root').innerHTML = welcomeView(); wlFilm(true); return; }
+    if (welcomeOn()) { if (!S.wl) welcomeInit(); $('#root').innerHTML = welcomeView(); afOff(); wlFilm(true); return; }
     wlFilm(false);
     if (S.tab !== 'weaves') S.wopen = null;
     if (vtCur && S.ps) vtCur.skipTransition();   // 기도하기 창처럼 화면 전체를 덮는 창이 뜨면 넘기기를 바로 끝낸다
@@ -3291,6 +3327,7 @@ button.pg-tag::before { content: ''; position: absolute; inset: -10px; }
     if (S.cordNew) { document.querySelectorAll('.cord-seg.pull animate').forEach(a => { try { a.beginElement(); } catch (e) { /* 무시 */ } }); S.cordNew = null; }
     playTapFx();
     mount3d();
+    afMount();
     mountPilgrim();
     pilotBand();
     NoteGuide.maybe();
