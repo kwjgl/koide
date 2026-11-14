@@ -175,7 +175,7 @@ h2 { font-family: var(--f-display); font-size: 1.15em; margin: 0; }
 .acct-logo svg { width: 16px; height: 16px; }
 .wl-church { margin-bottom: 0; }
 @media (min-width: 860px) {
-  /* 두 칸: 왼쪽 절반에 로그인(세로 가운데), 오른쪽 절반은 영상 칸(.wl-film, body에 따로 붙는 고정 요소) */
+  /* 두 칸: 왼쪽 절반에 로그인(세로 가운데), 오른쪽 절반 가운데에 3:4 세로 영상 카드(.wl-film, body에 따로 붙는 고정 요소) */
   .welcome { width: 50%; max-width: none; margin: 0; min-height: 100vh; min-height: 100dvh; display: flex; flex-direction: column; justify-content: center; align-items: center; padding: 32px clamp(24px, 4vw, 64px); }
   .welcome > section { width: 100%; max-width: 26rem; }
   .wl-hero { align-items: center; text-align: center; padding-top: 0; }
@@ -185,7 +185,7 @@ h2 { font-family: var(--f-display); font-size: 1.15em; margin: 0; }
    디다코·탈리오에도 이 블록과 아래 wlFilm 함수를 그대로 복사해 쓸 수 있다(매듭 그림만 그 앱 것으로) */
 .wl-film { display: none; }
 @media (min-width: 860px) {
-  .wl-film { display: block; position: fixed; top: 16px; right: 16px; bottom: 16px; width: calc(50% - 24px); z-index: 1; border-radius: 28px; overflow: hidden; border: 1px solid var(--line); background: radial-gradient(circle at 50% 46%, var(--surface) 0, var(--accent-soft) 72%); }
+  .wl-film { display: block; position: fixed; top: 50%; right: calc(25% - var(--wl-film-w) / 2); transform: translateY(-50%); --wl-film-w: min(calc(50% - 64px), calc((100vh - 48px) * 3 / 4), 560px); width: var(--wl-film-w); aspect-ratio: 3 / 4; z-index: 1; border-radius: 28px; overflow: hidden; border: 1px solid var(--line); background: radial-gradient(circle at 50% 46%, var(--surface) 0, var(--accent-soft) 72%); }
   .wl-film-fb { position: absolute; inset: 0; display: grid; place-items: center; }
   .wl-film-mark { position: relative; width: clamp(120px, 16vw, 200px); aspect-ratio: 1; border-radius: 50%; background: var(--accent); color: var(--on-accent); display: grid; place-items: center; animation: wl-breathe 9s ease-in-out infinite; }
   .wl-film-mark svg { width: 60%; height: 60%; fill: none; stroke: currentColor; stroke-width: 1.4; stroke-linecap: round; stroke-linejoin: round; overflow: visible; }
@@ -1145,8 +1145,8 @@ button.pg-tag::before { content: ''; position: absolute; inset: -10px; }
     S.wl.list = await sbProviders(); render();
   }
   // ── 첫 화면 오른쪽 영상 칸(860px 이상만). 다른 앱에 복사할 때는 TOP_ICON.knot(대체 화면의 매듭 그림)만 그 앱 것으로 바꾼다
-  // 영상 파일이 생기면 LOGIN_FILM에 경로를 적는다(poster는 있을 때만). 모바일에서는 만들지도, 받지도 않는다
-  const LOGIN_FILM = null; // 영상을 넣은 뒤: { src: 'img/login-film.mp4', poster: 'img/login-film.jpg' }
+  // LOGIN_FILM에 영상 경로를 적는다(poster는 있을 때만). 모바일에서는 만들지도, 받지도 않는다
+  const LOGIN_FILM = { src: 'img/login-film.mp4', poster: 'img/login-film.jpg' }; // 3:4 세로 영상(720×960, 소리 없음). 파일이 없으면 null로 두면 매듭 대체 화면만 보인다
   const wlWide = window.matchMedia('(min-width: 860px)'), wlCalm = window.matchMedia('(prefers-reduced-motion: reduce)');
   let wlEl = null, wlBound = false;
   function wlVideo() { return wlEl && wlEl.querySelector('video'); }
