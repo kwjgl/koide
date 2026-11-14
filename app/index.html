@@ -1148,7 +1148,8 @@ body.pop-open { overflow: hidden; }
 .ch-todo { font-size: .76em; font-weight: 600; color: var(--warn); background: var(--warn-soft); border-radius: 999px; padding: .15em .6em; }
 .ch-todo.warn { color: var(--ink-2); background: var(--surface-2); }
 /* 앱 관리자 보기: 카드는 넓으면 나란히, 숫자는 네 칸, 더하기는 점선 칸 */
-.aa-sum { color: var(--ink-2); font-size: .9em; margin: 2px 0 14px; }
+.aa-h { margin: 18px 4px 8px; }
+.aa-h:first-of-type { margin-top: 4px; }
 .aa-grid { display: grid; gap: 14px; grid-template-columns: repeat(auto-fill, minmax(min(100%, 320px), 1fr)); align-items: start; }
 .aa-card, .aa-form { margin: 0; gap: .85em; }
 .aa-card.stopped { opacity: .65; }
@@ -1161,7 +1162,15 @@ body.pop-open { overflow: hidden; }
 .aa-stats div { background: var(--surface-2); border-radius: 10px; padding: .55em .3em; text-align: center; min-width: 0; }
 .aa-stats dt { font-size: .7em; color: var(--ink-2); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .aa-stats dd { margin: .1em 0 0; font-weight: 600; font-size: 1.15em; font-variant-numeric: tabular-nums; }
+/* 관리 화면 맨 위 요약 띠(교회 전체·부서 관리·앱 관리자): 앱 관리자 카드의 숫자 칸과 같은 모양. 합계만 보이고, 이름이 길면 두 줄로 */
+.sum-band { margin: 2px 0 14px; }
+.sum-band.n3 { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+.sum-band dt { white-space: normal; word-break: keep-all; line-height: 1.3; }
+.sum-band div { background: var(--surface); }
+.page-top + .sum-band { margin-top: 10px; }
 .aa-err { margin: 0; font-size: .85em; color: var(--warn); }
+.aa-look { margin: 0; padding-left: 1.1em; font-size: .85em; color: var(--warn); }
+.aa-look li { margin: .1em 0; }
 .aa-ver { margin: 0; font-size: .78em; color: var(--ink-2); }
 .aa-ver:empty { display: none; }
 .aa-add { display: flex; align-items: center; justify-content: center; gap: .4em; min-height: 150px; border: 1.5px dashed var(--line-strong); border-radius: 16px; background: transparent; color: var(--accent); font: inherit; font-weight: 600; cursor: pointer; }
@@ -1178,6 +1187,7 @@ body.pop-open { overflow: hidden; }
 .fold-body > .row:first-child:empty { display: none; }
 .ops-fold { padding: .8em 0; }
 .ops-fold .ops-rows { margin-top: .6em; }
+.ops-fold .fold-body { padding: .6em 0 0; }
 .more-out { align-self: center; margin: 4px auto 8px; display: block; }
 .badge-dot { position: absolute; top: 2px; right: 2px; width: 8px; height: 8px; border-radius: 50%; background: var(--warn); }
 .mitem.on span { font-weight: 700; }
@@ -1428,7 +1438,7 @@ try { const p = JSON.parse(localStorage.getItem('koide-pref') || '{}'), d = docu
   }
   // 앱 관리자 보기(?appadmin): 기본 서버로 로그인한 앱 관리자만. 교회마다 서버 상태와 숫자만 본다
   async function openAppAdmin() {
-    lsSet(APPADMIN, null); S.aa = null; S.aaEdit = null; S.aaLink = null; S.view = 'appadmin'; render(); window.scrollTo(0, 0);
+    lsSet(APPADMIN, null); S.aa = null; S.aaEdit = null; S.aaLink = null; S.aaBusy = false; S.view = 'appadmin'; render(); window.scrollTo(0, 0);
     try { S.aa = await hubApi('admin'); } catch (e) { if (e.code === 'login') return; S.aa = { err: e.message }; }
     render();
   }
@@ -2124,10 +2134,12 @@ try { const p = JSON.parse(localStorage.getItem('koide-pref') || '{}'), d = docu
       <p class="hint">초대 링크를 받았다면 그 링크로 열면 소그룹이 미리 골라져 있어요.</p>`,
     // 앱 관리자 보기: 교회(와 테스트 공간)마다 코드, 서버 상태와 숫자. 이름·기도제목은 오지 않는다. 넓은 화면에서는 카드가 나란히, 더하기는 카드 옆 점선 칸
     appadmin: () => {
-      const A = S.aa, back = '<button class="link" data-act="aaback">앱으로 돌아가기</button>';
-      const head = `<div class="page-top"><div><p class="eyebrow">앱 관리자</p><h1>교회 전체 보기</h1></div>${A && !A.err ? back : ''}</div>`;
+      // 제목은 '모든 교회'(교회 관리자의 '교회 전체'와 헷갈리지 않게). 돌아가기는 다른 관리 화면처럼 제목 위, 다시 불러오기는 제목 오른쪽
+      const A = S.aa, back = `<button class="link back" data-act="aaback">${ICON.chevL}앱으로 돌아가기</button>`;
+      const reload = A && !A.err ? `<button class="link" data-act="aareload" ${S.aaBusy ? 'disabled aria-busy="true"' : ''}>${S.aaBusy ? '불러오는 중…' : '다시 불러오기'}</button>` : '';
+      const head = `${back}<div class="page-top"><div><p class="eyebrow">앱 관리자</p><h1>모든 교회</h1></div>${reload}</div>`;
       if (!A) return head + '<p class="loading">교회 서버들에 묻는 중…</p>';
-      if (A.err) return `${head}<p class="hint">${esc(A.err)}</p>${back}`;
+      if (A.err) return `${head}<p class="hint">${esc(A.err)}</p>`;
       const E = S.aaEdit;
       // 더하기·고치기 칸(기본 서버의 교회 탭에 적는다). 이름표는 처음에만 정한다. 저장이 안 되면 쓰던 값(E.draft)을 그대로 둔다
       const form = (c = {}) => { const v = (E && E.draft) || c; return `<form class="card plain-form aa-form" data-form="aasave">
@@ -2153,11 +2165,15 @@ try { const p = JSON.parse(localStorage.getItem('koide-pref') || '{}'), d = docu
         return `<div class="aa-link"><p class="label" style="margin:0">첫 관리자 초대 링크</p><code>${esc(K.link)}</code>
           <div class="actions"><button class="btn small" data-act="aacopy">복사</button><button class="link quiet" data-act="aainvite" data-v="">닫기</button></div>
           <p class="hint">${esc(K.until)}까지 한 번 쓸 수 있어요. 받은 사람이 이 링크로 열고 카카오로 로그인하면 이 교회의 교회 관리자가 돼요.</p></div>`; };
-      const card = c => { const st = c.status, dst = c.didakoStatus, old = st && String(st.version).slice(0, 10) < NEED_SERVER, bad = !st || old || (st && st.errors) || (c.didako && (!dst || dst.errors));
+      const isBad = c => { const st = c.status, dst = c.didakoStatus; return !!(!st || (st && String(st.version).slice(0, 10) < NEED_SERVER) || (st && st.errors) || (c.didako && (!dst || dst.errors))); };
+      const card = c => { const st = c.status, dst = c.didakoStatus, old = st && String(st.version).slice(0, 10) < NEED_SERVER, bad = isBad(c);
         if (E && E.orig === c.id) return form(c);
+        // 살펴볼 것: 점 색만으로는 왜 주황인지 모르니 글로도. 아래 알약·오류 글에 이미 나오는 것(서버 못 물음, 새 버전 배포, 디다코 못 물음)은 겹쳐 쓰지 않는다
+        const look = [st && st.errors ? `최근 7일 오류 ${esc(st.errors)}번` : '', c.didako && dst && dst.errors ? `디다코 서버 최근 7일 오류 ${esc(dst.errors)}번` : ''].filter(Boolean);
         return `<section class="card aa-card${c.stopped ? ' stopped' : ''}">
           <div class="aa-head"><span class="ops-dot${bad ? ' bad' : ''}" title="${bad ? '살펴볼 것이 있어요' : '잘 이어져 있어요'}"></span><b>${esc(c.name)}</b>${c.kind === '테스트' ? '<span class="own-tag">테스트</span>' : ''}${c.stopped ? '<span class="own-tag">멈춤</span>' : ''}<button class="link" data-act="aaedit" data-v="${esc(c.id)}">고치기</button></div>
           <div class="aa-codes">${String(c.codes || '').split(',').map(x => x.trim()).filter(Boolean).map(x => `<span class="aa-code">${esc(x)}</span>`).join('') || '<span class="hint">코드 없음</span>'}</div>
+          ${look.length ? `<ul class="aa-look" aria-label="살펴볼 것">${look.map(x => `<li>${x}</li>`).join('')}</ul>` : ''}
           ${st ? `<dl class="aa-stats">${stat('부서', st.depts)}${stat('연결', st.linked)}${stat('코드로 온 사람', c.came)}${stat('7일 오류', st.errors)}</dl>` : `<p class="aa-err">서버에 묻지 못했어요 · ${esc(c.err)}</p>`}
           ${(st && st.asks) || old || (st && !st.opened) || (st && st.auto) ? `<div class="ch-todos">${st && st.asks ? `<span class="ch-todo">승인 기다림 ${st.asks}</span>` : ''}${old ? '<span class="ch-todo">새 버전으로 배포 필요</span>' : ''}${st && !st.opened ? '<span class="ch-todo warn">이번 달 기도제목 아직 없음</span>' : ''}${st && st.auto ? '<span class="ch-todo warn">승인 없이 바로 연결</span>' : ''}</div>` : ''}
           <p class="aa-ver">${st ? '서버 ' + esc(st.version) : ''}${c.memo ? (st ? ' · ' : '') + esc(c.memo) : ''}</p>
@@ -2165,10 +2181,13 @@ try { const p = JSON.parse(localStorage.getItem('koide-pref') || '{}'), d = docu
           ${inv(c)}
           <div class="aa-acts">${here(c) ? '<span class="own-tag">이 기기가 쓰는 교회</span>' : `<button class="btn small ghost" data-act="aaenter" data-v="${esc(c.id)}" ${S.busy ? 'disabled' : ''}>이 교회로 들어가기</button>`}
             ${S.aaLink && S.aaLink.id === c.id ? '' : `<button class="link" data-act="aainvite" data-v="${esc(c.id)}">첫 관리자 초대 링크</button>`}</div></section>`; };
+      // 요약 띠(합계만)와 묶음: 교회 · 테스트 공간 · 멈춘 곳(맨 아래). 묶음 안은 서버가 준 순서 그대로. 더하기 칸은 맨 끝에 하나
       const L = A.churches, nT = L.filter(c => c.kind === '테스트').length, came = L.reduce((n, c) => n + (c.came || 0), 0);
+      const add = E && !E.orig ? form() : '<button class="aa-add" data-act="aaedit" data-v="new"><span aria-hidden="true">+</span> 교회·테스트 공간 더하기</button>';
+      const groups = [['교회', L.filter(c => !c.stopped && c.kind !== '테스트')], ['테스트 공간', L.filter(c => !c.stopped && c.kind === '테스트')], ['멈춘 곳', L.filter(c => c.stopped)]].filter(g => g[1].length);
       return `${head}
-        <p class="aa-sum">교회 ${L.length - nT}곳 · 테스트 공간 ${nT}곳 · 코드로 들어온 사람 ${came}명</p>
-        <div class="aa-grid">${L.map(card).join('')}${E && !E.orig ? form() : '<button class="aa-add" data-act="aaedit" data-v="new"><span aria-hidden="true">+</span> 교회·테스트 공간 더하기</button>'}</div>
+        ${sumBand([['교회', L.length - nT], ['테스트 공간', nT], ['코드로 들어온 사람', came], ['살펴볼 곳', L.filter(c => !c.stopped && isBad(c)).length]])}
+        ${groups.map(([h, list], i) => `<p class="more-h aa-h">${h}</p><div class="aa-grid">${list.map(card).join('')}${i === groups.length - 1 ? add : ''}</div>`).join('') || `<div class="aa-grid">${add}</div>`}
         <p class="hint aa-foot">기본 서버 ${esc(A.version)} · 내 카카오ID ${esc(A.me)}</p>`;
     },
     dept: () => `${steps(1)}<p class="eyebrow">처음 한 번만 확인할게요</p><h1>어느 부서인가요?</h1>
@@ -3967,9 +3986,14 @@ try { const p = JSON.parse(localStorage.getItem('koide-pref') || '{}'), d = docu
     const seg = `<div class="seg2 admin-seg" role="tablist" aria-label="관리 화면">${[['manage', '관리'], ['analysis', '분석']].map(([k, l]) => `<button class="${tab === k ? 'on' : ''}" role="tab" aria-selected="${tab === k}" data-act="admintab" data-v="${k}">${l}</button>`).join('')}</div>`;
     const head = `${S.op ? (S.month.me.all ? `<button class="link back" data-act="church">${ICON.chevL}교회 전체</button>` : S.home ? `<button class="link back" data-act="tab" data-v="more">${ICON.chevL}더보기</button>` : '') : `<button class="link back" data-act="tab" data-v="more">${ICON.chevL}더보기</button>`}
       <div class="page-top"><div><p class="eyebrow">${S.month.dept && S.month.dept.name ? esc(S.month.dept.name) : '관리자'}${S.op ? (S.month.me.all ? ' · 교회 관리자' : ' · 운영 지원') : ''}${S.op && S.month.dept.closed ? ' · 닫힌 부서' : ''}</p><h1>${tab === 'analysis' ? '분석' : '관리'}</h1></div></div>${seg}`;
+    // 요약 띠: 편성(S.rost)과 승인 대기(S.pending)로만 센다. 연결은 연결된 분이 한 분이라도 있는 가정(사람) 수(교회 전체의 '연결'과 같은 셈). 편성 자료에 연결 수가 없으면 그 칸은 뺀다
+    const R0 = S.rost && !S.rost.err ? S.rost : null, ppl = R0 ? R0.rooms.reduce((a, r) => a.concat(r.people || []), []) : [];
+    const hasLink = !R0 || ppl.some(p => typeof p.linked === 'number');
+    const band = sumBand([[esc(grp()), R0 ? R0.rooms.length : null], [solo() ? '사람' : '가정', R0 ? ppl.length : null],
+      hasLink ? ['연결', R0 ? ppl.filter(p => p.linked > 0).length : null] : null, ['승인 대기', S.pending ? S.pending.requests.length : null]]);
     if (CHURCHSB) {
       const P = S.pending, O = S.ops, reqs = P ? P.requests : [], I = O && O.invites;
-      return `${head.replace(/<div class="seg2 admin-seg"[\s\S]*<\/div>\s*$/, '')}
+      return `${head.replace(/<div class="seg2 admin-seg"[\s\S]*<\/div>\s*$/, '')}${band}
       <div class="two-col"><div class="col">
         ${reqs.length ? `<p class="more-h">할 일</p>${reqCard()}` : ''}
         <p class="more-h">편성</p>${rosterCard()}
@@ -3982,7 +4006,13 @@ try { const p = JSON.parse(localStorage.getItem('koide-pref') || '{}'), d = docu
     if (tab === 'analysis') return head + analysisView();
     // 관리 탭(더보기처럼 묶음): 왼쪽은 할 일과 소그룹과 사람, 오른쪽은 묶음마다 한 줄씩 접어 둔 메뉴(누르면 그 자리에서 펼침)
     const P = S.pending, O = S.ops, reqs = P ? P.requests : [];
-    const todo = [reqs.length ? reqCard() : '', opsProblems().length ? opsCard() : '', privacyN() ? privacyCard() : '', fbNew() ? feedbackCard() : ''].join('');
+    // 할 일: 연결 신청은 펼친 채, 개인정보 요청과 새 의견은 개수가 달린 한 줄 메뉴로 묶는다(누르면 그 자리에서 펼침). 접는 키는 오른쪽 '앱과 요청'과 같다(둘이 함께 나오지 않는다)
+    const pv = O && O.privacy, nf = fbNew();
+    const todoRows = [
+      privacyN() ? fold('privacy', `개인정보 요청 <span class="ops-n">${privacyN()}</span>`, [pv.requests.length ? `지워 달라는 요청 ${pv.requests.length}` : '', pv.due.length ? `지울 날이 된 기록 ${pv.due.length}` : ''].filter(Boolean).join(' · '), privacyCard()) : '',
+      nf ? fold('feedback', `의견함 <span class="ops-n">${nf}</span>`, `새 의견 ${nf}${O.feedback.length > nf ? ` · 받은 의견 ${O.feedback.length}` : ''}`, feedbackCard()) : ''
+    ].join('');
+    const todo = [reqs.length ? reqCard() : '', opsProblems().length ? opsCard() : '', todoRows ? `<section class="card mrows folds">${todoRows}</section>` : ''].join('');
     const L = (O && O.opsList) || S.month.opsList, I = O && O.invites, R = S.rgData;
     const staffN = P && P.staff ? P.staff.length : null;
     const rows = {
@@ -4006,13 +4036,18 @@ try { const p = JSON.parse(localStorage.getItem('koide-pref') || '{}'), d = docu
       ]
     };
     const sec = (h, list) => { const x = list.filter(Boolean).join(''); return x ? `<p class="more-h">${h}</p><section class="card mrows folds">${x}</section>` : ''; };
-    return `${head}
+    return `${head}${band}
       <div class="two-col"><div class="col">
         <p class="more-h">할 일</p>${todo || `<section class="card"><p class="hint" style="margin:0">${P && O ? '지금 할 일이 없어요.' : '불러오는 중…'}</p></section>`}
         <p class="more-h">편성</p>${rosterCard()}
       </div><div class="col side">
         ${sec('사람', rows.people)}${sec('앱과 요청', rows.ops)}${sec('설정', rows.set)}
       </div></div>`;
+  }
+  // 관리 화면 맨 위 요약 띠: [이름, 숫자]를 칸마다. 합계만 보이고 비교·순위는 없다. 아직 안 온 값은 '–'
+  function sumBand(cells) {
+    const L = cells.filter(Boolean);
+    return `<dl class="aa-stats sum-band${L.length === 3 ? ' n3' : ''}">${L.map(([l, n]) => `<div><dt>${l}</dt><dd>${n === null || n === undefined ? '–' : n}</dd></div>`).join('')}</dl>`;
   }
   // 관리 탭의 한 줄 메뉴: 누르면 그 자리에서 내용이 펼쳐진다. 내용은 원래 카드에서 바깥 틀과 제목을 뺀 것
   const foldInner = html => html.replace(/^\s*<section[^>]*>/, '').replace(/<\/section>\s*$/, '').replace(/<h2>[\s\S]*?<\/h2>/, '');
@@ -4151,18 +4186,35 @@ try { const p = JSON.parse(localStorage.getItem('koide-pref') || '{}'), d = docu
         <span class="row"><b>${esc(d.name)}</b>${d.closed ? '<span class="own-tag">닫음</span>' : ''}${ICON.chevR}</span>
         <small>${esc(d.group)} ${d.rooms}곳 · ${d.n}${d.unit === '개인' ? '명' : '가정'} · 연결 ${d.linked}${d.closed ? ' · ' + esc(d.closedAt.slice(5).replace('-', '/')) + ' 닫음' : ''}</small>
         <span class="ch-todos">${pill(d.asks, '연결 신청')}${pill(d.privacy, '개인정보')}${pill(d.feedback, '새 의견')}${!d.closed && !d.admins ? '<span class="ch-todo warn">부서 관리자 없음</span>' : ''}</span></button>`;
-    const old = C.version.slice(0, 10) < NEED_SERVER;
-    return `${head}
+    const old = C.version.slice(0, 10) < NEED_SERVER, bad = old || !!C.errors.n;
+    // 요약 띠: 닫지 않은 부서만 더한다(합계만, 부서끼리 견주지 않는다). 단위가 섞일 수 있어 '가정·사람'
+    const live = C.depts.filter(d => !d.closed), sum = k => live.reduce((n, d) => n + (Number(d[k]) || 0), 0);
+    const band = sumBand([['부서', live.length], ['소그룹', sum('rooms')], ['가정·사람', sum('n')], ['연결', sum('linked')]]);
+    // 할 일: 닫지 않은 부서마다 손볼 것을 한 줄씩. 누르면 그 부서의 관리 화면으로. 서버 문제는 아래 앱 상태를 펼친다
+    const go = (d, what, how) => `<button class="mrow" data-act="opsgo" data-v="${esc(d.id)}"><span><b>${esc(d.name)} · ${what}</b><small>${how}</small></span>${ICON.chevR}</button>`;
+    const todo = [
+      old ? `<button class="mrow" data-act="chstat" data-v="open"><span><b>앱 상태 · 서버가 옛 버전이에요</b><small>Apps Script를 새 버전으로 배포해 주세요</small></span>${ICON.chevR}</button>` : '',
+      C.errors.n ? `<button class="mrow" data-act="chstat" data-v="open"><span><b>앱 상태 · 최근 7일 오류 ${C.errors.n}번</b><small>앱 상태에서 마지막으로 난 때를 봐요</small></span>${ICON.chevR}</button>` : '',
+      ...live.map(d => [d.asks ? go(d, `연결 신청 ${d.asks}`, '부서 관리에서 승인하거나 거절해요') : '',
+        d.privacy ? go(d, `개인정보 요청 ${d.privacy}`, '부서 관리에서 지울 기록을 살펴봐요') : '',
+        d.feedback ? go(d, `새 의견 ${d.feedback}`, '부서 관리의 의견함에서 읽어요') : '',
+        d.admins ? '' : go(d, '부서 관리자 없음', '부서 관리의 편성에서 부서 관리자를 정해요')].join(''))
+    ].join('');
+    // 앱 상태: 문제가 없으면 한 줄로 접어 두고, 문제가 있으면 처음부터 펼친다(누르면 접고 펼침)
+    const stOpen = S.chStat !== undefined ? S.chStat : bad;
+    const stat = `<div class="fold ops-fold${stOpen ? ' open' : ''}" id="ch-stat"><button class="ops-head" data-act="chstat" aria-expanded="${stOpen}"><span class="ops-dot${bad ? ' bad' : ''}" aria-hidden="true"></span><span><b>앱 상태</b><small>${bad ? [old ? '서버가 옛 버전이에요' : '', C.errors.n ? `최근 7일 오류 ${C.errors.n}번` : ''].filter(Boolean).join(' · ') : `모두 괜찮아요 · 서버 ${esc(C.version.slice(0, 10))}`}</small></span><span class="ops-chev" aria-hidden="true">${ICON.chev}</span></button>
+      ${stOpen ? `<div class="fold-body"><p class="plain">서버 <b>${esc(C.version)}</b>${old ? ` · <span class="warn-text">Apps Script를 새 버전으로 배포해 주세요</span>` : ''}</p>
+        <p class="hint">최근 7일 오류 ${C.errors.n ? C.errors.n + '번 · 마지막 ' + opsWhen(C.errors.last) : '없어요'} · ${Number(C.month.month.slice(5))}월 ${C.month.opened ? opsWhen(C.month.opened) + '에 처음 열림' : '아직 넘어온 기도제목이 없어요'}</p></div>` : ''}</div>`;
+    const inbox = C.inbox ? `<div class="fold"><button class="mrow" data-act="churchtab" data-v="survey"><span><b>의견과 설문</b><small>설문 ${C.inbox.survey}개 · 의견 ${C.inbox.feedback}개${C.inbox.feedbackNoDept ? ` (코이데 노트에서 온 것 ${C.inbox.feedbackNoDept})` : ''} · 표로 내려받기</small></span>${ICON.chevR}</button></div>` : '';
+    const dp = deptCard(), nClosed = C.depts.length - live.length;
+    return `${head}${band}
       <div class="two-col"><div class="col">
+        <p class="more-h">할 일</p>${todo ? `<section class="card mrows">${todo}</section>` : '<section class="card"><p class="hint" style="margin:0">지금 할 일이 없어요.</p></section>'}
         <p class="more-h">부서</p><div class="ch-grid">${C.depts.map(card).join('')}</div>
-        ${C.inbox ? `<button class="card ch-dept" data-act="churchtab" data-v="survey"><span class="row"><b>의견과 설문</b>${ICON.chevR}</span><small>설문 ${C.inbox.survey}개 · 의견 ${C.inbox.feedback}개${C.inbox.feedbackNoDept ? ` (코이데 노트에서 온 것 ${C.inbox.feedbackNoDept})` : ''} · 표로 내려받기</small></button>` : ''}
-        <section class="card"><div class="row"><h2>앱 상태</h2><span class="ops-dot${old || C.errors.n ? ' bad' : ''}" aria-hidden="true"></span></div>
-          <p class="plain">서버 <b>${esc(C.version)}</b>${old ? ` · <span class="warn-text">Apps Script를 새 버전으로 배포해 주세요</span>` : ''}</p>
-          <p class="hint">최근 7일 오류 ${C.errors.n ? C.errors.n + '번 · 마지막 ' + opsWhen(C.errors.last) : '없어요'} · ${Number(C.month.month.slice(5))}월 ${C.month.opened ? opsWhen(C.month.opened) + '에 처음 열림' : '아직 넘어온 기도제목이 없어요'}</p></section>
-        ${CHURCHSB ? '' : groupCloseCard()}
       </div><div class="col side">
-        ${opsAdminCard()}${deptCard()}
-        ${CHURCHSB ? '' : `<section class="card mrows folds">${fold('chgall', '변경 기록', '모든 부서 · 누가 언제 무엇을 바꿨는지', changesCard(true))}</section>`}
+        <p class="more-h">앱과 요청</p><section class="card mrows folds">${stat}${inbox}${CHURCHSB ? '' : fold('chgall', '변경 기록', '모든 부서 · 누가 언제 무엇을 바꿨는지', changesCard(true)) + groupCloseFold()}</section>
+        ${opsAdminCard() ? `<p class="more-h">사람</p>${opsAdminCard()}` : ''}
+        ${dp ? `<p class="more-h">설정</p><section class="card mrows folds">${fold('dept', '부서 만들기 · 닫기', `부서 ${live.length}곳${nClosed ? ` · 닫은 부서 ${nClosed}곳` : ''}`, dp)}</section>` : ''}
       </div></div>`;
   }
   // ── 함께 기도해요(부서 기도제목): 교역자·부서 관리자·교회 관리자가 쓰고, 회원은 이번 달 화면과 기도하기 › 우리 교회에서 본다 ──
@@ -4459,13 +4511,14 @@ try { const p = JSON.parse(localStorage.getItem('koide-pref') || '{}'), d = docu
       <p class="hint">누가 언제 무엇을 바꿨는지 남아요. 기도제목 내용은 남기지 않아요. 1년 1개월 뒤에 지워요.</p></section>`;
   }
   // 교회 관리자(교회 전체): 자율 모임은 교회가 꾸리지 않아 목록이 없다. 문제가 있다는 말을 들으면 그 모임의 초대 링크로 하나만 닫는다
-  function groupCloseCard() {
+  //  교회 전체 › 앱과 요청 카드 안의 한 줄 메뉴로 들어간다
+  function groupCloseFold() {
     const F = S.gaFound;
-    return `<section class="card mrows folds">${fold('gaclose', '자율 모임 지우기', '문제가 있을 때만 · 초대 링크로', `<section class="card"><h2>자율 모임 지우기</h2>
+    return `${fold('gaclose', '자율 모임 지우기', '문제가 있을 때만 · 초대 링크로', `<section class="card"><h2>자율 모임 지우기</h2>
       <p class="hint">자율 모임은 교회가 꾸리지 않아서 목록이 없어요. 문제가 있다는 말을 들었을 때 그 모임의 초대 링크를 받아 넣으면, 그 모임 하나만 지울 수 있어요. 기도제목은 보이지 않아요.</p>
       <div class="kid-form"><input id="ga-link" class="field" value="${esc(F ? F.t : '')}" placeholder="모임 초대 링크" aria-label="모임 초대 링크" autocomplete="off"><button class="btn small ghost" data-act="gafind" ${S.busy ? 'disabled' : ''}>찾기</button></div>
       ${F ? `<p class="plain"><b>${esc(F.name)}</b> · ${F.n}명</p><div class="actions"><button class="btn small danger" data-act="gaclose" ${S.busy ? 'disabled' : ''}>이 모임 지우기</button></div>` : ''}
-      <p class="hint">모임은 만들 때 정한 끝나는 날(최대 1년)에 저절로 지워져요. 여기서 지우면 모임 사람과 기도제목, 기도 기록이 바로 사라지고 되돌릴 수 없어요.</p></section>`)}</section>`;
+      <p class="hint">모임은 만들 때 정한 끝나는 날(최대 1년)에 저절로 지워져요. 여기서 지우면 모임 사람과 기도제목, 기도 기록이 바로 사라지고 되돌릴 수 없어요.</p></section>`)}`;
   }
   // ── 운영 관리자 (설계서 13장): 맡은 부서를 가정 없이 꾸린다. 운영 화면에서는 관리 탭만 열고, 서버는 기도제목 내용을 보내지 않는다 ──
   //  S.op: 지금 운영 화면으로 보는 부서ID. 운영 화면에 들어가면 내 이번 달(S.home)은 잠시 비켜 두었다가 돌아올 때 되살린다
@@ -5465,6 +5518,16 @@ try { const p = JSON.parse(localStorage.getItem('koide-pref') || '{}'), d = docu
         return enterChurchServer(w);
       }
       case 'aaback': return appAdminBack();
+      // 다시 불러오기: 고치는 중인 폼(S.aaEdit)과 초대 링크(S.aaLink)는 그대로 두고 숫자만 새로. 실패하면 알리고 예전 값을 둔다
+      case 'aareload': {
+        if (S.aaBusy) return;
+        // 폼에 쓰던 글이 다시 그릴 때 날아가지 않게 먼저 담아 둔다(저장이 안 될 때와 같은 E.draft)
+        const f = $('[data-form="aasave"]');
+        if (f && S.aaEdit) { const d = new FormData(f), dr = { stopped: d.get('stopped') === 'on' }; ['id', 'name', 'kind', 'codes', 'url', 'didako', 'memo'].forEach(k => { dr[k] = String(d.get(k) || ''); }); S.aaEdit = Object.assign({}, S.aaEdit, { draft: dr }); }
+        S.aaBusy = true; render();
+        try { const r = await hubApi('admin'); S.aa = r; } catch (err) { if (err.code === 'login') { S.aaBusy = false; return; } toast(err.message); }
+        S.aaBusy = false; return render();
+      }
       case 'aaenter': {
         S.busy = true; render();
         let w; try { w = await hubApi('enter', { id: v }); } catch (err) { S.busy = false; if (err.code !== 'login') { toast(err.message); render(); } return; }
@@ -5625,6 +5688,13 @@ try { const p = JSON.parse(localStorage.getItem('koide-pref') || '{}'), d = docu
           S.month = await api('opsCtx'); if (S.tab === 'church') S.church = await api('church');
         } catch (err) { oops(err); }
         S.busy = false; return render();
+      }
+      // 교회 전체의 앱 상태: 처음엔 문제가 있을 때만 펼쳐 둔다. 할 일 줄(v='open')에서 누르면 펼치고 그 자리로
+      case 'chstat': {
+        const C = S.church, bad = !!(C && C.version && (C.version.slice(0, 10) < NEED_SERVER || (C.errors && C.errors.n)));
+        S.chStat = v === 'open' ? true : !(S.chStat !== undefined ? S.chStat : bad); render();
+        if (v === 'open') { const el = $('#ch-stat'); if (el) el.scrollIntoView({ block: 'center', behavior: 'smooth' }); }
+        return;
       }
       case 'fold': S.fold = Object.assign({}, S.fold, { [v]: !(S.fold || {})[v] }); render();
         if ((v === 'changes' || v === 'chgall') && S.fold[v]) { S.chg = null; S.chgN = 20; render(); loadChanges(v === 'chgall'); }
