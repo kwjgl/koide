@@ -2,9 +2,9 @@
  * 홈 화면 앱(PWA)용 작은 도우미. 앱 화면 파일을 휴대폰에 한 벌 남겨 두었다가, 인터넷이 끊기거나 느릴 때 그걸로 연다.
  * 늘 인터넷의 새 파일을 먼저 받아서(받으면 남겨 둔 것도 바꿈) 고친 화면이 바로 보인다. 브라우저에 남은 사본은 쓰지 않고 서버에 확인한다.
  * 이달의 그림(img/ 아래 그림 파일)은 따로 남겨 둔다: 있으면 바로 보여 주고 뒤에서 새로 받아 바꾼다. 화면 파일이 새 버전으로 넘어가도 그림은 지우지 않는다.
- * 기도제목은 여기 남기지 않는다: 서버(Apps Script)와 주고받는 요청과 다른 주소의 파일은 건드리지 않는다.
+ * 기도제목은 여기 남기지 않는다: 서버(Apps Script)와 주고받는 요청과 다른 주소의 파일은 건드리지 않는다. 영상(mp4 등)도 건드리지 않는다.
  */
-const CACHE = 'koide-v149';
+const CACHE = 'koide-v150';
 const IMG = 'koide-img', IMG_MAX = 300; // 그림 사본 이름은 버전을 붙이지 않는다. 300장이 넘으면 오래된 것부터 지운다
 const SHELL = ['./', 'index.html', 'note.html', 'koinonia.html', 'koinonia.js', 'koinonia-api.js', 'church-api.js', 'koinonia.css', 'sb.js', 'config.js', 'pray-data.js', 'pray-open.js', 'guide.js', 'art-data.js', 'intro-video.js', 'beatitudes.js', 'sunrain.js', 'words-ko.js', 'splash.js', 'places.js', 'survey.js', 'pilot.js', 'intro-video.css', 'pray-open.css', 'beatitudes.css', 'sunrain.css', 'guide.css', 'design-styles.css', 'manifest.webmanifest', 'icons/favicon.svg', 'icons/icon-192.png', 'icons/apple-touch-icon.png', 'pilgrim/hero.png', 'pilgrim/tiles.png', 'pilgrim/objects.png', 'pilgrim/wild-tiles.png', 'pilgrim/wild-objects.png', 'pilgrim/land-tiles.png', 'pilgrim/land-objects.png', 'pilgrim/david-tiles.png', 'pilgrim/david-objects.png', 'pilgrim/sprites.json'];
 
@@ -27,6 +27,8 @@ self.addEventListener('fetch', e => {
   const req = e.request, url = new URL(req.url);
   // 같은 주소의 파일만. 카카오에서 돌아오는 주소(?code=)는 늘 새로 연다
   if (req.method !== 'GET' || url.origin !== location.origin || url.searchParams.has('code')) return;
+  // 영상은 건드리지 않는다: 새 요청으로 바꾸면 Range 헤더가 사라져 사파리가 재생하지 못하고, 부분 응답(206)은 caches.put도 안 된다. 브라우저가 직접 받게 둔다
+  if (/\.(mp4|webm|mov)$/i.test(url.pathname) || req.headers.has('range')) return;
   // 그림은 앱 폴더 밖(../prototype/img/)에 있을 수도 있어서 폴더와 상관없이 img/ 아래 그림 파일이면 여기서 다룬다
   if (/\/img\/.+\.(webp|png|jpe?g)$/i.test(url.pathname)) return e.respondWith(artFirst(e));
   if (!url.pathname.startsWith(new URL('./', location).pathname)) return;
