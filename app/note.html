@@ -201,11 +201,11 @@ h2 { font-family: var(--f-display); font-size: 1.15em; margin: 0; }
 }
 /* 휴대폰: 영상이 머리(매듭·이름·소개) 뒤에 깔리고 아래로 사라진다. 페이지와 함께 스크롤(fixed 아님), 내용(.welcome)은 DOM 순서로 영상 위에 그려진다 */
 @media (max-width: 859.98px) {
-  :root { --wl-m: min(52vh, 500px); }
-  @supports (height: 1svh) { :root { --wl-m: min(52svh, 500px); } }
+  :root { --wl-m: min(64vh, 620px); }
+  @supports (height: 1svh) { :root { --wl-m: min(64svh, 620px); } }
   .wl-film-m { display: block; position: absolute; top: 0; left: 0; right: 0; height: var(--wl-m); overflow: hidden; pointer-events: none;
     background: radial-gradient(70% 60% at 50% 38%, var(--accent-soft), transparent 100%);   /* 영상이 없거나 아직 안 왔을 때의 은은한 빛 */
-    -webkit-mask-image: linear-gradient(to bottom, #000 0, #000 50%, transparent 100%); mask-image: linear-gradient(to bottom, #000 0, #000 50%, transparent 100%); }
+    -webkit-mask-image: linear-gradient(to bottom, #000 0, #000 68%, transparent 100%); mask-image: linear-gradient(to bottom, #000 0, #000 68%, transparent 100%); }
   .wl-film-m video, .wl-film-m .wl-film-poster { object-position: 50% 35%; }
   /* 글자 가림막: 바탕색(--page)을 영상 위에 옅게. 머리 가운데는 더 짙게 */
   .wl-film-m::after { content: ''; position: absolute; inset: 0;
