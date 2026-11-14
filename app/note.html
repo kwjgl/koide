@@ -175,11 +175,30 @@ h2 { font-family: var(--f-display); font-size: 1.15em; margin: 0; }
 .acct-logo svg { width: 16px; height: 16px; }
 .wl-church { margin-bottom: 0; }
 @media (min-width: 860px) {
-  .welcome { max-width: 58rem; grid-template-columns: 1fr 24rem; grid-template-areas: "hero act" "hero church"; column-gap: 56px; align-items: start; padding-top: 3em; }
-  .wl-hero { grid-area: hero; align-items: flex-start; text-align: left; padding-top: .4em; }
+  /* 두 칸: 왼쪽 절반에 로그인(세로 가운데), 오른쪽 절반은 영상 칸(.wl-film, body에 따로 붙는 고정 요소) */
+  .welcome { width: 50%; max-width: none; margin: 0; min-height: 100vh; min-height: 100dvh; display: flex; flex-direction: column; justify-content: center; align-items: center; padding: 32px clamp(24px, 4vw, 64px); }
+  .welcome > section { width: 100%; max-width: 26rem; }
+  .wl-hero { align-items: center; text-align: center; padding-top: 0; }
   .wl-name { font-size: 2.6em; }
-  .wl-act { grid-area: act; } .wl-church { grid-area: church; }
 }
+/* 첫 화면 오른쪽 영상 칸(860px 이상만). 영상 파일이 없거나 못 불러오면 매듭이 천천히 숨 쉬는 대체 화면이 그대로 보인다.
+   디다코·탈리오에도 이 블록과 아래 wlFilm 함수를 그대로 복사해 쓸 수 있다(매듭 그림만 그 앱 것으로) */
+.wl-film { display: none; }
+@media (min-width: 860px) {
+  .wl-film { display: block; position: fixed; top: 16px; right: 16px; bottom: 16px; width: calc(50% - 24px); z-index: 1; border-radius: 28px; overflow: hidden; border: 1px solid var(--line); background: radial-gradient(circle at 50% 46%, var(--surface) 0, var(--accent-soft) 72%); }
+  .wl-film-fb { position: absolute; inset: 0; display: grid; place-items: center; }
+  .wl-film-mark { position: relative; width: clamp(120px, 16vw, 200px); aspect-ratio: 1; border-radius: 50%; background: var(--accent); color: var(--on-accent); display: grid; place-items: center; animation: wl-breathe 9s ease-in-out infinite; }
+  .wl-film-mark svg { width: 60%; height: 60%; fill: none; stroke: currentColor; stroke-width: 1.4; stroke-linecap: round; stroke-linejoin: round; overflow: visible; }
+  .wl-film-mark::before, .wl-film-mark::after { content: ''; position: absolute; inset: -18%; border-radius: 50%; border: 1px solid var(--accent-mid); animation: wl-ring 9s ease-in-out infinite; }
+  .wl-film-mark::after { inset: -38%; animation-delay: -4.5s; }
+  .wl-film video, .wl-film .wl-film-poster { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
+  .wl-film video { opacity: 0; transition: opacity .8s ease; }
+  .wl-film video.on { opacity: 1; }
+  .wl-film.paused *, .wl-film.paused *::before, .wl-film.paused *::after { animation-play-state: paused; }
+}
+@keyframes wl-breathe { 0%, 100% { transform: translateY(0) scale(1); } 50% { transform: translateY(-8px) scale(1.04); } }
+@keyframes wl-ring { 0%, 100% { transform: scale(.96); opacity: .15; } 50% { transform: scale(1.04); opacity: .55; } }
+@media (prefers-reduced-motion: reduce) { .wl-film *, .wl-film *::before, .wl-film *::after { animation: none !important; } .wl-film video { transition: none; } }
 /* 1000px 미만: 두 칸 틀은 레이아웃에 영향을 주지 않는다(카드가 지금과 같은 순서·간격으로 쌓임). 오른쪽에만 쓰는 순서 카드는 숨김 */
 .n-two, .n-main, .n-side, .n-end { display: contents; }
 .card.n-ord { display: none; }
@@ -1124,6 +1143,42 @@ button.pg-tag::before { content: ''; position: absolute; inset: -10px; }
     let m = null; try { m = sessionStorage.getItem('koide-note-sb-err'); sessionStorage.removeItem('koide-note-sb-err'); } catch (e) { /* 없음 */ }
     if (m) S.wl.err = m === 'access_denied' ? '로그인을 취소했어요.' : '로그인을 마치지 못했어요. 다시 해 주세요.';
     S.wl.list = await sbProviders(); render();
+  }
+  // ── 첫 화면 오른쪽 영상 칸(860px 이상만). 다른 앱에 복사할 때는 TOP_ICON.knot(대체 화면의 매듭 그림)만 그 앱 것으로 바꾼다
+  // 영상 파일이 생기면 LOGIN_FILM에 경로를 적는다(poster는 있을 때만). 모바일에서는 만들지도, 받지도 않는다
+  const LOGIN_FILM = null; // 영상을 넣은 뒤: { src: 'img/login-film.mp4', poster: 'img/login-film.jpg' }
+  const wlWide = window.matchMedia('(min-width: 860px)'), wlCalm = window.matchMedia('(prefers-reduced-motion: reduce)');
+  let wlEl = null, wlBound = false;
+  function wlVideo() { return wlEl && wlEl.querySelector('video'); }
+  function wlHide() { // 숨겨진 탭에서는 영상과 움직임을 멈춘다
+    if (!wlEl) return;
+    wlEl.classList.toggle('paused', document.hidden);
+    const v = wlVideo(); if (v) { if (document.hidden) v.pause(); else if (!wlCalm.matches) v.play().catch(() => {}); }
+  }
+  function wlFilm(on) {
+    on = !!on && wlWide.matches;
+    if (!on) { // 끄기: 영상 받기를 멈추고 요소를 지운다
+      if (wlEl) { const v = wlVideo(); if (v) { v.pause(); v.removeAttribute('src'); v.load(); } wlEl.remove(); wlEl = null; }
+      return;
+    }
+    if (!wlBound) { wlBound = true; wlWide.addEventListener('change', () => wlFilm(welcomeOn())); document.addEventListener('visibilitychange', wlHide); }
+    if (wlEl) return;
+    wlEl = document.createElement('aside'); wlEl.className = 'wl-film'; wlEl.setAttribute('aria-hidden', 'true');
+    wlEl.innerHTML = `<div class="wl-film-fb"><span class="wl-film-mark">${TOP_ICON.knot}</span></div>`;
+    document.body.appendChild(wlEl);
+    if (!LOGIN_FILM) return;
+    if (wlCalm.matches) { // 움직임 줄이기: 영상은 받지 않고 포스터 한 장만(없으면 매듭 대체 화면 그대로, 움직임 없음)
+      if (LOGIN_FILM.poster) { const im = new Image(); im.className = 'wl-film-poster'; im.alt = ''; im.onerror = () => im.remove(); im.src = LOGIN_FILM.poster; wlEl.appendChild(im); }
+      return;
+    }
+    const v = document.createElement('video');
+    v.muted = true; v.loop = true; v.autoplay = true; v.playsInline = true; v.preload = 'none'; v.tabIndex = -1; v.disablePictureInPicture = true;
+    v.setAttribute('muted', ''); v.setAttribute('playsinline', ''); v.setAttribute('aria-hidden', 'true');
+    if (LOGIN_FILM.poster) v.poster = LOGIN_FILM.poster;
+    v.addEventListener('playing', () => v.classList.add('on'));   // 재생이 시작돼야 대체 화면 위로 나타난다
+    v.addEventListener('error', () => v.remove());                // 못 불러오면 대체 화면이 그대로 남는다
+    wlEl.appendChild(v);
+    v.src = LOGIN_FILM.src; v.play().catch(() => {});
   }
   async function deriveKey(pass, salt) {
     const base = await crypto.subtle.importKey('raw', te.encode(pass), 'PBKDF2', false, ['deriveKey']);
@@ -3194,7 +3249,8 @@ button.pg-tag::before { content: ''; position: absolute; inset: -10px; }
   }
   function render() {
     // 앞문: 교회 로그인도 Supabase 로그인도 없는 첫 방문은 환영 화면만(노트 화면·아래 탭 없이)
-    if (welcomeOn()) { if (!S.wl) welcomeInit(); $('#root').innerHTML = welcomeView(); return; }
+    if (welcomeOn()) { if (!S.wl) welcomeInit(); $('#root').innerHTML = welcomeView(); wlFilm(true); return; }
+    wlFilm(false);
     if (S.tab !== 'weaves') S.wopen = null;
     if (vtCur && S.ps) vtCur.skipTransition();   // 기도하기 창처럼 화면 전체를 덮는 창이 뜨면 넘기기를 바로 끝낸다
     const ys = $('.yr-body'), ysTop = ys ? ys.scrollTop : 0;   // 1년 창이 열려 있을 때 다시 그려도 보던 자리를 지킨다
