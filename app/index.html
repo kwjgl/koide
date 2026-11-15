@@ -4117,7 +4117,7 @@ try { const p = JSON.parse(localStorage.getItem('koide-pref') || '{}'), d = docu
         <p class="more-h">편성</p>${rosterCard()}
       </div><div class="col side">
         ${S.op ? `<p class="more-h">사람</p><section class="card mrows folds">${fold('together', '함께 기도해요', '부서 기도제목 쓰기', togetherEditCard())}${fold('invite', '초대 링크 · QR', I ? `${esc(S.month.dept.name)} 전체 · ${esc(grp())} ${I.rooms.length}곳` : '불러오는 중…', inviteCard())}${P && P.staff ? fold('staff', '교역자', P.staff.length ? P.staff.map(x => esc(x.label)).join(' · ') : '아직 없어요', staffCard()) : ''}</section>` : ''}
-        <p class="more-h">설정</p><section class="card mrows folds">${fold('group', '소그룹 이름', esc(grp()), groupCard())}</section>
+        <p class="more-h">설정</p><section class="card mrows folds">${fold('group', '소그룹 이름', esc(grp()), groupCard())}${S.op ? fold('reorg', '연도 개편', !S.rgData ? '불러오는 중…' : S.rgData.plan ? `${S.rgData.next}년 편성 예약 · ${monName(S.rgData.plan.start)}부터` : `${S.rgData.next}년 개편 준비`, reorgCard()) : ''}</section>
         <section class="card"><p class="hint" style="margin:0">기도제목은 아직 준비 중이에요.</p></section>
       </div></div>`;
     }
@@ -4681,7 +4681,7 @@ try { const p = JSON.parse(localStorage.getItem('koide-pref') || '{}'), d = docu
   // 관리 화면을 열 때 함께 불러오는 것
   //  전환 화면이 닫히는 때를 알 수 있게, 처음 오는 자료가 다 오면 끝나는 약속을 돌려준다
   function loadAdmin() {
-    if (CHURCHSB) return Promise.allSettled([api('pending').then(r => { S.pending = r; render(); }, oops), loadRoster(), ...(S.op ? [loadOps()] : [])]);
+    if (CHURCHSB) return Promise.allSettled([api('pending').then(r => { S.pending = r; render(); }, oops), loadRoster(), ...(S.op ? [loadOps(), loadReorg()] : [])]);
     const all = [api('pending').then(r => { S.pending = r; render(); }, oops), loadReorg(), loadOps(), loadRoster()];
     if (S.adminTab === 'analysis') all.push(loadAnalysis());
     return Promise.allSettled(all);
