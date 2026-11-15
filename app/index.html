@@ -2504,6 +2504,7 @@ try { const p = JSON.parse(localStorage.getItem('koide-pref') || '{}'), d = docu
       ${mine.status === 'confirmed' ? `<p class="hint">이번 달도 그대로라고 ${staffMe() ? '표시했어요' : '리더에게 알렸어요'}.</p>` : ''}</section>`;
   }
   // S5 목사님 홈: 부서 전체를 훑어보고(사랑방마다 손봄·확인), 사랑방을 눌러 그 사랑방 가정을 보며 기도한다
+  //  새 길(Supabase)은 기도 주제 흐름(⑦)·하나님 나라 기도 문장·함께 기도해요(⑤-2b) 자리를 안내 카드 한 장으로 닫아 둔다
   function staffHomeView() {
     if (S.openRoom) return staffRoomView();
     const M = S.month, rooms = M.rooms || [], sum = k => rooms.reduce((a, r) => a + r[k], 0);
@@ -2523,10 +2524,10 @@ try { const p = JSON.parse(localStorage.getItem('koide-pref') || '{}'), d = docu
           <ul class="legend"><li><i class="sw edited"></i>이번 달 손봄</li><li><i class="sw confirmed"></i>그대로 확인</li><li><i class="sw same"></i>지난달 그대로</li></ul>`
         : `<p class="hint">아직 ${esc(gj('이/가'))} 없어요.</p>`}
         ${signalCard(M.signals, true)}
-        ${topicFlowCard(loadTopics())}
+        ${CHURCHSB ? '<section class="card"><p class="hint" style="margin:0">기도 주제 흐름 · 하나님 나라 기도 문장 · 함께 기도해요는 아직 준비 중이에요.</p></section>' : `${topicFlowCard(loadTopics())}
         ${topicDictCard(S.topics)}
         <section class="card"><div class="row"><div><p class="label">하나님 나라 기도 문장</p><p class="hint" style="margin:.2em 0 0">기도하기에 날마다 나오는 간구 문장과 성경의 기도를 고쳐요.</p></div><button class="btn small ghost" data-act="tab" data-v="praytext">고치기</button></div></section>
-        ${togetherEditCard()}
+        ${togetherEditCard()}`}
         ${serveCard()}
       </div></div>`;
   }
@@ -3961,7 +3962,7 @@ try { const p = JSON.parse(localStorage.getItem('koide-pref') || '{}'), d = docu
       const on = !!(E && E.familyId === s.familyId), names = s.linked.map(l => esc(l.person)).join(', ');
       return `<li class="${on ? 'open' : ''}"><button type="button" class="st-row" data-act="${on ? 'stcancel' : 'stedit'}"${on ? '' : ` data-v="${esc(s.familyId)}"`} aria-expanded="${on}"><span class="st-main">
           <span class="st-l1"><b>${esc(s.label)}</b><span class="role-tag">${esc(s.title)}</span>${s.serve ? '<span class="own-tag">섬기는 분들</span>' : ''}</span>
-          <span class="st-l2"><i class="dot${s.linked.length ? ' on' : ''}" aria-hidden="true"></i>${s.linked.length ? '카카오 연결: ' + names : '아직 카카오 연결 없음'}</span>
+          <span class="st-l2"><i class="dot${s.linked.length ? ' on' : ''}" aria-hidden="true"></i>${s.linked.length ? (CHURCHSB ? '연결: ' : '카카오 연결: ') + names : (CHURCHSB ? '아직 연결 없음' : '아직 카카오 연결 없음')}</span>
           <span class="st-names">${esc(s.name)}</span></span>
           <span class="st-go">${on ? `접기 <span class="ops-chev up" aria-hidden="true">${ICON.chev}</span>` : `고치기 ${ICON.chevR}`}</span></button>${on ? form(s) : ''}</li>`;
     };
@@ -4115,7 +4116,7 @@ try { const p = JSON.parse(localStorage.getItem('koide-pref') || '{}'), d = docu
         ${reqs.length ? `<p class="more-h">할 일</p>${reqCard()}` : ''}
         <p class="more-h">편성</p>${rosterCard()}
       </div><div class="col side">
-        ${S.op ? `<p class="more-h">사람</p><section class="card mrows folds">${fold('invite', '초대 링크 · QR', I ? `${esc(S.month.dept.name)} 전체 · ${esc(grp())} ${I.rooms.length}곳` : '불러오는 중…', inviteCard())}</section>` : ''}
+        ${S.op ? `<p class="more-h">사람</p><section class="card mrows folds">${fold('invite', '초대 링크 · QR', I ? `${esc(S.month.dept.name)} 전체 · ${esc(grp())} ${I.rooms.length}곳` : '불러오는 중…', inviteCard())}${P && P.staff ? fold('staff', '교역자', P.staff.length ? P.staff.map(x => esc(x.label)).join(' · ') : '아직 없어요', staffCard()) : ''}</section>` : ''}
         <p class="more-h">설정</p><section class="card mrows folds">${fold('group', '소그룹 이름', esc(grp()), groupCard())}</section>
         <section class="card"><p class="hint" style="margin:0">기도제목은 아직 준비 중이에요.</p></section>
       </div></div>`;
