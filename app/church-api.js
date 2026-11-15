@@ -1,19 +1,27 @@
 // 코이데 교회 층(Supabase)의 응답을 코이데 교회 화면(index.html)이 아는 옛 Apps Script 모양으로 바꾼다. koinonia-api.js와 같은 모양.
-// CHURCH_BACKEND가 'supabase'일 때만 index.html이 부른다(app/config.js, docs/setup.md 13·14장). 서버 함수는 supabase/009_church_setup.sql·010_church_join.sql.
+// CHURCH_BACKEND가 'supabase'일 때만 index.html이 부른다(app/config.js, docs/setup.md 13·14·15장). 서버 함수는 supabase/009_church_setup.sql·010_church_join.sql·011_church_items.sql.
 //   start·me → church_me(+church_invite_open·church_depts·church_month) · opsJoin → church_admin_accept 뒤 church_me · opsInvite → church_admin_invite · opsRemove → church_admin_remove
 //   opsCtx → church_ops_ctx · church → church_overview · deptSave → church_dept_save · deptClose·deptReopen → church_dept_state
 //   saveGroup → church_group_name · roster → church_roster · rosterSave(addRoom·renameRoom·dropRoom) → church_room_save
 //   rosterSave(addPerson·addPeople·role·unlink) → church_person_add·people_add·roster_role·unlink · churchPeek → church_peek · churchJoin → church_join · churchLeave → church_leave
 //   requestLink → church_link_pick·name·new · cancelLink → church_link_cancel · month → church_month · rooms → church_depts
 //   pending·approve·reject·approveAll·unlink → church_pending·decide·approve_all·unlink · ops·inviteRenew → church_invites·church_invite_renew
+//   saveItem → church_item_save · saveItems → church_items_add · endItem·reopenItem → church_item_end · deleteItem → church_item_del
+//   confirmSame → church_confirm_same · pray → church_pray · saveFamily → church_family_save · tourDone → church_tour_done
 //   logout → KoideSb.signOut(로그인 세션을 끊는다)
 // 옛 응답과 다른 곳: ① opsRemove·approve·reject·unlink의 body.kakaoId는 이제 관리자·연결 요청·연결 줄의 id(uuid)다(화면은 data-v를 그대로 넘긴다)
-//   ② usage·surveyState·tourDone·tourSeen은 빈 모양으로 달랜다 ③ rosterSave의 move·leave·admin·pilotRoom과 표에 없는 액션(기도제목 등)은 '아직 쓸 수 없어요' 오류(화면은 토스트로 알린다)
+//   ② usage·surveyState·tourSeen은 빈 모양으로 달랜다 ③ rosterSave의 move·leave·admin·pilotRoom과 표에 없는 액션(지난 기록·검색·나의 기도 등)은 '아직 쓸 수 없어요' 오류(화면은 토스트로 알린다)
+//   ④ 이번 달(church_month)은 일부러 덜 보낸다: 다른 가정 카드에 손봄 상태(status)·자녀 이름이 없고, 받는 가정 한 줄(received.n)은 가정 수가 아니라 0·1·of 세 단계다.
+//     serve·together는 빈 배열, shift·news는 null, eraseReq·room.pilot은 false, me.survey는 ''(화면은 CHURCHSB 갈래에서 견딘다)
 window.koideChurchApi = (() => {
   const SOON = '교회 새 서버에서는 아직 쓸 수 없는 기능이에요. 곧 열려요.';
   const err = (code, message) => ({ code, message });
   const rpc = (name, args) => window.KoideSb.rpc(name, args || {});
   const need = (v, what) => { if (!v) throw err('bad', what + ' 정보가 없어요. 화면을 다시 열어 주세요.'); return v; };
+  // 기도제목 id: 저장 전 임시 id('new…')나 모르는 값은 서버에 보내지 않고 옛 서버와 같은 글로 알린다
+  const itemId = (v, msg) => { if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(String(v || ''))) throw err('bad', msg || '기도제목을 찾지 못했어요.'); return String(v); };
+  // 화면이 보내는 기도제목 한 개({target,text,scope})를 서버 모양으로. 글자 수·공개 범위는 서버가 확인한다
+  const itemOf = x => ({ target: String((x && x.target) || ''), text: String((x && x.text) || ''), scope: String((x && x.scope) || '') });
   // 이름은 로그인 계정의 표시 이름(user_metadata)에서 고른다. 서버는 auth.users를 읽지 않는다. 비어도 된다
   const nameOf = s => { const m = (s && s.user && s.user.user_metadata) || {}; return String(m.name || m.full_name || m.nickname || m.preferred_username || '').trim(); };
   async function ident() { const s = await window.KoideSb.session(); return { nick: nameOf(s), uid: s && s.user ? s.user.id : '' }; }
@@ -56,13 +64,8 @@ window.koideChurchApi = (() => {
     const depts = await rpc('church_depts', join && !join.bad ? { p_token: String(body.join) } : {});
     return { me, usage, join, depts };
   }
-  // 이번 달 임시판: 화면이 쓰는 키가 모자라면 빈 값으로 채운다
-  async function monthOf() {
-    const m = Object.assign({ families: [], serve: [], together: [], rooms: [] }, await rpc('church_month'));
-    // 010은 news를 빈 배열로 준다. 화면은 없음(null)이나 {married|moved}만 안다(빈 배열이면 N.moved.at에서 깨진다)
-    if (!m.news || !(m.news.married || m.news.moved)) m.news = null;
-    return m;
-  }
+  // 이번 달 화면(011). 화면이 쓰는 키는 서버가 모두 보낸다. 목록이 비어 오면 빈 배열로만 채운다
+  async function monthOf() { return Object.assign({ families: [], serve: [], together: [] }, await rpc('church_month')); }
   async function handle(body) {
     const dept = body.ops || null; // 운영 모드로 보는 부서 id(index.html의 api()가 S.op를 ops로 붙인다)
     switch (body.action) {
@@ -70,6 +73,18 @@ window.koideChurchApi = (() => {
       case 'me': return meOf();
       case 'rooms': return (await rpc('church_depts')).flatMap(d => d.rooms || []);
       case 'month': return monthOf();
+      // 기도제목 쓰기(011). 쓰기 함수는 모두 이번 달 화면을 돌려준다(옛 monthView_와 같다)
+      case 'saveItem': {
+        const x = itemOf(body);
+        return rpc('church_item_save', { p_text: x.text, p_target: x.target, p_scope: x.scope, p_item: body.id ? itemId(body.id, '고칠 기도제목을 찾지 못했어요.') : null });
+      }
+      case 'saveItems': return rpc('church_items_add', { p_items: (Array.isArray(body.items) ? body.items : []).map(itemOf) });
+      case 'endItem': case 'reopenItem': return rpc('church_item_end', { p_item: itemId(body.id), p_end: body.action === 'endItem' });
+      case 'deleteItem': return rpc('church_item_del', { p_item: itemId(body.id) });
+      case 'confirmSame': return rpc('church_confirm_same');
+      case 'pray': return rpc('church_pray', { p_household: need(body.familyId, '가정') });
+      case 'saveFamily': return rpc('church_family_save', { p_a: body.a || '', p_b: body.b || '', p_kids: (Array.isArray(body.kids) ? body.kids : []).map(String) });
+      case 'tourDone': return rpc('church_tour_done');
       case 'opsJoin': {
         const id = await ident();
         await rpc('church_admin_accept', { p_token: need(body.invite, '초대 링크'), p_name: id.nick });
@@ -131,7 +146,6 @@ window.koideChurchApi = (() => {
       case 'logout': await window.KoideSb.signOut(); return {};
       case 'usage': return { kept: true, n: 0 };
       case 'surveyState': return { survey: body.survey || {} };
-      case 'tourDone': return { tourDone: true };
       case 'tourSeen': return { seen: false };
       default: throw err('bad', SOON);
     }
