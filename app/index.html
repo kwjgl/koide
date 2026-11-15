@@ -2602,7 +2602,7 @@ try { const p = JSON.parse(localStorage.getItem('koide-pref') || '{}'), d = docu
         ${KOINONIA ? '' : `<button class="scope-btn s-${i.scope}" data-act="scope" data-id="${esc(i.id)}" aria-label="공개 범위 바꾸기: ${scopeName(i.scope)}">${SCOPE_ICON[i.scope]}${scopeName(i.scope)}</button>`}</div>
       ${open ? `<div class="tgt-pick" role="group" aria-label="기도 대상 고르기"><div class="mchips">${targets.map(o => `<button class="mchip${o === i.target ? ' on' : ''}" aria-pressed="${o === i.target}" data-act="tgtpick" data-id="${esc(i.id)}" data-v="${esc(o)}">${esc(o)}</button>`).join('')}</div>
         <form class="kid-form" data-form="tgtcustom" data-id="${esc(i.id)}"><input class="field" name="t" placeholder="직접 쓰기 (예: 시어머니, 조카)" aria-label="대상 직접 쓰기" maxlength="10" autocomplete="off"><button class="btn small" type="submit">적용</button></form></div>` : ''}
-      <textarea class="field" rows="2" data-id="${esc(i.id)}" aria-label="기도제목 내용">${esc(i.text)}</textarea>
+      <textarea class="field" rows="2" data-id="${esc(i.id)}" aria-label="기도제목 내용">${esc(S.keepEdit && S.keepEdit.id === i.id ? S.keepEdit.text : i.text)}</textarea>
       <div class="edit-foot"><span class="state">${itemState(i)}</span>
         <span class="prayer-actions"><button class="link prayer-action" data-act="end" data-id="${esc(i.id)}" aria-label="마치기" title="마치기">${ICON.done}</button><button class="link quiet prayer-action" data-act="delask" data-id="${esc(i.id)}" aria-label="지우기" title="지우기">${ICON.trash}</button></span></div>
       ${S.delAsk === i.id ? `<div class="del-ask" role="alert"><p>이 기도제목을 지울까요? 돌아보기에도 남지 않고 되돌릴 수 없어요.</p><div class="actions"><button class="btn small danger" data-act="del" data-id="${esc(i.id)}">지우기</button><button class="btn small ghost" data-act="delno">그대로 두기</button></div></div>` : ''}
@@ -3028,6 +3028,9 @@ try { const p = JSON.parse(localStorage.getItem('koide-pref') || '{}'), d = docu
         : '<p class="hint">찾은 기도제목이 없어요.</p>'}</section>`;
   }
   function historyView() {
+    // 새 길(Supabase): 지난 기록·검색·타임라인·나의 기도는 ④-2에서 연다. 그때까지 안내 카드만
+    if (CHURCHSB) return `<div class="page-top"><div><h1>돌아보기 ${HEAD_ICON.bible}</h1></div></div>
+      <section class="card"><p class="hint" style="margin:0">돌아보기(지난 기록 · 타임라인 · 나의 기도)는 아직 준비 중이에요. 이번 달 기도제목은 이번 달 화면에서 볼 수 있어요.</p></section>`;
     // 회원은 사랑방·타임라인·나의 기도, 목사님·장로님은 우리 가정이 하나 더(옛 값 'mine'이 남아 있어도 회원은 사랑방으로)
     const H = S.hist, staff = staffMe(), tab = S.histTab === 'mine' && !staff ? 'room' : S.histTab || 'room';
     const head = `<div class="page-top"><div><h1>돌아보기 ${HEAD_ICON.bible}</h1></div></div>
@@ -3075,6 +3078,7 @@ try { const p = JSON.parse(localStorage.getItem('koide-pref') || '{}'), d = docu
       <ul class="legend"><li><i class="sw edited"></i>그 달에 올린 기도제목</li></ul></section>`;
   }
   async function loadHist(month) {
+    if (CHURCHSB) return render(); // 새 길은 지난 기록을 아직 부르지 않는다(④-2)
     // 지난 기록은 지난 달만: 이번 달을 달라고 하지 않고 비워 두면 서버가 가장 가까운 지난 달을 고른다
     if (month && S.hist && month >= S.hist.now) month = '';
     try { S.hist = await api('history', Object.assign(month ? { month } : {}, S.histRoom ? { roomId: S.histRoom } : {})); }
@@ -3106,12 +3110,13 @@ try { const p = JSON.parse(localStorage.getItem('koide-pref') || '{}'), d = docu
   // 이번 달 화면의 [카드 | 표]에서 표를 고르면 지금 구글 시트처럼 가정 | 기도제목 한 장으로 보인다.
   //  엑셀은 이번 달 / 월 고르기 / 올해 전체(달마다 탭 하나). 각자 볼 수 있는 범위만 담고, "우리 가정만" 항목은 어떤 경우에도 넣지 않는다.
   //  리더·목사님 항목은 볼 수 있는 사람이 고를 때만, 파일이 전달될 수 있다는 경고와 함께
+  //  새 길(Supabase)은 지난 기록이 아직 없어서(④-2) 기간 고르기를 숨기고 이번 달만 내려받는다
   const isLead = () => S.month.me.role === '리더' || S.month.me.role === '코리더';
   function tableCard() {
     const M = S.month, E = S.ex || (S.ex = { open: false, period: 'this', month: null, lead: false });
     const months = S.hist ? S.hist.months.filter(m => m < M.month) : [];
     const panel = !E.open ? '' : `<div class="export">
-        <div class="seg" style="--n:3" role="radiogroup" aria-label="기간">${[['this', '이번 달'], ['pick', '월 고르기'], ['year', M.month.slice(0, 4) + '년 전체']].map(([k, l]) => `<button class="${E.period === k ? 'on' : ''}" role="radio" aria-checked="${E.period === k}" data-act="experiod" data-v="${k}">${l}</button>`).join('')}</div>
+        ${CHURCHSB ? '' : `<div class="seg" style="--n:3" role="radiogroup" aria-label="기간">${[['this', '이번 달'], ['pick', '월 고르기'], ['year', M.month.slice(0, 4) + '년 전체']].map(([k, l]) => `<button class="${E.period === k ? 'on' : ''}" role="radio" aria-checked="${E.period === k}" data-act="experiod" data-v="${k}">${l}</button>`).join('')}</div>`}
         ${E.period === 'pick' ? (months.length ? `<div class="chips">${months.map(m => `<button class="chip-btn${E.month === m ? ' on' : ''}" data-act="exmonth" data-v="${m}" aria-pressed="${E.month === m}">${monthLabel(m, M.month)}</button>`).join('')}</div>` : `<p class="hint">${S.hist ? '아직 지난 달 기록이 없어요. 다음 달부터 고를 수 있어요.' : '달 목록을 불러오는 중…'}</p>`) : ''}
         ${isLead() ? `<label class="check"><input type="checkbox" data-act="exlead"${E.lead ? ' checked' : ''}> 리더·목사님 항목도 넣기</label>${E.lead ? '<p class="hint warn-text">파일은 다른 사람에게 전달될 수 있어요. 꼭 필요할 때만 넣으세요.</p>' : ''}` : ''}
         <p class="hint">"${words().only}" 항목은 어떤 경우에도 파일에 넣지 않아요.${E.period === 'year' ? ' 1년 치는 달마다 탭 하나씩 나눠 담아요.' : ''}</p>
@@ -3229,7 +3234,7 @@ try { const p = JSON.parse(localStorage.getItem('koide-pref') || '{}'), d = docu
   //  서버에서 받은 것은 이 기기에 기억해 두고(다음에 열 때 먼저 쓰고), 앱을 열 때 한 번 새로 받는다
   const PT_KEY = 'koide-praytext';
   function loadPrayText(force) {
-    if (KOINONIA) { S.prayText = []; S.ptLoaded = true; return; }
+    if (KOINONIA || CHURCHSB) { S.prayText = []; S.ptLoaded = true; return; } // 새 길은 ⑤까지 앱에 든 기본 문장
     if (S.prayText === undefined) { try { S.prayText = JSON.parse(localStorage.getItem(PT_KEY) || 'null'); } catch (e) { S.prayText = null; } }
     if (S.ptLoading || (S.ptLoaded && !force)) return;
     S.ptLoading = true;
@@ -3773,8 +3778,8 @@ try { const p = JSON.parse(localStorage.getItem('koide-pref') || '{}'), d = docu
       ${solo() ? '' : `<div class="kids">${mine.kids.length ? mine.kids.map((k, n) => `<span class="kid"><small>${n + 1}</small>${esc(k)}</span>`).join('') : '<span class="hint">등록한 자녀가 없어요</span>'}</div>
       <p class="hint">${S.famMsg ? `<span class="ok">${esc(S.famMsg)}</span>` : '자녀 이름을 넣어 두면 기도제목의 대상이 이름으로 붙어요.'}</p>`}
       <p class="hint">${solo() ? '결혼해서 가정을 이루면' : '결혼해서 가정을 합치려면'} 리더나 관리자에게 알려 주세요.</p>
-      <p class="fam-rec"><button class="link quiet" data-act="myexport">${solo() ? '내' : '우리 가정'} 기록 내려받기</button>
-        ${S.month.eraseReq ? '<span>기록 지우기를 요청했어요</span><button class="link quiet" data-act="erasereqoff">요청 거두기</button>' : '<button class="link quiet" data-act="erasereq">기록 지우기 요청</button>'}</p></section>`;
+      ${CHURCHSB ? '' : `<p class="fam-rec"><button class="link quiet" data-act="myexport">${solo() ? '내' : '우리 가정'} 기록 내려받기</button>
+        ${S.month.eraseReq ? '<span>기록 지우기를 요청했어요</span><button class="link quiet" data-act="erasereqoff">요청 거두기</button>' : '<button class="link quiet" data-act="erasereq">기록 지우기 요청</button>'}</p>`}</section>`;
     return `<section class="card"><p class="label">${solo() ? '내 정보 고치기' : '우리 가정 정보 고치기'}</p>
       <form class="plain-form" data-form="famsave">
         <label class="label" for="fi-a">${solo() ? '이름' : '남편 또는 본인 이름'}</label><input id="fi-a" class="field" value="${esc(E.a)}" required maxlength="10" autocomplete="off">
@@ -3821,9 +3826,10 @@ try { const p = JSON.parse(localStorage.getItem('koide-pref') || '{}'), d = docu
     // 한 줄 메뉴: 제목, 무엇을 하는 곳인지, 역할 표
     const row = (act, v, title, sub, tag) => `<button class="mrow" data-act="${act}"${v ? ` data-v="${v}"` : ''}><span><b>${title}</b>${tag || ''}<small>${sub}</small></span>${ICON.chevR}</button>`;
     const tag = (cls, t) => `<span class="role-tag ${cls}">${t}</span>`;
+    // 새 길(Supabase)의 부서 관리는 교회 관리자 초대(운영 지원)로만 들어온다. 가정에 붙은 부서 관리자 표시는 ⑥에서 연다
     const roles = [
       isLeaderRole() && !S.grp ? row('tab', 'status', esc(grp()) + ' 현황', CHURCHSB ? '연결 승인 · 초대 링크' : '기도제목 올렸는지 보기 · 안부 문구 · 연결 승인', tag('leader', esc(me.role))) : '',
-      me.admin && !S.grp ? row('tab', 'admin', (S.month.dept && S.month.dept.name ? esc(S.month.dept.name) : '부서') + ' 관리', '우리 부서 전체를 꾸려요', tag('admin', '부서 관리자')) : '',
+      me.admin && !S.grp && !CHURCHSB ? row('tab', 'admin', (S.month.dept && S.month.dept.name ? esc(S.month.dept.name) : '부서') + ' 관리', '우리 부서 전체를 꾸려요', tag('admin', '부서 관리자')) : '',
       opsDepts().length ? row(S.me.ops.all ? 'church' : 'tab', S.me.ops.all ? '' : 'ops', S.me.ops.all ? '교회 관리' : '운영 지원', opsDepts().map(d => esc(d.name)).join(' · ') + ' · 기도제목 내용은 보지 않아요', tag('admin', S.me.ops.all ? '교회 관리자' : '지원')) : ''
     ].join('');
     const setOpen = !!S.setOpen;
@@ -4335,7 +4341,7 @@ try { const p = JSON.parse(localStorage.getItem('koide-pref') || '{}'), d = docu
       </div></div>`;
   }
   // ── 함께 기도해요(부서 기도제목): 교역자·부서 관리자·교회 관리자가 쓰고, 회원은 이번 달 화면과 기도하기 › 우리 교회에서 본다 ──
-  const canTogether = () => !!(S.month && S.month.me && (S.month.me.staff || S.month.me.admin || S.op) && !S.grp);
+  const canTogether = () => !CHURCHSB && !!(S.month && S.month.me && (S.month.me.staff || S.month.me.admin || S.op) && !S.grp); // 새 길은 ⑤에서
   function togetherCard() {
     const L = (S.month && S.month.together) || [];
     if (S.grp || (!L.length && !canTogether())) return '';
@@ -5095,6 +5101,10 @@ try { const p = JSON.parse(localStorage.getItem('koide-pref') || '{}'), d = docu
         </section></div>`;
   }
   function feedbackView() {
+    // 새 길(Supabase): 의견함은 ⑥-3에서 연다. 그때까지 안내 카드만
+    if (CHURCHSB) return `<button class="link back" data-act="tab" data-v="more">${ICON.chevL}더보기</button>
+      <div class="page-top"><div><h1>의견 보내기</h1></div></div>
+      <section class="card" style="margin-top:12px"><p class="hint" style="margin:0">의견 보내기는 아직 준비 중이에요. 불편한 점은 ${esc(grp())} 리더에게 알려 주세요.</p></section>`;
     const F = S.fb || (S.fb = { kind: '이랬으면', text: '', named: false });
     return `<button class="link back" data-act="tab" data-v="more">${ICON.chevL}더보기</button>
       <div class="page-top"><div><h1>의견 보내기</h1></div></div>
@@ -6007,20 +6017,25 @@ try { const p = JSON.parse(localStorage.getItem('koide-pref') || '{}'), d = docu
       case 'prevrm': S.preview.splice(Number(v), 1); if (!S.preview.length) S.preview = null; return render();
       case 'addparts': {
         // 목록에 바로 넣고(서버의 답이 오기 전까지는 잠가 둠), 서버에는 한 번에 보낸다(이번 달 화면을 한 번만 만들게)
-        const parts = S.preview, f = mineFam(); S.preview = null; S.draft = ''; const at = $('#add-t'); if (at) at.value = '';
+        const parts = S.preview, f = mineFam(), was = S.draft; S.preview = null; S.draft = ''; const at = $('#add-t'); if (at) at.value = '';
         // 안내 중이면 예시에서 추가했다고 기억만 한다. 연습 페이지는 데모 서버라 보통대로 저장해도 진짜 데이터에 닿지 않는다
         TourC.sawAdd();
         track('기도제목 저장', { items: parts.length, split: true });
         const items = parts.map(x => ({ target: x.target, text: x.text, scope: staffMe() ? 'dept' : 'room' }));
         items.forEach((x, k) => f.items.push({ id: 'new' + Date.now() + k, target: x.target, text: x.text, scope: x.scope, isNew: true, editedBy: S.me.person, pending: true }));
+        let sent = 0; // 서버에 적힌 개수(20개씩 나눠 보내다 중간에 막히면 남은 것만 칸에 되돌린다)
         save(async () => {
-          try { let m; for (let i = 0; i < items.length; i += 20) m = await api('saveItems', { items: items.slice(i, i + 20) }); return m; } // 서버는 한 번에 20개까지
+          try { let m; for (let i = 0; i < items.length; i += 20) { m = await api('saveItems', { items: items.slice(i, i + 20) }); sent = Math.min(items.length, i + 20); } return m; } // 서버는 한 번에 20개까지
           catch (err) {
             // 옛 서버는 모르는 요청이라 bad로 답한다(아직 아무것도 적지 않았다). 예전처럼 하나씩 차례대로 저장한다
             if (!(err && err.code === 'bad' && /모르는 요청/.test(err.message || ''))) throw err;
             let m; for (const x of items) m = await api('saveItem', x); return m;
           }
+        }, ok => { // 새 길: 서버가 한도(500자·60개)로 막으면 쓰던 글(적히지 않은 것)을 칸에 되돌려 둔다
+          const t = $('#add-t'); if (ok || !CHURCHSB || S.draft || (t && t.value)) return;
+          S.draft = sent ? parts.slice(sent).map(x => x.target + 'ㅡ' + x.text).join('\n\n') : was; if (t) t.value = S.draft;
         });
+
         render(); return toast(parts.length + '개를 더했어요.');
       }
       case 'homeview': S.homeView = v; if (v === 'table') { track('화면 보기', { screen: '표' }); if (!S.hist) loadHist(); } return render();
@@ -6226,7 +6241,8 @@ try { const p = JSON.parse(localStorage.getItem('koide-pref') || '{}'), d = docu
       // 칸에는 이미 고친 글이 보이니 다시 그리지 않고 기억만 바꾼다(칸을 벗어나며 바로 누른 탭이 그대로 눌리게)
       Object.assign(i, { text, target });
       const body = { id, target, text, scope: i.scope };
-      save(() => api('saveItem', body));
+      // 새 길(Supabase)은 서버가 글자 수(500자)를 막는다. 저장하지 못하면 고치던 글을 칸에 남겨 둔다(줄여서 다시 저장할 수 있게)
+      save(() => api('saveItem', body), ok => { if (!CHURCHSB) return; if (ok) { if (S.keepEdit && S.keepEdit.id === id) S.keepEdit = null; } else S.keepEdit = { id, text }; });
       track('기도제목 저장', { items: 1, split: false });
     }
   });
