@@ -1,5 +1,5 @@
 // 코이데 교회 층(Supabase)의 응답을 코이데 교회 화면(index.html)이 아는 옛 Apps Script 모양으로 바꾼다. koinonia-api.js와 같은 모양.
-// CHURCH_BACKEND가 'supabase'일 때만 index.html이 부른다(app/config.js, docs/setup.md 13~19장). 서버 함수는 supabase/009_church_setup.sql~015_church_together.sql.
+// CHURCH_BACKEND가 'supabase'일 때만 index.html이 부른다(app/config.js, docs/setup.md 13~20장). 서버 함수는 supabase/009_church_setup.sql~016_church_reorg.sql.
 //   start·me → church_me(+church_invite_open·church_depts·church_month) · opsJoin → church_admin_accept 뒤 church_me · opsInvite → church_admin_invite · opsRemove → church_admin_remove
 //   opsCtx → church_ops_ctx · church → church_overview · deptSave → church_dept_save · deptClose·deptReopen → church_dept_state
 //   saveGroup → church_group_name · roster → church_roster · rosterSave(addRoom·renameRoom·dropRoom) → church_room_save
@@ -15,6 +15,7 @@
 //     saveStaff·endStaff → church_staff_save·church_staff_end · 첫 접속 부서 목록의 hasStaff ← church_staff_depts
 //   함께 기도해요·기도 문장(015): together·togetherSave·togetherState → church_together·church_together_save·church_together_state
 //     prayText·prayTextSave → church_pray_text_list·church_pray_text_save
+//   연도 개편(016): reorg·reorgSave·reorgCancel → church_reorg·church_reorg_save·church_reorg_cancel(관리 화면의 부서)
 //   logout → KoideSb.signOut(로그인 세션을 끊는다)
 // 옛 응답과 다른 곳: ① opsRemove·approve·reject·unlink의 body.kakaoId는 이제 관리자·연결 요청·연결 줄의 id(uuid)다(화면은 data-v를 그대로 넘긴다)
 //   ② usage·surveyState·tourSeen은 빈 모양으로, beforeMarriage(결혼 전 기록, ⑥-2)는 빈 목록으로 달랜다
@@ -118,6 +119,11 @@ window.koideChurchApi = (() => {
       case 'togetherState': return rpc('church_together_state', { p_dept: dept, p_item: need(body.id, '기도제목'), p_op: body.op || '' });
       case 'prayText': return rpc('church_pray_text_list');
       case 'prayTextSave': return rpc('church_pray_text_save', { p_topic: String(body.topic || ''), p_rows: Array.isArray(body.rows) ? body.rows : [] });
+      // 연도 개편(교회 관리자·그 부서 관리자). 개편 안내(shift)는 이번 달 응답에 실려 온다
+      case 'reorg': return rpc('church_reorg', { p_dept: need(dept, '부서') });
+      case 'reorgSave': return rpc('church_reorg_save', { p_dept: need(dept, '부서'), p_start: body.start || '', p_leader_from: body.leaderFrom || '', p_member_from: body.memberFrom || '',
+        p_rooms: Array.isArray(body.rooms) ? body.rooms : [], p_rows: Array.isArray(body.rows) ? body.rows : [], p_leave: Array.isArray(body.leave) ? body.leave : [], p_hold: Array.isArray(body.hold) ? body.hold : [] });
+      case 'reorgCancel': return rpc('church_reorg_cancel', { p_dept: need(dept, '부서') });
       case 'endStaff': return rpc('church_staff_end', { p_dept: need(dept, '부서'), p_household: need(body.familyId, '교역자') });
       case 'myExport': return rpc('church_my_export');
       case 'beforeMarriage': return { before: [] };
