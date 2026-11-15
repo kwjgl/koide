@@ -1,11 +1,12 @@
 // 코이데 교회 층(Supabase)의 응답을 코이데 교회 화면(index.html)이 아는 옛 Apps Script 모양으로 바꾼다. koinonia-api.js와 같은 모양.
-// CHURCH_BACKEND가 'supabase'일 때만 index.html이 부른다(app/config.js, docs/setup.md 13~16장). 서버 함수는 supabase/009_church_setup.sql·010_church_join.sql·011_church_items.sql·012_church_history.sql.
+// CHURCH_BACKEND가 'supabase'일 때만 index.html이 부른다(app/config.js, docs/setup.md 13~17장). 서버 함수는 supabase/009_church_setup.sql~013_church_leader.sql.
 //   start·me → church_me(+church_invite_open·church_depts·church_month) · opsJoin → church_admin_accept 뒤 church_me · opsInvite → church_admin_invite · opsRemove → church_admin_remove
 //   opsCtx → church_ops_ctx · church → church_overview · deptSave → church_dept_save · deptClose·deptReopen → church_dept_state
 //   saveGroup → church_group_name · roster → church_roster · rosterSave(addRoom·renameRoom·dropRoom) → church_room_save
 //   rosterSave(addPerson·addPeople·role·unlink) → church_person_add·people_add·roster_role·unlink · churchPeek → church_peek · churchJoin → church_join · churchLeave → church_leave
 //   requestLink → church_link_pick·name·new · cancelLink → church_link_cancel · month → church_month · rooms → church_depts
 //   pending·approve·reject·approveAll·unlink → church_pending·decide·approve_all·unlink · ops·inviteRenew → church_invites·church_invite_renew
+//   pending(리더·코리더) → church_pending + church_leader_view(현황·돌봄 신호·업데이트 이력) · post·unpost → church_post 뒤 church_pending
 //   saveItem → church_item_save · saveItems → church_items_add · endItem·reopenItem → church_item_end · deleteItem → church_item_del
 //   confirmSame → church_confirm_same · pray → church_pray · saveFamily → church_family_save · tourDone → church_tour_done
 //   history → church_history · search → church_search · myPrayers → church_my_prayers · myExport → church_my_export
@@ -137,7 +138,17 @@ window.koideChurchApi = (() => {
         return meOf(r.me);
       }
       case 'cancelLink': { const r = await rpc('church_link_cancel'); return r && r.me ? meOf(r.me) : {}; }
-      case 'pending': return rpc('church_pending', { p_dept: dept });
+      case 'pending': {
+        if (dept) return rpc('church_pending', { p_dept: dept });
+        const p = await rpc('church_pending');
+        // 리더·코리더만 현황을 더 받는다. 부서 관리자 표시만 있는 가정은 서버가 막으니(bad) 연결 승인 몫만 돌려준다
+        try { return Object.assign(p, await rpc('church_leader_view')); }
+        catch (e) { if (e && e.code === 'bad') return p; throw e; }
+      }
+      case 'post': case 'unpost': {
+        const v = await rpc('church_post', { p_household: need(body.familyId, '가정'), p_on: body.action === 'post' });
+        return Object.assign(await rpc('church_pending'), v);
+      }
       case 'approve': case 'reject': return rpc('church_decide', { p_link: need(body.kakaoId, '요청'), p_ok: body.action === 'approve', p_dept: dept });
       case 'approveAll': return rpc('church_approve_all', { p_links: body.kakaoIds || [], p_dept: dept });
       case 'unlink': return rpc('church_unlink', { p_link: need(body.kakaoId, '연결'), p_dept: dept });
