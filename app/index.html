@@ -2006,7 +2006,7 @@ try { const p = JSON.parse(localStorage.getItem('koide-pref') || '{}'), d = docu
     const me = S.month && S.month.me; if (!me) return null;
     const w = words(), g = esc(grp());
     const T = {
-      status: ['status', CHURCHSB ? `우리 ${g} ${w.members}의 연결 신청을 승인하고, 초대 링크를 나누는 곳이에요.` : `우리 ${g} ${w.members}${w.members === '식구' ? '를' : '을'} 챙기는 곳이에요. 아직 손보지 않은 ${w.one}에게 안부 문구를 보내고, 카카오 연결 신청을 승인해요. 누가 몇 번 기도했는지는 리더에게도 보이지 않아요.`],
+      status: ['status', `우리 ${g} ${w.members}${w.members === '식구' ? '를' : '을'} 챙기는 곳이에요. 아직 손보지 않은 ${w.one}에게 안부 문구를 보내고, ${CHURCHSB ? '' : '카카오 '}연결 신청을 승인해요. 누가 몇 번 기도했는지는 리더에게도 보이지 않아요.`],
       admin: ['admin', `우리 부서 전체를 꾸리는 곳이에요. 왼쪽에는 할 일과 편성, 오른쪽에는 사람·운영·설정이 있어요. 한 해 개편은 연도 개편에서 미리 예약해요.`]
     };
     if (S.op) { const t = S.tab === 'church' ? ['church', '교회 전체 화면이에요. 부서마다 할 일과 앱 상태를 보고, 부서 카드를 누르면 그 부서의 관리 화면으로 가요. 기도제목 내용은 보이지 않아요.'] : ['ops', '부서 관리 화면이에요. 편성, 연결, 개편, 앱 상태를 다루고, 기도제목 내용은 보이지 않아요.']; return tipsSeen()[t[0]] ? null : t; }
@@ -2684,7 +2684,10 @@ try { const p = JSON.parse(localStorage.getItem('koide-pref') || '{}'), d = docu
     if (ok) toast('복사했어요. 카톡에 붙여 넣으세요.');
   }
   function statusCard() {
-    const fams = S.month.families, by = k => fams.filter(f => f.status === k);
+    // 새 길(Supabase)은 다른 가정의 상태를 이번 달 응답에 싣지 않고 리더 현황(S.pending.status)에만 담는다
+    if (CHURCHSB && !(S.pending && S.pending.status)) return `<section class="card"><h2>${monthNum()}월 현황</h2><p class="hint">불러오는 중…</p></section>`;
+    const stOf = f => CHURCHSB ? S.pending.status[f.id] || 'same' : f.status;
+    const fams = S.month.families, by = k => fams.filter(f => stOf(f) === k);
     const e = by('edited').length, c = by('confirmed').length, s = by('same').length;
     const group = (k, extra) => by(k).length ? `<div class="group"><p class="label">${STATUS[k]} · ${by(k).length}${words().count}</p>
       <p class="names">${by(k).map(f => esc(f.name)).join(', ')}</p>${extra || ''}</div>` : '';
@@ -3823,7 +3826,7 @@ try { const p = JSON.parse(localStorage.getItem('koide-pref') || '{}'), d = docu
     const tag = (cls, t) => `<span class="role-tag ${cls}">${t}</span>`;
     // 새 길(Supabase)의 부서 관리는 교회 관리자 초대(운영 지원)로만 들어온다. 가정에 붙은 부서 관리자 표시는 ⑥에서 연다
     const roles = [
-      isLeaderRole() && !S.grp ? row('tab', 'status', esc(grp()) + ' 현황', CHURCHSB ? '연결 승인 · 초대 링크' : '기도제목 올렸는지 보기 · 안부 문구 · 연결 승인', tag('leader', esc(me.role))) : '',
+      isLeaderRole() && !S.grp ? row('tab', 'status', esc(grp()) + ' 현황', '기도제목 올렸는지 보기 · 안부 문구 · 연결 승인', tag('leader', esc(me.role))) : '',
       me.admin && !S.grp && !CHURCHSB ? row('tab', 'admin', (S.month.dept && S.month.dept.name ? esc(S.month.dept.name) : '부서') + ' 관리', '우리 부서 전체를 꾸려요', tag('admin', '부서 관리자')) : '',
       opsDepts().length ? row(S.me.ops.all ? 'church' : 'tab', S.me.ops.all ? '' : 'ops', S.me.ops.all ? '교회 관리' : '운영 지원', opsDepts().map(d => esc(d.name)).join(' · ') + ' · 기도제목 내용은 보지 않아요', tag('admin', S.me.ops.all ? '교회 관리자' : '지원')) : ''
     ].join('');
@@ -3932,10 +3935,6 @@ try { const p = JSON.parse(localStorage.getItem('koide-pref') || '{}'), d = docu
       <button class="btn small ghost" data-act="invcopy" data-v="${esc(t)}" data-n="${esc(S.month.room.name)}">초대 링크 복사</button>${copyNote('inv' + t, inviteUrl(t))}</section>`;
   }
   function statusView() {
-    if (CHURCHSB) return `<button class="link back" data-act="tab" data-v="more">${ICON.chevL}더보기</button>
-      <div class="page-top"><div><p class="eyebrow">${esc(S.month.room.name)} · ${esc(S.month.me.role)}</p><h1>연결 승인</h1></div></div>
-      <div class="two-col"><div class="col">${manageCard()}</div><div class="col side">${leadInviteCard()}
-        <section class="card"><p class="hint" style="margin:0">기도제목 현황은 아직 준비 중이에요.</p></section></div></div>`;
     return `<button class="link back" data-act="tab" data-v="more">${ICON.chevL}더보기</button>
       <div class="page-top"><div><p class="eyebrow">${esc(S.month.room.name)} · ${esc(S.month.me.role)}</p><h1>이번 달 현황</h1></div><p class="date">${todayLabel()}</p></div>
       <div class="two-col"><div class="col">${statusCard()}${trendCard()}${histCard()}${signalCard(S.pending && S.pending.signals)}${manageCard()}</div><div class="col side">${shareCard()}${leadInviteCard()}</div></div>`;
