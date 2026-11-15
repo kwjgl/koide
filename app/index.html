@@ -2504,7 +2504,7 @@ try { const p = JSON.parse(localStorage.getItem('koide-pref') || '{}'), d = docu
       ${mine.status === 'confirmed' ? `<p class="hint">이번 달도 그대로라고 ${staffMe() ? '표시했어요' : '리더에게 알렸어요'}.</p>` : ''}</section>`;
   }
   // S5 목사님 홈: 부서 전체를 훑어보고(사랑방마다 손봄·확인), 사랑방을 눌러 그 사랑방 가정을 보며 기도한다
-  //  새 길(Supabase)은 기도 주제 흐름(⑦)·하나님 나라 기도 문장·함께 기도해요(⑤-2b) 자리를 안내 카드 한 장으로 닫아 둔다
+  //  새 길(Supabase)은 기도 주제 흐름(⑦) 자리를 안내 카드 한 장으로 닫아 둔다
   function staffHomeView() {
     if (S.openRoom) return staffRoomView();
     const M = S.month, rooms = M.rooms || [], sum = k => rooms.reduce((a, r) => a + r[k], 0);
@@ -2524,10 +2524,10 @@ try { const p = JSON.parse(localStorage.getItem('koide-pref') || '{}'), d = docu
           <ul class="legend"><li><i class="sw edited"></i>이번 달 손봄</li><li><i class="sw confirmed"></i>그대로 확인</li><li><i class="sw same"></i>지난달 그대로</li></ul>`
         : `<p class="hint">아직 ${esc(gj('이/가'))} 없어요.</p>`}
         ${signalCard(M.signals, true)}
-        ${CHURCHSB ? '<section class="card"><p class="hint" style="margin:0">기도 주제 흐름 · 하나님 나라 기도 문장 · 함께 기도해요는 아직 준비 중이에요.</p></section>' : `${topicFlowCard(loadTopics())}
-        ${topicDictCard(S.topics)}
+        ${CHURCHSB ? '<section class="card"><p class="hint" style="margin:0">기도 주제 흐름은 아직 준비 중이에요.</p></section>' : `${topicFlowCard(loadTopics())}
+        ${topicDictCard(S.topics)}`}
         <section class="card"><div class="row"><div><p class="label">하나님 나라 기도 문장</p><p class="hint" style="margin:.2em 0 0">기도하기에 날마다 나오는 간구 문장과 성경의 기도를 고쳐요.</p></div><button class="btn small ghost" data-act="tab" data-v="praytext">고치기</button></div></section>
-        ${togetherEditCard()}`}
+        ${togetherEditCard()}
         ${serveCard()}
       </div></div>`;
   }
@@ -3233,7 +3233,7 @@ try { const p = JSON.parse(localStorage.getItem('koide-pref') || '{}'), d = docu
   //  서버에서 받은 것은 이 기기에 기억해 두고(다음에 열 때 먼저 쓰고), 앱을 열 때 한 번 새로 받는다
   const PT_KEY = 'koide-praytext';
   function loadPrayText(force) {
-    if (KOINONIA || CHURCHSB) { S.prayText = []; S.ptLoaded = true; return; } // 새 길은 ⑤까지 앱에 든 기본 문장
+    if (KOINONIA) { S.prayText = []; S.ptLoaded = true; return; }
     if (S.prayText === undefined) { try { S.prayText = JSON.parse(localStorage.getItem(PT_KEY) || 'null'); } catch (e) { S.prayText = null; } }
     if (S.ptLoading || (S.ptLoaded && !force)) return;
     S.ptLoading = true;
@@ -4116,7 +4116,7 @@ try { const p = JSON.parse(localStorage.getItem('koide-pref') || '{}'), d = docu
         ${reqs.length ? `<p class="more-h">할 일</p>${reqCard()}` : ''}
         <p class="more-h">편성</p>${rosterCard()}
       </div><div class="col side">
-        ${S.op ? `<p class="more-h">사람</p><section class="card mrows folds">${fold('invite', '초대 링크 · QR', I ? `${esc(S.month.dept.name)} 전체 · ${esc(grp())} ${I.rooms.length}곳` : '불러오는 중…', inviteCard())}${P && P.staff ? fold('staff', '교역자', P.staff.length ? P.staff.map(x => esc(x.label)).join(' · ') : '아직 없어요', staffCard()) : ''}</section>` : ''}
+        ${S.op ? `<p class="more-h">사람</p><section class="card mrows folds">${fold('together', '함께 기도해요', '부서 기도제목 쓰기', togetherEditCard())}${fold('invite', '초대 링크 · QR', I ? `${esc(S.month.dept.name)} 전체 · ${esc(grp())} ${I.rooms.length}곳` : '불러오는 중…', inviteCard())}${P && P.staff ? fold('staff', '교역자', P.staff.length ? P.staff.map(x => esc(x.label)).join(' · ') : '아직 없어요', staffCard()) : ''}</section>` : ''}
         <p class="more-h">설정</p><section class="card mrows folds">${fold('group', '소그룹 이름', esc(grp()), groupCard())}</section>
         <section class="card"><p class="hint" style="margin:0">기도제목은 아직 준비 중이에요.</p></section>
       </div></div>`;
@@ -4336,7 +4336,8 @@ try { const p = JSON.parse(localStorage.getItem('koide-pref') || '{}'), d = docu
       </div></div>`;
   }
   // ── 함께 기도해요(부서 기도제목): 교역자·부서 관리자·교회 관리자가 쓰고, 회원은 이번 달 화면과 기도하기 › 우리 교회에서 본다 ──
-  const canTogether = () => !CHURCHSB && !!(S.month && S.month.me && (S.month.me.staff || S.month.me.admin || S.op) && !S.grp); // 새 길은 ⑤에서
+  // 새 길(Supabase)은 교역자와 관리 화면만 쓴다. 가정에 붙은 부서 관리자 표시는 ⑥에서 연다
+  const canTogether = () => !!(S.month && S.month.me && (S.month.me.staff || (!CHURCHSB && S.month.me.admin) || S.op) && !S.grp);
   function togetherCard() {
     const L = (S.month && S.month.together) || [];
     if (S.grp || (!L.length && !canTogether())) return '';

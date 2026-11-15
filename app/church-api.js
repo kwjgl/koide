@@ -1,5 +1,5 @@
 // 코이데 교회 층(Supabase)의 응답을 코이데 교회 화면(index.html)이 아는 옛 Apps Script 모양으로 바꾼다. koinonia-api.js와 같은 모양.
-// CHURCH_BACKEND가 'supabase'일 때만 index.html이 부른다(app/config.js, docs/setup.md 13~18장). 서버 함수는 supabase/009_church_setup.sql~014_church_staff.sql.
+// CHURCH_BACKEND가 'supabase'일 때만 index.html이 부른다(app/config.js, docs/setup.md 13~19장). 서버 함수는 supabase/009_church_setup.sql~015_church_together.sql.
 //   start·me → church_me(+church_invite_open·church_depts·church_month) · opsJoin → church_admin_accept 뒤 church_me · opsInvite → church_admin_invite · opsRemove → church_admin_remove
 //   opsCtx → church_ops_ctx · church → church_overview · deptSave → church_dept_save · deptClose·deptReopen → church_dept_state
 //   saveGroup → church_group_name · roster → church_roster · rosterSave(addRoom·renameRoom·dropRoom) → church_room_save
@@ -13,10 +13,12 @@
 //   교역자(014): month → church_month(교역자면 목사님 홈) · room → church_staff_room · famTimeline → church_fam_timeline
 //     history·search·myPrayers → church_staff_history·church_staff_search·church_staff_my_prayers(교역자일 때) · requestLink(staff) → church_link_staff
 //     saveStaff·endStaff → church_staff_save·church_staff_end · 첫 접속 부서 목록의 hasStaff ← church_staff_depts
+//   함께 기도해요·기도 문장(015): together·togetherSave·togetherState → church_together·church_together_save·church_together_state
+//     prayText·prayTextSave → church_pray_text_list·church_pray_text_save
 //   logout → KoideSb.signOut(로그인 세션을 끊는다)
 // 옛 응답과 다른 곳: ① opsRemove·approve·reject·unlink의 body.kakaoId는 이제 관리자·연결 요청·연결 줄의 id(uuid)다(화면은 data-v를 그대로 넘긴다)
 //   ② usage·surveyState·tourSeen은 빈 모양으로, beforeMarriage(결혼 전 기록, ⑥-2)는 빈 목록으로 달랜다
-//   ③ rosterSave의 move·leave·admin·pilotRoom과 표에 없는 액션(함께 기도해요·기도 문장(⑤-2b)·주제 흐름·기록 지우기 요청 등)은 '아직 쓸 수 없어요' 오류(화면은 토스트로 알린다)
+//   ③ rosterSave의 move·leave·admin·pilotRoom과 표에 없는 액션(주제 흐름·주제 사전·기록 지우기 요청 등)은 '아직 쓸 수 없어요' 오류(화면은 토스트로 알린다)
 //   ④ 이번 달(church_month)은 일부러 덜 보낸다: 다른 가정 카드에 손봄 상태(status)·자녀 이름이 없고, 받는 가정 한 줄(received.n)은 가정 수가 아니라 0·1·of 세 단계다.
 //     serve·together는 빈 배열, shift·news는 null, eraseReq·room.pilot은 false, me.survey는 ''(화면은 CHURCHSB 갈래에서 견딘다)
 window.koideChurchApi = (() => {
@@ -110,6 +112,12 @@ window.koideChurchApi = (() => {
       case 'famTimeline': return rpc('church_fam_timeline', { p_household: need(body.familyId, '가정') });
       case 'saveStaff': return rpc('church_staff_save', { p_dept: need(dept, '부서'), p_household: body.familyId || null, p_a: body.a || '', p_b: body.b || '',
         p_title: body.title || '', p_label: body.label || '', p_serve: body.serve !== false });
+      // 함께 기도해요(관리 화면이면 그 부서, 아니면 교역자의 부서)·하나님 나라 기도 문장(교회 하나에 한 벌)
+      case 'together': return rpc('church_together', { p_dept: dept });
+      case 'togetherSave': return rpc('church_together_save', { p_dept: dept, p_item: body.id || null, p_target: body.target || '', p_text: body.text || '' });
+      case 'togetherState': return rpc('church_together_state', { p_dept: dept, p_item: need(body.id, '기도제목'), p_op: body.op || '' });
+      case 'prayText': return rpc('church_pray_text_list');
+      case 'prayTextSave': return rpc('church_pray_text_save', { p_topic: String(body.topic || ''), p_rows: Array.isArray(body.rows) ? body.rows : [] });
       case 'endStaff': return rpc('church_staff_end', { p_dept: need(dept, '부서'), p_household: need(body.familyId, '교역자') });
       case 'myExport': return rpc('church_my_export');
       case 'beforeMarriage': return { before: [] };
