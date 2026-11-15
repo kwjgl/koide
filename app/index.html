@@ -3028,9 +3028,6 @@ try { const p = JSON.parse(localStorage.getItem('koide-pref') || '{}'), d = docu
         : '<p class="hint">찾은 기도제목이 없어요.</p>'}</section>`;
   }
   function historyView() {
-    // 새 길(Supabase): 지난 기록·검색·타임라인·나의 기도는 ④-2에서 연다. 그때까지 안내 카드만
-    if (CHURCHSB) return `<div class="page-top"><div><h1>돌아보기 ${HEAD_ICON.bible}</h1></div></div>
-      <section class="card"><p class="hint" style="margin:0">돌아보기(지난 기록 · 타임라인 · 나의 기도)는 아직 준비 중이에요. 이번 달 기도제목은 이번 달 화면에서 볼 수 있어요.</p></section>`;
     // 회원은 사랑방·타임라인·나의 기도, 목사님·장로님은 우리 가정이 하나 더(옛 값 'mine'이 남아 있어도 회원은 사랑방으로)
     const H = S.hist, staff = staffMe(), tab = S.histTab === 'mine' && !staff ? 'room' : S.histTab || 'room';
     const head = `<div class="page-top"><div><h1>돌아보기 ${HEAD_ICON.bible}</h1></div></div>
@@ -3078,7 +3075,6 @@ try { const p = JSON.parse(localStorage.getItem('koide-pref') || '{}'), d = docu
       <ul class="legend"><li><i class="sw edited"></i>그 달에 올린 기도제목</li></ul></section>`;
   }
   async function loadHist(month) {
-    if (CHURCHSB) return render(); // 새 길은 지난 기록을 아직 부르지 않는다(④-2)
     // 지난 기록은 지난 달만: 이번 달을 달라고 하지 않고 비워 두면 서버가 가장 가까운 지난 달을 고른다
     if (month && S.hist && month >= S.hist.now) month = '';
     try { S.hist = await api('history', Object.assign(month ? { month } : {}, S.histRoom ? { roomId: S.histRoom } : {})); }
@@ -3110,13 +3106,12 @@ try { const p = JSON.parse(localStorage.getItem('koide-pref') || '{}'), d = docu
   // 이번 달 화면의 [카드 | 표]에서 표를 고르면 지금 구글 시트처럼 가정 | 기도제목 한 장으로 보인다.
   //  엑셀은 이번 달 / 월 고르기 / 올해 전체(달마다 탭 하나). 각자 볼 수 있는 범위만 담고, "우리 가정만" 항목은 어떤 경우에도 넣지 않는다.
   //  리더·목사님 항목은 볼 수 있는 사람이 고를 때만, 파일이 전달될 수 있다는 경고와 함께
-  //  새 길(Supabase)은 지난 기록이 아직 없어서(④-2) 기간 고르기를 숨기고 이번 달만 내려받는다
   const isLead = () => S.month.me.role === '리더' || S.month.me.role === '코리더';
   function tableCard() {
     const M = S.month, E = S.ex || (S.ex = { open: false, period: 'this', month: null, lead: false });
     const months = S.hist ? S.hist.months.filter(m => m < M.month) : [];
     const panel = !E.open ? '' : `<div class="export">
-        ${CHURCHSB ? '' : `<div class="seg" style="--n:3" role="radiogroup" aria-label="기간">${[['this', '이번 달'], ['pick', '월 고르기'], ['year', M.month.slice(0, 4) + '년 전체']].map(([k, l]) => `<button class="${E.period === k ? 'on' : ''}" role="radio" aria-checked="${E.period === k}" data-act="experiod" data-v="${k}">${l}</button>`).join('')}</div>`}
+        <div class="seg" style="--n:3" role="radiogroup" aria-label="기간">${[['this', '이번 달'], ['pick', '월 고르기'], ['year', M.month.slice(0, 4) + '년 전체']].map(([k, l]) => `<button class="${E.period === k ? 'on' : ''}" role="radio" aria-checked="${E.period === k}" data-act="experiod" data-v="${k}">${l}</button>`).join('')}</div>
         ${E.period === 'pick' ? (months.length ? `<div class="chips">${months.map(m => `<button class="chip-btn${E.month === m ? ' on' : ''}" data-act="exmonth" data-v="${m}" aria-pressed="${E.month === m}">${monthLabel(m, M.month)}</button>`).join('')}</div>` : `<p class="hint">${S.hist ? '아직 지난 달 기록이 없어요. 다음 달부터 고를 수 있어요.' : '달 목록을 불러오는 중…'}</p>`) : ''}
         ${isLead() ? `<label class="check"><input type="checkbox" data-act="exlead"${E.lead ? ' checked' : ''}> 리더·목사님 항목도 넣기</label>${E.lead ? '<p class="hint warn-text">파일은 다른 사람에게 전달될 수 있어요. 꼭 필요할 때만 넣으세요.</p>' : ''}` : ''}
         <p class="hint">"${words().only}" 항목은 어떤 경우에도 파일에 넣지 않아요.${E.period === 'year' ? ' 1년 치는 달마다 탭 하나씩 나눠 담아요.' : ''}</p>
@@ -3778,8 +3773,8 @@ try { const p = JSON.parse(localStorage.getItem('koide-pref') || '{}'), d = docu
       ${solo() ? '' : `<div class="kids">${mine.kids.length ? mine.kids.map((k, n) => `<span class="kid"><small>${n + 1}</small>${esc(k)}</span>`).join('') : '<span class="hint">등록한 자녀가 없어요</span>'}</div>
       <p class="hint">${S.famMsg ? `<span class="ok">${esc(S.famMsg)}</span>` : '자녀 이름을 넣어 두면 기도제목의 대상이 이름으로 붙어요.'}</p>`}
       <p class="hint">${solo() ? '결혼해서 가정을 이루면' : '결혼해서 가정을 합치려면'} 리더나 관리자에게 알려 주세요.</p>
-      ${CHURCHSB ? '' : `<p class="fam-rec"><button class="link quiet" data-act="myexport">${solo() ? '내' : '우리 가정'} 기록 내려받기</button>
-        ${S.month.eraseReq ? '<span>기록 지우기를 요청했어요</span><button class="link quiet" data-act="erasereqoff">요청 거두기</button>' : '<button class="link quiet" data-act="erasereq">기록 지우기 요청</button>'}</p>`}</section>`;
+      <p class="fam-rec"><button class="link quiet" data-act="myexport">${solo() ? '내' : '우리 가정'} 기록 내려받기</button>
+        ${CHURCHSB ? '' : S.month.eraseReq ? '<span>기록 지우기를 요청했어요</span><button class="link quiet" data-act="erasereqoff">요청 거두기</button>' : '<button class="link quiet" data-act="erasereq">기록 지우기 요청</button>'}</p></section>`; // 새 길의 기록 지우기 요청은 ⑥-3
     return `<section class="card"><p class="label">${solo() ? '내 정보 고치기' : '우리 가정 정보 고치기'}</p>
       <form class="plain-form" data-form="famsave">
         <label class="label" for="fi-a">${solo() ? '이름' : '남편 또는 본인 이름'}</label><input id="fi-a" class="field" value="${esc(E.a)}" required maxlength="10" autocomplete="off">
