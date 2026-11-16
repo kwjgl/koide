@@ -4810,7 +4810,7 @@ try { const p = JSON.parse(localStorage.getItem('koide-pref') || '{}'), d = docu
         ${R.rooms.length > 1 ? `<div class="kid-form"><label class="mv-l" for="rs-move">다른 ${esc(josa(grp(), '으로/로'))}</label><select id="rs-move" class="field" aria-label="옮길 ${esc(grp())}">${R.rooms.filter(x => x.id !== r.id).map(x => `<option value="${esc(x.id)}">${esc(x.name)}</option>`).join('')}</select><button class="btn small ghost" data-act="rsmove" ${S.busy ? 'disabled' : ''}${rsIs('move') ? ' aria-busy="true"' : ''}>${rsBz('move', '옮기기')}</button></div>` : ''}</div>
         <div class="pn-sec"><p class="label">${CHURCHSB ? '연결된 로그인' : '카카오 연결'}</p>${p.links && p.links.length ? `<ul class="rs-links">${p.links.map(l => `<li><span>${esc(l.person)} <small>${nickTxt(l.nick)}${esc(l.since)}</small></span>${l.me ? '<small>나</small>' : `<button class="link danger" data-act="rsunlink" data-v="${esc(l.kakaoId)}" data-n="${esc(l.person)}" ${S.busy ? 'disabled' : ''}${rsIs('unlink') ? ' aria-busy="true"' : ''}>${rsBz('unlink', '해제')}</button>`}</li>`).join('')}</ul>` : '<p class="hint">아직 연결된 분이 없어요. 초대 링크로 들어와 연결을 신청하면 여기에 보여요.</p>'}</div>
         <div class="pn-sec"><p class="label">가끔 하는 일</p><div class="pn-rows">
-          ${CHURCHSB ? '' : `<button class="mrow" data-act="mvstart" data-v="marry" data-fam="${esc(p.id)}"><span><b>결혼해서 ${solo() ? '청장년부로 가기' : '가정 합치기'}</b></span>${ICON.chevR}</button>`}
+          <button class="mrow" data-act="mvstart" data-v="marry" data-fam="${esc(p.id)}"><span><b>결혼해서 ${solo() ? '청장년부로 가기' : '가정 합치기'}</b></span>${ICON.chevR}</button>
           ${p.id === myFid ? '' : `<button class="mrow" data-act="mvstart" data-v="move" data-fam="${esc(p.id)}"><span><b>다른 부서로 옮기기</b></span>${ICON.chevR}</button>`}</div></div>
         ${p.id === myFid ? '' : `<div class="pn-sec pn-end"><button class="link danger" data-act="rsleave" data-n="${esc(p.name)}" ${S.busy ? 'disabled' : ''}${rsIs('leave') ? ' aria-busy="true"' : ''}>${rsBz('leave', esc(R.term) + '년 편성에서 빼기 (떠남)')}</button></div>`}</div>`;
     const bulkForm = (r, E) => {
@@ -4841,9 +4841,10 @@ try { const p = JSON.parse(localStorage.getItem('koide-pref') || '{}'), d = docu
     return `<section class="card${S.busy && S.rbusy ? ' rs-busy' : ''}"${S.busy && S.rbusy ? ' aria-busy="true"' : ''}><h2>${title}${KoideTip.btn(`새로 온 ${words().one}은 첫 접속에서 "새로 왔어요"로 신청해도 되고, 여기서 미리 더해 두면 그 이름을 골라 연결을 요청해요. 떠남으로 빼도 지난 기록은 남아요. 해마다 새로 짤 때는 연도 개편을 써요.`, `${gj('과/와')} ${solo() ? '사람' : '가정'}`)}</h2>
       <ul class="rs-rooms">${R.rooms.map(room).join('') || `<li class="hint">아직 ${esc(grp())}이 없어요.</li>`}</ul>
       ${CHURCHSB && R.left && R.left.length ? `<p class="hint rs-kw">이번 달에 편성에서 뺀 ${solo() ? '사람' : '가정'}: ${R.left.map((x, i, a) => `<span class="rs-lname">${esc(x.name)}(${esc(x.room)})</span> <span class="rs-undo"><button class="link" data-act="rsunleave" data-v="${esc(x.id)}" data-n="${esc(x.name)}" ${S.busy ? 'disabled' : ''}>되돌리기</button>${i < a.length - 1 ? ' ·' : ''}</span>`).join(' ')}<br>이번 달 안에만 되돌릴 수 있어요.</p>` : ''}
-      ${CHURCHSB && R.moves && R.moves.length ? `<p class="hint rs-kw">이번 달에 합치거나 옮긴 것: ${R.moves.map((x, i, a) => `<span class="rs-lname">${esc(x.name)}(${esc(x.from)} → ${esc(x.to)})</span> <span class="rs-undo"><button class="link" data-act="mvundo" data-v="move|${esc(x.id)}" data-n="${esc(x.name)}" ${S.busy ? 'disabled' : ''}>되돌리기</button>${i < a.length - 1 ? ' ·' : ''}</span>`).join(' ')}<br>이번 달 안에만 되돌릴 수 있어요.</p>` : ''}
+      ${CHURCHSB && ((R.moves && R.moves.length) || (R.marries && R.marries.length)) ? (() => { const L = (R.moves || []).map(x => ({ v: 'move|' + x.id, name: x.name, t: x.from + ' → ' + x.to })).concat((R.marries || []).map(x => ({ v: 'marry|' + x.id, name: x.name, t: '가정 합침 → ' + x.room })));
+        return `<p class="hint rs-kw">이번 달에 합치거나 옮긴 것: ${L.map((x, i, a) => `<span class="rs-lname">${esc(x.name)}(${esc(x.t)})</span> <span class="rs-undo"><button class="link" data-act="mvundo" data-v="${esc(x.v)}" data-n="${esc(x.name)}" ${S.busy ? 'disabled' : ''}>되돌리기</button>${i < a.length - 1 ? ' ·' : ''}</span>`).join(' ')}<br>이번 달 안에만 되돌릴 수 있어요.</p>`; })() : ''}
       ${addRoom ? `<form class="kid-form rs-form" data-form="rsroom"><input class="field" name="n" maxlength="20" placeholder="예) 1${esc(grp())}" aria-label="새 ${esc(grp())} 이름" autocomplete="off" value="${esc(S.rostEdit.n || '')}"><button class="btn small" type="submit" ${S.busy ? 'disabled' : ''}${rsIs('addRoom') ? ' aria-busy="true"' : ''}>${rsBz('addRoom', '만들기')}</button></form>`
-        : `<span class="foot-acts rs-foot"><button class="btn small ghost" data-act="rsedit" data-v="room|">+ ${esc(grp())} 만들기</button>${CHURCHSB ? '' : '<button class="btn small ghost" data-act="mvstart" data-v="marry">결혼해서 가정 합치기</button>'}<button class="btn small ghost" data-act="mvstart" data-v="move">다른 부서에서 옮겨 오기</button></span>`}
+        : `<span class="foot-acts rs-foot"><button class="btn small ghost" data-act="rsedit" data-v="room|">+ ${esc(grp())} 만들기</button><button class="btn small ghost" data-act="mvstart" data-v="marry">결혼해서 가정 합치기</button><button class="btn small ghost" data-act="mvstart" data-v="move">다른 부서에서 옮겨 오기</button></span>`}
       <p class="hint rs-kw">${R.term}년 편성이에요.</p></section>`;
   }
   // ── 결혼해서 가정 합치기 · 다른 부서로 옮기기 (설계서 6장): 관리자가 두 분(또는 옮길 가정)께 직접 확인하고 처리한다 ──
@@ -4901,10 +4902,13 @@ try { const p = JSON.parse(localStorage.getItem('koide-pref') || '{}'), d = docu
         <div class="actions"><button class="btn small" data-act="mvgo" ${M.ok && room && !meSelf && !S.busy ? '' : 'disabled'}>${S.busy ? '옮기는 중…' : '옮기기'}</button><button class="btn small ghost" data-act="mvcancel">그만두기</button></div>` : '<div class="actions"><button class="btn small ghost" data-act="mvcancel">그만두기</button></div>'}</section>`;
     }
     if (M.step === 1) return head('결혼해서 가정 합치기', '결혼한 두 사람을 새 가정 하나로 합쳐요. 옛 가정 둘은 "합침"이 되어 목록에서 빠지고, 지난 기록은 그대로 남아요.')
-      + `<p class="label">함께할 사람${KoideTip.btn(`청년부 사람도 이름으로 찾아요. 다른 부서 사람은 이름과 ${KK} 닉네임만 보이고 기도제목은 보이지 않아요. 결혼했지만 청년부에 그대로 있을 때는 아무것도 하지 않아도 돼요.`, '함께할 사람')}</p><ul class="mv-people">${mvSlot(M, 'a')}${mvSlot(M, 'b')}</ul>`
+      + `<p class="label">함께할 사람${KoideTip.btn(`청년부 사람도 이름으로 찾아요. 다른 부서 사람은 이름과 ${CHURCHSB ? '로그인 이름' : '카카오 닉네임'}만 보이고 기도제목은 보이지 않아요. 결혼했지만 청년부에 그대로 있을 때는 아무것도 하지 않아도 돼요.`, '함께할 사람')}</p><ul class="mv-people">${mvSlot(M, 'a')}${mvSlot(M, 'b')}</ul>`
       + nav('mvnext', '다음', a && (b || (M.newOn && M.newPerson.trim()))) + '</section>';
-    if (M.step === 2) return head('새 가정 이름', '두 이름이 "A · B"로 채워져 있어요. 순서와 글자를 고칠 수 있어요. 자녀 이름은 가정이 나중에 적어요.')
-      + `<label class="label" for="mv-name">새 가정 이름</label><input id="mv-name" class="field" maxlength="40" value="${esc(M.name)}" autocomplete="off">` + nav('mvnext', '다음', M.name.trim()) + '</section>';
+    if (M.step === 2) {
+      const two = !CHURCHSB || names.length === 2;   // 새 서버는 가정이 사람 한 줄 한 줄이라 새 가정 이름이 두 사람 이름(·로 이음)이어야 한다
+      return head('새 가정 이름', CHURCHSB ? '두 이름이 "A · B"로 채워져 있어요. 순서와 글자를 고칠 수 있어요. 어른은 2명까지, 이름 사이는 ·로 이어요. 자녀 이름은 가정이 나중에 적어요.' : '두 이름이 "A · B"로 채워져 있어요. 순서와 글자를 고칠 수 있어요. 자녀 이름은 가정이 나중에 적어요.')
+        + `<label class="label" for="mv-name">새 가정 이름</label><input id="mv-name" class="field" maxlength="40" value="${esc(M.name)}" autocomplete="off">${CHURCHSB ? `<p class="hint warn-text" id="mv-name-warn"${two ? ' hidden' : ''}>두 사람의 이름을 ·로 이어 적어 주세요.</p>` : ''}` + nav('mvnext', '다음', M.name.trim() && two) + '</section>';
+    }
     if (M.step === 3) {
       const warn = M.inherit ? mvOlds(M).filter(o => o.role !== '회원' && o.roomId !== M.roomId && M.roomId).map(o => `<p class="hint warn-text">${esc(o.room)}에 ${esc(o.role)}가 없어져요.</p>`).join('') : '';
       const roles = mvOlds(M).some(o => o.role !== '회원' || o.admin);
@@ -4915,12 +4919,12 @@ try { const p = JSON.parse(localStorage.getItem('koide-pref') || '{}'), d = docu
     }
     if (M.step === 4) {
       const L = mvLinks(M);
-      return head('연결된 사람 확인', `옛 가정마다 연결된 ${KK} 사람이 새 가정의 어느 이름인지 골라요. 옮기지 않는 연결은 해제돼요. 로그인은 그대로여서 다시 로그인하지 않아도 새 가정으로 들어와요.`)
-        + (L.length ? `<ul class="rs-links">${L.map(l => `<li><span>${esc(l.person)} <small>카카오 "${esc(l.nick)}" · ${esc(l.owner)}</small></span><select class="field" data-mvmap="${esc(l.kakaoId)}" aria-label="${esc(l.person)} 님은 새 가정의 누구예요">${names.map(n => `<option value="${esc(n)}"${mvMapped(M, l) === n ? ' selected' : ''}>${esc(n)}</option>`).join('')}<option value=""${mvMapped(M, l) === '' ? ' selected' : ''}>연결을 해제해요</option></select></li>`).join('')}</ul>` : '<p class="hint">연결된 카카오 사람이 없어요.</p>')
+      return head('연결된 사람 확인', `옛 가정마다 연결된 ${CHURCHSB ? '' : '카카오 '}사람이 새 가정의 어느 이름인지 골라요. 옮기지 않는 연결은 해제돼요. 로그인은 그대로여서 다시 로그인하지 않아도 새 가정으로 들어와요.`)
+        + (L.length ? `<ul class="rs-links">${L.map(l => `<li><span>${esc(l.person)} <small>${nickTxt(l.nick)}${esc(l.owner)}</small></span><select class="field" data-mvmap="${esc(l.kakaoId)}" aria-label="${esc(l.person)} 님은 새 가정의 누구예요">${names.map(n => `<option value="${esc(n)}"${mvMapped(M, l) === n ? ' selected' : ''}>${esc(n)}</option>`).join('')}<option value=""${mvMapped(M, l) === '' ? ' selected' : ''}>연결을 해제해요</option></select></li>`).join('')}</ul>` : `<p class="hint">연결된 ${CHURCHSB ? '' : '카카오 '}사람이 없어요.</p>`)
         + mvSwitch('ok', M.ok, '두 분께 직접 확인했어요') + nav('mvnext', '다음', true) + '</section>';
     }
     const L = mvLinks(M), mv = L.filter(l => mvMapped(M, l)).length, cut = L.length - mv;
-    return head('확인', '합친 달이 끝나기 전에는 변경 기록에서 되돌릴 수 있어요.')
+    return head('확인', CHURCHSB ? '합친 달이 끝나기 전에는 편성 카드 아래 "이번 달에 합치거나 옮긴 것"에서 되돌릴 수 있어요.' : '합친 달이 끝나기 전에는 변경 기록에서 되돌릴 수 있어요.')
       + `<ul class="mv-list"><li>옛 ${b ? '가정 2곳' : '가정 1곳'}(${esc(mvOlds(M).map(o => o.name).join(', '))})은 "합침"이 되어 목록에서 빠져요. 지난 기록은 그대로예요.</li>
         <li>새 가정 <b>${esc(M.name.trim())}</b>은 ${esc(dept ? dept.name : '')} ${esc(room ? room.name : '')}에 들어가요.</li>
         <li>연결 ${mv}명이 새 가정으로 옮겨져요${cut ? `, ${cut}명은 해제돼요` : ''}.</li>
@@ -4934,7 +4938,7 @@ try { const p = JSON.parse(localStorage.getItem('koide-pref') || '{}'), d = docu
       if (marry) S.rost = await api('marrySave', { famIds: mvOlds(M).map(o => o.id), newPerson: M.b ? '' : M.newPerson.trim(), name: M.name.trim(), roomId: M.roomId, confirmed: M.ok, inherit: M.inherit, carry: M.carry,
         links: mvLinks(M).map(l => ({ kakaoId: l.kakaoId, to: mvMapped(M, l) })) });
       else S.rost = await api('moveDept', { familyId: M.a.id, roomId: M.roomId, confirmed: M.ok });
-      toast(marry ? '새 가정으로 합쳤어요.' : '옮겼어요.'); S.mv = null;
+      toast(marry ? '새 가정으로 합쳤어요.' : '옮겼어요.'); S.mv = null; S.before = null;   // 합치면 내 결혼 전 기록이 달라질 수 있어 다시 받는다
       S.pending = await api('pending');
       if (!S.op) refreshMe(true);
     } catch (e) { oops(e); }
@@ -4946,13 +4950,13 @@ try { const p = JSON.parse(localStorage.getItem('koide-pref') || '{}'), d = docu
     try {
       if (kind === 'marry') {
         const P = await api('marryPreview', { familyId: ref });
-        if (!confirm(`${P.name} 가정 합치기를 되돌릴까요? 합친 뒤 쓴 기도제목 ${P.items}개가 지워지고, 옛 가정들이 다시 목록에 돌아와요.`)) return;
+        if (!confirm(`${P.name} 가정 합치기를 되돌릴까요? 합친 뒤 쓴 기도제목 ${P.items}개가 지워지고, 옛 가정들이 다시 목록에 돌아와요.` + (CHURCHSB && P.nextPlan ? ' 합칠 때 다음 편성 예약에서 뺀 옛 가정의 줄은 되돌아오지 않아요.' : ''))) return;
         await api('marryUndo', { familyId: ref });
       } else {
         if (!confirm(`${name} 부서 옮기기를 되돌릴까요? 옛 부서의 사랑방으로 돌아가요.` + (CHURCHSB ? ' 옛 부서 다음 편성 예약에서 뺀 줄과 꺼진 부서 관리자 표시는 되돌아오지 않아요.' : ''))) return;
         await api('moveUndo', { familyId: ref });
       }
-      toast('되돌렸어요.'); S.rost = null; S.pending = await api('pending'); loadRoster(); if (!CHURCHSB) loadChanges(!!(S.fold || {}).chgall);   // 새 서버는 변경 기록 화면이 아직 없다(⑥-3)
+      toast('되돌렸어요.'); S.rost = null; S.before = null; S.pending = await api('pending'); loadRoster(); if (!CHURCHSB) loadChanges(!!(S.fold || {}).chgall);   // 새 서버는 변경 기록 화면이 아직 없다(⑥-3)
       if (!S.op) refreshMe(true);
     } catch (e) { oops(e); }
   }
@@ -6197,7 +6201,10 @@ try { const p = JSON.parse(localStorage.getItem('koide-pref') || '{}'), d = docu
     // 기도 문장 고치기: 다시 그리지 않고 고치는 중인 목록에만 적어 둔다
     if (e.target.dataset.pt != null && S.pt) { S.pt.rows[e.target.dataset.pt].text = e.target.value; S.pt.dirty = true; }
     if (e.target.dataset.ptref != null && S.pt) { S.pt.rows[e.target.dataset.ptref].ref = e.target.value; S.pt.dirty = true; }
-    if (S.mv && e.target.id === 'mv-name') { S.mv.name = e.target.value; S.mv.nameEdited = true; }
+    if (S.mv && e.target.id === 'mv-name') {
+      S.mv.name = e.target.value; S.mv.nameEdited = true;
+      if (CHURCHSB) { const two = mvNames(S.mv).length === 2, nx = $('[data-act="mvnext"]'), w = $('#mv-name-warn'); if (nx) nx.disabled = !(S.mv.name.trim() && two); if (w) w.hidden = two; }   // 새 서버는 두 사람 이름이어야 다음으로
+    }
     if (S.mv && e.target.id === 'mv-np') { S.mv.newPerson = e.target.value; const nx = $('[data-act="mvnext"]'); if (nx) nx.disabled = !(S.mv.a && S.mv.newPerson.trim()); }
     if (e.target.id === 'fb-t') { const n = $('#fb-n'); if (n) n.textContent = [...e.target.value].length; }
     if (e.target.matches('textarea.field')) autosize(e.target);
