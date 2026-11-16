@@ -151,3 +151,27 @@
 @supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
   :root[data-style="glass"] { --glass: color-mix(in srgb, var(--surface) 90%, transparent); --glass-soft: color-mix(in srgb, var(--surface) 75%, transparent); --glass-strong: var(--surface); }
 }
+
+/* ── ⓘ 안내 (info-tip.js): 제목 옆 동그라미 i를 누르면 검은 말풍선으로 설명이 나온다. 상태·경고는 이 안에 넣지 않고 그 자리에 둔다 ──
+   말풍선은 위에 뜨는 것이라 네 디자인 스타일 모두 같은 불투명 검정(유리 흐림·볼록 효과 없음). 밝은 화면은 --ink 바탕, 어두운 화면은 바탕보다 한 톤 더 어두운 검정 + 옅은 테두리 */
+:root { --tip-bg: var(--ink); --tip-ink: var(--page); --tip-line: transparent; --info-d: calc(var(--base) * 1.125); }
+@media (prefers-color-scheme: dark) { :root:not([data-mode="light"]) { --tip-bg: color-mix(in srgb, #000 72%, var(--surface)); --tip-ink: var(--ink); --tip-line: var(--line-strong); } }
+:root[data-mode="dark"] { --tip-bg: color-mix(in srgb, #000 72%, var(--surface)); --tip-ink: var(--ink); --tip-line: var(--line-strong); }
+.info-i { position: relative; display: inline-flex; align-items: center; justify-content: center; flex: none; width: var(--info-d); height: var(--info-d); margin: 0 0 0 .45em; padding: 0; vertical-align: middle; border: 0; border-radius: 50%; background: transparent; color: var(--ink-2); font: inherit; line-height: 1; cursor: pointer; touch-action: manipulation; }
+.info-i svg { display: block; width: 100%; height: 100%; }
+.info-i::after { content: ''; position: absolute; inset: calc((44px - var(--info-d)) / -2); }   /* 보이는 크기는 작아도 누르는 자리는 44px */
+.info-i:hover { color: var(--ink); }
+.info-i:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.info-i[aria-expanded="true"] { color: var(--accent); background: var(--accent-soft); }
+.tip-line { display: flex; align-items: center; margin: 0 0 .3em; }
+.tip-line .label { margin: 0; }
+.info-tip { position: fixed; z-index: 160; box-sizing: border-box; padding: .7em .85em; border-radius: 12px; background: var(--tip-bg); color: var(--tip-ink); border: 1px solid var(--tip-line);
+  font-size: calc(var(--base) * .9); line-height: 1.55; font-weight: 400; text-align: left; word-break: keep-all; box-shadow: 0 8px 24px -8px var(--shadow); opacity: 0; transition: opacity .12s; }
+.info-tip.on { opacity: 1; }
+.info-tip.scroll { overflow-y: auto; overscroll-behavior: contain; }   /* 둘 다 모자랄 때만 안을 스크롤(꼬리가 잘리지 않게 평소에는 켜지 않는다) */
+.info-tip[hidden] { display: none; }
+.info-tip::before { content: ''; position: absolute; left: var(--tip-x, 50%); width: 10px; height: 10px; margin-left: -5px; background: var(--tip-bg); transform: rotate(45deg); border-radius: 2px; }
+.info-tip[data-side="down"]::before { top: -6px; border-left: 1px solid var(--tip-line); border-top: 1px solid var(--tip-line); }
+.info-tip[data-side="up"]::before { bottom: -6px; border-right: 1px solid var(--tip-line); border-bottom: 1px solid var(--tip-line); }
+:root[data-style="skeu"] .info-tip { box-shadow: inset 0 1px 0 rgba(255, 255, 255, .12), 0 8px 24px -8px var(--shadow); }
+@media (prefers-reduced-motion: reduce) { .info-tip { transition: none; } }
