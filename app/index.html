@@ -98,8 +98,9 @@ button, a, label, summary, select, input, [role="button"], [data-act], .brand { 
 .icon-btn[aria-expanded="true"] { background: var(--surface-2); }
 .menu { position: absolute; top: calc(100% + 6px); right: max(16px, env(safe-area-inset-right, 0px)); width: min(300px, calc(100vw - 32px)); background: var(--surface); border: 1px solid var(--line); border-radius: 16px; box-shadow: 0 16px 40px -12px var(--shadow); padding: .5em; display: flex; flex-direction: column; gap: .1em; z-index: 25; }
 .mlabel { font-size: .72em; font-weight: 600; color: var(--ink-2); margin: .6em .7em .3em; }
-/* 톱니바퀴 메뉴와 더보기 › 앱 설정의 '화면 설정' · '큰 글씨': 같은 크기 · 굵기(기도 노트와 같게). 기본 글씨(--base)의 0.97배라 휴대폰에서 15.5px, 큰 글씨 모드에서는 함께 커진다 */
-.mhead, .menu .mhead, .mrow b.mhead { font-size: calc(var(--base) * .97); font-weight: 600; color: var(--ink); }
+/* 톱니바퀴 메뉴의 '화면 설정' · '큰 글씨' 제목과 더보기 › 앱 설정 안쪽 '큰 글씨' 제목: 같은 크기 · 굵기(기도 노트와 같게). 기본 글씨(--base)의 0.97배라 휴대폰에서 15.5px, 큰 글씨 모드에서는 함께 커진다. 더보기의 '화면 설정' 줄(b.mhead)은 다른 더보기 줄처럼 기본 글씨 크기 · 굵기를 따른다 */
+.mhead, .menu .mhead { font-size: calc(var(--base) * .97); font-weight: 600; color: var(--ink); }
+.mrow b.mhead { font-size: inherit; font-weight: bolder; color: inherit; }
 .mitem { display: flex; justify-content: space-between; align-items: center; gap: .6em; width: 100%; text-align: left; font-size: .9em; color: var(--ink); background: none; border: 0; border-radius: 10px; padding: .55em .7em; min-height: 44px; cursor: pointer; text-decoration: none; }
 .mitem:hover { background: var(--surface-2); }
 .mitem.static { cursor: default; flex-direction: column; align-items: flex-start; gap: .1em; }
@@ -3437,7 +3438,7 @@ try { const p = JSON.parse(localStorage.getItem('koide-pref') || '{}'), d = docu
           <div class="ps-tracks">${HY.map(([i, l]) => `<button class="chip-btn${PSET.track === i ? ' on' : ''}" data-act="pstrack" data-v="${i}" aria-pressed="${PSET.track === i}" style="justify-content:center">${l}</button>`).join('')}</div>
           <div class="row"><div><p class="label" style="margin:0">다 들으면 다음 곡으로</p></div>
             <button class="switch${PSET.auto ? ' on' : ''}" role="switch" aria-checked="${PSET.auto}" aria-label="다 들으면 다음 곡으로" data-act="psauto"><span></span></button></div></div>` : ''}
-        <button class="btn wide" data-act="psstart" style="margin-top:16px;min-height:54px" ${list.length && roomReady ? '' : 'disabled'}>${ICON.hands.replace('<svg', '<svg width="22" height="22"')} ${!roomReady ? '불러오는 중…' : list.length ? '기도 시작 · ' + list.length + '장' : '무엇을 위해 기도할지 골라 주세요'}</button></section>
+        <button class="btn wide" data-act="psstart" style="margin-top:16px;min-height:54px" ${list.length && roomReady ? '' : 'disabled'}>${ICON.hands.replace('<svg', '<svg width="22" height="22"')} ${!roomReady ? '불러오는 중…' : list.length ? '기도 시작' : '무엇을 위해 기도할지 골라 주세요'}</button></section>
       </div><div class="col side"><section class="card"><p class="label" style="margin:0">오늘 기도할 순서${staffRoom ? ' · ' + esc((S.month.rooms.find(r => r.id === staffRoom) || {}).name || '') : ''}</p>
         <ol class="ps-list">${list.map(id => { const f = id.startsWith('f:') && famById(id.slice(2));
           return f ? `<li><span>${esc(f.name)}</span><span class="${f.today ? 'ok' : ''}">${f.today ? '오늘 ' + f.today + '번' : '아직'}</span></li>` : `<li><span>${esc(psPageName(id))}</span><span>${id === 'me' ? words().mine : id === 's' ? '함께 기억해요' : '하나님 나라'}</span></li>`; }).join('')}</ol></section></div></div>`;
