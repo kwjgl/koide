@@ -4099,14 +4099,27 @@ try { const p = JSON.parse(localStorage.getItem('koide-pref') || '{}'), d = docu
     const band = sumBand([[esc(grp()), R0 ? R0.rooms.length : null], [solo() ? '사람' : '가정', R0 ? ppl.length : null],
       hasLink ? ['연결', R0 ? ppl.filter(p => p.linked > 0).length : null] : null, ['승인 대기', S.pending ? S.pending.requests.length : null]]);
     if (CHURCHSB) {
-      const P = S.pending, O = S.ops, reqs = P ? P.requests : [], I = O && O.invites;
+      const P = S.pending, O = S.ops, reqs = P ? P.requests : [], I = O && O.invites, pv = O && O.privacy, nf = fbNew();
+      // 할 일: 연결 신청·앱 상태(문제가 있을 때)·개인정보 요청과 새 의견(개수가 달린 한 줄). 옛 길 관리 탭과 같은 모양이다(접는 키는 오른쪽 '앱과 요청'과 같다)
+      const todoRows = S.op ? [
+        privacyN() ? fold('privacy', `개인정보 요청 <span class="ops-n">${privacyN()}</span>`, [pv.requests.length ? `지워 달라는 요청 ${pv.requests.length}` : '', pv.due.length ? `지울 날이 된 기록 ${pv.due.length}` : ''].filter(Boolean).join(' · '), privacyCard()) : '',
+        nf ? fold('feedback', `의견함 <span class="ops-n">${nf}</span>`, `새 의견 ${nf}${O.feedback.length > nf ? ` · 받은 의견 ${O.feedback.length}` : ''}`, feedbackCard()) : ''
+      ].join('') : '';
+      const todo = [reqs.length ? reqCard() : '', S.op && opsProblems().length ? opsCard() : '', todoRows ? `<section class="card mrows folds">${todoRows}</section>` : ''].join('');
+      const oc = S.op ? opsCard() : '';
+      const opsRows = S.op ? [
+        opsProblems().length || !oc ? '' : `<div class="fold ops-fold">${oc.replace(/^\s*<section[^>]*>/, '').replace(/<\/section>\s*$/, '')}</div>`,
+        privacyN() ? '' : fold('privacy', '개인정보 요청', O ? (O.privacy && O.privacy.later ? `떠난 ${words().one} ${O.privacy.later}곳 · 1년이 되면 올라와요` : '지울 기록이 없어요') : '불러오는 중…', privacyCard()),
+        fold('changes', '변경 기록', '', changesCard(false)),
+        nf ? '' : fold('feedback', '의견함', O ? (O.feedback && O.feedback.length ? `받은 의견 ${O.feedback.length}` : '아직 없어요') : '불러오는 중…', feedbackCard())
+      ].join('') : '';
       return `${head.replace(/<div class="seg2 admin-seg"[\s\S]*<\/div>\s*$/, '')}${band}
       <div class="two-col"><div class="col">
-        ${reqs.length ? `<p class="more-h">할 일</p>${reqCard()}` : ''}
+        ${todo ? `<p class="more-h">할 일</p>${todo}` : ''}
         <p class="more-h">편성</p>${rosterCard()}
       </div><div class="col side">
         ${S.op ? `<p class="more-h">사람</p><section class="card mrows folds">${fold('together', '함께 기도해요', '', togetherEditCard())}${fold('invite', '초대 링크 · QR', I ? `${esc(S.month.dept.name)} 전체 · ${esc(grp())} ${I.rooms.length}곳` : '불러오는 중…', inviteCard())}${P && P.staff && !famOps() ? fold('staff', '교역자', P.staff.length ? P.staff.map(x => esc(x.label)).join(' · ') : '아직 없어요', staffCard()) : ''}</section>` : ''}
-        ${S.op ? `<p class="more-h">앱과 요청</p><section class="card mrows folds">${fold('changes', '변경 기록', '', changesCard(false))}</section>` : ''}
+        ${opsRows ? `<p class="more-h">앱과 요청</p><section class="card mrows folds">${opsRows}</section>` : ''}
         <p class="more-h">설정</p><section class="card mrows folds">${fold('group', '소그룹 이름', esc(grp()), groupCard())}${S.op ? fold('reorg', '연도 개편', !S.rgData ? '불러오는 중…' : S.rgData.plan ? `${S.rgData.next}년 편성 예약 · ${monName(S.rgData.plan.start)}부터` : `${S.rgData.next}년 개편 준비`, reorgCard()) : ''}</section>
         <section class="card"><p class="hint" style="margin:0">기도제목은 아직 준비 중이에요.</p></section>
       </div></div>`;
@@ -4297,15 +4310,15 @@ try { const p = JSON.parse(localStorage.getItem('koide-pref') || '{}'), d = docu
         <span class="row"><b>${esc(d.name)}</b>${d.closed ? '<span class="own-tag">닫음</span>' : ''}${ICON.chevR}</span>
         <small>${esc(d.group)} ${d.rooms}곳 · ${d.n}${d.unit === '개인' ? '명' : '가정'} · 연결 ${d.linked}${d.closed ? ' · ' + esc(d.closedAt.slice(5).replace('-', '/')) + ' 닫음' : ''}</small>
         <span class="ch-todos">${pill(d.asks, '연결 신청')}${pill(d.privacy, '개인정보')}${pill(d.feedback, '새 의견')}${!d.closed && !d.admins ? '<span class="ch-todo warn">부서 관리자 없음</span>' : ''}</span></button>`;
-    const old = C.version.slice(0, 10) < NEED_SERVER, bad = old || !!C.errors.n;
+    const old = C.version.slice(0, 10) < needVer(), eN = CHURCHSB ? 0 : C.errors.n, bad = old || !!eN;
     // 요약 띠: 닫지 않은 부서만 더한다(합계만, 부서끼리 견주지 않는다). 단위가 섞일 수 있어 '가정·사람'
     const live = C.depts.filter(d => !d.closed), sum = k => live.reduce((n, d) => n + (Number(d[k]) || 0), 0);
     const band = sumBand([['부서', live.length], ['소그룹', sum('rooms')], ['가정·사람', sum('n')], ['연결', sum('linked')]]);
     // 할 일: 닫지 않은 부서마다 손볼 것을 한 줄씩. 누르면 그 부서의 관리 화면으로. 서버 문제는 아래 앱 상태를 펼친다
     const go = (d, what) => `<button class="mrow" data-act="opsgo" data-v="${esc(d.id)}"><span><b>${esc(d.name)} · ${what}</b></span>${ICON.chevR}</button>`;
     const todo = [
-      old ? `<button class="mrow" data-act="chstat" data-v="open"><span><b>앱 상태 · 서버가 옛 버전이에요</b></span>${ICON.chevR}</button>` : '',
-      C.errors.n ? `<button class="mrow" data-act="chstat" data-v="open"><span><b>앱 상태 · 최근 7일 오류 ${C.errors.n}번</b></span>${ICON.chevR}</button>` : '',
+      old ? `<button class="mrow" data-act="chstat" data-v="open"><span><b>앱 상태 · ${OLD_SRV()}</b></span>${ICON.chevR}</button>` : '',
+      eN ? `<button class="mrow" data-act="chstat" data-v="open"><span><b>앱 상태 · 최근 7일 오류 ${eN}번</b></span>${ICON.chevR}</button>` : '',
       ...live.map(d => [d.asks ? go(d, `연결 신청 ${d.asks}`) : '',
         d.privacy ? go(d, `개인정보 요청 ${d.privacy}`) : '',
         d.feedback ? go(d, `새 의견 ${d.feedback}`) : '',
@@ -4313,9 +4326,9 @@ try { const p = JSON.parse(localStorage.getItem('koide-pref') || '{}'), d = docu
     ].join('');
     // 앱 상태: 문제가 없으면 한 줄로 접어 두고, 문제가 있으면 처음부터 펼친다(누르면 접고 펼침)
     const stOpen = S.chStat !== undefined ? S.chStat : bad;
-    const stat = `<div class="fold ops-fold${stOpen ? ' open' : ''}" id="ch-stat"><button class="ops-head" data-act="chstat" aria-expanded="${stOpen}"><span class="ops-dot${bad ? ' bad' : ''}" aria-hidden="true"></span><span><b>앱 상태</b><small>${bad ? [old ? '서버가 옛 버전이에요' : '', C.errors.n ? `최근 7일 오류 ${C.errors.n}번` : ''].filter(Boolean).join(' · ') : `모두 괜찮아요 · 서버 ${esc(C.version.slice(0, 10))}`}</small></span><span class="ops-chev" aria-hidden="true">${ICON.chev}</span></button>
-      ${stOpen ? `<div class="fold-body"><p class="plain">서버 <b>${esc(C.version)}</b>${old ? ` · <span class="warn-text">Apps Script를 새 버전으로 배포해 주세요</span>` : ''}</p>
-        <p class="hint">최근 7일 오류 ${C.errors.n ? C.errors.n + '번 · 마지막 ' + opsWhen(C.errors.last) : '없어요'} · ${Number(C.month.month.slice(5))}월 ${C.month.opened ? opsWhen(C.month.opened) + '에 처음 열림' : '아직 넘어온 기도제목이 없어요'}</p></div>` : ''}</div>`;
+    const stat = `<div class="fold ops-fold${stOpen ? ' open' : ''}" id="ch-stat"><button class="ops-head" data-act="chstat" aria-expanded="${stOpen}"><span class="ops-dot${bad ? ' bad' : ''}" aria-hidden="true"></span><span><b>앱 상태</b><small>${bad ? [old ? OLD_SRV() : '', eN ? `최근 7일 오류 ${eN}번` : ''].filter(Boolean).join(' · ') : `모두 괜찮아요 · 서버 ${esc(C.version.slice(0, 10))}`}</small></span><span class="ops-chev" aria-hidden="true">${ICON.chev}</span></button>
+      ${stOpen ? `<div class="fold-body"><p class="plain">서버 <b>${esc(C.version)}</b>${old ? (CHURCHSB ? ` · <span class="warn-text">SQL을 더 넣어 주세요 · <a href="${DOC}setup.md" target="_blank" rel="noopener">설치 안내 26장</a></span>` : ` · <span class="warn-text">Apps Script를 새 버전으로 배포해 주세요</span>`) : ''}</p>
+        <p class="hint">${CHURCHSB ? '' : `최근 7일 오류 ${eN ? eN + '번 · 마지막 ' + opsWhen(C.errors.last) : '없어요'} · `}${Number(C.month.month.slice(5))}월 ${C.month.opened ? opsWhen(C.month.opened) + '에 처음 열림' : '아직 넘어온 기도제목이 없어요'}</p></div>` : ''}</div>`;
     const inbox = C.inbox ? `<div class="fold"><button class="mrow" data-act="churchtab" data-v="survey"><span><b>의견과 설문</b><small>설문 ${C.inbox.survey}개 · 의견 ${C.inbox.feedback}개${C.inbox.feedbackNoDept ? ` (코이데 노트에서 온 것 ${C.inbox.feedbackNoDept})` : ''}</small></span>${ICON.chevR}</button></div>` : '';
     const dp = deptCard(), nClosed = C.depts.length - live.length;
     return `${head}${band}
@@ -4982,6 +4995,10 @@ try { const p = JSON.parse(localStorage.getItem('koide-pref') || '{}'), d = docu
   // ── 관리 › 운영 (설계서 S7): ① 앱 상태 ② 개인정보 요청. 할 일이 있는 카드만 관리 탭 위로 올라온다 ──
   //  NEED_SERVER: 이 화면이 바라는 서버 버전(서버 VERSION 앞 날짜). 서버 코드를 고쳐 배포해야 하는 기능을 넣을 때 함께 올린다
   const NEED_SERVER = '2026-11-08';
+  //  NEED_CHURCH_SQL: 새 길(Supabase)이 바라는 서버 SQL 번호의 앞 날짜(supabase/022_church_ops.sql의 church_sql_version). SQL을 더 넣는 기능을 열 때 함께 올린다. 옛 길은 NEED_SERVER 그대로
+  const NEED_CHURCH_SQL = '2026-11-16';
+  const needVer = () => CHURCHSB ? NEED_CHURCH_SQL : NEED_SERVER;
+  const OLD_SRV = () => CHURCHSB ? '서버 SQL이 옛 번호예요' : '서버가 옛 버전이에요';
   // ── 시범 설문(survey.js): 이번 달 화면이 그려진 1.5초 뒤 3·7·14일째에 팝업 카드(앱을 연 뒤 한 번만). 처음 도움말·따라 하기·기도하기·모임 모드·다른 창이 떠 있거나 관리 화면·장면 주소에서는 없다 ──
   //  시작한 날 = 이 사람이 처음 연결된 날(서버가 알면), 아니면 이 기기에서 처음 연 날. 보내는 숫자는 사용자가 켰을 때만(여기서는 홈 화면 앱 여부뿐), 기도 내용은 없다
   //  진행(마쳤나·나중에·그만 묻기, 답은 없음)은 서버 '연결' 탭의 '설문 진행' 칸(me.survey)에도 둬서 기기를 바꿔도 다시 묻지 않는다. 서버가 옛 버전이면 이 기기에만 둔다
@@ -4993,26 +5010,26 @@ try { const p = JSON.parse(localStorage.getItem('koide-pref') || '{}'), d = docu
     feedback: () => { S.tab = 'feedback'; render(); window.scrollTo(0, 0); } });
   const pilotBand = () => KoidePilot.mount($('#main'), '.page-top', !QUIET && S.view === 'app' && !S.op && !S.ps && S.meet == null && !S.bigView && !S.album && !S.wbig && !tipFor());
   const DOC = 'https://github.com/kwjgl/pray-for/blob/main/docs/';
-  async function loadOps() { try { S.ops = await api('ops'); S.opsErr = null; } catch (e) { S.ops = null; S.opsErr = e.code === 'bad' ? 'old' : e.code === 'forbidden' ? null : e.message; S.opsWhy = e.message || ''; } render(); }
+  async function loadOps() { try { S.ops = await api('ops'); S.opsErr = null; } catch (e) { S.ops = null; S.opsErr = e.code === 'bad' && !CHURCHSB ? 'old' : e.code === 'forbidden' ? null : e.message; S.opsWhy = e.message || ''; } render(); }
   const opsWhen = iso => { const d = new Date(iso); return isNaN(d) ? '' : `${d.getMonth() + 1}월 ${d.getDate()}일 ${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`; };
   function opsProblems() {
     const O = S.ops;
-    if (S.opsErr === 'old' || (O && O.version.slice(0, 10) < NEED_SERVER)) return ['서버가 옛 버전이에요'];
+    if (S.opsErr === 'old' || (O && O.version.slice(0, 10) < needVer())) return [OLD_SRV()];
     if (!O) return [];
-    return [O.errors.n ? `최근 7일 서버 오류 ${O.errors.n}번` : '', O.admins < 2 ? '관리자가 한 명뿐이에요' : ''].filter(Boolean);
+    return [CHURCHSB ? '' : O.errors.n ? `최근 7일 서버 오류 ${O.errors.n}번` : '', O.admins < 2 ? '관리자가 한 명뿐이에요' : ''].filter(Boolean);
   }
   function opsCard() {
     // 불러오기 전에는 그리지 않는다(맨 아래에 있다가 문제가 있으면 위로 뛰어오르지 않게)
     if (!S.ops && !S.opsErr) return '';
-    const O = S.ops, probs = opsProblems(), open = S.opsOpen !== undefined ? S.opsOpen : probs.length > 0, old = probs[0] === '서버가 옛 버전이에요';
+    const O = S.ops, probs = opsProblems(), open = S.opsOpen !== undefined ? S.opsOpen : probs.length > 0, old = probs[0] === OLD_SRV();
     const sum = !O && !S.opsErr ? '불러오는 중…' : probs.length ? probs.join(' · ') : S.opsErr && !old ? S.opsErr : `모두 괜찮아요 · 서버 ${O.version.slice(0, 10)}`;
     const row = (k, v) => `<div class="ops-row"><span class="ops-k">${k}</span><div>${v}</div></div>`;
-    const ver = row(`버전${KoideTip.btn(`이 화면은 ${NEED_SERVER} 이후 서버가 필요해요.`, '버전')}`, `<span>서버 <b>${O ? esc(O.version) : '옛 버전'}</b></span>${!O && S.opsWhy ? `<small>서버의 답: ${esc(S.opsWhy)}</small>` : ''}${old ? `<p class="warn-text">Apps Script를 새 버전으로 배포해 주세요. <a href="${DOC}setup.md" target="_blank" rel="noopener">배포 순서</a></p>` : ''}`);
-    const body = !open ? '' : !O ? (old ? `<div class="ops-rows">${ver}</div>` : '') : `<div class="ops-rows">${ver}
+    const ver = row(`버전${KoideTip.btn(CHURCHSB ? '이 화면은 서버 SQL 022 이후가 필요해요.' : `이 화면은 ${NEED_SERVER} 이후 서버가 필요해요.`, '버전')}`, `<span>서버 <b>${O && O.version ? esc(O.version) : CHURCHSB ? '옛 번호' : '옛 버전'}</b></span>${!O && S.opsWhy ? `<small>서버의 답: ${esc(S.opsWhy)}</small>` : ''}${old ? (CHURCHSB ? `<p class="warn-text">서버 SQL이 옛 번호예요. SQL을 더 넣어 주세요. <a href="${DOC}setup.md" target="_blank" rel="noopener">설치 안내 26장</a></p>` : `<p class="warn-text">Apps Script를 새 버전으로 배포해 주세요. <a href="${DOC}setup.md" target="_blank" rel="noopener">배포 순서</a></p>`) : ''}`);
+    const body = !open ? '' : !O || (CHURCHSB && old) ? (old ? `<div class="ops-rows">${ver}</div>` : '') : `<div class="ops-rows">${ver}
       ${row('새 달', `${Number(O.month.month.slice(5))}월 · ${O.month.opened ? opsWhen(O.month.opened) + '에 처음 열림' : O.month.carried || O.month.waiting ? '' : '지난달 기도제목이 없어서 넘어올 것이 없어요'}<small>${O.month.opened || O.month.carried ? `지난달에서 넘어온 기도제목 ${O.month.carried}개` : '다음 달부터 여기에 보여요'}</small>
         ${O.month.waiting ? `<p class="hint">아직 아무도 열지 않은 ${esc(grp())} ${O.month.waiting}곳은 처음 열 때 넘어와요.</p><button class="btn small ghost" data-act="opsmonth" ${S.busy ? 'disabled' : ''}>지금 모두 넘기기</button>` : ''}`)}
-      ${row('최근 오류', O.errors.n ? `7일 동안 ${O.errors.n}번 · 마지막 ${opsWhen(O.errors.last)}<ul class="ops-errs">${O.errors.kinds.map(k => `<li><span>${esc(k.kind)}</span><b>${k.n}</b></li>`).join('')}</ul>` : '7일 동안 없어요')}
-      ${row('관리자', `${O.admins}명${O.admins < 2 ? `<p class="warn-text">관리자를 한 명 더 정해 주세요(구글 시트 가정 탭의 관리자 칸에 "예").</p>` : ''}`)}
+      ${CHURCHSB ? '' : row('최근 오류', O.errors.n ? `7일 동안 ${O.errors.n}번 · 마지막 ${opsWhen(O.errors.last)}<ul class="ops-errs">${O.errors.kinds.map(k => `<li><span>${esc(k.kind)}</span><b>${k.n}</b></li>`).join('')}</ul>` : '7일 동안 없어요')}
+      ${row('관리자', `${O.admins}명${O.admins < 2 ? `<p class="warn-text">${CHURCHSB ? '관리자를 한 명 더 정해 주세요(편성 카드에서 "부서 관리자" 표시를 켜 주세요).' : '관리자를 한 명 더 정해 주세요(구글 시트 가정 탭의 관리자 칸에 "예").'}</p>` : ''}`)}
       ${row('인수인계', `${O.handover ? '마지막 확인 ' + O.handover.slice(5).replace('-', '/') : '아직 확인한 적 없어요'}<small><a href="${DOC}design.md" target="_blank" rel="noopener">설계서 9장 체크리스트</a></small>
         <button class="link" data-act="opshand">오늘 확인했어요</button>`)}</div>`;
     return `<section class="card ops"><button class="ops-head" data-act="opsopen" aria-expanded="${open}">
@@ -5094,10 +5111,6 @@ try { const p = JSON.parse(localStorage.getItem('koide-pref') || '{}'), d = docu
         </section></div>`;
   }
   function feedbackView() {
-    // 새 길(Supabase): 의견함은 ⑥-3에서 연다. 그때까지 안내 카드만
-    if (CHURCHSB) return `<button class="link back" data-act="tab" data-v="more">${ICON.chevL}더보기</button>
-      <div class="page-top"><div><h1>의견 보내기</h1></div></div>
-      <section class="card" style="margin-top:12px"><p class="hint" style="margin:0">의견 보내기는 아직 준비 중이에요. 불편한 점은 ${esc(grp())} 리더에게 알려 주세요.</p></section>`;
     const F = S.fb || (S.fb = { kind: '이랬으면', text: '', named: false });
     return `<button class="link back" data-act="tab" data-v="more">${ICON.chevL}더보기</button>
       <div class="page-top"><div><h1>의견 보내기${KoideTip.btn(`${S.month.dept.name} 관리자와 교회 관리자가 읽어요. 이야기가 필요하면 ${grp()} 리더에게 카톡으로 알려 주세요.`, '의견 보내기')}</h1></div></div>
@@ -5811,7 +5824,7 @@ try { const p = JSON.parse(localStorage.getItem('koide-pref') || '{}'), d = docu
       }
       // 교회 전체의 앱 상태: 처음엔 문제가 있을 때만 펼쳐 둔다. 할 일 줄(v='open')에서 누르면 펼치고 그 자리로
       case 'chstat': {
-        const C = S.church, bad = !!(C && C.version && (C.version.slice(0, 10) < NEED_SERVER || (C.errors && C.errors.n)));
+        const C = S.church, bad = !!(C && C.version && (C.version.slice(0, 10) < needVer() || (!CHURCHSB && C.errors && C.errors.n)));
         S.chStat = v === 'open' ? true : !(S.chStat !== undefined ? S.chStat : bad); render();
         if (v === 'open') { const el = $('#ch-stat'); if (el) el.scrollIntoView({ block: 'center', behavior: 'smooth' }); }
         return;
@@ -5932,8 +5945,8 @@ try { const p = JSON.parse(localStorage.getItem('koide-pref') || '{}'), d = docu
       case 'fbsend': {
         keepFb(); const F = S.fb; if (!F.text.trim()) return toast('내용을 적어 주세요.');
         S.busy = true; render();
-        try { await api('sendFeedback', { kind: F.kind, text: F.text, named: F.named, ver: NEED_SERVER, width: widthKind() }); S.fb = null; S.tab = 'more'; toast('보냈어요. 고마워요.'); window.scrollTo(0, 0); KoidePilot.done('a-feedback'); }
-        catch (err) { oops(err.code === 'bad' && /모르는 요청/.test(err.message) ? { message: '서버를 새 버전으로 배포하면 보낼 수 있어요.' } : err); }
+        try { await api('sendFeedback', { kind: F.kind, text: F.text, named: F.named, ver: needVer(), width: widthKind() }); S.fb = null; S.tab = 'more'; toast('보냈어요. 고마워요.'); window.scrollTo(0, 0); KoidePilot.done('a-feedback'); }
+        catch (err) { oops(err.code === 'bad' && (CHURCHSB ? /받지 못했어요/ : /모르는 요청/).test(err.message) ? { message: CHURCHSB ? '서버 SQL을 022번까지 넣으면 보낼 수 있어요.' : '서버를 새 버전으로 배포하면 보낼 수 있어요.' } : err); }
         S.busy = false; return render();
       }
       case 'fbfilter': S.fbFilter = v; return render();
