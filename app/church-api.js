@@ -1,5 +1,5 @@
 // 코이데 교회 층(Supabase)의 응답을 코이데 교회 화면(index.html)이 아는 옛 Apps Script 모양으로 바꾼다. koinonia-api.js와 같은 모양.
-// CHURCH_BACKEND가 'supabase'일 때만 index.html이 부른다(app/config.js, docs/setup.md 13~20장). 서버 함수는 supabase/009_church_setup.sql~019_church_marry.sql.
+// CHURCH_BACKEND가 'supabase'일 때만 index.html이 부른다(app/config.js, docs/setup.md 13~20장). 서버 함수는 supabase/009_church_setup.sql~020_church_changes.sql.
 //   start·me → church_me(+church_invite_open·church_depts·church_month) · opsJoin → church_admin_accept 뒤 church_me · opsInvite → church_admin_invite · opsRemove → church_admin_remove
 //   opsCtx → church_ops_ctx · church → church_overview · deptSave → church_dept_save · deptClose·deptReopen → church_dept_state
 //   saveGroup → church_group_name · roster → church_roster · rosterSave(addRoom·renameRoom·dropRoom) → church_room_save
@@ -7,6 +7,7 @@
 //   rosterSave(move·leave·unleave·admin) → church_roster_move·leave·unleave·admin(017) · 편성 모양에는 이번 달에 뺀 가정(left ← church_roster_left)을 붙인다
 //   부서 옮기기(018): deptFind → church_dept_find · moveDept → church_dept_move · moveUndo → church_dept_move_undo · 편성 모양에는 이번 달에 옮긴 가정(moves ← church_move_recent)도 붙인다
 //   결혼 합치기(019): marrySave·marryPreview·marryUndo → church_marry_save·preview·undo · beforeMarriage(결혼 전 기록) → church_before_marriage · 편성 모양에는 이번 달에 합친 가정(marries ← church_marry_recent)도 붙인다
+//   변경 기록(020): changes → church_changes(부서 관리자는 그 부서, 교회 관리자의 all은 교회 전체. 줄의 되돌리기는 marryUndo·moveUndo가 받는다)
 //   churchPeek → church_peek · churchJoin → church_join · churchLeave → church_leave
 //   requestLink → church_link_pick·name·new · cancelLink → church_link_cancel · month → church_month · rooms → church_depts
 //   pending·approve·reject·approveAll·unlink → church_pending·decide·approve_all·unlink · ops·inviteRenew → church_invites·church_invite_renew
@@ -163,6 +164,8 @@ window.koideChurchApi = (() => {
         await rpc('church_marry_undo', { p_household: need(body.familyId, '가정') });
         return dept ? withLeft(dept, rpc('church_roster', { p_dept: dept })) : { ok: true };
       }
+      // 변경 기록(020): 화면의 줄 모양({at,who,role,kind,target,extra,dept,ref,undo})을 서버가 그대로 보낸다. 교회 전체(all)는 부서 없이
+      case 'changes': return body.all ? rpc('church_changes', { p_dept: null, p_all: true }) : rpc('church_changes', { p_dept: need(dept, '부서'), p_all: false });
       case 'opsJoin': {
         const id = await ident();
         await rpc('church_admin_accept', { p_token: need(body.invite, '초대 링크'), p_name: id.nick });

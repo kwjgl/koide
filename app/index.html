@@ -4106,6 +4106,7 @@ try { const p = JSON.parse(localStorage.getItem('koide-pref') || '{}'), d = docu
         <p class="more-h">편성</p>${rosterCard()}
       </div><div class="col side">
         ${S.op ? `<p class="more-h">사람</p><section class="card mrows folds">${fold('together', '함께 기도해요', '', togetherEditCard())}${fold('invite', '초대 링크 · QR', I ? `${esc(S.month.dept.name)} 전체 · ${esc(grp())} ${I.rooms.length}곳` : '불러오는 중…', inviteCard())}${P && P.staff && !famOps() ? fold('staff', '교역자', P.staff.length ? P.staff.map(x => esc(x.label)).join(' · ') : '아직 없어요', staffCard()) : ''}</section>` : ''}
+        ${S.op ? `<p class="more-h">앱과 요청</p><section class="card mrows folds">${fold('changes', '변경 기록', '', changesCard(false))}</section>` : ''}
         <p class="more-h">설정</p><section class="card mrows folds">${fold('group', '소그룹 이름', esc(grp()), groupCard())}${S.op ? fold('reorg', '연도 개편', !S.rgData ? '불러오는 중…' : S.rgData.plan ? `${S.rgData.next}년 편성 예약 · ${monName(S.rgData.plan.start)}부터` : `${S.rgData.next}년 개편 준비`, reorgCard()) : ''}</section>
         <section class="card"><p class="hint" style="margin:0">기도제목은 아직 준비 중이에요.</p></section>
       </div></div>`;
@@ -4322,7 +4323,7 @@ try { const p = JSON.parse(localStorage.getItem('koide-pref') || '{}'), d = docu
         <p class="more-h">할 일</p>${todo ? `<section class="card mrows">${todo}</section>` : '<section class="card"><p class="hint" style="margin:0">지금 할 일이 없어요.</p></section>'}
         <p class="more-h">부서</p><div class="ch-grid">${C.depts.map(card).join('')}</div>
       </div><div class="col side">
-        <p class="more-h">앱과 요청</p><section class="card mrows folds">${stat}${inbox}${CHURCHSB ? '' : fold('chgall', '변경 기록', '모든 부서', changesCard(true)) + groupCloseFold()}</section>
+        <p class="more-h">앱과 요청</p><section class="card mrows folds">${stat}${inbox}${fold('chgall', '변경 기록', '모든 부서', changesCard(true))}${CHURCHSB ? '' : groupCloseFold()}</section>
         ${opsAdminCard() ? `<p class="more-h">사람</p>${opsAdminCard()}` : ''}
         ${dp ? `<p class="more-h">설정</p><section class="card mrows folds">${fold('dept', '부서 만들기 · 닫기', `부서 ${live.length}곳${nClosed ? ` · 닫은 부서 ${nClosed}곳` : ''}`, dp)}</section>` : ''}
       </div></div>`;
@@ -4606,7 +4607,7 @@ try { const p = JSON.parse(localStorage.getItem('koide-pref') || '{}'), d = docu
       </div>` : '<div class="actions"><button class="link danger" data-act="gleave">모임에서 나가기</button></div>'}</section>`;
   }
   // 변경 기록(부서 관리자: 우리 부서, 교회 관리자: 교회 전체). 최근 것부터 20줄씩
-  async function loadChanges(all) { try { S.chg = await api('changes', all ? { all: true } : {}); } catch (e) { S.chg = { err: e.code === 'bad' ? '서버를 새 버전으로 배포하면 볼 수 있어요.' : e.message }; } render(); }
+  async function loadChanges(all) { try { S.chg = await api('changes', all ? { all: true } : {}); } catch (e) { S.chg = { err: CHURCHSB ? (/받지 못했어요/.test(e.message) ? '서버 SQL을 020번까지 넣으면 볼 수 있어요.' : e.message) : e.code === 'bad' ? '서버를 새 버전으로 배포하면 볼 수 있어요.' : e.message }; } render(); }
   function changesCard(all) {
     const L = S.chg;
     if (!L) return `<section class="card"><h2>변경 기록</h2><p class="hint">불러오는 중…</p></section>`;
@@ -4841,7 +4842,7 @@ try { const p = JSON.parse(localStorage.getItem('koide-pref') || '{}'), d = docu
     return `<section class="card${S.busy && S.rbusy ? ' rs-busy' : ''}"${S.busy && S.rbusy ? ' aria-busy="true"' : ''}><h2>${title}${KoideTip.btn(`새로 온 ${words().one}은 첫 접속에서 "새로 왔어요"로 신청해도 되고, 여기서 미리 더해 두면 그 이름을 골라 연결을 요청해요. 떠남으로 빼도 지난 기록은 남아요. 해마다 새로 짤 때는 연도 개편을 써요.`, `${gj('과/와')} ${solo() ? '사람' : '가정'}`)}</h2>
       <ul class="rs-rooms">${R.rooms.map(room).join('') || `<li class="hint">아직 ${esc(grp())}이 없어요.</li>`}</ul>
       ${CHURCHSB && R.left && R.left.length ? `<p class="hint rs-kw">이번 달에 편성에서 뺀 ${solo() ? '사람' : '가정'}: ${R.left.map((x, i, a) => `<span class="rs-lname">${esc(x.name)}(${esc(x.room)})</span> <span class="rs-undo"><button class="link" data-act="rsunleave" data-v="${esc(x.id)}" data-n="${esc(x.name)}" ${S.busy ? 'disabled' : ''}>되돌리기</button>${i < a.length - 1 ? ' ·' : ''}</span>`).join(' ')}<br>이번 달 안에만 되돌릴 수 있어요.</p>` : ''}
-      ${CHURCHSB && ((R.moves && R.moves.length) || (R.marries && R.marries.length)) ? (() => { const L = (R.moves || []).map(x => ({ v: 'move|' + x.id, name: x.name, t: x.from + ' → ' + x.to })).concat((R.marries || []).map(x => ({ v: 'marry|' + x.id, name: x.name, t: '가정 합침 → ' + x.room })));
+      ${CHURCHSB && ((R.moves && R.moves.length) || (R.marries && R.marries.length)) ? (() => { const L = (R.moves || []).map(x => ({ v: 'move|' + x.id, name: x.name, t: x.from + ' → ' + (x.to || '편성에서 뺌') })).concat((R.marries || []).map(x => ({ v: 'marry|' + x.id, name: x.name, t: '가정 합침 → ' + (x.room || '편성에서 뺌') })));
         return `<p class="hint rs-kw">이번 달에 합치거나 옮긴 것: ${L.map((x, i, a) => `<span class="rs-lname">${esc(x.name)}(${esc(x.t)})</span> <span class="rs-undo"><button class="link" data-act="mvundo" data-v="${esc(x.v)}" data-n="${esc(x.name)}" ${S.busy ? 'disabled' : ''}>되돌리기</button>${i < a.length - 1 ? ' ·' : ''}</span>`).join(' ')}<br>이번 달 안에만 되돌릴 수 있어요.</p>`; })() : ''}
       ${addRoom ? `<form class="kid-form rs-form" data-form="rsroom"><input class="field" name="n" maxlength="20" placeholder="예) 1${esc(grp())}" aria-label="새 ${esc(grp())} 이름" autocomplete="off" value="${esc(S.rostEdit.n || '')}"><button class="btn small" type="submit" ${S.busy ? 'disabled' : ''}${rsIs('addRoom') ? ' aria-busy="true"' : ''}>${rsBz('addRoom', '만들기')}</button></form>`
         : `<span class="foot-acts rs-foot"><button class="btn small ghost" data-act="rsedit" data-v="room|">+ ${esc(grp())} 만들기</button><button class="btn small ghost" data-act="mvstart" data-v="marry">결혼해서 가정 합치기</button><button class="btn small ghost" data-act="mvstart" data-v="move">다른 부서에서 옮겨 오기</button></span>`}
@@ -4956,7 +4957,9 @@ try { const p = JSON.parse(localStorage.getItem('koide-pref') || '{}'), d = docu
         if (!confirm(`${name} 부서 옮기기를 되돌릴까요? 옛 부서의 사랑방으로 돌아가요.` + (CHURCHSB ? ' 옛 부서 다음 편성 예약에서 뺀 줄과 꺼진 부서 관리자 표시는 되돌아오지 않아요.' : ''))) return;
         await api('moveUndo', { familyId: ref });
       }
-      toast('되돌렸어요.'); S.rost = null; S.before = null; S.pending = await api('pending'); loadRoster(); if (!CHURCHSB) loadChanges(!!(S.fold || {}).chgall);   // 새 서버는 변경 기록 화면이 아직 없다(⑥-3)
+      toast('되돌렸어요.'); S.rost = null; S.before = null;
+      if (!CHURCHSB || S.op) { S.pending = await api('pending'); loadRoster(); }   // 새 서버의 교회 전체 화면(부서 없음)에는 편성·연결 신청이 없다
+      if (!CHURCHSB || (S.fold || {}).changes || (S.fold || {}).chgall) loadChanges(!!(S.fold || {}).chgall);
       if (!S.op) refreshMe(true);
     } catch (e) { oops(e); }
   }
