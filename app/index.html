@@ -3825,10 +3825,10 @@ try { const p = JSON.parse(localStorage.getItem('koide-pref') || '{}'), d = docu
     // 한 줄 메뉴: 제목, 무엇을 하는 곳인지, 역할 표
     const row = (act, v, title, sub, tag) => `<button class="mrow" data-act="${act}"${v ? ` data-v="${v}"` : ''}><span><b>${title}</b>${tag || ''}<small>${sub}</small></span>${ICON.chevR}</button>`;
     const tag = (cls, t) => `<span class="role-tag ${cls}">${t}</span>`;
-    // 새 길(Supabase)의 부서 관리는 교회 관리자 초대(운영 지원)로만 들어온다. 가정에 붙은 부서 관리자 표시는 ⑥에서 연다
+    // 새 길(Supabase)에서 가정에 붙은 부서 관리자 표시는 그 부서의 관리 화면(운영 화면과 같은 모양, 우리 부서만)으로 들어간다
     const roles = [
       isLeaderRole() && !S.grp ? row('tab', 'status', esc(grp()) + ' 현황', '기도제목 올렸는지 보기 · 안부 문구 · 연결 승인', tag('leader', esc(me.role))) : '',
-      me.admin && !S.grp && !CHURCHSB ? row('tab', 'admin', (S.month.dept && S.month.dept.name ? esc(S.month.dept.name) : '부서') + ' 관리', '우리 부서 전체를 꾸려요', tag('admin', '부서 관리자')) : '',
+      me.admin && !S.grp && (!CHURCHSB || famDept()) ? row('tab', CHURCHSB ? 'famops' : 'admin', (S.month.dept && S.month.dept.name ? esc(S.month.dept.name) : '부서') + ' 관리', '우리 부서 전체를 꾸려요', tag('admin', '부서 관리자')) : '',
       opsDepts().length ? row(S.me.ops.all ? 'church' : 'tab', S.me.ops.all ? '' : 'ops', S.me.ops.all ? '교회 관리' : '운영 지원', opsDepts().map(d => esc(d.name)).join(' · ') + ' · 기도제목 내용은 보지 않아요', tag('admin', S.me.ops.all ? '교회 관리자' : '지원')) : ''
     ].join('');
     const setOpen = !!S.setOpen;
@@ -4103,7 +4103,7 @@ try { const p = JSON.parse(localStorage.getItem('koide-pref') || '{}'), d = docu
     const tab = S.adminTab || 'manage';
     const seg = `<div class="seg2 admin-seg" role="tablist" aria-label="관리 화면">${[['manage', '관리'], ['analysis', '분석']].map(([k, l]) => `<button class="${tab === k ? 'on' : ''}" role="tab" aria-selected="${tab === k}" data-act="admintab" data-v="${k}">${l}</button>`).join('')}</div>`;
     const head = `${S.op ? (S.month.me.all ? `<button class="link back" data-act="church">${ICON.chevL}교회 전체</button>` : S.home ? `<button class="link back" data-act="tab" data-v="more">${ICON.chevL}더보기</button>` : '') : `<button class="link back" data-act="tab" data-v="more">${ICON.chevL}더보기</button>`}
-      <div class="page-top"><div><p class="eyebrow">${S.month.dept && S.month.dept.name ? esc(S.month.dept.name) : '관리자'}${S.op ? (S.month.me.all ? ' · 교회 관리자' : ' · 운영 지원') : ''}${S.op && S.month.dept.closed ? ' · 닫힌 부서' : ''}</p><h1>${tab === 'analysis' ? '분석' : '관리'}</h1></div></div>${seg}`;
+      <div class="page-top"><div><p class="eyebrow">${S.month.dept && S.month.dept.name ? esc(S.month.dept.name) : '관리자'}${S.op ? (S.month.me.all ? ' · 교회 관리자' : famOps() ? ' · 부서 관리자' : ' · 운영 지원') : ''}${S.op && S.month.dept.closed ? ' · 닫힌 부서' : ''}</p><h1>${tab === 'analysis' ? '분석' : '관리'}</h1></div></div>${seg}`;
     // 요약 띠: 편성(S.rost)과 승인 대기(S.pending)로만 센다. 연결은 연결된 분이 한 분이라도 있는 가정(사람) 수(교회 전체의 '연결'과 같은 셈). 편성 자료에 연결 수가 없으면 그 칸은 뺀다
     const R0 = S.rost && !S.rost.err ? S.rost : null, ppl = R0 ? R0.rooms.reduce((a, r) => a.concat(r.people || []), []) : [];
     const hasLink = !R0 || ppl.some(p => typeof p.linked === 'number');
@@ -4116,7 +4116,7 @@ try { const p = JSON.parse(localStorage.getItem('koide-pref') || '{}'), d = docu
         ${reqs.length ? `<p class="more-h">할 일</p>${reqCard()}` : ''}
         <p class="more-h">편성</p>${rosterCard()}
       </div><div class="col side">
-        ${S.op ? `<p class="more-h">사람</p><section class="card mrows folds">${fold('together', '함께 기도해요', '부서 기도제목 쓰기', togetherEditCard())}${fold('invite', '초대 링크 · QR', I ? `${esc(S.month.dept.name)} 전체 · ${esc(grp())} ${I.rooms.length}곳` : '불러오는 중…', inviteCard())}${P && P.staff ? fold('staff', '교역자', P.staff.length ? P.staff.map(x => esc(x.label)).join(' · ') : '아직 없어요', staffCard()) : ''}</section>` : ''}
+        ${S.op ? `<p class="more-h">사람</p><section class="card mrows folds">${fold('together', '함께 기도해요', '부서 기도제목 쓰기', togetherEditCard())}${fold('invite', '초대 링크 · QR', I ? `${esc(S.month.dept.name)} 전체 · ${esc(grp())} ${I.rooms.length}곳` : '불러오는 중…', inviteCard())}${P && P.staff && !famOps() ? fold('staff', '교역자', P.staff.length ? P.staff.map(x => esc(x.label)).join(' · ') : '아직 없어요', staffCard()) : ''}</section>` : ''}
         <p class="more-h">설정</p><section class="card mrows folds">${fold('group', '소그룹 이름', esc(grp()), groupCard())}${S.op ? fold('reorg', '연도 개편', !S.rgData ? '불러오는 중…' : S.rgData.plan ? `${S.rgData.next}년 편성 예약 · ${monName(S.rgData.plan.start)}부터` : `${S.rgData.next}년 개편 준비`, reorgCard()) : ''}</section>
         <section class="card"><p class="hint" style="margin:0">기도제목은 아직 준비 중이에요.</p></section>
       </div></div>`;
@@ -4337,7 +4337,7 @@ try { const p = JSON.parse(localStorage.getItem('koide-pref') || '{}'), d = docu
   }
   // ── 함께 기도해요(부서 기도제목): 교역자·부서 관리자·교회 관리자가 쓰고, 회원은 이번 달 화면과 기도하기 › 우리 교회에서 본다 ──
   // 새 길(Supabase)은 교역자와 관리 화면만 쓴다. 가정에 붙은 부서 관리자 표시는 ⑥에서 연다
-  const canTogether = () => !!(S.month && S.month.me && (S.month.me.staff || (!CHURCHSB && S.month.me.admin) || S.op) && !S.grp);
+  const canTogether = () => !!(S.month && S.month.me && (S.month.me.staff || (S.month.me.admin && (!CHURCHSB || famDept())) || S.op) && !S.grp);
   function togetherCard() {
     const L = (S.month && S.month.together) || [];
     if (S.grp || (!L.length && !canTogether())) return '';
@@ -4642,11 +4642,15 @@ try { const p = JSON.parse(localStorage.getItem('koide-pref') || '{}'), d = docu
   // ── 운영 관리자 (설계서 13장): 맡은 부서를 가정 없이 꾸린다. 운영 화면에서는 관리 탭만 열고, 서버는 기도제목 내용을 보내지 않는다 ──
   //  S.op: 지금 운영 화면으로 보는 부서ID. 운영 화면에 들어가면 내 이번 달(S.home)은 잠시 비켜 두었다가 돌아올 때 되살린다
   const OP_KEY = 'koide-op', OPS_JOIN = 'koide-opsjoin';
-  const opsDepts = () => (S.me && S.me.ops && S.me.ops.depts) || [];
+  //  가정의 부서 관리자 표시로 받은 부서(fam)는 운영 지원 목록에서 빼고 더보기의 '○○부 관리'로만 들어간다(새 길)
+  const opsAll = () => (S.me && S.me.ops && S.me.ops.depts) || [];
+  const opsDepts = () => opsAll().filter(d => !d.fam);
+  const famDept = () => (CHURCHSB && !S.grp && opsAll().find(d => d.fam)) || null;
+  const famOps = () => !!(S.op && famDept() && famDept().id === S.op && !opsDepts().some(d => d.id === S.op));
   const isOpsMode = () => !!S.op;
   async function enterOps(id) {
     // 누른 바로 관리 전환 화면을 띄우고, 부서 자료가 다 올 때까지 둔다(이미 그 부서 관리를 보는 중이면 띄우지 않는다)
-    adminWait(!(S.op === id && S.tab === 'admin'), ((opsDepts().find(d => d.id === id) || {}).name || '부서') + ' 관리');
+    adminWait(!(S.op === id && S.tab === 'admin'), ((opsAll().find(d => d.id === id) || {}).name || '부서') + ' 관리');
     if (S.grp) { S.month = S.home || S.month; S.grp = null; S.home = null; }
     if (!S.op) S.home = S.month;
     S.op = id; try { localStorage.setItem(OP_KEY, id); } catch (e) { /* 이번만 */ }
@@ -4723,7 +4727,7 @@ try { const p = JSON.parse(localStorage.getItem('koide-pref') || '{}'), d = docu
   async function loadRoster() { try { S.rost = await api('roster'); } catch (e) { S.rost = { err: e.code === 'bad' ? '서버를 새 버전으로 배포하면 볼 수 있어요.' : e.message }; } render(); }
   // 저장하는 동안(서버가 느리면 몇 초 걸린다) 누른 단추와 카드에 표시하고, 저장한 것은 잠깐 밝혀 보여 준다(설계서 7장).
   //  S.rbusy: 지금 저장 중인 일 { op, label }. S.rostHl: 저장 뒤 밝혀 보일 소그룹·사람 id
-  const RS_BUSY = { addRoom: '만드는 중…', renameRoom: '저장 중…', dropRoom: '지우는 중…', addPerson: '더하는 중…', addPeople: '더하는 중…', move: '옮기는 중…', leave: '빼는 중…', unlink: '해제하는 중…', approveAll: '승인하는 중…' };
+  const RS_BUSY = { addRoom: '만드는 중…', renameRoom: '저장 중…', dropRoom: '지우는 중…', addPerson: '더하는 중…', addPeople: '더하는 중…', move: '옮기는 중…', leave: '빼는 중…', unleave: '되돌리는 중…', unlink: '해제하는 중…', approveAll: '승인하는 중…' };
   const RS_QUICK = ['addRoom', 'renameRoom', 'dropRoom', 'pilotRoom', 'addPerson', 'addPeople']; // 신청 목록·이번 달 화면에 바로 영향이 없는 일 → 그 새로고침은 뒤에서
   const rsIs = ops => !!(S.busy && S.rbusy && ops.split(' ').includes(S.rbusy.op));
   const rsBz = (ops, idle) => rsIs(ops) ? `<span class="spin" aria-hidden="true"></span>${S.rbusy.label}` : idle; // 누른 단추: 작은 돌림 표시 + "…하는 중…"
@@ -4805,6 +4809,8 @@ try { const p = JSON.parse(localStorage.getItem('koide-pref') || '{}'), d = docu
     const R = S.rost, title = `${esc(gj('과/와'))} ${solo() ? '사람' : '가정'}`;
     if (!R || R.err) return `<section class="card"><h2>${title}</h2><p class="hint">${R ? esc(R.err) : '불러오는 중…'}</p></section>`;
     const open = S.rostOpen || {}, sel = S.rostSel, me = S.month.me;
+    // 내 가정: 가정의 부서 관리자가 관리 화면(운영 화면 모양)으로 왔으면 비켜 둔 내 이번 달(S.home)에서 찾는다
+    const myFid = me.familyId || (S.home && S.home.me && S.home.me.familyId);
     const tag = p => (p.role !== '회원' ? `<span class="role-tag leader">${esc(p.role)}</span>` : '') + (p.admin ? '<span class="role-tag admin">관리자</span>' : '');
     // 펼친 사람: 이름 옆에 역할 표, 아래로 역할·소속·카카오 연결·가끔 하는 일, 되돌리기 어려운 '편성에서 빼기'는 맨 아래 따로
     const dot = n => `<i class="dot${n ? ' on' : ''}" aria-hidden="true"></i>`;
@@ -4812,14 +4818,14 @@ try { const p = JSON.parse(localStorage.getItem('koide-pref') || '{}'), d = docu
         <p class="pn-st">${dot(p.linked)}${p.linked ? (CHURCHSB ? '연결 ' : '카카오 연결 ') + p.linked + '명' : (CHURCHSB ? '아직 연결 없음' : '아직 카카오 연결 없음')}</p>
         <div class="pn-sec"><p class="label">역할</p><div class="seg" style="--n:3" role="radiogroup" aria-label="역할">${['회원', '코리더', '리더'].map(k => `<button class="${p.role === k ? 'on' : ''}" role="radio" aria-checked="${p.role === k}" data-act="rsrole" data-v="${k}" ${S.busy ? 'disabled' : ''}${rsIs('role') && S.rbusy.v === k ? ' aria-busy="true"' : ''}>${k}</button>`).join('')}</div>
         <div class="set-row" style="margin-top:.7em"><div><p class="label" style="margin:0">부서 관리자</p><p class="hint" style="margin:.2em 0 0">이 관리 화면을 함께 열어요.</p></div>
-          <button type="button" class="switch${p.admin ? ' on' : ''}" role="switch" aria-checked="${p.admin}" aria-label="부서 관리자" data-act="rsadmin" ${S.busy || (p.admin && p.id === me.familyId) ? 'disabled' : ''}><span></span></button></div></div>
+          <button type="button" class="switch${p.admin ? ' on' : ''}" role="switch" aria-checked="${p.admin}" aria-label="부서 관리자" data-act="rsadmin" ${S.busy || (p.admin && p.id === myFid) ? 'disabled' : ''}><span></span></button></div></div>
         <div class="pn-sec"><p class="label">소속</p><p style="margin:0${R.rooms.length > 1 ? ' 0 .5em' : ''}">지금 <b>${esc(r.name)}</b></p>
         ${R.rooms.length > 1 ? `<div class="kid-form"><label class="mv-l" for="rs-move">다른 ${esc(josa(grp(), '으로/로'))}</label><select id="rs-move" class="field" aria-label="옮길 ${esc(grp())}">${R.rooms.filter(x => x.id !== r.id).map(x => `<option value="${esc(x.id)}">${esc(x.name)}</option>`).join('')}</select><button class="btn small ghost" data-act="rsmove" ${S.busy ? 'disabled' : ''}${rsIs('move') ? ' aria-busy="true"' : ''}>${rsBz('move', '옮기기')}</button></div>` : ''}</div>
         <div class="pn-sec"><p class="label">${CHURCHSB ? '연결된 로그인' : '카카오 연결'}</p>${p.links && p.links.length ? `<ul class="rs-links">${p.links.map(l => `<li><span>${esc(l.person)} <small>${nickTxt(l.nick)}${esc(l.since)}</small></span>${l.me ? '<small>나</small>' : `<button class="link danger" data-act="rsunlink" data-v="${esc(l.kakaoId)}" data-n="${esc(l.person)}" ${S.busy ? 'disabled' : ''}${rsIs('unlink') ? ' aria-busy="true"' : ''}>${rsBz('unlink', '해제')}</button>`}</li>`).join('')}</ul>` : '<p class="hint">아직 연결된 분이 없어요. 초대 링크로 들어와 연결을 신청하면 여기에 보여요.</p>'}</div>
         <div class="pn-sec"><p class="label">가끔 하는 일</p><div class="pn-rows">
           <button class="mrow" data-act="mvstart" data-v="marry" data-fam="${esc(p.id)}"><span><b>결혼해서 ${solo() ? '청장년부로 가기' : '가정 합치기'}</b><small>새 가정 하나로 합쳐요. 지난 기록은 그대로 남아요.</small></span>${ICON.chevR}</button>
           ${p.id === me.familyId ? '' : `<button class="mrow" data-act="mvstart" data-v="move" data-fam="${esc(p.id)}"><span><b>다른 부서로 옮기기</b><small>받는 부서 관리자가 처리해요.</small></span>${ICON.chevR}</button>`}</div></div>
-        ${p.id === me.familyId ? '' : `<div class="pn-sec pn-end"><button class="link danger" data-act="rsleave" data-n="${esc(p.name)}" ${S.busy ? 'disabled' : ''}${rsIs('leave') ? ' aria-busy="true"' : ''}>${rsBz('leave', esc(R.term) + '년 편성에서 빼기 (떠남)')}</button><p class="hint">지난 기록은 남아요. 누르면 한 번 더 확인해요.</p></div>`}</div>`;
+        ${p.id === myFid ? '' : `<div class="pn-sec pn-end"><button class="link danger" data-act="rsleave" data-n="${esc(p.name)}" ${S.busy ? 'disabled' : ''}${rsIs('leave') ? ' aria-busy="true"' : ''}>${rsBz('leave', esc(R.term) + '년 편성에서 빼기 (떠남)')}</button><p class="hint">지난 기록은 남아요. 누르면 한 번 더 확인해요.</p></div>`}</div>`;
     const bulkForm = (r, E) => {
       if (!E.res) return `<div class="rs-form rs-bulk"><label class="label" for="bk-text">여러 명 더하기 · ${esc(r.name)}</label>
           <p class="hint">한 줄에 한 명씩 붙여 넣어요. 카톡이나 엑셀에서 복사해도 돼요.${solo() ? '' : ' 부부는 한 줄에 "남편 · 아내"처럼 두 분을 적으면 한 가정이 돼요.'}</p>
@@ -4834,8 +4840,8 @@ try { const p = JSON.parse(localStorage.getItem('koide-pref') || '{}'), d = docu
     const room = r => {
       const on = !!open[r.id], E = S.rostEdit && S.rostEdit.roomId === r.id ? S.rostEdit : null;
       return `<li class="rs-room${on ? ' open' : ''}" data-hl="${esc(r.id)}"><button class="rs-head" data-act="rsopen" data-v="${esc(r.id)}" aria-expanded="${on}"><b>${esc(r.name)}</b><small>${r.people.length}${words().count}</small><span class="ops-chev" aria-hidden="true">${ICON.chev}</span></button>
-        ${!on ? '' : `<div class="set-row rs-pilot"><div><p class="label" style="margin:0">시범 중</p><p class="hint" style="margin:.2em 0 0">켜면 이 ${esc(grp())} 사람들에게 '해 볼 일' 띠가 보여요(어느 기기에서든)</p></div>
-          <button type="button" class="switch${r.pilot ? ' on' : ''}" role="switch" aria-checked="${!!r.pilot}" aria-label="${esc(r.name)} 시범 중" data-act="rspilot" data-v="${esc(r.id)}" ${S.busy ? 'disabled' : ''}><span></span></button></div>
+        ${!on ? '' : `${CHURCHSB ? '' : `<div class="set-row rs-pilot"><div><p class="label" style="margin:0">시범 중</p><p class="hint" style="margin:.2em 0 0">켜면 이 ${esc(grp())} 사람들에게 '해 볼 일' 띠가 보여요(어느 기기에서든)</p></div>
+          <button type="button" class="switch${r.pilot ? ' on' : ''}" role="switch" aria-checked="${!!r.pilot}" aria-label="${esc(r.name)} 시범 중" data-act="rspilot" data-v="${esc(r.id)}" ${S.busy ? 'disabled' : ''}><span></span></button></div>`}
         <ul class="rs-people">${r.people.map(p => `<li class="${sel === p.id ? 'on' : ''}" data-hl="${esc(p.id)}"><button class="rs-p" data-act="rssel" data-v="${esc(p.id)}" aria-expanded="${sel === p.id}"><span class="nm">${esc(p.name)}</span>${tag(p)}${sel === p.id ? `<span class="ops-chev" aria-hidden="true">${ICON.chev}</span>` : `<small>${dot(p.linked)}${p.linked ? '연결 ' + p.linked : '아직 연결 없음'}</small>`}</button>${sel === p.id ? acts(p, r) : ''}</li>`).join('') || `<li class="hint">아직 ${solo() ? '사람' : '가정'}이 없어요.</li>`}</ul>
           ${E && E.kind === 'person' ? `<form class="plain-form rs-form" data-form="rsadd" data-v="${esc(r.id)}">
               <input class="field" name="a" maxlength="10" required placeholder="${solo() ? '이름' : '남편 또는 본인 이름'}" aria-label="${solo() ? '이름' : '남편 또는 본인 이름'}" autocomplete="off" value="${esc(E.a || '')}">
@@ -4848,6 +4854,7 @@ try { const p = JSON.parse(localStorage.getItem('koide-pref') || '{}'), d = docu
     const addRoom = S.rostEdit && S.rostEdit.kind === 'room';
     return `<section class="card${S.busy && S.rbusy ? ' rs-busy' : ''}"${S.busy && S.rbusy ? ' aria-busy="true"' : ''}><h2>${title}</h2>
       <ul class="rs-rooms">${R.rooms.map(room).join('') || `<li class="hint">아직 ${esc(grp())}이 없어요.</li>`}</ul>
+      ${CHURCHSB && R.left && R.left.length ? `<p class="hint">이번 달에 편성에서 뺀 ${solo() ? '사람' : '가정'}: ${R.left.map(x => `${esc(x.name)}(${esc(x.room)}) <button class="link" data-act="rsunleave" data-v="${esc(x.id)}" data-n="${esc(x.name)}" ${S.busy ? 'disabled' : ''}>되돌리기</button>`).join(' · ')}<br>이번 달 안에만 되돌릴 수 있어요.</p>` : ''}
       ${addRoom ? `<form class="kid-form rs-form" data-form="rsroom"><input class="field" name="n" maxlength="20" placeholder="예) 1${esc(grp())}" aria-label="새 ${esc(grp())} 이름" autocomplete="off" value="${esc(S.rostEdit.n || '')}"><button class="btn small" type="submit" ${S.busy ? 'disabled' : ''}${rsIs('addRoom') ? ' aria-busy="true"' : ''}>${rsBz('addRoom', '만들기')}</button></form>`
         : `<span class="foot-acts rs-foot"><button class="btn small ghost" data-act="rsedit" data-v="room|">+ ${esc(grp())} 만들기</button><button class="btn small ghost" data-act="mvstart" data-v="marry">결혼해서 가정 합치기</button><button class="btn small ghost" data-act="mvstart" data-v="move">다른 부서에서 옮겨 오기</button></span>`}
       <p class="hint">${R.term}년 편성이에요. 새로 온 ${words().one}은 첫 접속에서 "새로 왔어요"로 신청해도 되고, 여기서 미리 더해 두면 그 이름을 골라 연결을 요청해요. 떠남으로 빼도 지난 기록은 남아요. 해마다 새로 짤 때는 연도 개편을 써요.</p></section>`;
@@ -5792,7 +5799,7 @@ try { const p = JSON.parse(localStorage.getItem('koide-pref') || '{}'), d = docu
       case 'svmore': S.svMore = !S.svMore; return render();
       case 'svcsv': return surveyCsv(v);
       case 'setopen': S.setOpen = !S.setOpen; return render();
-      case 'togmanage': if (S.month.me.staff) { S.tab = 'home'; render(); const c = $('[data-form="togsave"]'); if (c) c.scrollIntoView({ block: 'center' }); return; } S.fold = Object.assign({}, S.fold, { together: true }); S.tab = 'admin'; render(); window.scrollTo(0, 0); return loadAdmin();
+      case 'togmanage': if (S.month.me.staff) { S.tab = 'home'; render(); const c = $('[data-form="togsave"]'); if (c) c.scrollIntoView({ block: 'center' }); return; } S.fold = Object.assign({}, S.fold, { together: true }); if (CHURCHSB && !S.op && famDept()) return enterOps(famDept().id); S.tab = 'admin'; render(); window.scrollTo(0, 0); return loadAdmin();
       case 'togedit': S.togEdit = v || null; return render();
       case 'togstate': {
         const op = b.dataset.op; if (op === 'delete' && !confirm('이 제목을 지울까요? 잘못 쓴 것만 지우고, 다 기도한 것은 "마치기"를 눌러요.')) return;
@@ -5916,6 +5923,7 @@ try { const p = JSON.parse(localStorage.getItem('koide-pref') || '{}'), d = docu
       case 'mvgo': return mvGo();
       case 'mvundo': return mvUndo(v, b.dataset.n || '');
       case 'rsmove': { const to = ($('#rs-move') || {}).value; if (!to) return; S.rostOpen = Object.assign({}, S.rostOpen, { [to]: true }); return rosterDo({ op: 'move', familyId: S.rostSel, roomId: to }, '옮겼어요.'); }
+      case 'rsunleave': return rosterDo({ op: 'unleave', familyId: v }, josa(b.dataset.n, '을/를') + ' 다시 편성에 넣었어요.');
       case 'rsleave': if (!confirm(josa(b.dataset.n, '을/를') + ' 지금 편성에서 뺄까요? 지난 기록은 남고, 1년이 지나면 개인정보 요청에 올라와요.')) return; return rosterDo({ op: 'leave', familyId: S.rostSel }, '편성에서 뺐어요.', { done: () => { S.rostSel = null; } });
       case 'rsdrop': if (!confirm(josa(b.dataset.n, '을/를') + ' 지울까요?')) return; return rosterDo({ op: 'dropRoom', roomId: v }, '지웠어요.');
       case 'invcopy': {
@@ -5957,6 +5965,7 @@ try { const p = JSON.parse(localStorage.getItem('koide-pref') || '{}'), d = docu
       case 'tab':
         // 운영 관리는 탭이 아니라 운영 화면으로 바꾸는 것(맡은 부서가 여럿이면 배지에서 바꾼다)
         if (v === 'ops') return enterOps((opsDepts()[0] || {}).id);
+        if (v === 'famops') return famDept() ? enterOps(famDept().id) : toast('부서 관리자 표시가 꺼졌어요. 화면을 다시 열어 주세요.');
         // 관리(교회 전체·운영) 화면에서 내 화면의 탭을 누르면 관리 화면에서 나와 그 탭으로 간다
         if (S.op && ['home', 'mine', 'pray', 'history', 'more'].includes(v)) return leaveOps(v);
         // 부서 관리자가 우리 부서 관리를 처음 열 때도 같은 전환 화면

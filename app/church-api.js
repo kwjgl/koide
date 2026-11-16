@@ -1,9 +1,11 @@
 // 코이데 교회 층(Supabase)의 응답을 코이데 교회 화면(index.html)이 아는 옛 Apps Script 모양으로 바꾼다. koinonia-api.js와 같은 모양.
-// CHURCH_BACKEND가 'supabase'일 때만 index.html이 부른다(app/config.js, docs/setup.md 13~20장). 서버 함수는 supabase/009_church_setup.sql~016_church_reorg.sql.
+// CHURCH_BACKEND가 'supabase'일 때만 index.html이 부른다(app/config.js, docs/setup.md 13~20장). 서버 함수는 supabase/009_church_setup.sql~017_church_roster.sql.
 //   start·me → church_me(+church_invite_open·church_depts·church_month) · opsJoin → church_admin_accept 뒤 church_me · opsInvite → church_admin_invite · opsRemove → church_admin_remove
 //   opsCtx → church_ops_ctx · church → church_overview · deptSave → church_dept_save · deptClose·deptReopen → church_dept_state
 //   saveGroup → church_group_name · roster → church_roster · rosterSave(addRoom·renameRoom·dropRoom) → church_room_save
-//   rosterSave(addPerson·addPeople·role·unlink) → church_person_add·people_add·roster_role·unlink · churchPeek → church_peek · churchJoin → church_join · churchLeave → church_leave
+//   rosterSave(addPerson·addPeople·role·unlink) → church_person_add·people_add·roster_role·unlink
+//   rosterSave(move·leave·unleave·admin) → church_roster_move·leave·unleave·admin(017) · 편성 모양에는 이번 달에 뺀 가정(left ← church_roster_left)을 붙인다
+//   churchPeek → church_peek · churchJoin → church_join · churchLeave → church_leave
 //   requestLink → church_link_pick·name·new · cancelLink → church_link_cancel · month → church_month · rooms → church_depts
 //   pending·approve·reject·approveAll·unlink → church_pending·decide·approve_all·unlink · ops·inviteRenew → church_invites·church_invite_renew
 //   pending(리더·코리더) → church_pending + church_leader_view(현황·돌봄 신호·업데이트 이력) · post·unpost → church_post 뒤 church_pending
@@ -19,13 +21,20 @@
 //   logout → KoideSb.signOut(로그인 세션을 끊는다)
 // 옛 응답과 다른 곳: ① opsRemove·approve·reject·unlink의 body.kakaoId는 이제 관리자·연결 요청·연결 줄의 id(uuid)다(화면은 data-v를 그대로 넘긴다)
 //   ② usage·surveyState·tourSeen은 빈 모양으로, beforeMarriage(결혼 전 기록, ⑥-2)는 빈 목록으로 달랜다
-//   ③ rosterSave의 move·leave·admin·pilotRoom과 표에 없는 액션(주제 흐름·주제 사전·기록 지우기 요청 등)은 '아직 쓸 수 없어요' 오류(화면은 토스트로 알린다)
+//   ③ rosterSave의 pilotRoom(시범 중, 화면에서 숨김)과 표에 없는 액션(주제 흐름·주제 사전·기록 지우기 요청 등)은 '아직 쓸 수 없어요' 오류(화면은 토스트로 알린다)
 //   ④ 이번 달(church_month)은 일부러 덜 보낸다: 다른 가정 카드에 손봄 상태(status)·자녀 이름이 없고, 받는 가정 한 줄(received.n)은 가정 수가 아니라 0·1·of 세 단계다.
 //     serve·together는 빈 배열, shift·news는 null, eraseReq·room.pilot은 false, me.survey는 ''(화면은 CHURCHSB 갈래에서 견딘다)
 window.koideChurchApi = (() => {
   const SOON = '교회 새 서버에서는 아직 쓸 수 없는 기능이에요. 곧 열려요.';
   const err = (code, message) => ({ code, message });
   const rpc = (name, args) => window.KoideSb.rpc(name, args || {});
+  // 편성 모양(rooms가 있는 것)에 이번 달에 뺀 가정 목록(되돌리기용)을 붙인다. 고친 뒤에 읽고, 목록을 못 받아도 편성은 그대로 보여 준다
+  const withLeft = async (d, p) => {
+    const r = await p;
+    if (!r || !Array.isArray(r.rooms)) return r;
+    const left = await rpc('church_roster_left', { p_dept: d }).catch(() => []);
+    return Object.assign(r, { left: Array.isArray(left) ? left : [] });
+  };
   const need = (v, what) => { if (!v) throw err('bad', what + ' 정보가 없어요. 화면을 다시 열어 주세요.'); return v; };
   // 기도제목 id: 저장 전 임시 id('new…')나 모르는 값은 서버에 보내지 않고 옛 서버와 같은 글로 알린다
   const itemId = (v, msg) => { if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(String(v || ''))) throw err('bad', msg || '기도제목을 찾지 못했어요.'); return String(v); };
@@ -145,10 +154,10 @@ window.koideChurchApi = (() => {
         return { me: await meOf(r.me) };
       }
       case 'saveGroup': return rpc('church_group_name', { p_dept: need(dept, '부서'), p_group: body.group || '', p_rename: !!body.rename });
-      case 'roster': return rpc('church_roster', { p_dept: need(dept, '부서') });
+      case 'roster': { const d = need(dept, '부서'); return withLeft(d, rpc('church_roster', { p_dept: d })); }
       case 'rosterSave': {
         const d = need(dept, '부서');
-        switch (body.op) {
+        return withLeft(d, (async () => { switch (body.op) {
           case 'addRoom': case 'renameRoom': case 'dropRoom':
             return rpc('church_room_save', { p_dept: d, p_op: body.op, p_room: body.roomId || null, p_name: body.name || '' });
           case 'addPerson':
@@ -158,8 +167,12 @@ window.koideChurchApi = (() => {
           case 'unlink':
             await rpc('church_unlink', { p_link: need(body.kakaoId, '연결'), p_dept: d });
             return rpc('church_roster', { p_dept: d });   // 화면은 편성 모양을 기대한다
+          case 'move': return rpc('church_roster_move', { p_dept: d, p_household: need(body.familyId, '가정'), p_room: need(body.roomId, '사랑방') });
+          case 'leave': return rpc('church_roster_leave', { p_dept: d, p_household: need(body.familyId, '가정') });
+          case 'unleave': return rpc('church_roster_unleave', { p_dept: d, p_household: need(body.familyId, '가정') });
+          case 'admin': return rpc('church_roster_admin', { p_dept: d, p_household: need(body.familyId, '가정'), p_on: !!body.on });
           default: throw err('bad', SOON);
-        }
+        } })());
       }
       case 'requestLink': {
         let r;
