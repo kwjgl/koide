@@ -551,6 +551,7 @@ textarea.field { resize: vertical; line-height: 1.55; overflow-y: hidden; }
 .switch { width: 48px; height: 28px; border-radius: 999px; border: 0; background: var(--line-strong); position: relative; flex: none; padding: 0; cursor: pointer; }
 .switch > span { position: absolute; top: 3px; left: 3px; width: 22px; height: 22px; border-radius: 50%; background: var(--surface); transition: left .2s; }
 .switch.on { background: var(--accent); }
+.switch:disabled { opacity: .45; cursor: not-allowed; }
 .switch.on > span { left: 23px; }
 .ps-music-set { margin-top: 10px; padding: 10px 12px; border-radius: 12px; background: var(--surface-2); }
 .ps-tracks { display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; margin: 6px 0 10px; }
@@ -844,6 +845,9 @@ h3 { font-size: 1.02em; font-weight: 600; margin: 0; }
 .mv-table td.muted { color: var(--ink-2); }
 .rg-dates { display: grid; gap: 10px; }
 .rg-dates label { display: flex; flex-direction: column; gap: .3em; font-size: .9em; font-weight: 600; }
+/* 마법사 화면의 글은 낱말 중간에서 줄바꿈하지 않는다(띄어쓰기에서만). 아주 긴 낱말만 어디서든 꺾어 넘치지 않게 */
+.rg-wiz { word-break: keep-all; overflow-wrap: anywhere; }
+.rg-wiz .actions .btn { max-width: 100%; text-align: center; }
 .card.hl { animation: hl-flash 2.4s ease-out; }
 @keyframes hl-flash { 0%, 40% { box-shadow: 0 0 0 4px var(--accent-mid); } 100% { box-shadow: 0 0 0 4px transparent; } }
 @media (prefers-reduced-motion: reduce) { .card.hl { animation: none; box-shadow: 0 0 0 3px var(--accent-mid); } }
@@ -1246,6 +1250,9 @@ body.pop-open { overflow: hidden; }
 .rs-head small, .rs-p small { color: var(--ink-2); font-size: .85em; }
 .rs-head[aria-expanded="true"] .ops-chev { transform: rotate(180deg); }
 .rs-people { margin: 0 0 .6em; }
+.rs-lname, .rs-undo { white-space: nowrap; }
+.rs-kw, .rg-card { word-break: keep-all; overflow-wrap: anywhere; }
+.rg-card { display: contents; }
 .rs-p { padding: .65em 0; }
 .rs-p .nm { font-weight: 500; }
 .rs-p small { margin-left: auto; display: inline-flex; align-items: center; gap: .4em; }
@@ -2172,7 +2179,7 @@ try { const p = JSON.parse(localStorage.getItem('koide-pref') || '{}'), d = docu
   }
   const VIEWS = {
     loading: () => '<p class="loading">불러오는 중…</p>',
-    error: () => `<h1>잠시 문제가 생겼어요</h1><p class="hint">${esc(S.err && S.err.message)}</p><button class="btn" data-act="retry">다시 해 보기</button>`,
+    error: () => `<h1>${S.err && /편성에서 우리 가정을 찾지 못했어요/.test(S.err.message || '') ? '지금은 사랑방 편성에 없어요' : '잠시 문제가 생겼어요'}</h1><p class="hint">${esc(S.err && S.err.message)}</p><button class="btn" data-act="retry">다시 해 보기</button>`,
     // 첫 화면(로그인 전): 시작 화면의 매듭이 이어지는 머리, 카카오로 시작하기, 짧은 소개 세 줄, 다른 방법, 이름의 뜻
     login: () => `<div class="welcome">
       <section class="wl-hero">
@@ -2363,7 +2370,7 @@ try { const p = JSON.parse(localStorage.getItem('koide-pref') || '{}'), d = docu
       <button class="link" data-act="logout">로그아웃</button>`,
     app: () => KOINONIA && S.month && S.month.closed
       ? '<section class="card"><h1>이 공동체는 닫혔어요</h1><a class="btn" href="note.html' + (KOINONIA_DEMO ? '?demo' : '') + '#my-groups">코이데 노트로</a></section>'
-      : ({ home: homeView, mine: mineView, pray: prayView, history: historyView, more: moreView, about: aboutView, help: helpView, praytext: prayTextView, feedback: feedbackView, church: churchView, status: statusView, admin: adminView, import: importView, reorg: reorgView })[S.tab]() + (KOINONIA ? careSheet() : '') + mvGroupSheet()
+      : ({ home: homeView, mine: mineView, pray: prayView, history: historyView, more: moreView, about: aboutView, help: helpView, praytext: prayTextView, feedback: feedbackView, church: churchView, status: statusView, admin: adminView, import: importView, reorg: () => `<div class="rg-wiz">${reorgView()}</div>` })[S.tab]() + (KOINONIA ? careSheet() : '') + mvGroupSheet()
   };
   // 고른 가정: 사랑방 가정, 또는 '목사님·장로님으로 들어가기'에서 고른 교역자 가정
   const famPicked = () => S.pick.staff ? (dept().staff || []).find(f => f.id === S.pick.familyId) : S.rooms.find(x => x.id === S.pick.roomId).families.find(f => f.id === S.pick.familyId);
@@ -2488,10 +2495,10 @@ try { const p = JSON.parse(localStorage.getItem('koide-pref') || '{}'), d = docu
     const g = esc(grp()), key = 'koide-shift-' + (X.started || '');
     if (X.started) {
       try { if (localStorage.getItem(key)) return ''; } catch (e) { /* 늘 보여 준다 */ }
-      return `<section class="notice" style="margin-bottom:12px"><b>${X.started}년 편성이 시작됐어요.</b> 올해는 <b>${esc(X.room)}</b>이에요. 아래가 새 ${g} ${words().members}이에요. <button class="link" data-act="shiftok" data-v="${key}">알겠어요</button></section>`;
+      return `<section class="notice" style="margin:12px 0"><b>${X.started}년 편성이 시작됐어요.</b> 올해는 <b>${esc(X.room)}</b>이에요. 아래가 새 ${g} ${words().members}이에요. <button class="link" data-act="shiftok" data-v="${key}">알겠어요</button></section>`;
     }
     const when = Number(X.start.slice(5)) + '월부터';
-    return `<section class="notice" style="margin-bottom:12px"><b>${when} ${esc(X.room)}이에요.</b>${X.lead ? ` ${X.year}년에 ${esc(X.lead)}로 섬기게 돼요. 맡을 ${words().members}: ${X.families.map(esc).join(', ')}.` : ''}
+    return `<section class="notice" style="margin:12px 0"><b>${when} ${esc(X.room)}이에요.</b>${X.lead ? ` ${X.year}년에 ${esc(X.lead)}로 섬기게 돼요. 맡을 ${words().members}: ${X.families.map(esc).join(', ')}.` : ''}
       <span class="hint">그때까지는 지금 ${g}이 그대로예요. 새 ${g}의 기도제목은 ${when} 보여요.</span></section>`;
   }
   // 우리 가정 카드(회원과 목사님·장로님 홈에 같이 나온다)
@@ -3985,13 +3992,13 @@ try { const p = JSON.parse(localStorage.getItem('koide-pref') || '{}'), d = docu
   // 관리 화면의 연도 개편 카드: 예약이 있으면 무엇을 언제 바꾸는지, 없으면 시작 버튼
   function reorgCard() {
     const D = S.rgData, P = D && D.plan;
-    return `<section class="card"><h2>연도 개편</h2>
+    return `<section class="card"><h2>연도 개편</h2><div class="rg-card">
       ${!D ? '<p class="hint">불러오는 중…</p>'
         : P ? `<p><b>${D.next}년 편성</b>을 예약해 두었어요. ${monName(P.start)} 1일에 바뀌어요.</p>
-          <p class="hint">${new Set(P.rows.map(r => r.room)).size}개 ${esc(grp())} · ${P.rows.length}${words().count} · 리더 미리 보기 ${P.leaderFrom.slice(5).replace('-', '/')}부터 · 회원 안내 ${P.memberFrom.slice(5).replace('-', '/')}부터${P.by ? ` · ${esc(P.by)} ${esc(P.at)}` : ''}</p>
+          <p class="hint">${new Set(P.rows.map(r => r.room)).size}개 ${esc(grp())} · ${P.rows.length}${words().count} · 리더 미리 보기 ${P.leaderFrom.slice(5).replace('-', '/')}부터 · 회원 안내 ${P.memberFrom.slice(5).replace('-', '/')}부터${P.by ? ` · ${P.at ? esc(P.at) + ' ' : ''}${esc(josa(P.by, '이/가'))} 예약함` : ''}</p>
           <div class="actions"><button class="btn small" data-act="rgopen">예약 고치기</button><button class="btn small ghost" data-act="rgcancel">예약 취소</button></div>`
         : `<p class="hint">교회에서 받은 편성표를 붙여 넣어 ${D.next}년 편성을 만들고, 바뀌는 날을 예약해요. 그날까지는 지금 편성(${D.now}년)이 그대로예요.</p>
-          <button class="btn small ghost" data-act="rgopen">${D.next}년 개편 시작</button>`}</section>`;
+          <button class="btn small ghost" data-act="rgopen">${D.next}년 개편 시작</button>`}</div></section>`;
   }
   async function loadReorg() { try { S.rgData = await api('reorg'); } catch (e) { S.rgData = null; if (e.code !== 'forbidden') oops(e); } render(); }
   // 마법사 상태 만들기: 예약이 있으면 그 내용으로 채워 둔다(고치기)
@@ -4096,7 +4103,7 @@ try { const p = JSON.parse(localStorage.getItem('koide-pref') || '{}'), d = docu
         <label>회원에게 "${Number(rg.start.slice(5))}월부터 ○○ ${esc(gj('이에요/예요'))}" 안내하기<input class="field" type="date" data-rg="mf" value="${rg.mf}" max="${dayAdd(rg.start + '-01', -1)}"></label></div>
         <p class="hint">바뀌는 날 0시에 새 편성이 저절로 적용돼요. 그 전까지는 ${D.now}년 편성이 그대로이고, 예약은 언제든 고치거나 취소할 수 있어요. 카카오 연결과 기도 기록은 그대로 따라가요.</p></section>
       ${rg.msg ? `<p class="hint warn-text">${esc(rg.msg)}</p>` : ''}
-      ${nav('rgsave', S.busy ? '예약하는 중…' : `${monName(rg.start)} 1일에 바뀌도록 예약`, S.busy)}`;
+      ${nav('rgsave', S.busy ? '예약하는 중…' : `${Number(rg.start.slice(5))}월 1일에 바뀌도록 예약`, S.busy)}`;
   }
 
   function adminView() {
@@ -4854,10 +4861,10 @@ try { const p = JSON.parse(localStorage.getItem('koide-pref') || '{}'), d = docu
     const addRoom = S.rostEdit && S.rostEdit.kind === 'room';
     return `<section class="card${S.busy && S.rbusy ? ' rs-busy' : ''}"${S.busy && S.rbusy ? ' aria-busy="true"' : ''}><h2>${title}</h2>
       <ul class="rs-rooms">${R.rooms.map(room).join('') || `<li class="hint">아직 ${esc(grp())}이 없어요.</li>`}</ul>
-      ${CHURCHSB && R.left && R.left.length ? `<p class="hint">이번 달에 편성에서 뺀 ${solo() ? '사람' : '가정'}: ${R.left.map(x => `${esc(x.name)}(${esc(x.room)}) <button class="link" data-act="rsunleave" data-v="${esc(x.id)}" data-n="${esc(x.name)}" ${S.busy ? 'disabled' : ''}>되돌리기</button>`).join(' · ')}<br>이번 달 안에만 되돌릴 수 있어요.</p>` : ''}
+      ${CHURCHSB && R.left && R.left.length ? `<p class="hint rs-kw">이번 달에 편성에서 뺀 ${solo() ? '사람' : '가정'}: ${R.left.map((x, i, a) => `<span class="rs-lname">${esc(x.name)}(${esc(x.room)})</span> <span class="rs-undo"><button class="link" data-act="rsunleave" data-v="${esc(x.id)}" data-n="${esc(x.name)}" ${S.busy ? 'disabled' : ''}>되돌리기</button>${i < a.length - 1 ? ' ·' : ''}</span>`).join(' ')}<br>이번 달 안에만 되돌릴 수 있어요.</p>` : ''}
       ${addRoom ? `<form class="kid-form rs-form" data-form="rsroom"><input class="field" name="n" maxlength="20" placeholder="예) 1${esc(grp())}" aria-label="새 ${esc(grp())} 이름" autocomplete="off" value="${esc(S.rostEdit.n || '')}"><button class="btn small" type="submit" ${S.busy ? 'disabled' : ''}${rsIs('addRoom') ? ' aria-busy="true"' : ''}>${rsBz('addRoom', '만들기')}</button></form>`
         : `<span class="foot-acts rs-foot"><button class="btn small ghost" data-act="rsedit" data-v="room|">+ ${esc(grp())} 만들기</button><button class="btn small ghost" data-act="mvstart" data-v="marry">결혼해서 가정 합치기</button><button class="btn small ghost" data-act="mvstart" data-v="move">다른 부서에서 옮겨 오기</button></span>`}
-      <p class="hint">${R.term}년 편성이에요. 새로 온 ${words().one}은 첫 접속에서 "새로 왔어요"로 신청해도 되고, 여기서 미리 더해 두면 그 이름을 골라 연결을 요청해요. 떠남으로 빼도 지난 기록은 남아요. 해마다 새로 짤 때는 연도 개편을 써요.</p></section>`;
+      <p class="hint rs-kw">${R.term}년 편성이에요. 새로 온 ${words().one}은 첫 접속에서 "새로 왔어요"로 신청해도 되고, 여기서 미리 더해 두면 그 이름을 골라 연결을 요청해요. 떠남으로 빼도 지난 기록은 남아요. 해마다 새로 짤 때는 연도 개편을 써요.</p></section>`;
   }
   // ── 결혼해서 가정 합치기 · 다른 부서로 옮기기 (설계서 6장): 관리자가 두 분(또는 옮길 가정)께 직접 확인하고 처리한다 ──
   //  S.mv: { kind: 'marry' | 'move', step, a, b, newOn, newPerson, name, nameEdited, deptId, roomId, inherit, carry, map, ok, slot, q, found }
