@@ -4811,13 +4811,15 @@ try { const p = JSON.parse(localStorage.getItem('koide-pref') || '{}'), d = docu
     });
     return { rows, noise };
   }
+  // 내 가정 id: 관리 화면(운영 모양)의 S.month.me에는 없어서, 비켜 둔 내 이번 달(S.home)에서도 찾는다. 서버도 막지만 화면이 단추를 숨기고 이유를 안내한다
+  const myFamId = () => (S.month && S.month.me && S.month.me.familyId) || (S.home && S.home.me && S.home.me.familyId) || '';
   function rosterCard() {
     if (S.mv) return mvCard();
     const R = S.rost, title = `${esc(gj('과/와'))} ${solo() ? '사람' : '가정'}`;
     if (!R || R.err) return `<section class="card"><h2>${title}</h2><p class="hint">${R ? esc(R.err) : '불러오는 중…'}</p></section>`;
     const open = S.rostOpen || {}, sel = S.rostSel, me = S.month.me;
     // 내 가정: 가정의 부서 관리자가 관리 화면(운영 화면 모양)으로 왔으면 비켜 둔 내 이번 달(S.home)에서 찾는다
-    const myFid = me.familyId || (S.home && S.home.me && S.home.me.familyId);
+    const myFid = myFamId();
     const tag = p => (p.role !== '회원' ? `<span class="role-tag leader">${esc(p.role)}</span>` : '') + (p.admin ? '<span class="role-tag admin">관리자</span>' : '');
     // 펼친 사람: 이름 옆에 역할 표, 아래로 역할·소속·카카오 연결·가끔 하는 일, 되돌리기 어려운 '편성에서 빼기'는 맨 아래 따로
     const dot = n => `<i class="dot${n ? ' on' : ''}" aria-hidden="true"></i>`;
@@ -4830,8 +4832,8 @@ try { const p = JSON.parse(localStorage.getItem('koide-pref') || '{}'), d = docu
         ${R.rooms.length > 1 ? `<div class="kid-form"><label class="mv-l" for="rs-move">다른 ${esc(josa(grp(), '으로/로'))}</label><select id="rs-move" class="field" aria-label="옮길 ${esc(grp())}">${R.rooms.filter(x => x.id !== r.id).map(x => `<option value="${esc(x.id)}">${esc(x.name)}</option>`).join('')}</select><button class="btn small ghost" data-act="rsmove" ${S.busy ? 'disabled' : ''}${rsIs('move') ? ' aria-busy="true"' : ''}>${rsBz('move', '옮기기')}</button></div>` : ''}</div>
         <div class="pn-sec"><p class="label">${CHURCHSB ? '연결된 로그인' : '카카오 연결'}</p>${p.links && p.links.length ? `<ul class="rs-links">${p.links.map(l => `<li><span>${esc(l.person)} <small>${nickTxt(l.nick)}${esc(l.since)}</small></span>${l.me ? '<small>나</small>' : `<button class="link danger" data-act="rsunlink" data-v="${esc(l.kakaoId)}" data-n="${esc(l.person)}" ${S.busy ? 'disabled' : ''}${rsIs('unlink') ? ' aria-busy="true"' : ''}>${rsBz('unlink', '해제')}</button>`}</li>`).join('')}</ul>` : '<p class="hint">아직 연결된 분이 없어요. 초대 링크로 들어와 연결을 신청하면 여기에 보여요.</p>'}</div>
         <div class="pn-sec"><p class="label">가끔 하는 일</p><div class="pn-rows">
-          <button class="mrow" data-act="mvstart" data-v="marry" data-fam="${esc(p.id)}"><span><b>결혼해서 ${solo() ? '청장년부로 가기' : '가정 합치기'}</b><small>새 가정 하나로 합쳐요. 지난 기록은 그대로 남아요.</small></span>${ICON.chevR}</button>
-          ${p.id === me.familyId ? '' : `<button class="mrow" data-act="mvstart" data-v="move" data-fam="${esc(p.id)}"><span><b>다른 부서로 옮기기</b><small>받는 부서 관리자가 처리해요.</small></span>${ICON.chevR}</button>`}</div></div>
+          ${CHURCHSB ? '' : `<button class="mrow" data-act="mvstart" data-v="marry" data-fam="${esc(p.id)}"><span><b>결혼해서 ${solo() ? '청장년부로 가기' : '가정 합치기'}</b><small>새 가정 하나로 합쳐요. 지난 기록은 그대로 남아요.</small></span>${ICON.chevR}</button>`}
+          ${p.id === myFid ? '' : `<button class="mrow" data-act="mvstart" data-v="move" data-fam="${esc(p.id)}"><span><b>다른 부서로 옮기기</b><small>받는 부서 관리자가 처리해요.</small></span>${ICON.chevR}</button>`}</div></div>
         ${p.id === myFid ? '' : `<div class="pn-sec pn-end"><button class="link danger" data-act="rsleave" data-n="${esc(p.name)}" ${S.busy ? 'disabled' : ''}${rsIs('leave') ? ' aria-busy="true"' : ''}>${rsBz('leave', esc(R.term) + '년 편성에서 빼기 (떠남)')}</button><p class="hint">지난 기록은 남아요. 누르면 한 번 더 확인해요.</p></div>`}</div>`;
     const bulkForm = (r, E) => {
       if (!E.res) return `<div class="rs-form rs-bulk"><label class="label" for="bk-text">여러 명 더하기 · ${esc(r.name)}</label>
@@ -4862,8 +4864,9 @@ try { const p = JSON.parse(localStorage.getItem('koide-pref') || '{}'), d = docu
     return `<section class="card${S.busy && S.rbusy ? ' rs-busy' : ''}"${S.busy && S.rbusy ? ' aria-busy="true"' : ''}><h2>${title}</h2>
       <ul class="rs-rooms">${R.rooms.map(room).join('') || `<li class="hint">아직 ${esc(grp())}이 없어요.</li>`}</ul>
       ${CHURCHSB && R.left && R.left.length ? `<p class="hint rs-kw">이번 달에 편성에서 뺀 ${solo() ? '사람' : '가정'}: ${R.left.map((x, i, a) => `<span class="rs-lname">${esc(x.name)}(${esc(x.room)})</span> <span class="rs-undo"><button class="link" data-act="rsunleave" data-v="${esc(x.id)}" data-n="${esc(x.name)}" ${S.busy ? 'disabled' : ''}>되돌리기</button>${i < a.length - 1 ? ' ·' : ''}</span>`).join(' ')}<br>이번 달 안에만 되돌릴 수 있어요.</p>` : ''}
+      ${CHURCHSB && R.moves && R.moves.length ? `<p class="hint rs-kw">이번 달에 합치거나 옮긴 것: ${R.moves.map((x, i, a) => `<span class="rs-lname">${esc(x.name)}(${esc(x.from)} → ${esc(x.to)})</span> <span class="rs-undo"><button class="link" data-act="mvundo" data-v="move|${esc(x.id)}" data-n="${esc(x.name)}" ${S.busy ? 'disabled' : ''}>되돌리기</button>${i < a.length - 1 ? ' ·' : ''}</span>`).join(' ')}<br>이번 달 안에만 되돌릴 수 있어요.</p>` : ''}
       ${addRoom ? `<form class="kid-form rs-form" data-form="rsroom"><input class="field" name="n" maxlength="20" placeholder="예) 1${esc(grp())}" aria-label="새 ${esc(grp())} 이름" autocomplete="off" value="${esc(S.rostEdit.n || '')}"><button class="btn small" type="submit" ${S.busy ? 'disabled' : ''}${rsIs('addRoom') ? ' aria-busy="true"' : ''}>${rsBz('addRoom', '만들기')}</button></form>`
-        : `<span class="foot-acts rs-foot"><button class="btn small ghost" data-act="rsedit" data-v="room|">+ ${esc(grp())} 만들기</button><button class="btn small ghost" data-act="mvstart" data-v="marry">결혼해서 가정 합치기</button><button class="btn small ghost" data-act="mvstart" data-v="move">다른 부서에서 옮겨 오기</button></span>`}
+        : `<span class="foot-acts rs-foot"><button class="btn small ghost" data-act="rsedit" data-v="room|">+ ${esc(grp())} 만들기</button>${CHURCHSB ? '' : '<button class="btn small ghost" data-act="mvstart" data-v="marry">결혼해서 가정 합치기</button>'}<button class="btn small ghost" data-act="mvstart" data-v="move">다른 부서에서 옮겨 오기</button></span>`}
       <p class="hint rs-kw">${R.term}년 편성이에요. 새로 온 ${words().one}은 첫 접속에서 "새로 왔어요"로 신청해도 되고, 여기서 미리 더해 두면 그 이름을 골라 연결을 요청해요. 떠남으로 빼도 지난 기록은 남아요. 해마다 새로 짤 때는 연도 개편을 써요.</p></section>`;
   }
   // ── 결혼해서 가정 합치기 · 다른 부서로 옮기기 (설계서 6장): 관리자가 두 분(또는 옮길 가정)께 직접 확인하고 처리한다 ──
@@ -4892,11 +4895,11 @@ try { const p = JSON.parse(localStorage.getItem('koide-pref') || '{}'), d = docu
   // 사람 한 칸: 골라 둔 사람이 있으면 이름과 소속, 없으면 이름으로 찾기
   function mvSlot(M, k) {
     const p = M[k], label = k === 'a' ? '첫째 사람' : '둘째 사람';
-    if (p) return `<li class="mv-slot"><span><b>${esc(p.name)}</b><small>${esc(p.dept)} · ${esc(p.room)} · ${p.links.length ? '카카오 연결 ' + p.links.length : '아직 연결 없음'}</small></span><button class="link quiet" data-act="mvclear" data-v="${k}">바꾸기</button></li>`;
+    if (p) return `<li class="mv-slot"><span><b>${esc(p.name)}</b><small>${esc(p.dept)} · ${esc(p.room)} · ${p.links.length ? KK + ' 연결 ' + p.links.length : '아직 연결 없음'}</small></span><button class="link quiet" data-act="mvclear" data-v="${k}">바꾸기</button></li>`;
     if (k === 'b' && M.newOn) return `<li class="mv-slot"><span class="mv-col"><input id="mv-np" class="field" maxlength="10" placeholder="배우자 이름" aria-label="배우자 이름" value="${esc(M.newPerson)}" autocomplete="off"><small>그분은 처음 들어올 때 새 가정이 있는 ${esc(grp())}에서 이름으로 찾아 연결을 요청해요. 승인 전에는 연결된 사람이 한 명이에요.</small></span><button class="link quiet" data-act="mvtog" data-v="newOn">앱에 있어요</button></li>`;
     const F = M.slot === k ? M.found : null;
     return `<li class="mv-slot"><span class="mv-col"><form class="kid-form" data-form="mvfind" data-v="${k}"><input class="field" name="q" maxlength="10" placeholder="${label} 이름으로 찾기" aria-label="${label} 이름" autocomplete="off" value="${esc(M.slot === k ? M.q : '')}"><button class="btn small ghost" type="submit">찾기</button></form>
-      ${F ? (F.length ? `<ul class="rs-people">${F.map((x, i) => `<li><button class="rs-p" data-act="mvpick" data-v="${k}|${i}"><span>${esc(x.name)}</span><small>${esc(x.dept)} · ${esc(x.room)}${x.links.length ? ' · 카카오 ' + x.links.map(l => '"' + esc(l.nick) + '"').join(', ') : ' · 아직 연결 없음'}</small></button></li>`).join('')}</ul>` : '<p class="hint">찾지 못했어요. 이름을 다시 확인해 주세요. 합침·떠남인 사람은 찾아지지 않아요.</p>') : ''}</span>
+      ${F ? (F.length ? `<ul class="rs-people">${F.map((x, i) => `<li><button class="rs-p" data-act="mvpick" data-v="${k}|${i}"><span>${esc(x.name)}</span><small>${esc(x.dept)} · ${esc(x.room)}${x.links.length ? (CHURCHSB ? ' · 로그인 이름 ' + x.links.map(l => l.nick ? '"' + esc(l.nick) + '"' : '(이름 없음)').join(', ') : ' · 카카오 ' + x.links.map(l => '"' + esc(l.nick) + '"').join(', ')) : ' · 아직 연결 없음'}</small></button></li>`).join('')}</ul>` : '<p class="hint">찾지 못했어요. 이름을 다시 확인해 주세요. 합침·떠남인 사람은 찾아지지 않아요.</p>') : ''}</span>
       ${k === 'b' && M.kind === 'marry' ? '<button class="link quiet" data-act="mvtog" data-v="newOn">아직 앱에 없어요</button>' : ''}</li>`;
   }
   const mvSwitch = (key, on, label, hint) => `<div class="set-row"><div><p class="label" style="margin:0">${label}</p>${hint ? `<p class="hint" style="margin:.2em 0 0">${hint}</p>` : ''}</div><button type="button" class="switch${on ? ' on' : ''}" role="switch" aria-checked="${on}" aria-label="${esc(label)}" data-act="mvtog" data-v="${key}"><span></span></button></div>`;
@@ -4909,17 +4912,17 @@ try { const p = JSON.parse(localStorage.getItem('koide-pref') || '{}'), d = docu
     const deptRoom = () => `${noDept}${ds.length ? `<label class="label" for="mv-dept">${marry ? '새 가정이 들어갈 부서' : '받는 부서'}</label><select id="mv-dept" class="field" data-mv="deptId"><option value="">고르세요</option>${ds.map(d => `<option value="${esc(d.id)}"${d.id === M.deptId ? ' selected' : ''}>${esc(d.name)}</option>`).join('')}</select>
       ${dept ? `<label class="label" for="mv-room">${esc(dept.group)}</label><select id="mv-room" class="field" data-mv="roomId"><option value="">고르세요</option>${dept.rooms.map(r => `<option value="${esc(r.id)}"${r.id === M.roomId ? ' selected' : ''}>${esc(r.name)}</option>`).join('')}</select>` : ''}` : ''}`;
     if (!marry) {
-      const meSelf = a && a.id === S.month.me.familyId;
+      const meSelf = !!a && a.id === myFamId();
       const lost = a && (a.role !== '회원' || a.admin) ? `<li>옛 부서의 ${a.admin ? '부서 관리자' : a.role} 역할은 끝나요.</li>` : '';
       const preview = a && room ? `<p class="plain"><b>${esc(a.name)}</b>${one && dept.unit === '가정' ? ' 님이 ' : (a.unit === '개인' ? ' 님이 ' : ' 가정이 ')}<b>${esc(dept.name)} ${esc(room.name)}</b>${one && dept.unit === '가정' ? '의 1인 가정으로' : pt(dept.name + ' ' + room.name, '으로/로')} 가요. 지난 기록은 ${esc(a.dept)}에 그대로 남아요.</p>
         <ul class="mv-list"><li>옮긴 달(이번 달)부터 새 ${esc(dept.group)}이에요. 이번 달 기도제목도 새 ${esc(dept.group)}에서 보여요. "${esc(words().only)}" 항목은 그대로 ${one ? '본인만' : '가정 안에서만'} 보여요.</li>${lost}
-        <li>카카오 연결과 지난 달 기도제목은 그대로예요.</li>${one && dept.unit === '가정' ? '<li>이름은 본인 이름 그대로, 자녀 칸은 비어 있어요. 나중에 결혼하면 "결혼해서 가정 합치기"로 합쳐요.</li>' : ''}</ul>` : '';
+        <li>${KK} 연결과 지난 달 기도제목은 그대로예요.</li>${one && dept.unit === '가정' ? '<li>이름은 본인 이름 그대로, 자녀 칸은 비어 있어요. 나중에 결혼하면 "결혼해서 가정 합치기"로 합쳐요.</li>' : ''}</ul>` : '';
       return head('다른 부서로 옮기기', '결혼과 상관없이 가정이 그대로 다른 부서의 사랑방으로 갈 때 써요(예: 청장년부 → 장년부, 나이가 차서 청년부 → 청장년부).')
         + `<ul class="mv-people">${mvSlot(M, 'a')}</ul>
         ${a ? `${deptRoom()}${preview}
         ${meSelf ? '<p class="hint">내 가정은 여기서 옮길 수 없어요. 다른 관리자에게 부탁해 주세요.</p>' : mvSwitch('ok', M.ok, `${esc(a.name)} 님께 직접 확인했어요`, '옮기기 전에 본인(가정)께 직접 물어보고 켜 주세요.')}
         <div class="actions"><button class="btn small" data-act="mvgo" ${M.ok && room && !meSelf && !S.busy ? '' : 'disabled'}>${S.busy ? '옮기는 중…' : '옮기기'}</button><button class="btn small ghost" data-act="mvcancel">그만두기</button></div>
-        <p class="hint">잘못 옮겼으면 옮긴 달이 끝나기 전에 변경 기록에서 되돌릴 수 있어요.</p>` : '<div class="actions"><button class="btn small ghost" data-act="mvcancel">그만두기</button></div>'}</section>`;
+        <p class="hint">${CHURCHSB ? '잘못 옮겼으면 옮긴 달이 끝나기 전에 편성 카드 아래 "이번 달에 합치거나 옮긴 것"에서 되돌릴 수 있어요.' : '잘못 옮겼으면 옮긴 달이 끝나기 전에 변경 기록에서 되돌릴 수 있어요.'}</p>` : '<div class="actions"><button class="btn small ghost" data-act="mvcancel">그만두기</button></div>'}</section>`;
     }
     if (M.step === 1) return head('결혼해서 가정 합치기', '결혼한 두 사람을 새 가정 하나로 합쳐요. 옛 가정 둘은 "합침"이 되어 목록에서 빠지고, 지난 기록은 그대로 남아요.')
       + `<p class="label">함께할 사람</p><ul class="mv-people">${mvSlot(M, 'a')}${mvSlot(M, 'b')}</ul>
@@ -4972,10 +4975,10 @@ try { const p = JSON.parse(localStorage.getItem('koide-pref') || '{}'), d = docu
         if (!confirm(`${P.name} 가정 합치기를 되돌릴까요? 합친 뒤 쓴 기도제목 ${P.items}개가 지워지고, 옛 가정들이 다시 목록에 돌아와요.`)) return;
         await api('marryUndo', { familyId: ref });
       } else {
-        if (!confirm(`${name} 부서 옮기기를 되돌릴까요? 옛 부서의 사랑방으로 돌아가요.`)) return;
+        if (!confirm(`${name} 부서 옮기기를 되돌릴까요? 옛 부서의 사랑방으로 돌아가요.` + (CHURCHSB ? ' 옛 부서 다음 편성 예약에서 뺀 줄과 꺼진 부서 관리자 표시는 되돌아오지 않아요.' : ''))) return;
         await api('moveUndo', { familyId: ref });
       }
-      toast('되돌렸어요.'); S.rost = null; S.pending = await api('pending'); loadRoster(); loadChanges(!!(S.fold || {}).chgall);
+      toast('되돌렸어요.'); S.rost = null; S.pending = await api('pending'); loadRoster(); if (!CHURCHSB) loadChanges(!!(S.fold || {}).chgall);   // 새 서버는 변경 기록 화면이 아직 없다(⑥-3)
       if (!S.op) refreshMe(true);
     } catch (e) { oops(e); }
   }
