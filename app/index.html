@@ -2195,10 +2195,9 @@ try { const p = JSON.parse(localStorage.getItem('koide-pref') || '{}'), d = docu
           <button class="choice" data-act="login" data-v="박민재">데모: 박민재로 들어가기 (회원)</button>
           <button class="choice" data-act="login" data-v="윤하람">데모: 윤하람으로 들어가기 (청년부 1순 리더)</button>
           <button class="choice" data-act="login" data-v="한기쁨">데모: 한기쁨으로 들어가기 (청장년부 목사님)</button>
-          <button class="choice" data-act="login" data-v="최운영">데모: 최운영으로 들어가기 (운영 지원 · 가정 없음)</button></div>
-          <p class="hint">데모 모드에서는 카카오 대신 이 버튼으로 사람을 골라 들어가요.</p>`
+          <button class="choice" data-act="login" data-v="최운영">데모: 최운영으로 들어가기 (운영 지원 · 가정 없음)</button></div>`
         : `${CHURCHSB ? sbLoginButtons() : `<button class="kakao" data-act="login">${ICON.bubble}카카오로 시작하기</button>`}
-          <p class="hint wl-once">${HUB && lsGet(APPADMIN) ? '앱 관리자 보기는 카카오로 한 번 더 로그인해요.' : '처음 한 번만 로그인하면 돼요.<br>초대 링크를 받았다면 그 링크로 열어 주세요.'}</p>${HUB && lsGet(APPADMIN) ? '<button class="link" data-act="aaback">앱으로 돌아가기</button>' : ''}${frontDoor() && lsGet(DOOR) ? '<button class="link" data-act="tonote">‹ 코이데 노트로 시작하기</button>' : ''}${iosSafari() ? '<p class="hint">아이폰에서 \'접속 정보를 확인해 주세요\'가 나오면, 카톡 채팅방에서 이 링크를 눌러 열거나 설정 → iCloud → 비공개 릴레이를 끄고 다시 해 주세요.</p>' : ''}`}
+          ${HUB && lsGet(APPADMIN) ? '<p class="hint wl-once">앱 관리자 보기는 카카오로 한 번 더 로그인해요.</p>' : ''}${HUB && lsGet(APPADMIN) ? '<button class="link" data-act="aaback">앱으로 돌아가기</button>' : ''}${frontDoor() && lsGet(DOOR) ? '<button class="link" data-act="tonote">‹ 코이데 노트로 시작하기</button>' : ''}${iosSafari() ? '<p class="hint">아이폰에서 \'접속 정보를 확인해 주세요\'가 나오면, 카톡 채팅방에서 이 링크를 눌러 열거나 비공개 릴레이를 꺼 주세요.</p>' : ''}`}
         ${INTRO_VIDEO_ON ? '<button class="btn ghost wl-play" data-act="ividw"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M8 5.5v13l10.5-6.5z" fill="currentColor"/></svg>코이데 소개 영상</button>' : ''}
       </section>
       <ul class="wl-feat">
@@ -2223,7 +2222,7 @@ try { const p = JSON.parse(localStorage.getItem('koide-pref') || '{}'), d = docu
       const nm = (S.me && S.me.nick) || '';
       return `<p class="eyebrow">모임 초대</p><h1>${esc(P.name)}</h1><p class="hint">모임장 ${esc(P.lead || '')} · ${P.n}/${P.max}명${P.endsAt ? ' · ' + koidePlaces.dday(P) + ' (' + gDay(P.endsAt) + '까지)' : ''} · 모임장이 승인하면 함께해요</p>
         <form data-form="gjoin">
-          ${P.linked ? '' : `<label class="f" for="gj-n">모임에서 쓸 이름</label><input id="gj-n" class="field" name="n" required maxlength="10" value="${esc(nm)}" autocomplete="name"><p class="hint">모임 사람들에게 이 이름으로 보여요.</p>`}
+          ${P.linked ? '' : `<div class="tip-line"><label class="f" for="gj-n">모임에서 쓸 이름</label>${KoideTip.btn('모임 사람들에게 이 이름으로 보여요.', '모임에서 쓸 이름')}</div><input id="gj-n" class="field" name="n" required maxlength="10" value="${esc(nm)}" autocomplete="name">`}
           ${groupConsent(P)}
           <button class="btn wide" type="submit" ${S.busy ? 'disabled' : ''}>동의하고 함께하기 신청</button></form>
         <button class="link" data-act="tonote">나중에 할게요</button>`;
@@ -2235,11 +2234,10 @@ try { const p = JSON.parse(localStorage.getItem('koide-pref') || '{}'), d = docu
         <p>${P.kind === '테스트' ? '코이데를 미리 써 보는 테스트 공간이에요. 교회의 진짜 기도제목과는 따로예요.' : '이 교회가 맞나요? 들어가면 다음부터는 코드 없이 열려요.'}</p>
         <button class="btn wide" data-act="ccjoin" ${S.busy ? 'disabled' : ''}>맞아요, 들어가기</button>
         <button class="link" data-act="ccagain">코드 다시 넣기</button>`;
-      return `<p class="eyebrow">처음 한 번만</p><h1>교회 코드를 넣어 주세요</h1>
+      return `<p class="eyebrow">처음 한 번만</p><h1>교회 코드를 넣어 주세요${KoideTip.btn('코드는 교회나 코이데를 소개해 준 분에게 받아요.', '교회 코드')}</h1>
         <p>${frontDoor() ? '코이데 교회는 교회 코드가 있어야 들어갈 수 있어요.' : '코이데는 교회 코드가 있어야 쓸 수 있어요.'}</p>
         <form data-form="churchcode"><input id="cc-a" class="field" required maxlength="20" autocapitalize="characters" autocomplete="off" spellcheck="false" aria-label="교회 코드" value="${esc(C.code || '')}">
           <button class="btn wide" type="submit" style="margin-top:12px" ${S.busy ? 'disabled' : ''}>다음</button></form>
-        <p class="hint">코드는 교회나 코이데를 소개해 준 분에게 받아요.</p>
         ${frontDoor() ? '<button class="link" data-act="tonote">코이데 노트로 돌아가기</button>' : ''}
         <button class="link" data-act="logout">${CHURCHSB ? '다른 계정으로 로그인' : '다른 카카오 계정으로 로그인'}</button>`;
     },
@@ -2252,10 +2250,9 @@ try { const p = JSON.parse(localStorage.getItem('koide-pref') || '{}'), d = docu
     // 어떻게 시작할까요(교회 코드로 막 들어왔고 초대 링크가 없을 때 한 번): 공동체로(부서·소그룹을 골라 연결 신청) 또는 기도 노트만
     startpick: () => `<p class="eyebrow">${esc(lsGet('koide-church-name') || '처음 한 번만')}</p><h1>어떻게 시작할까요?</h1>
       <div class="choices start-pick">
-        <button class="choice" data-act="pickstart" data-v="community"><b>코이데 교회로 시작</b><small class="choice-sub">부서와 소그룹을 고르고 리더에게 연결을 신청해요. 소그룹 사람들과 기도제목을 나누고 함께 기도해요.</small></button>
-        <button class="choice" data-act="pickstart" data-v="note"><b>코이데 노트만 쓰기</b><small class="choice-sub">나만 보는 코이데 노트예요. 나중에 코이데 노트의 '코이데 교회 들어가기'로 언제든 코이데 교회에 들어갈 수 있어요.</small></button>
-      </div>
-      <p class="hint">초대 링크를 받았다면 그 링크로 열면 소그룹이 미리 골라져 있어요.</p>`,
+        <button class="choice" data-act="pickstart" data-v="community"><b>코이데 교회로 시작</b><small class="choice-sub">소그룹 사람들과 기도제목을 나누고 함께 기도해요.</small></button>
+        <button class="choice" data-act="pickstart" data-v="note"><b>코이데 노트만 쓰기</b><small class="choice-sub">나만 보는 코이데 노트예요. 코이데 교회에는 나중에 들어갈 수 있어요.</small></button>
+      </div>`,
     // 앱 관리자 보기: 교회(와 테스트 공간)마다 코드, 서버 상태와 숫자. 이름·기도제목은 오지 않는다. 넓은 화면에서는 카드가 나란히, 더하기는 카드 옆 점선 칸
     appadmin: () => {
       // 제목은 '모든 교회'(교회 관리자의 '교회 전체'와 헷갈리지 않게). 돌아가기는 다른 관리 화면처럼 제목 위, 다시 불러오기는 제목 오른쪽
@@ -2322,14 +2319,12 @@ try { const p = JSON.parse(localStorage.getItem('koide-pref') || '{}'), d = docu
       ${S.depts && S.depts.length > 1 ? '<button class="link" data-act="back" data-v="dept">뒤로</button>' : connecting() || CHURCHSB ? '<button class="link" data-act="tonote">코이데 노트로 돌아가기</button>' : ''}`,
     staffpick: () => `${steps(2)}<p class="eyebrow">${esc(dept().name || '')}</p><h1>어느 분이세요?</h1>
       <div class="choices">${(dept().staff || []).map(s => `<button class="choice" data-act="pickstaff" data-v="${esc(s.id)}">${esc(s.label)}<small class="choice-sub">${esc(s.name)}</small></button>`).join('')}</div>
-      <p class="hint">목록에 없으면 부서 관리자에게 교역자 목록에 더해 달라고 해 주세요. 연결은 관리자가 승인해요.</p>
+      <p class="hint">목록에 없으면 부서 관리자에게 더해 달라고 해 주세요.</p>
       <button class="link" data-act="back" data-v="room">뒤로</button>`,
     // 이름 쓰기: 소그룹 초대 링크 없이 들어오면 가정 목록 대신 내 이름을 써서 찾는다(교인 명단을 보여 주지 않는다)
     typename: () => { const r = S.rooms.find(x => x.id === S.pick.roomId) || {};
-      return `${steps(2)}<p class="eyebrow">${S.pick.staff ? esc(dept().name || '') + ' · 목사님·장로님' : esc(r.name || '')}</p><h1>내 이름을 써 주세요</h1>
-      <form data-form="typename"><input id="tn-a" class="field" required maxlength="10" autocomplete="name" aria-label="내 이름" value="${esc(S.pick.person || '')}">
-        <p class="hint">${S.pick.staff ? '교역자 목록에 있는 이름과 같게 써요.' : `${esc(grp())} 명단에 있는 이름과 같게 써요.${solo() ? '' : ' 가정이면 남편이나 아내 중 내 이름이에요.'}`} 다른 분들의 이름은 보이지 않아요.</p>
-        <button class="btn wide" type="submit" style="margin-top:12px">다음</button></form>
+      return `${steps(2)}<p class="eyebrow">${S.pick.staff ? esc(dept().name || '') + ' · 목사님·장로님' : esc(r.name || '')}</p><h1>내 이름을 써 주세요${KoideTip.btn(S.pick.staff ? '교역자 목록에 있는 이름과 같게 써요. 다른 분들의 이름은 보이지 않아요.' : `${grp()} 명단에 있는 이름과 같게 써요.${solo() ? '' : ' 가정이면 남편이나 아내 중 내 이름이에요.'} 다른 분들의 이름은 보이지 않아요.`, '내 이름')}</h1>
+      <form data-form="typename"><input id="tn-a" class="field" required maxlength="10" autocomplete="name" aria-label="내 이름" value="${esc(S.pick.person || '')}">        <button class="btn wide" type="submit" style="margin-top:12px">다음</button></form>
       ${S.pick.staff ? '' : `<div class="choices"><button class="choice new" data-act="newfam">${solo() ? '처음 왔어요(새로 신청)' : '새로 온 가정이에요(새 가정 신청)'}</button></div>`}
       <button class="link" data-act="back" data-v="room">뒤로</button>`; },
     family: () => { const r = S.rooms.find(x => x.id === S.pick.roomId);
@@ -2338,28 +2333,23 @@ try { const p = JSON.parse(localStorage.getItem('koide-pref') || '{}'), d = docu
         <button class="choice new" data-act="newfam">${solo() ? '목록에 내 이름이 없어요 · 새로 왔어요' : '목록에 우리 가정이 없어요 · 새로 왔어요'}</button></div>
       <button class="link" data-act="back" data-v="room">뒤로</button>`; },
     who: () => { const f = famPicked();
-      return `${steps(3)}<p class="eyebrow">${esc(f.name)} 가정</p><h1>누구세요?</h1>
-      <div class="choices">${f.name.split(' · ').map(n => `<button class="choice" data-act="pickwho" data-v="${esc(n)}">${esc(n)}</button>`).join('')}</div>
-      <p class="hint">우리 가정 안에서 누가 고쳤는지 보여 줄 때 써요.</p>
-      <button class="link" data-act="back" data-v="${S.pick.staff ? 'staffpick' : 'family'}">뒤로</button>`; },
+      return `${steps(3)}<p class="eyebrow">${esc(f.name)} 가정</p><h1>누구세요?${KoideTip.btn('우리 가정 안에서 누가 고쳤는지 보여 줄 때 써요.', '누구세요')}</h1>
+      <div class="choices">${f.name.split(' · ').map(n => `<button class="choice" data-act="pickwho" data-v="${esc(n)}">${esc(n)}</button>`).join('')}</div>      <button class="link" data-act="back" data-v="${S.pick.staff ? 'staffpick' : 'family'}">뒤로</button>`; },
     consent: () => `${steps(4)}<p class="eyebrow">${S.pick.newFamily ? (solo() ? '새로 왔어요' : '새 가정 신청') : S.pick.byName || solo() ? esc(S.pick.person) : famWho(famPicked().name, S.pick.person)}</p><h1>기도제목은 이렇게 지켜요</h1>
       ${consentList()}
       <button class="btn wide" data-act="request" ${S.busy ? 'disabled' : ''}>동의하고 연결 요청</button>
       <p class="hint">동의하지 않으면 앱을 쓸 수 없어요. 궁금한 점은 리더나 목사님께 물어봐 주세요.</p>
       <button class="link" data-act="back" data-v="${S.pick.newFamily ? 'newfam' : S.pick.byName ? 'typename' : 'who'}">뒤로</button>`,
-    newfam: () => solo() ? `${steps(2)}<p class="eyebrow">새로 왔어요</p><h1>이름을 알려 주세요</h1>
+    newfam: () => solo() ? `${steps(2)}<p class="eyebrow">새로 왔어요</p><h1>이름을 알려 주세요${KoideTip.btn('신청하면 리더가 확인한 뒤 승인해요.', '이름')}</h1>
       <form data-form="newfam">
         <label class="f" for="nf-a">이름</label><input id="nf-a" class="field" required maxlength="10" value="${esc((S.pick.newFamily || {}).a || '')}">
-        <p class="hint">신청하면 리더가 확인한 뒤 승인해요.</p>
         <button class="btn wide" type="submit" style="margin-top:12px">다음</button></form>
       <button class="link" data-act="back" data-v="${roomListed() ? 'family' : 'typename'}">뒤로</button>`
-      : `${steps(2)}<p class="eyebrow">새 가정 신청</p><h1>우리 가정을 알려 주세요</h1>
+      : `${steps(2)}<p class="eyebrow">새 가정 신청</p><h1>우리 가정을 알려 주세요${KoideTip.btn('신청하면 리더가 확인한 뒤 승인해요. ' + (CHURCHSB ? '배우자는 나중에 각자 로그인해서 연결하면 돼요.' : '배우자는 나중에 각자 카카오로 연결하면 돼요.'), '우리 가정')}</h1>
       <form data-form="newfam">
         <label class="f" for="nf-a">남편 또는 본인 이름</label><input id="nf-a" class="field" required maxlength="10" value="${esc((S.pick.newFamily || {}).a || '')}">
         <label class="f" for="nf-b">아내 이름 · 1인 가정이면 비워 두세요</label><input id="nf-b" class="field" maxlength="10" value="${esc((S.pick.newFamily || {}).b || '')}">
-        <label class="f" for="nf-k">자녀 이름 · 선택, 쉼표로 구분</label><input id="nf-k" class="field" maxlength="40" value="${esc((S.pick.newFamily || {}).kids || '')}">
-        <p class="hint">신청하면 리더가 확인한 뒤 승인해요. ${CHURCHSB ? '배우자는 나중에 각자 로그인해서 연결하면 돼요.' : '배우자는 나중에 각자 카카오로 연결하면 돼요.'}</p>
-        <button class="btn wide" type="submit" style="margin-top:12px">다음</button></form>
+        <label class="f" for="nf-k">자녀 이름 · 선택, 쉼표로 구분</label><input id="nf-k" class="field" maxlength="40" value="${esc((S.pick.newFamily || {}).kids || '')}">        <button class="btn wide" type="submit" style="margin-top:12px">다음</button></form>
       <button class="link" data-act="back" data-v="${roomListed() ? 'family' : 'typename'}">뒤로</button>`,
     wait: () => `${steps(4)}<p class="eyebrow">${esc(S.me.familyName || '')}</p><h1>연결을 요청했어요</h1>
       <p>${S.me.familyName && S.me.familyName !== S.me.link.person ? `${esc(S.me.link.person)} 님의 ${KK} 계정을 <b>${esc(S.me.familyName)}</b>에 연결해 달라고` : `${esc(S.me.link.person)} 님의 ${KK} 계정을 연결해 달라고`} ${S.me.staff ? '부서 관리자' : '리더'}에게 보냈어요. 승인되면 바로 열려요.</p>
@@ -2520,7 +2510,7 @@ try { const p = JSON.parse(localStorage.getItem('koide-pref') || '{}'), d = docu
     return `<div class="page-top"><div><h1>${Number(M.month.slice(5))}월 기도제목 ${HEAD_ICON.hands}</h1></div><p class="date">${todayLabel()}</p></div>
       <div class="home-grid"><div class="col side">
         <section class="card"><div class="stats">${stat(rooms.length, grp())}${stat(sum('n'), words().count)}${stat(sum('edited') + sum('confirmed'), '이번 달 손봄·확인')}</div></section>
-        ${rooms.length ? `<section class="card">${roomCordHtml()}<p class="hint">매듭을 누르면 그 ${esc(gj('을/를'))} 위해 기도하러 가요.</p></section>` : ''}
+        ${rooms.length ? `<section class="card">${roomCordHtml()}</section>` : ''}
         ${mineCard()}
       </div><div class="col main">
         <h2 class="section-title">${esc(grp())}별 이번 달 현황</h2>
@@ -2534,7 +2524,7 @@ try { const p = JSON.parse(localStorage.getItem('koide-pref') || '{}'), d = docu
         ${signalCard(M.signals, true)}
         ${CHURCHSB ? '<section class="card"><p class="hint" style="margin:0">기도 주제 흐름은 아직 준비 중이에요.</p></section>' : `${topicFlowCard(loadTopics())}
         ${topicDictCard(S.topics)}`}
-        <section class="card"><div class="row"><div><p class="label">하나님 나라 기도 문장</p><p class="hint" style="margin:.2em 0 0">기도하기에 날마다 나오는 간구 문장과 성경의 기도를 고쳐요.</p></div><button class="btn small ghost" data-act="tab" data-v="praytext">고치기</button></div></section>
+        <section class="card"><div class="row"><div><p class="label" style="margin:0">하나님 나라 기도 문장${KoideTip.btn('기도하기에 날마다 나오는 간구 문장과 성경의 기도를 고쳐요.', '하나님 나라 기도 문장')}</p></div><button class="btn small ghost" data-act="tab" data-v="praytext">고치기</button></div></section>
         ${togetherEditCard()}
         ${serveCard()}
       </div></div>`;
@@ -2547,13 +2537,12 @@ try { const p = JSON.parse(localStorage.getItem('koide-pref') || '{}'), d = docu
     const room = rooms.some(r => r.id === S.sigRoom) ? S.sigRoom : 'all';
     const list = of.filter(x => room === 'all' || x.roomId === room), shown = S.sigMore ? list : list.slice(0, 5);
     const tag = x => x.type === 'same' ? `${x.n}달째 지난달 그대로` : `${x.n}개월째 이어짐`;
-    return `<section class="card"><div class="row"><p class="label" style="margin:0">돌봄 신호${multi ? ' · 전체' : ''}</p><span class="hint">${all.length}건</span></div>
+    return `<section class="card"><div class="row"><p class="label" style="margin:0">돌봄 신호${multi ? ' · 전체' : ''}${KoideTip.btn(`오래된 순이에요. 심방과 연락 참고용이고, ${words().count}끼리 비교하는 숫자는 보여 주지 않아요.`, '돌봄 신호')}</p><span class="hint">${all.length}건</span></div>
       <div class="seg2" role="tablist" aria-label="돌봄 신호 종류">${[['same', '오래 그대로'], ['long', '오래 이어진 기도제목']].map(([k, l]) => `<button class="${type === k ? 'on' : ''}" role="tab" aria-selected="${type === k}" data-act="sigtype" data-v="${k}">${l} ${all.filter(x => x.type === k).length}</button>`).join('')}</div>
       ${rooms.length > 1 ? `<div class="mchips" style="margin-top:10px">${[{ id: 'all', name: '전체', n: of.length }, ...rooms.map(r => ({ id: r.id, name: r.name, n: of.filter(x => x.roomId === r.id).length }))].map(x => `<button class="mchip${room === x.id ? ' on' : ''}" data-act="sigroom" data-v="${esc(x.id)}" aria-pressed="${room === x.id}">${esc(x.name)} ${x.n}</button>`).join('')}</div>` : ''}
       ${list.length ? `<ul class="signals">${shown.map(x => `<li><span class="sig-tag">${tag(x)}</span>${multi ? `<button class="link sig-go" data-act="sigfam" data-room="${esc(x.roomId)}" data-v="${esc(x.familyId)}">${esc(x.name)}</button>` : `<b>${esc(x.name)}</b>`}${multi || x.note ? `<small>${[multi ? x.room : '', x.note].filter(Boolean).map(esc).join(' · ')}</small>` : ''}</li>`).join('')}</ul>`
         : `<p class="hint">${type === 'same' ? '3달 넘게 지난달 그대로인 ' + words().one + '이 없어요.' : '3개월 넘게 이어진 기도제목이 없어요.'}</p>`}
-      ${list.length > 5 ? `<button class="link" data-act="sigmore">${S.sigMore ? '접기' : `나머지 ${list.length - 5}건 더 보기`}</button>` : ''}
-      <p class="hint">오래된 순이에요. 심방과 연락 참고용이고, ${words().count}끼리 비교하는 숫자는 보여 주지 않아요.</p></section>`;
+      ${list.length > 5 ? `<button class="link" data-act="sigmore">${S.sigMore ? '접기' : `나머지 ${list.length - 5}건 더 보기`}</button>` : ''}</section>`;
   }
   // 목사님 홈에서 고른 사랑방: 리더·목사님 항목까지 보고, 가정마다 기도했어요를 누른다(지금 함께 기도할 가정 카드가 없다)
   function staffRoomView() {
@@ -2569,7 +2558,7 @@ try { const p = JSON.parse(localStorage.getItem('koide-pref') || '{}'), d = docu
     const id = fams.some(f => f.id === S.famTlId) ? S.famTlId : null, T = id && S.famTl && S.famTl.id === id ? S.famTl : null;
     return `<section id="famtl" style="margin-top:20px"><h2 class="section-title">${words().one}별 기도 타임라인</h2>
       <div class="mchips" style="margin-top:8px" role="radiogroup" aria-label="${words().one}">${fams.map(f => `<button class="mchip${f.id === id ? ' on' : ''}" role="radio" aria-checked="${f.id === id}" data-act="famtl" data-v="${esc(f.id)}">${esc(f.name)}</button>`).join('')}</div>
-      ${!id ? `<p class="hint">${words().one}을 누르면 기도제목마다 처음 올린 달부터 지금까지 한 줄로 보여요.</p>` : !T ? '<p class="loading">불러오는 중…</p>' : timelineCard(T, T.name)}</section>`;
+      ${!id ? '' : !T ? '<p class="loading">불러오는 중…</p>' : timelineCard(T, T.name)}</section>`;
   }
   async function loadFamTl(id) {
     S.famTlId = id; S.famTl = null; render();
@@ -2728,14 +2717,13 @@ try { const p = JSON.parse(localStorage.getItem('koide-pref') || '{}'), d = docu
     // 해가 바뀌는 달(1월)에는 위에 연도를 작게 단다
     const head = ms.map((m, i) => `<th scope="col"${i === ms.length - 1 ? ' class="now"' : ''}>${i && n(m) === 1 ? `<small>${y(m).slice(2)}년</small><br>` : ''}${n(m)}</th>`).join('');
     return `<section class="card">
-      <div class="row"><p class="label" style="margin:0">${words().one}별 업데이트 이력 · ${esc(H.term)}년 편성</p><span class="only">${ICON.lock}지금 리더만</span></div>
+      <div class="row"><p class="label" style="margin:0">${words().one}별 업데이트 이력 · ${esc(H.term)}년 편성${KoideTip.btn(`${words().members}의 형편을 살피는 데 써요. 비율이나 순위는 보여 주지 않아요.`, '업데이트 이력')}</p><span class="only">${ICON.lock}지금 리더만</span></div>
       <p class="hint" style="margin-top:2px">${span}</p>
       <div class="table-wrap"><table class="hist-table">
         <thead><tr><th scope="col"><span class="sr">${words().one}</span></th>${head}</tr></thead>
         <tbody>${H.rows.map(r => `<tr><th scope="row">${esc(r.name)}</th>${r.marks.map((k, i) => `<td><span class="hc h-${k}" title="${n(ms[i])}월 ${HIST_LABEL[k]}"><span class="sr">${n(ms[i])}월 ${HIST_LABEL[k]}</span></span></td>`).join('')}</tr>`).join('')}</tbody>
       </table></div>
-      <ul class="legend"><li><i class="sw edited"></i>손봄</li><li><i class="sw confirmed"></i>그대로 확인</li><li><i class="sw hollow"></i>지난달 그대로</li><li>빈칸: 기도제목 없음</li></ul>
-      <p class="hint">${words().members}의 형편을 살피는 데 써요. 비율이나 순위는 보여 주지 않아요.</p></section>`;
+      <ul class="legend"><li><i class="sw edited"></i>손봄</li><li><i class="sw confirmed"></i>그대로 확인</li><li><i class="sw hollow"></i>지난달 그대로</li><li>빈칸: 기도제목 없음</li></ul></section>`;
   }
   // 카톡방에 올릴 가정: 올린 지 오래된 가정부터(아직 안 올린 가정이 맨 앞). 맨 앞 가정을 "차례"로 골라 둔다
   function shareCard() {
@@ -2745,13 +2733,11 @@ try { const p = JSON.parse(localStorage.getItem('koide-pref') || '{}'), d = docu
     const order = S.month.families.slice().sort((a, b) => (posts[a.id] || '').localeCompare(posts[b.id] || '')), up = order[0];
     if (!order.some(x => x.id === S.shareId)) S.shareId = up.id;  // 복사해서 순서가 바뀌어도 고른 가정은 그대로 둔다
     const f = order.find(x => x.id === S.shareId), text = shareText(f);
-    return `<section class="card">${title}
-      <p class="hint">올린 지 오래된 ${words().one}부터 줄을 세우고 맨 앞 ${words().one}을 골라 뒀어요. 다른 ${words().one}을 골라도 돼요.</p>
+    return `<section class="card">${title.replace('</h2>', KoideTip.btn(`올린 지 오래된 ${words().one}부터 맨 앞이 골라져요. 복사하면 오늘 올린 것으로 표시되고, 복사만 했다면 "올림 표시 지우기"를 눌러요. 리더·목사님 항목과 ${words().only} 항목은 빠져요.`, '카톡방에 올릴 ' + words().one) + '</h2>')}
       <div class="chips">${order.map(x => `<button class="chip-btn${x.id === f.id ? ' on' : ''}" data-act="sharepick" data-id="${x.id}" aria-pressed="${x.id === f.id}">${esc(x.name)}<small>${x === up ? '차례' : posts[x.id] ? md(posts[x.id]) + ' 올림' : '아직'}</small></button>`).join('')}</div>
       <pre class="share-text">${esc(text)}</pre>
       <div class="row" style="justify-content:flex-start"><button class="btn small" data-act="copyshare" data-id="${f.id}">카톡용 복사</button>${posts[f.id] === P.today ? `<button class="link" data-act="unpost" data-id="${f.id}">올림 표시 지우기</button>` : ''}</div>
-      ${copyNote('share-' + f.id, text)}
-      <p class="hint">복사하면 오늘 올린 것으로 표시돼요. 복사만 하고 올리지 않았다면 "올림 표시 지우기"를 눌러요. 리더·목사님 항목과 ${words().only} 항목은 빠져요.</p></section>`;
+      ${copyNote('share-' + f.id, text)}</section>`;
   }
 
   // ── 지난 기록 ────────────────────────────────────────
@@ -3019,7 +3005,7 @@ try { const p = JSON.parse(localStorage.getItem('koide-pref') || '{}'), d = docu
     const max = Math.max(1, ...rows.map(x => x.total)), low = Math.min(...rows.map(x => x.total));
     const least = rows.filter(x => x.total === low).map(x => x.r.name), lv = n => n === 0 ? 0 : n === 1 ? 1 : n <= 3 ? 2 : 3;
     const stat = (n, l) => `<div class="stat"><b>${n}</b><span>${l}</span></div>`;
-    return `<div class="row" style="margin-top:12px"><p class="hint" style="margin:0">내가 누구를 위해 얼마나 기도했는지 모아 봤어요.</p><span class="only">${ICON.lock}나만 보여요</span></div>
+    return `<div class="row" style="margin-top:12px"><span class="only">${ICON.lock}나만 보여요</span></div>
       <section class="card" style="margin-top:10px"><div class="stats">${stat(rows.reduce((a, x) => a + x.now, 0), '이번 달 기도')}${stat(rows.filter(x => x.now).length + '<small>/' + rows.length + '</small>', '이번 달 기도한 ' + esc(unit))}${stat(rows.reduce((a, x) => a + x.total, 0), mon(P.months[0]) + '부터 모두')}</div></section>
       <div class="two-col"><div class="col"><section class="card"><p class="label">${esc(unit)}별로 모아 보기 · ${mon(P.months[0])}부터</p>
         <ul class="mp-bars">${rows.map(x => `<li><span class="mp-name">${esc(x.r.name)}</span><span class="an-track"><span class="an-fill" style="width:${Math.round(x.total / max * 100)}%"></span></span><b>${x.total}번</b></li>`).join('')}</ul>
@@ -3768,35 +3754,32 @@ try { const p = JSON.parse(localStorage.getItem('koide-pref') || '{}'), d = docu
   // 가정 관리(연결 승인·해제): 리더는 우리 사랑방, 관리자는 우리 부서의 모든 사랑방
   function manageCard() {
     const P = S.pending, me = S.month.me;
-    return `<section class="card"><h2>${esc(grp())} ${words().members} 관리</h2>
+    return `<section class="card"><h2>${esc(grp())} ${words().members} 관리${KoideTip.btn(`휴대폰을 잃어버렸거나 ${solo() ? '이름' : '가정'}을 잘못 고른 사람만 해제해요.`, grp() + ' ' + words().members + ' 관리')}</h2>
         ${!P ? '<p class="hint">불러오는 중…</p>' : `
         ${approveAllBar(P)}${P.requests.length ? P.requests.map(q => `<div class="req"><b>${q.newFamily ? '새로 온 ' + words().one + ' · ' : ''}${esc(q.person)} 님${q.familyName !== q.person ? ' → ' + esc(q.familyName) : ''}</b>
             <small>${q.kids ? '자녀 ' + esc(q.kids) + ' · ' : ''}${nickTxt(q.nick)}${esc(q.requestedAt)} 요청</small>
             <div class="actions" style="margin-top:8px"><button class="btn small" data-act="approve" data-v="${esc(q.kakaoId)}">승인</button><button class="btn small ghost" data-act="reject" data-v="${esc(q.kakaoId)}">거절</button></div></div>`).join('')
           : '<p class="hint">확인할 신청이 없어요.</p>'}
-        ${S.op ? '' : `<ul class="items">${P.families.map(f => `<li style="grid-template-columns:1fr auto"><span>${esc(f.name)}</span><span>${f.linked.length ? f.linked.map(l => `${esc(l.person)}${l.kakaoId !== '' && l.person !== me.person ? ` <button class="link danger" data-act="unlink" data-v="${esc(l.kakaoId)}">해제</button>` : ''}`).join(', ') : '<span class="hint">아직 연결 없음</span>'}</span></li>`).join('')}</ul>`}`}
-        <p class="hint">휴대폰을 잃어버렸거나 ${solo() ? '이름' : '가정'}을 잘못 고른 사람만 해제해요.</p></section>`;
+        ${S.op ? '' : `<ul class="items">${P.families.map(f => `<li style="grid-template-columns:1fr auto"><span>${esc(f.name)}</span><span>${f.linked.length ? f.linked.map(l => `${esc(l.person)}${l.kakaoId !== '' && l.person !== me.person ? ` <button class="link danger" data-act="unlink" data-v="${esc(l.kakaoId)}">해제</button>` : ''}`).join(', ') : '<span class="hint">아직 연결 없음</span>'}</span></li>`).join('')}</ul>`}`}</section>`;
   }
   // 우리 가정 정보: 이름과 자녀(태어난 순서). 자녀 이름을 넣어 두면 기도제목의 대상이 이름으로 붙는다
   function famInfoCard() {
     const mine = mineFam(), [a, b = ''] = solo() ? [mine.name, ''] : mine.name.split(' · '), E = S.famEdit;
-    if (!E) return `<section class="card"><div class="row"><p class="label">${solo() ? '내 정보' : '우리 가정 정보'}</p><button class="btn small ghost" data-act="famedit">고치기</button></div>
+    if (!E) return `<section class="card"><div class="row"><p class="label">${solo() ? '내 정보' : '우리 가정 정보'}${KoideTip.btn(solo() ? '결혼해서 가정을 이루면 리더나 관리자에게 알려 주세요.' : '자녀 이름을 넣어 두면 기도제목의 대상이 이름으로 붙어요. 결혼해서 가정을 합치려면 리더나 관리자에게 알려 주세요.', solo() ? '내 정보' : '우리 가정 정보')}</p><button class="btn small ghost" data-act="famedit">고치기</button></div>
       <h3>${esc(mine.name)}</h3>
       ${solo() ? '' : `<div class="kids">${mine.kids.length ? mine.kids.map((k, n) => `<span class="kid"><small>${n + 1}</small>${esc(k)}</span>`).join('') : '<span class="hint">등록한 자녀가 없어요</span>'}</div>
-      <p class="hint">${S.famMsg ? `<span class="ok">${esc(S.famMsg)}</span>` : '자녀 이름을 넣어 두면 기도제목의 대상이 이름으로 붙어요.'}</p>`}
-      <p class="hint">${solo() ? '결혼해서 가정을 이루면' : '결혼해서 가정을 합치려면'} 리더나 관리자에게 알려 주세요.</p>
+      ${S.famMsg ? `<p class="hint"><span class="ok">${esc(S.famMsg)}</span></p>` : ''}`}
       <p class="fam-rec"><button class="link quiet" data-act="myexport">${solo() ? '내' : '우리 가정'} 기록 내려받기</button>
         ${CHURCHSB ? '' : S.month.eraseReq ? '<span>기록 지우기를 요청했어요</span><button class="link quiet" data-act="erasereqoff">요청 거두기</button>' : '<button class="link quiet" data-act="erasereq">기록 지우기 요청</button>'}</p></section>`; // 새 길의 기록 지우기 요청은 ⑥-3
     return `<section class="card"><p class="label">${solo() ? '내 정보 고치기' : '우리 가정 정보 고치기'}</p>
       <form class="plain-form" data-form="famsave">
         <label class="label" for="fi-a">${solo() ? '이름' : '남편 또는 본인 이름'}</label><input id="fi-a" class="field" value="${esc(E.a)}" required maxlength="10" autocomplete="off">
         ${solo() ? '' : `<label class="label" for="fi-b">아내 이름 · 1인 가정이면 비워 두세요</label><input id="fi-b" class="field" value="${esc(E.b)}" maxlength="10" autocomplete="off">
-        <p class="label">자녀 · 태어난 순서대로</p>
+        <p class="label">자녀 · 태어난 순서대로${KoideTip.btn('글에 "첫째", "둘째"라고 쓰면 이 순서대로 이름을 붙여요. 자녀를 지워도 이미 쓴 기도제목의 대상은 그대로 남아요.', '자녀 태어난 순서')}</p>
         ${E.kids.length ? `<ol class="kid-list">${E.kids.map((k, n) => `<li><span class="kl-num">${n + 1}</span><span class="kl-name">${esc(k)}</span>
             <button type="button" class="icon-btn sm" data-act="kidup" data-v="${n}" aria-label="${esc(k)} 앞으로"${n === 0 ? ' disabled' : ''}>${ICON.up}</button>
             <button type="button" class="icon-btn sm" data-act="kiddel" data-v="${n}" aria-label="${esc(k)} 지우기">${ICON.x}</button></li>`).join('')}</ol>` : '<p class="hint">등록한 자녀가 없어요.</p>'}
-        <div class="kid-form"><input id="kid-name" class="field" placeholder="자녀 이름 추가" aria-label="추가할 자녀 이름" maxlength="6" autocomplete="off"><button class="btn small ghost" type="button" data-act="kidadd">추가</button></div>
-        <p class="hint">글에 "첫째", "둘째"라고 쓰면 이 순서대로 이름을 붙여요. 자녀를 지워도 이미 쓴 기도제목의 대상은 그대로 남아요.</p>`}
+        <div class="kid-form"><input id="kid-name" class="field" placeholder="자녀 이름 추가" aria-label="추가할 자녀 이름" maxlength="6" autocomplete="off"><button class="btn small ghost" type="button" data-act="kidadd">추가</button></div>`}
         <div class="actions"><button class="btn" type="submit" ${S.busy ? 'disabled' : ''}>${S.busy ? '저장 중…' : '저장'}</button><button class="btn ghost" type="button" data-act="famcancel">취소</button></div>
       </form></section>`;
   }
@@ -3824,45 +3807,45 @@ try { const p = JSON.parse(localStorage.getItem('koide-pref') || '{}'), d = docu
         : `<a class="mrow" ${link} href="index.html${KOINONIA_DEMO ? '?demo&c=' : '?c='}${encodeURIComponent(c.id)}">${body}${ICON.chevR}</a>`;
     }).join('');
     const make = CIRCLE_MENU.session && koidePlaces.canMake(false, CIRCLE_MENU.list)
-      ? `<a class="mrow" ${link} href="koinonia.html${KOINONIA_DEMO ? '?demo&new' : '?new'}"><span><b>코이데 공동체 만들기</b><small>함께 기도할 사람을 초대해요</small></span>${ICON.chevR}</a>`
+      ? `<a class="mrow" ${link} href="koinonia.html${KOINONIA_DEMO ? '?demo&new' : '?new'}"><span><b>코이데 공동체 만들기</b></span>${ICON.chevR}</a>`
       : `<div class="mrow" aria-disabled="true"><span><b>코이데 공동체 만들기</b><small>세 곳이 다 찼어요</small></span></div>`;
     return `<section class="card mrows">${rows}${make}</section>`;
   }
   function moreView() {
     const me = S.month.me, mine = mineFam();
     // 한 줄 메뉴: 제목, 무엇을 하는 곳인지, 역할 표
-    const row = (act, v, title, sub, tag) => `<button class="mrow" data-act="${act}"${v ? ` data-v="${v}"` : ''}><span><b>${title}</b>${tag || ''}<small>${sub}</small></span>${ICON.chevR}</button>`;
+    const row = (act, v, title, sub, tag) => `<button class="mrow" data-act="${act}"${v ? ` data-v="${v}"` : ''}><span><b>${title}</b>${tag || ''}${sub ? `<small>${sub}</small>` : ''}</span>${ICON.chevR}</button>`;
     const tag = (cls, t) => `<span class="role-tag ${cls}">${t}</span>`;
     // 새 길(Supabase)에서 가정에 붙은 부서 관리자 표시는 그 부서의 관리 화면(운영 화면과 같은 모양, 우리 부서만)으로 들어간다
     const roles = [
-      isLeaderRole() && !S.grp ? row('tab', 'status', esc(grp()) + ' 현황', '기도제목 올렸는지 보기 · 안부 문구 · 연결 승인', tag('leader', esc(me.role))) : '',
-      me.admin && !S.grp && (!CHURCHSB || famDept()) ? row('tab', CHURCHSB ? 'famops' : 'admin', (S.month.dept && S.month.dept.name ? esc(S.month.dept.name) : '부서') + ' 관리', '우리 부서 전체를 꾸려요', tag('admin', '부서 관리자')) : '',
-      opsDepts().length ? row(S.me.ops.all ? 'church' : 'tab', S.me.ops.all ? '' : 'ops', S.me.ops.all ? '교회 관리' : '운영 지원', opsDepts().map(d => esc(d.name)).join(' · ') + ' · 기도제목 내용은 보지 않아요', tag('admin', S.me.ops.all ? '교회 관리자' : '지원')) : ''
+      isLeaderRole() && !S.grp ? row('tab', 'status', esc(grp()) + ' 현황', '', tag('leader', esc(me.role))) : '',
+      me.admin && !S.grp && (!CHURCHSB || famDept()) ? row('tab', CHURCHSB ? 'famops' : 'admin', (S.month.dept && S.month.dept.name ? esc(S.month.dept.name) : '부서') + ' 관리', '', tag('admin', '부서 관리자')) : '',
+      opsDepts().length ? row(S.me.ops.all ? 'church' : 'tab', S.me.ops.all ? '' : 'ops', S.me.ops.all ? '교회 관리' : '운영 지원', opsDepts().map(d => esc(d.name)).join(' · '), tag('admin', S.me.ops.all ? '교회 관리자' : '지원')) : ''
     ].join('');
     const setOpen = !!S.setOpen;
     return `<div class="page-top"><div><h1>더보기</h1></div></div>
       <div class="fam-grid" style="margin-top:12px">
         <div class="col">${KOINONIA ? `<p class="more-h">이 공동체</p>${groupMoreCard()}
           <p class="more-h">함께하는 곳</p>
-          <section class="card mrows">${row('note', '', '코이데 노트', '나만 보는 기도제목과 감사 기록')}</section>
+          <section class="card mrows">${row('note', '', '코이데 노트', '')}</section>
           ${kcCirclesCard()}
-          <section class="card mrows"><a class="mrow" style="text-decoration:none;color:inherit" href="index.html${KOINONIA_DEMO ? '?demo' : ''}"><span><b>코이데 교회</b><small>교회 코드가 있으면 우리 교회와 함께 기도해요</small></span>${ICON.chevR}</a></section>` : `<p class="more-h">나</p>
-          <section class="card mrows">${row('note', '', '코이데 노트', noteSyncOn() ? '나만 보는 기도제목과 감사 기록. 암호화해서 다른 기기와 동기화해요' : '나만 보는 기도제목과 감사 기록. 이 기기에 저장돼요')}</section>`}
+          <section class="card mrows"><a class="mrow" style="text-decoration:none;color:inherit" href="index.html${KOINONIA_DEMO ? '?demo' : ''}"><span><b>코이데 교회</b></span>${ICON.chevR}</a></section>` : `<p class="more-h">나</p>
+          <section class="card mrows">${row('note', '', '코이데 노트', noteSyncOn() ? '암호화해서 다른 기기와 동기화해요' : '이 기기에 저장돼요')}</section>`}
           ${KOINONIA ? '' : S.grp ? groupMoreCard() : famInfoCard()}
-          ${me.staff && !S.grp ? `<section class="card"><p class="label">섬기는 곳</p><h3>${esc(S.month.dept && S.month.dept.name || '')} · ${esc(me.label || me.role)}</h3>
-            <p class="hint">${(S.month.serve || []).some(s => s.familyId === me.familyId) ? '회원의 이번 달 화면 맨 아래 "섬기는 분들"과 기도하기 마지막 장에 나와요. ' + esc(S.month.dept && S.month.dept.name || '부서') + ' 공개로 쓴 기도제목만 보여요.' : '섬기는 분들 카드에는 나오지 않아요(관리자가 정해요).'}${me.admin ? ' 관리자도 함께 맡고 있어요.' : ''}</p></section>` : ''}
+          ${me.staff && !S.grp ? `<section class="card">${(serveOn => `<p class="label">섬기는 곳${serveOn ? KoideTip.btn('회원의 이번 달 화면 맨 아래 "섬기는 분들"과 기도하기 마지막 장에 나와요. ' + (S.month.dept && S.month.dept.name || '부서') + ' 공개로 쓴 기도제목만 보여요.', '섬기는 곳') : ''}</p><h3>${esc(S.month.dept && S.month.dept.name || '')} · ${esc(me.label || me.role)}</h3>
+            ${serveOn && !me.admin ? '' : `<p class="hint">${serveOn ? '' : '섬기는 분들 카드에는 나오지 않아요(관리자가 정해요).'}${me.admin ? (serveOn ? '' : ' ') + '관리자도 함께 맡고 있어요.' : ''}</p>`}`)((S.month.serve || []).some(s => s.familyId === me.familyId))}</section>` : ''}
         </div>
         <div class="col">
           ${roles ? `<p class="more-h">맡은 일</p><section class="card mrows">${roles}</section>` : ''}
           <p class="more-h">앱 설정</p>
           <section class="card mrows">
-            <button class="mrow" data-act="setopen" aria-expanded="${setOpen}"><span><b class="mhead">화면 설정</b><small>화면 모드 · 색 테마 · 디자인 · 큰 글씨</small></span><span class="ops-chev" aria-hidden="true">${ICON.chev}</span></button>
+            <button class="mrow" data-act="setopen" aria-expanded="${setOpen}"><span><b class="mhead">화면 설정</b></span><span class="ops-chev" aria-hidden="true">${ICON.chev}</span></button>
             ${setOpen ? `<div class="mset">${themeControls()}<div class="set-row" style="flex-direction:column;align-items:stretch"><p class="mhead" style="margin:0">큰 글씨</p>${bigControls()}</div></div>` : ''}
-            ${STANDALONE ? '' : row('a2hsopen', '', '홈 화면에 앱처럼 두기', '아이콘을 눌러 바로 열 수 있게 해요')}
+            ${STANDALONE ? '' : row('a2hsopen', '', '홈 화면에 앱처럼 두기', '')}
             ${KoidePilot.moreRows()}
           </section>
           ${S.grp && !KOINONIA ? '' : `<p class="more-h">코이데</p>
-          <section class="card mrows">${row('tab', 'about', '코이데 소개', '이름의 뜻과 코이데가 지키는 것')}${row('tab', 'help', '사용법', '따라 하기와 도움말')}${row('tab', 'feedback', '의견 보내기', '불편한 점, 바라는 점, 고마운 점')}</section>`}
+          <section class="card mrows">${row('tab', 'about', '코이데 소개', '')}${row('tab', 'help', '사용법', '')}${row('tab', 'feedback', '의견 보내기', '')}</section>`}
           ${KOINONIA ? '' : '<button class="link quiet more-out" data-act="logout">이 기기에서 로그아웃</button>'}
         </div></div>`;
   }
@@ -3916,9 +3899,8 @@ try { const p = JSON.parse(localStorage.getItem('koide-pref') || '{}'), d = docu
           <section class="card"><p class="label">기도제목은 이렇게 지켜요</p>${consentList()}</section>
         </div>
         <div class="col">
-          <section class="card"><p class="label">코이데는 기도를 이렇게 이해해요</p>
-            <ol class="ab-und">${UNDERSTAND.map(([t, d, l], i) => `<li><span class="ab-n">${i + 1}</span><div><h3>${t}</h3><p class="plain">${d}</p>${l}</div></li>`).join('')}</ol>
-            <p class="hint">웨스트민스터 대요리문답이 풀어 쓴 기도의 뜻을 쉬운 말로 옮겼어요.</p></section>
+          <section class="card"><p class="label">코이데는 기도를 이렇게 이해해요${KoideTip.btn('웨스트민스터 대요리문답이 풀어 쓴 기도의 뜻을 쉬운 말로 옮겼어요.', '코이데는 기도를 이렇게 이해해요')}</p>
+            <ol class="ab-und">${UNDERSTAND.map(([t, d, l], i) => `<li><span class="ab-n">${i + 1}</span><div><h3>${t}</h3><p class="plain">${d}</p>${l}</div></li>`).join('')}</ol></section>
           ${staff ? '' : `<section class="card"><p class="label">이달의 그림</p>
             <p class="plain">달마다 그 달 주제의 그림이 하나씩 있어요. 기도한 날마다 그림이 조금씩 채워지고, 나만 봐요. 남과 비교하지 않고 줄어들지도 않아요.</p>
             ${aboutLink('돌아보기 › 달마다 모은 그림', 'history', 'pray')}</section>`}
@@ -3940,7 +3922,7 @@ try { const p = JSON.parse(localStorage.getItem('koide-pref') || '{}'), d = docu
   function leadInviteCard() {
     const t = S.pending && S.pending.invite;
     if (!t) return '';
-    return `<section class="card"><h2>${esc(grp())} 초대 링크</h2><p class="hint">새로 온 ${words().one}에게 보내는 링크예요.</p>
+    return `<section class="card"><h2>${esc(grp())} 초대 링크</h2>
       <button class="btn small ghost" data-act="invcopy" data-v="${esc(t)}" data-n="${esc(S.month.room.name)}">초대 링크 복사</button>${copyNote('inv' + t, inviteUrl(t))}</section>`;
   }
   function statusView() {
@@ -4408,7 +4390,7 @@ try { const p = JSON.parse(localStorage.getItem('koide-pref') || '{}'), d = docu
     const G = S.month && S.month.group; if (!G || G.left == null || G.left > 30) return '';
     const soon = G.left <= 7;
     return `<section class="card notice" role="note"><p><b>곧 끝나요 · ${koidePlaces.dday(G)}</b></p>
-      <p class="hint" style="margin:.2em 0 .6em">${gDay(G.endsAt)}에 이 모임과 기록이 함께 사라져요.${soon ? ' 남기고 싶은 기도제목을 지금 옮겨 두세요.' : ' 남기고 싶은 기도제목은 코이데 노트로 옮겨 두세요.'}</p>
+      <p class="hint" style="margin:.2em 0 .6em">${gDay(G.endsAt)}에 이 모임과 기록이 함께 사라져요.${soon ? ' 남기고 싶은 기도제목을 지금 옮겨 두세요.' : ''}</p>
       <div class="actions"><button class="btn small" data-act="gmove">코이데 노트로 옮기기</button><button class="btn small ghost" data-act="gweave">그물 담기</button></div></section>`;
   }
   // ── 함께 짜는 그물 (모임 화면의 '이달의 그림' 자리) ──────────
@@ -4429,10 +4411,9 @@ try { const p = JSON.parse(localStorage.getItem('koide-pref') || '{}'), d = docu
   function weaveCard() {
     const d = weaveOf();
     if (!d) return `<section class="card weave-card" aria-label="함께 짜는 그물"><p class="label">함께 짜는 그물</p><p class="hint">서버를 새 버전으로 배포하면 그물이 보여요.</p></section>`;
-    return `<section class="card weave-card" aria-label="함께 짜는 그물"><div class="row"><p class="label" style="margin:0">함께 짜는 그물</p></div>
+    return `<section class="card weave-card" aria-label="함께 짜는 그물"><div class="row"><p class="label" style="margin:0">함께 짜는 그물${KoideTip.btn(`${KOINONIA ? '공동체' : '모임'}에서 서로를 위해 기도할 때마다 실이 한 가닥씩 걸려요.`, '함께 짜는 그물')}</p></div>
       <div class="wv-frame"><div class="wv-stage" id="wv-host" role="img" aria-label="둥근 수틀에 실이 걸린 그물. 밀어서 돌려 볼 수 있어요"><span class="wait">불러오는 중…</span></div>
         <button class="ps-big" data-act="wbig" aria-label="그물 크게 보기" title="크게 보기">${ICON.expand}</button></div>
-      <p class="hint">${KOINONIA ? '공동체' : '모임'}에서 서로를 위해 기도할 때마다 실이 한 가닥씩 걸려요.</p>
       <div class="actions"><button class="btn small ghost" data-act="wsave"${S.wSaving ? ' disabled' : ''}>${S.wSaving ? '저장하는 중…' : '그림 저장'}</button>${KOINONIA ? '' : '<button class="btn small" data-act="gweave">코이데 노트에 담기</button>'}</div></section>`;
   }
   // 크게 보기: 그물만 화면 가득. 오른쪽 위에 동그란 단추(그림 저장 ↓, 닫기 ×)
@@ -4598,12 +4579,12 @@ try { const p = JSON.parse(localStorage.getItem('koide-pref') || '{}'), d = docu
         ${lead && G.asks.length ? G.asks.map(a => `<div class="req"><b>${esc(a.person)} 님이 함께하고 싶어 해요</b>
           <div class="actions" style="margin-top:8px"><button class="btn small" data-act="gdecide" data-v="${esc(a.id)}" data-ok="1">승인</button><button class="btn small ghost" data-act="gdecide" data-v="${esc(a.id)}">거절</button></div></div>`).join('') : ''}
         ${line('kcopen', 'members', '지체 ' + G.people.length + '명', '')}
-        ${lead ? line('gcopy', '', '초대 링크 보내기', '복사해서 카톡으로 보내요') + copyNote('g' + G.token, groupUrl(G.token)) : ''}
+        ${lead ? line('gcopy', '', '초대 링크 보내기', '') + copyNote('g' + G.token, groupUrl(G.token)) : ''}
         ${closed ? '' : line('gmove', '', '코이데 노트로 옮기기', '')}
-        ${lead ? line('kcopen', 'manage', '공동체 관리', '이름, 모임장, 끝나는 날') : ''}
+        ${lead ? line('kcopen', 'manage', '공동체 관리', '') : ''}
         <div class="kc-foot"><button class="icon-btn kc-ib" data-act="kcopen" data-v="report" aria-label="신고하기" title="신고하기">${ICON.flag}</button><button class="icon-btn kc-ib danger" data-act="kcleave" aria-label="공동체에서 나가기" title="공동체에서 나가기">${ICON.leave}</button></div></section>`;
     }
-    return `<section class="card"><p class="label">${KOINONIA ? '공동체' : '모임'}</p>
+    return `<section class="card"><div class="tip-line"><p class="label">${KOINONIA ? '공동체' : '모임'}</p>${G.lead && writable ? KoideTip.btn(KOINONIA ? '초대 링크를 받은 사람이 신청하고, 모임장이 승인해요.' : '카카오로 로그인한 누구나 신청하고, 모임장이 승인해요.', KOINONIA ? '공동체' : '모임') : ''}</div>
       ${writable && E === 'rename' ? `<form class="kid-form" data-form="grename"><input class="field" name="n" maxlength="16" value="${esc(G.name)}" aria-label="${KOINONIA ? '공동체' : '모임'} 이름" autocomplete="off"><button class="btn small" type="submit">바꾸기</button></form>`
         : `<div class="row"><h3>${esc(G.name)}</h3>${G.lead && writable ? '<button class="link quiet" data-act="gedit" data-v="rename">이름 바꾸기</button>' : ''}</div>`}
       <p class="hint">${G.people.length}/${G.max}명${KOINONIA ? ', ' : ' · '}${esc(G.at)} 만듦</p>
@@ -4614,8 +4595,7 @@ try { const p = JSON.parse(localStorage.getItem('koide-pref') || '{}'), d = docu
       <ul class="staff-list">${G.people.map(p => `<li><div><b>${esc(p.person)}</b>${p.role === '모임장' ? '<span class="own-tag">모임장</span>' : ''}${p.me ? '<small>나</small>' : ''}</div>
         ${G.lead && writable && !p.me ? `<span class="foot-acts"><button class="link quiet" data-act="gremove" data-v="${esc(p.id)}" data-n="${esc(p.person)}">내보내기</button></span>` : ''}</li>`).join('')}</ul>
       ${G.lead && writable ? `${G.people.length < 2 ? '<p class="hint">아직 함께하는 사람이 없어요. 초대 링크를 보내 보세요.</p>' : ''}
-        <div class="actions"><button class="btn small ghost" data-act="gcopy">초대 링크 복사</button><button class="link quiet" data-act="grenew">새 링크</button></div>${copyNote('g' + G.token, groupUrl(G.token))}
-        <p class="hint">${KOINONIA ? '초대 링크를 받은 사람이 신청하고, 모임장이 승인해요.' : '카카오로 로그인한 누구나 신청하고, 모임장이 승인해요.'}</p>` : ''}
+        <div class="actions"><button class="btn small ghost" data-act="gcopy">초대 링크 복사</button><button class="link quiet" data-act="grenew">새 링크</button></div>${copyNote('g' + G.token, groupUrl(G.token))}` : ''}
       ${KOINONIA ? `<div class="actions" style="flex-wrap:wrap">
         ${G.lead && writable && G.people.length>1 ? '<button class="btn small ghost" data-act="kcopen" data-v="handoff">모임장 넘기기</button>' : ''}
         ${G.lead && writable && G.endsAt ? '<button class="btn small ghost" data-act="kcopen" data-v="ends">끝나는 날 늘리기</button>' : ''}
@@ -5121,7 +5101,7 @@ try { const p = JSON.parse(localStorage.getItem('koide-pref') || '{}'), d = docu
       <section class="card" style="margin-top:12px"><p class="hint" style="margin:0">의견 보내기는 아직 준비 중이에요. 불편한 점은 ${esc(grp())} 리더에게 알려 주세요.</p></section>`;
     const F = S.fb || (S.fb = { kind: '이랬으면', text: '', named: false });
     return `<button class="link back" data-act="tab" data-v="more">${ICON.chevL}더보기</button>
-      <div class="page-top"><div><h1>의견 보내기</h1></div></div>
+      <div class="page-top"><div><h1>의견 보내기${KoideTip.btn(`${S.month.dept.name} 관리자와 교회 관리자가 읽어요. 이야기가 필요하면 ${grp()} 리더에게 카톡으로 알려 주세요.`, '의견 보내기')}</h1></div></div>
       <section class="card fb-form" style="margin-top:12px">
         <div class="seg" style="--n:3" role="radiogroup" aria-label="의견 종류">${FB_KINDS.map(k => `<button class="${F.kind === k ? 'on' : ''}" role="radio" aria-checked="${F.kind === k}" data-act="fbkind" data-v="${k}">${k}</button>`).join('')}</div>
         <p class="hint warn-text">기도제목은 여기 쓰지 말아 주세요.</p>
@@ -5130,7 +5110,7 @@ try { const p = JSON.parse(localStorage.getItem('koide-pref') || '{}'), d = docu
         <div class="set-row"><div><p class="label" style="margin:0">이름 밝히기</p><p class="hint" style="margin:.2em 0 0">${F.named ? `관리자가 보낸 사람(${esc(S.month.me.person)})을 봐요.` : '끄면 누가 보냈는지 남기지 않아요.'}</p></div>
           <button type="button" class="switch${F.named ? ' on' : ''}" role="switch" aria-checked="${F.named}" aria-label="이름 밝히기" data-act="fbnamed"><span></span></button></div>
         <div class="actions"><button class="btn" data-act="fbsend" ${S.busy ? 'disabled' : ''}>${S.busy ? '보내는 중…' : '보내기'}</button></div>
-        <p class="hint">${esc(S.month.dept.name)} 관리자와 교회 관리자가 읽어요. 답장은 따로 오지 않아요. 이야기가 필요하면 ${esc(grp())} 리더에게 카톡으로 알려 주세요.</p></section>`;
+        <p class="hint">답장은 따로 오지 않아요.</p></section>`;
   }
   const keepFb = () => { const t = $('#fb-t'); if (t && S.fb) S.fb.text = t.value; };
   const fbNew = () => S.ops && S.ops.feedback ? S.ops.feedback.filter(x => !x.read).length : 0;
