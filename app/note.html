@@ -1105,10 +1105,9 @@ button.pg-tag::before { content: ''; position: absolute; inset: -10px; }
     if (S.sess === 'out' || S.sbIn === false) return `<section class="card"><p class="label">로그인 계정</p><p class="hint">로그인되어 있지 않아요</p><button class="btn small" data-a="sblogin">다시 로그인</button></section>`;
     return `<section class="card"><p class="label">로그인 계정</p>
       ${L.length ? L.map(k => `<div class="acct-li"><span class="acct-logo">${SB_LOGO[k] || ''}</span><b>${esc(SB_NAME[k] || k)}</b></div>`).join('') : '<p class="hint">불러오는 중…</p>'}
-      <p class="label">로그인 방법 더하기</p>
+      <p class="label">로그인 방법 더하기${KoideTip.btn('로그인 방법을 더해 두면 어느 방법으로 들어와도 같은 기록을 볼 수 있어요.', '로그인 방법 더하기')}</p>
       ${more === null ? '<p class="hint">불러오는 중…</p>' : more.length ? `<div style="display:flex;flex-direction:column;gap:8px">${more.map(k => `<button class="btn wide sso-btn sso-${k}" data-a="acctgo" data-v="${k}"${S.acctBusy ? ' disabled' : ''}>${SB_LOGO[k]}<span>${SB_LABEL[k]}</span></button>`).join('')}</div>` : '<p class="hint">더할 수 있는 로그인 방법이 더는 없어요.</p>'}
-      ${S.acctErr ? `<p class="hint" style="color:var(--warm)" role="alert">${esc(S.acctErr)}</p>` : ''}
-      <p class="hint">로그인 방법을 더해 두면 어느 방법으로 들어와도 같은 기록을 볼 수 있어요.</p></section>`;
+      ${S.acctErr ? `<p class="hint" style="color:var(--warm)" role="alert">${esc(S.acctErr)}</p>` : ''}</section>`;
   }
   async function acctOpen() {
     S.acctErr = ''; S.acctBusy = false; go('sync');
@@ -1158,9 +1157,9 @@ button.pg-tag::before { content: ''; position: absolute; inset: -10px; }
       <section class="wl-act card">
         ${W.list ? W.list.map(k => `<button class="btn wide sso-btn sso-${k}" data-a="wlgo" data-v="${k}"${W.busy ? ' disabled' : ''}>${SB_LOGO[k]}<span>${SB_LABEL[k]}</span>${last === k ? '<small class="wl-last">지난번에 쓴 방법</small>' : ''}</button>`).join('') : '<p class="hint">불러오는 중…</p>'}
         ${W.err ? `<p class="hint" style="color:var(--warm)" role="alert">${esc(W.err)}</p>` : ''}
-        <p class="hint">로그인하면 바로 코이데 노트를 쓸 수 있어요. 기록은 이 휴대폰에 있고, 동기화를 켜면 잠긴 채로만 서버에 가요.</p>
+        <p class="hint">기록은 이 휴대폰에 있고, 동기화를 켜면 잠긴 채로만 서버에 가요.</p>
       </section>
-      <section class="wl-church card mrows"><a class="mrow" style="text-decoration:none;color:inherit" href="index.html?door=church&connect"><span><b>코이데 교회를 쓰는 분이에요</b><small>우리 교회(교회 코드)로 들어가기</small></span><span aria-hidden="true">›</span></a></section>
+      <section class="wl-church card mrows"><a class="mrow" style="text-decoration:none;color:inherit" href="index.html?door=church&connect"><span><b>코이데 교회를 쓰는 분이에요</b></span><span aria-hidden="true">›</span></a></section>
     </div>`;
   }
   // 문으로 들어와 처음 로그인했을 때: 이 계정으로 맡긴 노트가 서버에 있고 이 기기에서 아직 잇지 않았으면, 비밀번호를 넣는 창을 한 번 자동으로 연다. 닫으면 다시 묻지 않는다
@@ -2478,9 +2477,8 @@ button.pg-tag::before { content: ''; position: absolute; inset: -10px; }
   function badgeHtml() {
     const cell = b => { const on = b.at() != null;
       return `<button class="bdg${on ? '' : ' off'}" data-a="bdg" data-v="${b.k}" aria-label="${esc(b.name)}${on ? '' : ', 아직 못 받았어요'}"><span class="bdg-c" aria-hidden="true">${bimg(b)}</span><span class="bdg-n">${esc(b.name)}</span></button>`; };
-    return `<section class="card"><p class="label">나의 배지</p>
-      <div class="bdgs">${BADGES.map(cell).join('')}</div>
-      ${BADGES.every(b => b.at() == null) ? '<p class="hint">해 보는 일마다 배지에 색이 들어와요. 배지를 눌러 보세요.</p>' : ''}</section>`;
+    return `<section class="card"><p class="label">나의 배지${KoideTip.btn('해 보는 일마다 배지에 색이 들어와요. 배지를 눌러 보세요.', '나의 배지')}</p>
+      <div class="bdgs">${BADGES.map(cell).join('')}</div></section>`;
   }
   // 배지를 누르면 열리는 작은 창: 받은 배지는 뜻과 받은 날. 안 한 써 보기 배지는 할 일 한 문장과 해 보기 단추, 안 한 기념 배지는 언제 생기는지(닫기만)
   function bdgSheet() {
@@ -2585,7 +2583,7 @@ button.pg-tag::before { content: ''; position: absolute; inset: -10px; }
   function weaveNav() {
     const pg = weavePage(), np = weavePages();
     return `<div class="month-nav"><button class="btn ghost small" data-a="wpage" data-v="${pg - 1}"${pg > 0 ? '' : ' disabled'} aria-label="이전 그물">‹</button>
-      <span class="mn-t"><b>함께 짠 그물</b><small>벽에 걸어 둔 그물이에요</small></span>
+      <span class="mn-t"><b>함께 짠 그물</b></span>
       <button class="btn ghost small" data-a="wpage" data-v="${pg + 1}"${pg < np - 1 ? '' : ' disabled'} aria-label="다음 그물">›</button></div>`;
   }
   // 그물 크게 보기: 오른쪽 위에 그림 저장(↓)과 닫기(×), 아래에 이름과 기간, 지우기
@@ -2676,20 +2674,20 @@ button.pg-tag::before { content: ''; position: absolute; inset: -10px; }
       <p class="more-h">내 기도</p>${peopleRow()}
       <p class="more-h">함께하는 곳</p>
       ${groupsCard()}
-      <section class="card mrows"><a class="mrow" style="text-decoration:none;color:inherit" href="${linked ? 'index.html' + QS : 'index.html' + (DEMO_LINK ? '?demo&connect' : '?connect')}"><span><b>${linked ? '코이데 교회' : '코이데 교회 들어가기'}</b><small>${linked ? '사랑방과 함께 기도해요' : '교회 코드가 있으면 우리 교회와 함께 기도해요'}</small></span><span aria-hidden="true">›</span></a></section>
+      <section class="card mrows"><a class="mrow" style="text-decoration:none;color:inherit" href="${linked ? 'index.html' + QS : 'index.html' + (DEMO_LINK ? '?demo&connect' : '?connect')}"><span><b>${linked ? '코이데 교회' : '코이데 교회 들어가기'}</b></span><span aria-hidden="true">›</span></a></section>
       <p class="more-h">계정과 동기화</p>${syncRow()}</div>
       <div class="n-side"><p class="more-h">앱 설정</p>
       <section class="card mrows">
-        <button class="mrow" data-a="setopen" aria-expanded="${!!S.setOpen}"><span><b class="mhead">화면 설정</b><small>화면 모드 · 색 테마 · 디자인 · 큰 글씨</small></span><span class="chev" aria-hidden="true">›</span></button>
+        <button class="mrow" data-a="setopen" aria-expanded="${!!S.setOpen}"><span><b class="mhead">화면 설정</b></span><span class="chev" aria-hidden="true">›</span></button>
         ${S.setOpen ? `<div class="mset">${screenControls()}</div>` : ''}
-        ${HOME_APP ? '' : '<button class="mrow" data-a="a2hsopen"><span><b>홈 화면에 앱처럼 두기</b><small>아이콘을 눌러 바로 열 수 있게 해요</small></span></button>'}
+        ${HOME_APP ? '' : '<button class="mrow" data-a="a2hsopen"><span><b>홈 화면에 앱처럼 두기</b></span></button>'}
         ${KoidePilot.moreRows()}</section>
       <p class="more-h">코이데</p>
       <section class="card mrows">
-        ${INTRO_VIDEO_ON ? '<button class="mrow" data-a="ivid"><span><b>코이데 소개 영상</b><small>코이데 교회와 코이데 노트를 영상으로 봐요</small></span></button>' : ''}
-        <button class="mrow" data-a="tab" data-v="about"><span><b>코이데 소개</b><small>이름의 뜻과 기도를 바라보는 마음</small></span><span aria-hidden="true">›</span></button>
-        <button class="mrow" data-a="tab" data-v="help"><span><b>사용법</b><small>따라 하기와 도움말</small></span><span aria-hidden="true">›</span></button>
-        <button class="mrow" data-a="fbopen"><span><b>의견 보내기</b><small>불편한 점, 바라는 점, 고마운 점. 기도 내용은 담기지 않아요</small></span><span aria-hidden="true">›</span></button></section></div></div>`;
+        ${INTRO_VIDEO_ON ? '<button class="mrow" data-a="ivid"><span><b>코이데 소개 영상</b></span></button>' : ''}
+        <button class="mrow" data-a="tab" data-v="about"><span><b>코이데 소개</b></span><span aria-hidden="true">›</span></button>
+        <button class="mrow" data-a="tab" data-v="help"><span><b>사용법</b></span><span aria-hidden="true">›</span></button>
+        <button class="mrow" data-a="fbopen"><span><b>의견 보내기</b></span><span aria-hidden="true">›</span></button></section></div></div>`;
   }
   // 사용법(더보기 › 사용법): 위는 따라 하기 시작, 아래는 궁금한 것 찾아보기(질문을 누르면 풀이와 그 화면으로 가는 링크). 글은 실제 동작과 같게 쓴다
   const HELP = [
@@ -2729,8 +2727,7 @@ button.pg-tag::before { content: ''; position: absolute; inset: -10px; }
           <section class="card"><p class="label">코이데 노트가 지키는 것</p><ul class="na-keep">${keep.map(([a,b])=>`<li><b>${a}</b><span>${b}</span></li>`).join('')}</ul>${go('기도 제목으로 가기','note')}</section>
           <section class="card"><p class="label">나만 보는 기록 · 동기화</p><p class="plain">기도제목과 기도한 기록은 먼저 이 기기에 남아요. 다른 기기에서도 이어 쓰려면 계정과 동기화에서 동기화를 켜고 비밀번호를 정해 주세요. 비밀번호와 복구용 낱말은 잘 보관해 주세요.</p>${go('계정과 동기화','sync')}</section>
         </div><div class="col">
-          <section class="card"><p class="label">코이데는 기도를 이렇게 이해해요</p><ol class="na-list">${teach.map(([a,b,t,l],i)=>`<li><span class="na-n">${i+1}</span><div><h3>${a}</h3><p class="plain">${b}</p>${go(l,t)}</div></li>`).join('')}</ol>
-            <p class="hint">웨스트민스터 대요리문답이 설명한 기도의 뜻을 쉬운 말로 풀었어요.</p></section>
+          <section class="card"><p class="label">코이데는 기도를 이렇게 이해해요${KoideTip.btn('웨스트민스터 대요리문답이 풀어 쓴 기도의 뜻을 쉬운 말로 옮겼어요.', '코이데는 기도를 이렇게 이해해요')}</p><ol class="na-list">${teach.map(([a,b,t,l],i)=>`<li><span class="na-n">${i+1}</span><div><h3>${a}</h3><p class="plain">${b}</p>${go(l,t)}</div></li>`).join('')}</ol></section>
           <section class="card"><p class="label">의견 보내기</p><p class="plain">코이데 교회·공동체와 코이데 노트는 서로 다른 방식으로 기도를 돌보는 하나의 앱이에요. 불편한 점이나 바라는 점이 있으면 알려 주세요.</p><button class="link" data-a="fbopen">의견 보내기 ›</button></section>
         </div></div>
       </div>`;
@@ -2775,19 +2772,17 @@ button.pg-tag::before { content: ''; position: absolute; inset: -10px; }
       <header class="top"><div><h1>계정과 동기화</h1></div></header>
       ${acctCard()}${vaultCard()}
       ${conn && canLock() ? `<section class="card mrows"><p class="label">비밀번호</p>
-        <button class="mrow" data-a="kcchange"><span><b>비밀번호 바꾸기</b><small>기록을 잠그는 비밀번호를 새로 정해요</small></span><span aria-hidden="true">›</span></button>
-        <button class="mrow" data-a="kcforgot"><span><b>비밀번호를 잊었어요</b><small>적어 둔 복구용 낱말로 다시 열어요</small></span><span aria-hidden="true">›</span></button>
-        <button class="mrow" data-a="vrec"${S.recBusy ? ' disabled' : ''}><span><b>${D.vault.rec ? '복구용 낱말 새로 만들기' : '복구용 낱말 만들기'}</b>${D.vault.rec ? '' : '<small>아직 없어요. 비밀번호를 잊어도 열 수 있게 만들어 두세요.</small>'}</span><span aria-hidden="true">›</span></button>
-        ${canMove() ? '<button class="mrow" data-a="vmove"' + (S.vbusy ? ' disabled' : '') + '><span><b>새 보관함으로 옮기기</b><small>기록은 휴대폰에서 잠긴 그대로 옮겨요</small></span><span aria-hidden="true">›</span></button>' : ''}
+        <button class="mrow" data-a="kcchange"><span><b>비밀번호 바꾸기</b></span><span aria-hidden="true">›</span></button>
+        <button class="mrow" data-a="kcforgot"><span><b>비밀번호를 잊었어요</b></span><span aria-hidden="true">›</span></button>
+        <button class="mrow" data-a="vrec"${S.recBusy ? ' disabled' : ''}><span><b>${D.vault.rec ? '복구용 낱말 새로 만들기' : '복구용 낱말 만들기'}</b>${D.vault.rec ? '' : '<small>아직 없어요</small>'}</span><span aria-hidden="true">›</span></button>
+        ${canMove() ? '<button class="mrow" data-a="vmove"' + (S.vbusy ? ' disabled' : '') + '><span><b>새 보관함으로 옮기기</b></span><span aria-hidden="true">›</span></button>' : ''}
         <p class="hint" style="margin-top:4px">비밀번호·복구용 낱말을 모두 잃으면 기록을 불러올 수 없어요.</p></section>` : ''}
       <section class="card mrows"><p class="label">기록 파일</p>
-        <button class="mrow" data-a="backup"><span><b>기록 저장하기</b><small>파일·드라이브에 저장하거나, 카카오톡으로 보내요.</small></span></button>
-        <button class="mrow" data-a="restore"><span><b>불러오기</b><small>저장해 둔 파일로 기록을 되살려요.</small></span></button>
+        <button class="mrow" data-a="backup"><span><b>기록 저장하기</b></span></button>
+        <button class="mrow" data-a="restore"><span><b>불러오기</b></span></button>
         <input type="file" id="restore-file" accept="application/json,.json" hidden></section>
       <section class="card"><p class="label">알아 두세요</p>
-        <p class="hint">· 브라우저의 인터넷 기록·사이트 데이터를 지우면 이 기기의 사본과 화면 설정이 지워질 수 있어요.</p>
-        <p class="hint">· 보관한 기록은 비밀번호로 다시 열 수 있어요.</p>
-        ${D.vault && D.vault.on ? '' : '<p class="hint">· 아이폰은 홈 화면에 두지 않고 7일 넘게 열지 않으면 이 기기의 기록이 지워질 수 있어요.</p>'}</section>
+        <p class="hint">${D.vault && D.vault.on ? '브라우저의 사이트 데이터를 지우면 이 기기의 사본과 화면 설정이 지워질 수 있어요.' : '브라우저의 사이트 데이터를 지우거나, 아이폰에서 홈 화면에 두지 않고 7일 넘게 열지 않으면 이 기기의 기록이 지워질 수 있어요.'}</p></section>
       <div class="n-end"><button class="link quiet" data-a="logout" style="display:block;margin:6px auto 0">로그아웃</button><button class="link quiet" data-a="wipe" style="display:block;margin:6px auto 0">이 휴대폰의 코이데 노트 모두 지우기</button></div>`;
   }
   // 의견 보내기: 공동체와 같은 종류. 교회에 연결되지 않아도 보낼 수 있고(로그인만), 운영하는 분(교회 관리자)이 읽는다. 기도제목은 담지 않는다
@@ -2799,14 +2794,13 @@ button.pg-tag::before { content: ''; position: absolute; inset: -10px; }
     const nm = churchless() ? S.fbName || '' : nick;
     const namedHint = churchless() && F.named && !nm ? '계정에 이름이 없어서 이름 없이 가요.' : `${who}${nm ? '(' + esc(nm) + ')' : ''}이 함께 가요.`;
     return `<button class="link" data-a="tab" data-v="more" style="align-self:flex-start;margin-bottom:6px">‹ 더보기</button>
-      <header class="top"><div><h1>의견 보내기</h1></div></header>
+      <header class="top"><div><h1>의견 보내기${KoideTip.btn('코이데를 꾸리는 분들이 읽어요. 답장은 따로 오지 않아요.', '의견 보내기')}</h1></div></header>
       <section class="card"><div class="seg" style="--n:3" role="radiogroup" aria-label="의견 종류">${FB_KINDS.map(k => `<button class="${F.kind === k ? 'on' : ''}" role="radio" aria-checked="${F.kind === k}" data-a="fbkind" data-v="${k}">${k}</button>`).join('')}</div>
         <p class="hint" style="color:var(--warm)">기도제목은 여기 쓰지 말아 주세요.</p>
         <textarea id="fb-t" class="field" rows="6" maxlength="500" placeholder="불편한 점, 바라는 점, 고마운 점 무엇이든 좋아요." aria-label="의견">${esc(F.text)}</textarea>
         <div class="row"><div><p class="label" style="margin:0">이름 밝히기</p><p class="hint" style="margin:.2em 0 0">${F.named ? namedHint : '끄면 누가 보냈는지 남기지 않아요.'}</p></div>
           <button type="button" class="switch${F.named ? ' on' : ''}" role="switch" aria-checked="${F.named}" aria-label="이름 밝히기" data-a="fbnamed"><span></span></button></div>
-        <button class="btn wide" data-a="fbsend"${S.fbBusy ? ' disabled' : ''}>${S.fbBusy ? '보내는 중…' : '보내기'}</button>
-        <p class="hint">코이데를 꾸리는 분들이 읽어요. 답장은 따로 오지 않아요.</p></section>`;
+        <button class="btn wide" data-a="fbsend"${S.fbBusy ? ' disabled' : ''}>${S.fbBusy ? '보내는 중…' : '보내기'}</button></section>`;
   }
   // 동기화 카드(디다코와 같은 모양): 제목 + 스위치, 상태 한 줄, 암호화 안내, 동작 줄. 스위치는 '연결 유지한 채 잠시 끄기'(D.vault.paused)
   const SYNC_LOCK = '<p class="sync-lock">' + ICON.lock + '<span>기록은 암호화되기 때문에 운영자도 볼 수 없어요.</span></p>';
@@ -2908,7 +2902,7 @@ button.pg-tag::before { content: ''; position: absolute; inset: -10px; }
     let rows;
     if (!communityOn()) rows = '<div class="mrow" aria-disabled="true"><span><b>코이데 공동체</b><small>곧 열려요</small></span></div>';
     else if (!CIRCLES.session) rows = CIRCLES.loaded
-      ? '<a class="mrow" ' + link + ' href="' + makeUrl + '"><span><b>코이데 공동체 만들기</b><small>함께 기도할 사람을 초대해요</small></span><span aria-hidden="true">›</span></a>'
+      ? '<a class="mrow" ' + link + ' href="' + makeUrl + '"><span><b>코이데 공동체 만들기</b></span><span aria-hidden="true">›</span></a>'
       : '<div class="mrow" aria-disabled="true"><span><b>코이데 공동체</b><small>불러오는 중이에요…</small></span></div>';
     else rows = CIRCLES.list.map(c => {
         const disabled = c.status === '요청' || c.state === '닫음';
@@ -2922,7 +2916,7 @@ button.pg-tag::before { content: ''; position: absolute; inset: -10px; }
         return disabled ? '<div class="mrow" aria-disabled="true">' + body + '</div>'
           : '<a class="mrow" ' + link + ' href="' + circleUrl(c.id) + '">' + body + '<span class="mrow-end">' + asks + '<span aria-hidden="true">›</span></span></a>';
       }).join('') + (CIRCLES.places > 0
-        ? '<a class="mrow" ' + link + ' href="' + makeUrl + '"><span><b>코이데 공동체 만들기</b><small>함께 기도할 사람을 초대해요</small></span><span aria-hidden="true">›</span></a>'
+        ? '<a class="mrow" ' + link + ' href="' + makeUrl + '"><span><b>코이데 공동체 만들기</b></span><span aria-hidden="true">›</span></a>'
         : '<div class="mrow" aria-disabled="true"><span><b>코이데 공동체 만들기</b><small>세 곳이 다 찼어요</small></span></div>');
     return '<section class="card mrows" id="my-groups">' + rows + '</section>'
       + (old.length ? '<section class="card mrows"><p class="label">예전 모임</p>' + old.map(g =>
@@ -2973,7 +2967,6 @@ button.pg-tag::before { content: ''; position: absolute; inset: -10px; }
     const n = Object.keys(M.sel).filter(k => M.sel[k]).length;
     return `<div class="sheet-back" data-a="mvclose"><section class="sheet" role="dialog" aria-modal="true" aria-labelledby="mv-t" data-stop>${head}
       <p class="plain"><b>${esc(M.name)}</b>${M.left != null ? ' · ' + koidePlaces.dday(M) : ''}${M.endsAt ? ' (' + dayLabel(M.endsAt) + '까지)' : ''}</p>
-      <p class="hint">남기고 싶은 기도제목을 골라 코이데 노트로 옮길 수 있어요.</p>
       ${M.list.length ? `<div class="row" style="justify-content:flex-start;gap:12px"><button class="link quiet" data-a="mvall" data-v="1">전체 선택</button><button class="link quiet" data-a="mvall" data-v="0">전체 해제</button></div>
       ${by.map(g => `<p class="label" style="margin:.4em 0 0">${g.own ? '내 기도제목' : esc(g.who) + ' 님의 기도제목'}</p>${g.rows.map(([x, i]) => `<button class="mrow" role="checkbox" aria-checked="${!!M.sel[i]}" data-a="mvtog" data-v="${i}"><span><b>${M.sel[i] ? '☑' : '☐'} ${esc(x.text)}</b><small>${esc(x.target && x.target !== '나' ? x.target + ' · ' : '')}${esc(x.month || '')}</small></span></button>`).join('')}`).join('')}`
         : '<p class="hint">옮길 기도제목이 아직 없어요.</p>'}
@@ -2984,10 +2977,9 @@ button.pg-tag::before { content: ''; position: absolute; inset: -10px; }
     const P = places();
     const opts = P ? [...(P.room ? [['', P.room, '우리 소그룹']] : []), ...P.groups.map(g => [g.id, g.name, '모임' + (g.role === '모임장' ? ' · 모임장' : '')])] : [];
     return `<div class="sheet-back" data-a="shareclose"><section class="sheet" role="dialog" aria-modal="true" aria-labelledby="sh-t" data-stop>
-      <h2 id="sh-t">어디에 나눌까요?</h2><p class="plain"><span class="tag">${esc(targetName(i.target))}</span>${esc(i.text)}</p>
-      <p class="hint">고른 곳의 "내 기도" 쓰기 칸에 옮겨 적어요. 거기서 대상별로 정리하기 → 공개 범위를 고르고 추가해야 나눠져요. 노트의 기도제목은 그대로 남아요.</p>
+      <h2 id="sh-t">어디에 나눌까요?${KoideTip.btn('고른 곳의 "내 기도" 쓰기 칸에 옮겨 적어요. 거기서 대상별로 정리하기 → 공개 범위를 고르고 추가해야 나눠져요. 노트의 기도제목은 그대로 남아요.', '어디에 나눌까요')}</h2><p class="plain"><span class="tag">${esc(targetName(i.target))}</span>${esc(i.text)}</p>
       ${opts.length ? opts.map(([id, n, sub]) => `<button class="mrow" data-a="shareto" data-v="${esc(id)}"><span><b>${esc(n)}</b><small>${sub}</small></span></button>`).join('')
-        : `<a class="mrow" style="text-decoration:none;color:inherit" href="index.html${DEMO_LINK ? '?demo&connect' : '?connect'}"><span><b>코이데 교회 들어가기</b><small>교회 코드가 있으면 우리 교회와 함께 기도해요</small></span></a>`}
+        : `<a class="mrow" style="text-decoration:none;color:inherit" href="index.html${DEMO_LINK ? '?demo&connect' : '?connect'}"><span><b>코이데 교회 들어가기</b></span></a>`}
       <div class="row" style="justify-content:flex-end"><button class="btn ghost" data-a="shareclose">취소</button></div></section></div>`;
   }
   function vaultSheet() {
@@ -3003,7 +2995,6 @@ button.pg-tag::before { content: ''; position: absolute; inset: -10px; }
         <textarea class="field" id="vs-w" rows="2" autocapitalize="none" autocomplete="off" spellcheck="false" placeholder="낱말 6개 (붙여 넣어도 돼요)" aria-label="복구용 낱말" required>${esc(V.w || '')}</textarea>
         <input class="field" id="vs-a" type="password" minlength="6" maxlength="100" autocomplete="new-password" placeholder="새 비밀번호 (6글자 넘게)" aria-label="새 비밀번호" required>
         <input class="field" id="vs-b" type="password" maxlength="100" autocomplete="new-password" placeholder="한 번 더" aria-label="새 비밀번호 한 번 더" required>
-        <p class="hint">숫자와 글자를 섞으면 더 안전해요.</p>
         ${err}${btns('열고 정하기')}
       </form><button type="button" class="link" data-a="vrecback" style="align-self:flex-start">‹ 비밀번호로 열기</button></section></div>`;
     return `<div class="sheet-back" data-a="vclose"><section class="sheet" role="dialog" aria-modal="true" aria-labelledby="vs-t" data-stop>
@@ -3012,9 +3003,8 @@ button.pg-tag::before { content: ''; position: absolute; inset: -10px; }
       <form data-f="${make ? 'vcreate' : 'vunlock'}" style="display:flex;flex-direction:column;gap:8px">
         <input class="field" id="vs-a" type="password" minlength="6" maxlength="100" autocomplete="${make ? 'new-password' : 'current-password'}" placeholder="비밀번호 (6글자 넘게)" aria-label="비밀번호" required>
         ${make ? '<input class="field" id="vs-b" type="password" maxlength="100" autocomplete="new-password" placeholder="한 번 더" aria-label="비밀번호 한 번 더" required>' : ''}
-        ${make ? '<p class="hint">숫자와 글자를 섞으면 더 안전해요.</p>' : ''}
         ${err}
-        ${make ? '<p class="notice"><b>운영하는 사람도 열 수 없어요.</b> 비밀번호를 정하면 다음 화면에 복구용 낱말(6개)이 나와요. 잊었을 때를 위해 꼭 보관해 두세요.</p>' : ''}
+        ${make ? '<p class="notice"><b>운영하는 사람도 열 수 없어요.</b> 다음 화면의 복구용 낱말 6개를 꼭 보관해 두세요.</p>' : ''}
         ${btns(make ? '정하고 동기화하기' : '열기')}
       </form>${make ? '' : V.remote.rwrap ? '<button type="button" class="link" data-a="vrecmode" style="align-self:flex-start">비밀번호를 잊었어요 › 복구용 낱말로 열기</button>' : '<p class="hint">비밀번호를 잊었어요 › 복구용 낱말을 만들지 않았다면 되살릴 수 없어요.</p>'}</section></div>`;
   }
@@ -3026,7 +3016,6 @@ button.pg-tag::before { content: ''; position: absolute; inset: -10px; }
       <ol aria-label="복구용 낱말 6개" style="list-style:none;margin:0;padding:0;display:grid;grid-template-columns:1fr 1fr;gap:8px">${R.words.map((w, i) => `<li style="background:var(--surface-2);border-radius:12px;padding:.6em .7em;font-family:var(--f-display);font-size:1.3em;font-weight:600;user-select:all;-webkit-user-select:all"><small style="font-family:var(--f-body);font-size:.55em;font-weight:500;color:var(--ink-2);margin-right:.5em">${i + 1}</small>${esc(w)}</li>`).join('')}</ol>
       <p class="plain">비밀번호를 잊었을 때 이 낱말로 노트를 열어요. 사진으로 찍거나 카톡 나에게 보내 두세요. 운영하는 사람도 다시 알려 드릴 수 없어요.</p>
       <div class="row" style="justify-content:flex-start;flex-wrap:wrap">${navigator.share ? '<button class="btn small ghost" data-a="recshare">보내기</button>' : ''}<button class="btn small ghost" data-a="reccopy">복사하기</button></div>
-      ${navigator.share ? '<p class="hint">보내기를 누르고 카카오톡 나에게 보내 두면 편해요.</p>' : ''}
       <div class="row" style="justify-content:flex-end"><button class="btn" data-a="recdone">보관했어요</button></div></section></div>`;
   }
   // 연결된 기기의 카드에서 복구용 낱말을 (새로) 만든다. 이 기기에 둔 진짜 열쇠를 쓰니 비밀번호는 다시 묻지 않는다
@@ -3080,7 +3069,6 @@ button.pg-tag::before { content: ''; position: absolute; inset: -10px; }
           : '<textarea class="field" id="kc-w" rows="2" autocapitalize="none" autocomplete="off" spellcheck="false" placeholder="낱말 6개 (붙여 넣어도 돼요)" aria-label="복구용 낱말" required></textarea>'}
         <input class="field" id="kc-a" type="password" minlength="6" maxlength="100" autocomplete="new-password" placeholder="새 비밀번호 (6글자 넘게)" aria-label="새 비밀번호" required>
         <input class="field" id="kc-b" type="password" maxlength="100" autocomplete="new-password" placeholder="한 번 더" aria-label="새 비밀번호 한 번 더" required>
-        <p class="hint">숫자와 글자를 섞으면 더 안전해요.</p>
         <p class="hint" id="kc-err" style="color:var(--warm)" role="alert"></p>
         <div class="row" style="justify-content:flex-end"><button type="button" class="btn ghost" data-a="kcclose">취소</button><button class="btn" type="submit" id="kc-go">${change ? '바꾸기' : '열고 정하기'}</button></div>
       </form>`);
@@ -3151,7 +3139,7 @@ button.pg-tag::before { content: ''; position: absolute; inset: -10px; }
     return `<div class="sheet-back" data-a="doneclose"><section class="sheet" role="dialog" aria-modal="true" aria-labelledby="dn-t" data-stop>
       <h2 id="dn-t">이 기도제목을 마칠까요?</h2><p class="plain"><span class="tag">${esc(targetName(i.target))}</span>${esc(i.text)}</p>
       <div class="seg" role="radiogroup" aria-label="어떻게 마칠까요">${[['answer', '응답받았어요'], ['leave', '맡겨 둘게요']].map(([k, l]) => `<button class="${(S.doneHow || 'answer') === k ? 'on' : ''}" role="radio" aria-checked="${(S.doneHow || 'answer') === k}" data-a="donehow" data-v="${k}">${l}</button>`).join('')}</div>
-      ${(S.doneHow || 'answer') === 'answer' ? '<label class="label" for="dn-note">어떻게 응답하셨나요? (감사 기록으로 남아요)</label><textarea class="field" id="dn-note" maxlength="1000" placeholder="한 줄이어도 좋아요"></textarea>' : '<p class="hint">하나님께 맡겨 두고 마쳐요. 돌아보기의 마친 기도에 남고, 언제든 다시 기도할 수 있어요.</p>'}
+      ${(S.doneHow || 'answer') === 'answer' ? '<label class="label" for="dn-note">어떻게 응답하셨나요? (감사 기록으로 남아요)</label><textarea class="field" id="dn-note" maxlength="1000" placeholder="한 줄이어도 좋아요"></textarea>' : '<p class="hint">마친 기도는 돌아보기에 남고, 언제든 다시 기도할 수 있어요.</p>'}
       <div class="row" style="justify-content:flex-end"><button class="btn ghost" data-a="doneclose">취소</button><button class="btn" data-a="doneok">마치기</button></div></section></div>`;
   }
   function psHtml() {
