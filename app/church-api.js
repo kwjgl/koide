@@ -1,11 +1,12 @@
 // 코이데 교회 층(Supabase)의 응답을 코이데 교회 화면(index.html)이 아는 옛 Apps Script 모양으로 바꾼다. koinonia-api.js와 같은 모양.
-// CHURCH_BACKEND가 'supabase'일 때만 index.html이 부른다(app/config.js, docs/setup.md 13~20장). 서버 함수는 supabase/009_church_setup.sql~018_church_move.sql.
+// CHURCH_BACKEND가 'supabase'일 때만 index.html이 부른다(app/config.js, docs/setup.md 13~20장). 서버 함수는 supabase/009_church_setup.sql~019_church_marry.sql.
 //   start·me → church_me(+church_invite_open·church_depts·church_month) · opsJoin → church_admin_accept 뒤 church_me · opsInvite → church_admin_invite · opsRemove → church_admin_remove
 //   opsCtx → church_ops_ctx · church → church_overview · deptSave → church_dept_save · deptClose·deptReopen → church_dept_state
 //   saveGroup → church_group_name · roster → church_roster · rosterSave(addRoom·renameRoom·dropRoom) → church_room_save
 //   rosterSave(addPerson·addPeople·role·unlink) → church_person_add·people_add·roster_role·unlink
 //   rosterSave(move·leave·unleave·admin) → church_roster_move·leave·unleave·admin(017) · 편성 모양에는 이번 달에 뺀 가정(left ← church_roster_left)을 붙인다
 //   부서 옮기기(018): deptFind → church_dept_find · moveDept → church_dept_move · moveUndo → church_dept_move_undo · 편성 모양에는 이번 달에 옮긴 가정(moves ← church_move_recent)도 붙인다
+//   결혼 합치기(019): marrySave·marryPreview·marryUndo → church_marry_save·preview·undo · beforeMarriage(결혼 전 기록) → church_before_marriage · 편성 모양에는 이번 달에 합친 가정(marries ← church_marry_recent)도 붙인다
 //   churchPeek → church_peek · churchJoin → church_join · churchLeave → church_leave
 //   requestLink → church_link_pick·name·new · cancelLink → church_link_cancel · month → church_month · rooms → church_depts
 //   pending·approve·reject·approveAll·unlink → church_pending·decide·approve_all·unlink · ops·inviteRenew → church_invites·church_invite_renew
@@ -21,7 +22,7 @@
 //   연도 개편(016): reorg·reorgSave·reorgCancel → church_reorg·church_reorg_save·church_reorg_cancel(관리 화면의 부서)
 //   logout → KoideSb.signOut(로그인 세션을 끊는다)
 // 옛 응답과 다른 곳: ① opsRemove·approve·reject·unlink의 body.kakaoId는 이제 관리자·연결 요청·연결 줄의 id(uuid)다(화면은 data-v를 그대로 넘긴다)
-//   ② usage·surveyState·tourSeen은 빈 모양으로, beforeMarriage(결혼 전 기록, ⑥-2b)는 빈 목록으로 달랜다. marrySave·marryPreview·marryUndo(결혼 합치기, ⑥-2b)는 '아직 쓸 수 없어요'
+//   ② usage·surveyState·tourSeen은 빈 모양으로 달랜다
 //   ③ rosterSave의 pilotRoom(시범 중, 화면에서 숨김)과 표에 없는 액션(주제 흐름·주제 사전·기록 지우기 요청 등)은 '아직 쓸 수 없어요' 오류(화면은 토스트로 알린다)
 //   ④ 이번 달(church_month)은 일부러 덜 보낸다: 다른 가정 카드에 손봄 상태(status)·자녀 이름이 없고, 받는 가정 한 줄(received.n)은 가정 수가 아니라 0·1·of 세 단계다.
 //     serve·together는 빈 배열, shift·news는 null, eraseReq·room.pilot은 false, me.survey는 ''(화면은 CHURCHSB 갈래에서 견딘다)
@@ -29,12 +30,13 @@ window.koideChurchApi = (() => {
   const SOON = '교회 새 서버에서는 아직 쓸 수 없는 기능이에요. 곧 열려요.';
   const err = (code, message) => ({ code, message });
   const rpc = (name, args) => window.KoideSb.rpc(name, args || {});
-  // 편성 모양(rooms가 있는 것)에 이번 달에 뺀 가정(left)·이번 달에 옮겨 온 가정(moves) 목록(되돌리기용)을 붙인다. 고친 뒤에 읽고, 목록을 못 받아도 편성은 그대로 보여 준다
+  // 편성 모양(rooms가 있는 것)에 이번 달에 뺀 가정(left)·옮겨 온 가정(moves)·합친 가정(marries) 목록(되돌리기용)을 붙인다. 고친 뒤에 읽고, 목록을 못 받아도 편성은 그대로 보여 준다
   const withLeft = async (d, p) => {
     const r = await p;
     if (!r || !Array.isArray(r.rooms)) return r;
-    const [left, moves] = await Promise.all([rpc('church_roster_left', { p_dept: d }).catch(() => []), rpc('church_move_recent', { p_dept: d }).catch(() => [])]);
-    return Object.assign(r, { left: Array.isArray(left) ? left : [], moves: Array.isArray(moves) ? moves : [] });
+    const [left, moves, marries] = await Promise.all([rpc('church_roster_left', { p_dept: d }).catch(() => []), rpc('church_move_recent', { p_dept: d }).catch(() => []),
+      rpc('church_marry_recent', { p_dept: d }).catch(() => [])]);
+    return Object.assign(r, { left: Array.isArray(left) ? left : [], moves: Array.isArray(moves) ? moves : [], marries: Array.isArray(marries) ? marries : [] });
   };
   const need = (v, what) => { if (!v) throw err('bad', what + ' 정보가 없어요. 화면을 다시 열어 주세요.'); return v; };
   // 기도제목 id: 저장 전 임시 id('new…')나 모르는 값은 서버에 보내지 않고 옛 서버와 같은 글로 알린다
@@ -136,7 +138,8 @@ window.koideChurchApi = (() => {
       case 'reorgCancel': return rpc('church_reorg_cancel', { p_dept: need(dept, '부서') });
       case 'endStaff': return rpc('church_staff_end', { p_dept: need(dept, '부서'), p_household: need(body.familyId, '교역자') });
       case 'myExport': return rpc('church_my_export');
-      case 'beforeMarriage': return { before: [] };
+      // 결혼 전 기록(지난 기록 맨 아래): 서버가 본인 연결의 옛 가정 것만 돌려준다
+      case 'beforeMarriage': return rpc('church_before_marriage');
       // 부서 옮기기(018): 받는 부서 관리자가 한다. 처리한 뒤에는 보던 부서의 편성을 읽는다(받는 부서가 아닌 부서를 보고 있을 수도 있다)
       case 'deptFind': return rpc('church_dept_find', { p_q: String(body.q || '') });
       case 'moveDept': {
@@ -146,6 +149,18 @@ window.koideChurchApi = (() => {
       }
       case 'moveUndo': {
         await rpc('church_dept_move_undo', { p_household: need(body.familyId, '가정') });
+        return dept ? withLeft(dept, rpc('church_roster', { p_dept: dept })) : { ok: true };
+      }
+      // 결혼해서 가정 합치기(019): 새 가정이 들어갈 부서의 관리자가 한다. 처리한 뒤에는 보던 부서의 편성을 읽는다
+      case 'marrySave': {
+        const r = await rpc('church_marry_save', { p_old: Array.isArray(body.famIds) ? body.famIds : [], p_new_person: String(body.newPerson || ''), p_name: String(body.name || ''), p_room: need(body.roomId, '사랑방'),
+          p_confirmed: !!body.confirmed, p_inherit: body.inherit !== false, p_carry: body.carry !== false, p_links: (Array.isArray(body.links) ? body.links : []).map(x => ({ link: x.kakaoId, to: x.to || '' })) });
+        const d = dept || r.deptId;
+        return withLeft(d, rpc('church_roster', { p_dept: d }));
+      }
+      case 'marryPreview': return rpc('church_marry_preview', { p_household: need(body.familyId, '가정') });
+      case 'marryUndo': {
+        await rpc('church_marry_undo', { p_household: need(body.familyId, '가정') });
         return dept ? withLeft(dept, rpc('church_roster', { p_dept: dept })) : { ok: true };
       }
       case 'opsJoin': {
