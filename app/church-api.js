@@ -1,5 +1,5 @@
 // 코이데 교회 층(Supabase)의 응답을 코이데 교회 화면(index.html)이 아는 옛 Apps Script 모양으로 바꾼다. koinonia-api.js와 같은 모양.
-// CHURCH_BACKEND가 'supabase'일 때만 index.html이 부른다(app/config.js, docs/setup.md 13~20장). 서버 함수는 supabase/009_church_setup.sql~020_church_changes.sql.
+// CHURCH_BACKEND가 'supabase'일 때만 index.html이 부른다(app/config.js, docs/setup.md 13~20장). 서버 함수는 supabase/009_church_setup.sql~022_church_ops.sql.
 //   start·me → church_me(+church_invite_open·church_depts·church_month) · opsJoin → church_admin_accept 뒤 church_me · opsInvite → church_admin_invite · opsRemove → church_admin_remove
 //   opsCtx → church_ops_ctx · church → church_overview · deptSave → church_dept_save · deptClose·deptReopen → church_dept_state
 //   saveGroup → church_group_name · roster → church_roster · rosterSave(addRoom·renameRoom·dropRoom) → church_room_save
@@ -8,6 +8,8 @@
 //   부서 옮기기(018): deptFind → church_dept_find · moveDept → church_dept_move · moveUndo → church_dept_move_undo · 편성 모양에는 이번 달에 옮긴 가정(moves ← church_move_recent)도 붙인다
 //   결혼 합치기(019): marrySave·marryPreview·marryUndo → church_marry_save·preview·undo · beforeMarriage(결혼 전 기록) → church_before_marriage · 편성 모양에는 이번 달에 합친 가정(marries ← church_marry_recent)도 붙인다
 //   변경 기록(020): changes → church_changes(부서 관리자는 그 부서, 교회 관리자의 all은 교회 전체. 줄의 되돌리기는 marryUndo·moveUndo가 받는다)
+//   앱 상태·새 달·인수인계·의견함(022): ops → church_invites + church_ops_view(초대 링크와 한 응답으로 합침) · openMonth·handover → church_open_month·church_handover
+//     feedbackRead → church_feedback_read · sendFeedback → church_feedback_send · church(교회 전체)의 앱 상태·알약은 church_overview가 이제 진짜 값을 보낸다
 //   churchPeek → church_peek · churchJoin → church_join · churchLeave → church_leave
 //   requestLink → church_link_pick·name·new · cancelLink → church_link_cancel · month → church_month · rooms → church_depts
 //   pending·approve·reject·approveAll·unlink → church_pending·decide·approve_all·unlink · ops·inviteRenew → church_invites·church_invite_renew
@@ -38,6 +40,16 @@ window.koideChurchApi = (() => {
     const [left, moves, marries] = await Promise.all([rpc('church_roster_left', { p_dept: d }).catch(() => []), rpc('church_move_recent', { p_dept: d }).catch(() => []),
       rpc('church_marry_recent', { p_dept: d }).catch(() => [])]);
     return Object.assign(r, { left: Array.isArray(left) ? left : [], moves: Array.isArray(moves) ? moves : [], marries: Array.isArray(marries) ? marries : [] });
+  };
+  // 운영 화면(022): 초대 링크(church_invites)와 앱 상태·의견함(church_ops_view)을 옛 opsView_ 한 응답 모양으로 합친다(view가 있으면 그 응답을 쓴다).
+  //   서버 SQL이 022보다 옛 번호면(함수가 없음) 초대 링크는 그대로 보이고 앱 상태는 version이 빈 글('옛 번호')로 온다 → 화면이 "SQL을 더 넣어 주세요"를 알린다
+  const opsWith = async (d, view) => {
+    const invites = await rpc('church_invites', { p_dept: d });
+    try { return Object.assign({ invites }, view || await rpc('church_ops_view', { p_dept: d })); }
+    catch (e) {
+      if (e && e.code === 'bad' && /받지 못했어요/.test(e.message)) return { invites, version: '', month: { month: '', opened: null, carried: 0, waiting: 0 }, errors: { n: 0, last: '', kinds: [] }, admins: 2, handover: '', privacy: null, feedback: null, opsList: null };
+      throw e;
+    }
   };
   const need = (v, what) => { if (!v) throw err('bad', what + ' 정보가 없어요. 화면을 다시 열어 주세요.'); return v; };
   // 기도제목 id: 저장 전 임시 id('new…')나 모르는 값은 서버에 보내지 않고 옛 서버와 같은 글로 알린다
@@ -228,8 +240,17 @@ window.koideChurchApi = (() => {
       case 'approve': case 'reject': return rpc('church_decide', { p_link: need(body.kakaoId, '요청'), p_ok: body.action === 'approve', p_dept: dept });
       case 'approveAll': return rpc('church_approve_all', { p_links: body.kakaoIds || [], p_dept: dept });
       case 'unlink': return rpc('church_unlink', { p_link: need(body.kakaoId, '연결'), p_dept: dept });
-      case 'ops': return { invites: await rpc('church_invites', { p_dept: need(dept, '부서') }) };
-      case 'inviteRenew': return { invites: await rpc('church_invite_renew', { p_dept: need(dept, '부서'), p_room: body.roomId || null }) };
+      case 'ops': return opsWith(need(dept, '부서'));
+      case 'inviteRenew': {
+        const d = need(dept, '부서'), inv = await rpc('church_invite_renew', { p_dept: d, p_room: body.roomId || null });
+        return Object.assign(await opsWith(d), { invites: inv });
+      }
+      // 새 달 열기·인수인계 확인·의견 읽음(022): 서버가 앱 상태 응답(church_ops_view)을 돌려주면 초대 링크를 붙여 화면에 준다
+      case 'openMonth': { const d = need(dept, '부서'); return opsWith(d, await rpc('church_open_month', { p_dept: d })); }
+      case 'handover': { const d = need(dept, '부서'); return opsWith(d, await rpc('church_handover', { p_dept: d })); }
+      case 'feedbackRead': { const d = need(dept, '부서'); return opsWith(d, await rpc('church_feedback_read', { p_dept: d, p_id: need(body.id, '의견'), p_read: body.read !== false })); }
+      // 의견 보내기(022): 교회에 연결된 사람만. 이름 밝히기가 꺼져 있으면 서버가 가정·이름을 남기지 않는다
+      case 'sendFeedback': return rpc('church_feedback_send', { p_kind: String(body.kind || ''), p_text: String(body.text || ''), p_named: body.named === true, p_ver: String(body.ver || ''), p_width: String(body.width || '') });
       case 'churchPeek': case 'churchJoin': {
         const peek = body.action === 'churchPeek';
         const r = await rpc(peek ? 'church_peek' : 'church_join', { p_code: body.code || '' });
