@@ -3773,7 +3773,7 @@ try { const p = JSON.parse(localStorage.getItem('koide-pref') || '{}'), d = docu
       ${solo() ? '' : `<div class="kids">${mine.kids.length ? mine.kids.map((k, n) => `<span class="kid"><small>${n + 1}</small>${esc(k)}</span>`).join('') : '<span class="hint">등록한 자녀가 없어요</span>'}</div>
       ${S.famMsg ? `<p class="hint"><span class="ok">${esc(S.famMsg)}</span></p>` : ''}`}
       <p class="fam-rec"><button class="link quiet" data-act="myexport">${solo() ? '내' : '우리 가정'} 기록 내려받기</button>
-        ${CHURCHSB ? '' : S.month.eraseReq ? '<span>기록 지우기를 요청했어요</span><button class="link quiet" data-act="erasereqoff">요청 거두기</button>' : '<button class="link quiet" data-act="erasereq">기록 지우기 요청</button>'}</p></section>`; // 새 길의 기록 지우기 요청은 ⑥-3
+        ${S.month.eraseReq ? '<span>기록 지우기를 요청했어요</span><button class="link quiet" data-act="erasereqoff">요청 거두기</button>' : '<button class="link quiet" data-act="erasereq">기록 지우기 요청</button>'}</p></section>`; // 새 길의 eraseReq는 church-api.js가 church_erase_asked로 채운다(023)
     return `<section class="card"><p class="label">${solo() ? '내 정보 고치기' : '우리 가정 정보 고치기'}</p>
       <form class="plain-form" data-form="famsave">
         <label class="label" for="fi-a">${solo() ? '이름' : '남편 또는 본인 이름'}</label><input id="fi-a" class="field" value="${esc(E.a)}" required maxlength="10" autocomplete="off">
@@ -5040,7 +5040,7 @@ try { const p = JSON.parse(localStorage.getItem('koide-pref') || '{}'), d = docu
     const P = S.ops && S.ops.privacy;
     if (!P) return '';
     const X = S.eraseAsk, unit = words().one, n = privacyN();
-    const ask = (f, req) => X !== f.id ? '' : `<div class="erase-ask"><p class="plain">${esc(f.name)}의 기도제목 내용, ${solo() ? '' : '자녀 이름, '}카카오 연결을 지워요. <b>되돌릴 수 없어요.</b> 기도제목 개수와 기도한 횟수만 남아요.</p>
+    const ask = (f, req) => X !== f.id ? '' : `<div class="erase-ask"><p class="plain">${esc(f.name)}의 기도제목 내용, ${solo() ? '' : '자녀 이름, '}${KK} 연결을 지워요. <b>되돌릴 수 없어요.</b> 기도제목 개수와 기도한 횟수만 남아요.</p>
       ${f.old ? `<p class="plain">결혼 전 옛 ${unit} ${f.old}곳의 기록도 함께 지워져요.</p>` : ''}
       ${req ? `<p class="hint">지우기 전에 "더보기 › ${solo() ? '내' : '우리 가정'} 기록 내려받기"를 한 번 권해 주세요.</p>` : ''}
       <div class="actions"><button class="btn small danger" data-act="erasedo" data-v="${esc(f.id)}" data-n="${esc(f.name)}" ${S.busy ? 'disabled' : ''}>${esc(f.name)} 기록 지우기</button><button class="btn small ghost" data-act="eraseask" data-v="">그만두기</button></div></div>`;
@@ -5783,7 +5783,7 @@ try { const p = JSON.parse(localStorage.getItem('koide-pref') || '{}'), d = docu
       case 'opsopen': S.opsOpen = !(S.opsOpen !== undefined ? S.opsOpen : opsProblems().length > 0); return render();
       case 'opsmonth': case 'opshand': case 'keepfam': case 'erasedo': {
         const a = b.dataset.act;
-        if (a === 'erasedo' && !confirm(b.dataset.n + ' 기록을 지울까요? 되돌릴 수 없어요.')) return;
+        if (a === 'erasedo' && !confirm(b.dataset.n + ' 기록을 지울까요? 되돌릴 수 없어요.' + (CHURCHSB ? '\n기록을 내려받아 두었는지 먼저 확인해 주세요.' : ''))) return;
         S.busy = true; render();
         try {
           S.ops = await api(a === 'opsmonth' ? 'openMonth' : a === 'opshand' ? 'handover' : a === 'keepfam' ? 'keepFamily' : 'eraseFamily', a === 'erasedo' ? { familyId: v, name: b.dataset.n } : { familyId: v });
@@ -5955,9 +5955,9 @@ try { const p = JSON.parse(localStorage.getItem('koide-pref') || '{}'), d = docu
       case 'myexport': try { await myExportXlsx(); } catch (err) { oops(err.code === 'bad' ? { message: '서버를 새 버전으로 배포하면 내려받을 수 있어요.' } : err); } return;
       case 'erasereq': case 'erasereqoff': {
         const a = b.dataset.act;
-        if (a === 'erasereq' && !confirm(`${solo() ? '내' : '우리 가정'} 기록(기도제목, ${solo() ? '' : '자녀 이름, '}카카오 연결)을 지워 달라고 관리자에게 요청할까요?\n지우면 되돌릴 수 없고 이 앱에서도 빠져요. 먼저 기록을 내려받아 두면 좋아요.`)) return;
+        if (a === 'erasereq' && !confirm(`${solo() ? '내' : '우리 가정'} 기록(기도제목, ${solo() ? '' : '자녀 이름, '}${KK} 연결)을 지워 달라고 관리자에게 요청할까요?\n${CHURCHSB ? '지우면 되돌릴 수 없어요. 교회에는 남지만 ' + (solo() ? '내 이름' : '우리 가정') + '은 다시 골라야 해요.' : '지우면 되돌릴 수 없고 이 앱에서도 빠져요.'} 먼저 기록을 내려받아 두면 좋아요.`)) return;
         try { const r = await api(a === 'erasereq' ? 'eraseRequest' : 'eraseRequestCancel'); S.month.eraseReq = r.eraseReq; toast(r.eraseReq ? '관리자에게 요청했어요.' : '요청을 거두었어요.'); render(); }
-        catch (err) { oops(err.code === 'bad' ? { message: '서버를 새 버전으로 배포하면 요청할 수 있어요.' } : err); }
+        catch (err) { oops(err.code === 'bad' && !CHURCHSB ? { message: '서버를 새 버전으로 배포하면 요청할 수 있어요.' } : err); }
         return;
       }
       case 'admintab':
