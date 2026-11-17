@@ -31,7 +31,7 @@
 //   연도 개편(016): reorg·reorgSave·reorgCancel → church_reorg·church_reorg_save·church_reorg_cancel(관리 화면의 부서)
 //   logout → KoideSb.signOut(로그인 세션을 끊는다)
 // 옛 응답과 다른 곳: ⓪ 분석의 rooms·depts 칸 값이 null이면 가정이 3곳보다 적어서 가린 것이다(화면은 ·로 보인다) ① opsRemove·approve·reject·unlink의 body.kakaoId는 이제 관리자·연결 요청·연결 줄의 id(uuid)다(화면은 data-v를 그대로 넘긴다)
-//   ② usage·surveyState·tourSeen은 빈 모양으로 달랜다
+//   ② surveyState·tourSeen은 빈 모양으로 달랜다. usage는 앱 설정 USAGE가 'on'일 때만 서버(usage_track, 028)로 보낸다(기본 꺼짐: 아무것도 보내지 않고 {kept:true,n:0}으로 달랜다)
 //   ③ rosterSave의 pilotRoom(시범 중, 화면에서 숨김)과 표에 없는 액션은 '아직 쓸 수 없어요' 오류(화면은 토스트로 알린다)
 //      주제 숫자(027)는 "우리 가정만" 글을 세지 않고, 지운 가정·빈 글·교역자 글도 세지 않는다(옛 길은 세었다)
 //   ④ 이번 달(church_month)은 일부러 덜 보낸다: 다른 가정 카드에 손봄 상태(status)·자녀 이름이 없고, 받는 가정 한 줄(received.n)은 가정 수가 아니라 0·1·of 세 단계다.
@@ -95,9 +95,35 @@ window.koideChurchApi = (() => {
       throw e;
     }
   }
+  // 사용 통계(028, 운영 이용 통계 006): 앱이 모아 둔 행동({at,e,d})을 church.* 이름으로 바꿔 보낸다. **기본 꺼짐** — 앱 설정 USAGE가 'on'이 아니면
+  //  서버로 아무것도 보내지 않는다(서버 스위치 usage_track도 'on'이어야 저장하는 이중 잠금. docs/setup.md 32장). 켜진 때에도 보내는 것은 이름·기기 폭·홈 화면 앱 여부뿐이다:
+  //  행동의 부가 값(d: 역할·글자 수 등), 기기 번호(body.device), 시각, 교회·가정·사랑방·이름·글은 서버로 가는 길이 없다. 모르는 행동은 버린다.
+  const USAGE_NAME = Object.assign(Object.create(null), { '열기': 'church.open', '기도제목 저장': 'church.item-save', '기도하기 시작': 'church.pray-start', '기도하기 마침': 'church.pray-done',
+    '모임 모드 시작': 'church.meet-start', '모임 모드 마침': 'church.meet-done', '내려받기': 'church.export' });
+  const USAGE_STEP = ['login', 'dept', 'room', 'family', 'consent', 'wait'];
+  const USAGE_SCREEN = Object.assign(Object.create(null), { '표': 'church.view-table', '지난 기록': 'church.view-history', '검색': 'church.view-search', '분석': 'church.view-analysis',
+    '교회 분석': 'church.view-analysis', '한 해 앨범': 'church.view-album', '사용법': 'church.view-help' });
+  function usageName(x) {
+    const e = x && x.e, d = (x && x.d) || {};
+    if (e === '첫접속 단계') return d.step === 'app' ? (d.done ? 'church.step-app' : '') : USAGE_STEP.indexOf(d.step) >= 0 ? 'church.step-' + d.step : '';
+    if (e === '화면 보기') return USAGE_SCREEN[String(d.screen)] || '';
+    return USAGE_NAME[String(e)] || '';
+  }
+  async function usageSend(list) {
+    if (!Array.isArray(list) || !list.length || !(window.KOIDE_CONFIG && window.KOIDE_CONFIG.USAGE === 'on')) return { kept: true, n: 0 };
+    const w = window.innerWidth || 0, device = w < 640 ? 'phone' : w < 1024 ? 'tablet' : 'pc';
+    const standalone = !!((window.matchMedia && matchMedia('(display-mode: standalone)').matches) || navigator.standalone === true);
+    const evs = list.map(usageName).filter(Boolean).map(ev => ({ app: 'koide', ev, device, standalone }));
+    let n = 0;
+    for (let i = 0; i < evs.length; i += 50) {
+      try { n += Number(await rpc('usage_track', { events: evs.slice(i, i + 50) })) || 0; }
+      catch (e) { return n ? { kept: true, n } : { kept: false, n: 0 }; }   // 첫 묶음이 막히면 다음에 다시. 앞 묶음이 나갔으면 겹쳐 세지 않게 나머지는 버린다
+    }
+    return { kept: true, n };
+  }
   async function start(body) {
     let r = await rpc('church_me');
-    const usage = body.events ? { kept: true, n: 0 } : undefined;
+    const usage = body.events ? await usageSend(body.events) : undefined;
     let join;
     if (!r.link && body.join) {
       const o = await openJoin(body.join);
@@ -289,7 +315,7 @@ window.koideChurchApi = (() => {
       }
       case 'churchLeave': return rpc('church_leave');
       case 'logout': await window.KoideSb.signOut(); return {};
-      case 'usage': return { kept: true, n: 0 };
+      case 'usage': return usageSend(body.events);
       case 'surveyState': return { survey: body.survey || {} };
       case 'tourSeen': return { seen: false };
       default: throw err('bad', SOON);
