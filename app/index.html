@@ -4110,6 +4110,8 @@ try { const p = JSON.parse(localStorage.getItem('koide-pref') || '{}'), d = docu
     const band = sumBand([[esc(grp()), R0 ? R0.rooms.length : null], [solo() ? '사람' : '가정', R0 ? ppl.length : null],
       hasLink ? ['연결', R0 ? ppl.filter(p => p.linked > 0).length : null] : null, ['승인 대기', S.pending ? S.pending.requests.length : null]]);
     if (CHURCHSB) {
+      // 분석 탭(⑦b, 026): 옛 길과 같은 함수·같은 모양. 밴드(요약 띠)는 분석 탭에서는 그리지 않는다
+      if (tab === 'analysis') return head + analysisView();
       const P = S.pending, O = S.ops, reqs = P ? P.requests : [], I = O && O.invites, pv = O && O.privacy, nf = fbNew();
       // 할 일: 연결 신청·앱 상태(문제가 있을 때)·개인정보 요청과 새 의견(개수가 달린 한 줄). 옛 길 관리 탭과 같은 모양이다(접는 키는 오른쪽 '앱과 요청'과 같다)
       const todoRows = S.op ? [
@@ -4124,7 +4126,7 @@ try { const p = JSON.parse(localStorage.getItem('koide-pref') || '{}'), d = docu
         fold('changes', '변경 기록', '', changesCard(false)),
         nf ? '' : fold('feedback', '의견함', O ? (O.feedback && O.feedback.length ? `받은 의견 ${O.feedback.length}` : '아직 없어요') : '불러오는 중…', feedbackCard())
       ].join('') : '';
-      return `${head.replace(/<div class="seg2 admin-seg"[\s\S]*<\/div>\s*$/, '')}${band}
+      return `${head}${band}
       <div class="two-col"><div class="col">
         ${todo ? `<p class="more-h">할 일</p>${todo}` : ''}
         <p class="more-h">편성</p>${rosterCard()}
@@ -4306,12 +4308,11 @@ try { const p = JSON.parse(localStorage.getItem('koide-pref') || '{}'), d = docu
     document.body.appendChild(a); a.click(); a.remove(); setTimeout(() => URL.revokeObjectURL(url), 10000);
     track('내려받기', { range: which === 'survey' ? '설문' : '의견' });
   }
-  async function loadChurchAnalysis() { S.canErr = ''; try { S.can = await api('churchAnalysis'); } catch (e) { S.can = null; S.canErr = e.code === 'bad' ? '서버를 새 버전으로 배포하면 볼 수 있어요.' : e.message; } render(); }
+  async function loadChurchAnalysis() { S.canErr = ''; try { S.can = await api('churchAnalysis'); } catch (e) { S.can = null; S.canErr = CHURCHSB ? (/받지 못했어요/.test(e.message) ? '서버 SQL을 026번까지 넣으면 볼 수 있어요.' : e.message) : e.code === 'bad' ? '서버를 새 버전으로 배포하면 볼 수 있어요.' : e.message; } render(); }
   function churchView() {
-    const ct = CHURCHSB ? 'home' : S.churchTab || 'home';
+    const ct = CHURCHSB ? (S.churchTab === 'analysis' ? 'analysis' : 'home') : S.churchTab || 'home';   // 새 길에는 '의견과 설문' 탭이 없다(설문·교회 전체 의견 표는 만들지 않는다)
     let head = `${S.home ? `<button class="link back" data-act="tab" data-v="more">${ICON.chevL}더보기</button>` : ''}<div class="page-top"><div><p class="eyebrow">교회 관리자</p><h1>교회 전체</h1></div>${HUB ? '<a class="link" href="./?appadmin">앱 관리자 보기 ›</a>' : ''}</div>
-      <div class="seg2 admin-seg three" role="tablist" aria-label="교회 전체">${[['home', '한눈에'], ['survey', '의견과 설문'], ['analysis', '분석']].map(([k, l]) => `<button class="${ct === k ? 'on' : ''}" role="tab" aria-selected="${ct === k}" data-act="churchtab" data-v="${k}">${l}</button>`).join('')}</div>`;
-    if (CHURCHSB) head = head.replace(/\s*<div class="seg2 admin-seg three"[\s\S]*<\/div>\s*$/, '');
+      <div class="seg2 admin-seg${CHURCHSB ? '' : ' three'}" role="tablist" aria-label="교회 전체">${(CHURCHSB ? [['home', '한눈에'], ['analysis', '분석']] : [['home', '한눈에'], ['survey', '의견과 설문'], ['analysis', '분석']]).map(([k, l]) => `<button class="${ct === k ? 'on' : ''}" role="tab" aria-selected="${ct === k}" data-act="churchtab" data-v="${k}">${l}</button>`).join('')}</div>`;
     if (ct === 'analysis') return head + analysisView(true);
     if (ct === 'survey') return head + surveyAdminView();
     const C = S.church;
@@ -4697,7 +4698,7 @@ try { const p = JSON.parse(localStorage.getItem('koide-pref') || '{}'), d = docu
   // 관리 화면을 열 때 함께 불러오는 것
   //  전환 화면이 닫히는 때를 알 수 있게, 처음 오는 자료가 다 오면 끝나는 약속을 돌려준다
   function loadAdmin() {
-    if (CHURCHSB) return Promise.allSettled([api('pending').then(r => { S.pending = r; render(); }, oops), loadRoster(), ...(S.op ? [loadOps(), loadReorg()] : [])]);
+    if (CHURCHSB) return Promise.allSettled([api('pending').then(r => { S.pending = r; render(); }, oops), loadRoster(), ...(S.op ? [loadOps(), loadReorg()] : []), ...(S.adminTab === 'analysis' ? [loadAnalysis()] : [])]);
     const all = [api('pending').then(r => { S.pending = r; render(); }, oops), loadReorg(), loadOps(), loadRoster()];
     if (S.adminTab === 'analysis') all.push(loadAnalysis());
     return Promise.allSettled(all);
@@ -5217,13 +5218,13 @@ try { const p = JSON.parse(localStorage.getItem('koide-pref') || '{}'), d = docu
       <section class="card an-sec"><p class="label">${church ? '교회 전체' : '우리 공동체'} · 달마다 흐름</p>
         <div class="an-pair">${mini('앱에 들어온 ' + who, 'visit')}${mini('손보거나 확인한 ' + who, 'edit')}</div></section>
     </div><div class="an-side">
-      <section class="card an-sec"><p class="label">${esc(g)}별 기도제목 손봄·확인 <small class="hint">%</small></p>
+      <section class="card an-sec"><p class="label">${esc(g)}별 기도제목 손봄·확인 <small class="hint">%</small>${CHURCHSB ? KoideTip.btn('가정이 3곳보다 적은 칸은 숫자를 가려서 ·로 보여요.', '손봄·확인 숫자') : ''}</p>
         ${rows.length ? `<div class="an-scroll"><table class="an-heat"><thead><tr><th></th>${A.months.map(mm => `<th scope="col">${mon(mm)}</th>`).join('')}</tr></thead><tbody>${roomRows}</tbody></table></div>` : `<p class="hint">아직 ${esc(g)}이 없어요.</p>`}
         <p class="hint">진할수록 많이 손본 달이에요.</p></section>
       <section class="card an-sec"><p class="label">기도하는 때 <small class="hint">최근 4주</small></p>
         ${tsum ? `<div class="an-scroll"><table class="an-heat an-time"><thead><tr><th></th>${AN_SLOT.map(x => `<th scope="col">${x}</th>`).join('')}</tr></thead><tbody>${timeRows}</tbody></table></div>` : '<p class="hint">최근 4주에 누른 "기도했어요"가 아직 없어요.</p>'}
         <p class="hint">새벽 5~9시 · 오전 ~12시 · 오후 ~18시 · 저녁 ~22시 · 밤</p></section>
-      ${topicFlowCard(A.topics || { err: '서버 코드를 새 버전으로 배포하면 볼 수 있어요.' })}
+      ${CHURCHSB && !A.topics ? '' : topicFlowCard(A.topics || { err: '서버 코드를 새 버전으로 배포하면 볼 수 있어요.' })}
     </div></div>${church ? appStatsView(A.app) : ''}`;
   }
   // 분석 ② 앱 개선(만드는 쪽): 교회 전체 합계. 계속 쓰는지, 어디서 막히는지, 무엇을 쓰는지
@@ -5284,7 +5285,7 @@ try { const p = JSON.parse(localStorage.getItem('koide-pref') || '{}'), d = docu
   }
   async function loadAnalysis() {
     S.anErr = '';
-    try { S.an = await api('analysis'); } catch (e) { S.an = null; S.anErr = e.code === 'bad' ? '서버 코드를 새 버전으로 배포하면 볼 수 있어요.' : e.message; }
+    try { S.an = await api('analysis'); } catch (e) { S.an = null; S.anErr = CHURCHSB ? (/받지 못했어요/.test(e.message) ? '서버 SQL을 026번까지 넣으면 볼 수 있어요.' : e.message) : e.code === 'bad' ? '서버 코드를 새 버전으로 배포하면 볼 수 있어요.' : e.message; }
     render();
   }
 
