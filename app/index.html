@@ -1400,6 +1400,7 @@ try { const p = JSON.parse(localStorage.getItem('koide-pref') || '{}'), d = docu
   const KOINONIA_ID = new URLSearchParams(location.search).get('c');
   const KOINONIA = !!KOINONIA_ID;
   const KOINONIA_DEMO = KOINONIA && new URLSearchParams(location.search).has('demo');
+  const PRIVACY_URL = 'https://koinobia.com/privacy/'; // 개인정보 처리방침: 글은 대문 웹사이트 한 곳에만 두고 앱에는 링크만 둔다(2026-11-17)
   // 데모: 서버 주소가 없거나, 주소 뒤에 ?demo를 붙였을 때. 지어낸 예시 데이터로 리더·회원 화면을 눌러 본다
   //  ?demo로 연 데모는 실제 앱과 같은 주소라서, 로그인·화면 기억을 따로 둬서 실제 로그인을 건드리지 않는다
   //  따라 하기 연습 페이지(?tutorial)도 데모 서버를 쓴다: 연습한 것이 진짜 데이터에 섞이지 않고, 서버와 이야기하지 않는다
@@ -2213,6 +2214,7 @@ try { const p = JSON.parse(localStorage.getItem('koide-pref') || '{}'), d = docu
       <footer class="wl-name-note">
         <div class="ab-words" aria-hidden="true"><span><b>코이노니아</b><i>κοινωνία</i><small>교제</small></span><em>+</em><span><b>데에시스</b><i>δέησις</i><small>간구</small></span></div>
         <p class="hint">우리를 잇는 끈은 성령의 교통하심(코이노니아)이에요.</p>
+        <p class="hint"><a class="link quiet" href="${PRIVACY_URL}" target="_blank" rel="noopener">개인정보 처리방침</a></p>
       </footer>
     </div>`,
     // 자율 모임 초대 링크로 왔을 때(교회 연결과 상관없이)
@@ -3858,7 +3860,7 @@ try { const p = JSON.parse(localStorage.getItem('koide-pref') || '{}'), d = docu
             ${KoidePilot.moreRows()}
           </section>
           ${S.grp && !KOINONIA ? '' : `<p class="more-h">코이데</p>
-          <section class="card mrows">${row('tab', 'about', '코이데 소개', '')}${row('tab', 'help', '사용법', '')}${row('tab', 'feedback', '의견 보내기', '')}</section>`}
+          <section class="card mrows">${row('tab', 'about', '코이데 소개', '')}${row('tab', 'help', '사용법', '')}${row('tab', 'feedback', '의견 보내기', '')}<a class="mrow" style="text-decoration:none;color:inherit;border-top:1px solid var(--line)" href="${PRIVACY_URL}" target="_blank" rel="noopener"><span><b>개인정보 처리방침</b></span>${ICON.chevR}</a></section>`}
           ${KOINONIA ? '' : '<button class="link quiet more-out" data-act="logout">이 기기에서 로그아웃</button>'}
         </div></div>`;
   }

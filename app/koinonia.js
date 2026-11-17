@@ -1,6 +1,7 @@
 // 코이데 공동체 만들기·로그인·초대 신청. 공동체 안의 기도 화면은 index.html 모임 모드를 쓴다.
 (() => {
   const CFG=window.KOIDE_CONFIG||{}, q=new URLSearchParams(location.search);
+  const PRIVACY_URL='https://koinobia.com/privacy/'; // 개인정보 처리방침: 글은 대문 웹사이트 한 곳에만 둔다(2026-11-17)
   const scene=q.get('as')||'', explicitDemo=q.has('demo'), demo=explicitDemo||!CFG.SUPABASE_URL;
   const S={page:'load',list:[],places:3,info:null,peek:null,invite:q.get('invite')||'',sheet:'',busy:false,
     error:'',msg:'',months:3,limited:false,loginProviders:['kakao'],id:'',joinError:'',sheetError:'',draftName:'',draftPerson:'',draftJoin:'',navigating:false};
@@ -73,7 +74,7 @@
     return '<div class="card" style="max-width:460px;margin:45px auto;align-items:center;text-align:center">'+
       '<span class="wl-mark" aria-hidden="true">'+KNOT+'</span><h1>코이데 공동체</h1>'+
       '<div style="width:100%;display:grid;gap:8px">'+S.loginProviders.map(k=>'<button class="btn sso-btn sso-'+k+'" data-a="oauth" data-v="'+k+'">'+(window.KoideSb.logos[k]||'')+
-      '<span>'+({kakao:'카카오로 계속',google:'Google로 계속',apple:'Apple로 계속'}[k]||'로그인')+'</span></button>').join('')+'</div>'+error()+'</div>';
+      '<span>'+({kakao:'카카오로 계속',google:'Google로 계속',apple:'Apple로 계속'}[k]||'로그인')+'</span></button>').join('')+'</div>'+error()+'<p class="hint"><a href="'+PRIVACY_URL+'" target="_blank" rel="noopener" style="color:inherit">개인정보 처리방침</a></p></div>';
   }
   const inviteUrl=t=>location.origin+location.pathname+(demo?'?demo&invite=':'?invite=')+encodeURIComponent(t);
   function invite(){
