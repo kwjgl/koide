@@ -1,5 +1,5 @@
 // 코이데 교회 층(Supabase)의 응답을 코이데 교회 화면(index.html)이 아는 옛 Apps Script 모양으로 바꾼다. koinonia-api.js와 같은 모양.
-// CHURCH_BACKEND가 'supabase'일 때만 index.html이 부른다(app/config.js, docs/setup.md 13~20장). 서버 함수는 supabase/009_church_setup.sql~024_church_dept_erase.sql.
+// CHURCH_BACKEND가 'supabase'일 때만 index.html이 부른다(app/config.js, docs/setup.md 13~20장). 서버 함수는 supabase/009_church_setup.sql~025_church_export_log.sql.
 //   start·me → church_me(+church_invite_open·church_depts·church_month) · opsJoin → church_admin_accept 뒤 church_me · opsInvite → church_admin_invite · opsRemove → church_admin_remove
 //   opsCtx → church_ops_ctx · church → church_overview · deptSave → church_dept_save · deptClose·deptReopen → church_dept_state · deptErase(닫은 부서 기록 모두 지우기, 024) → church_dept_erase
 //   saveGroup → church_group_name · roster → church_roster · rosterSave(addRoom·renameRoom·dropRoom) → church_room_save
@@ -12,6 +12,7 @@
 //     feedbackRead → church_feedback_read · sendFeedback → church_feedback_send · church(교회 전체)의 앱 상태·알약은 church_overview가 이제 진짜 값을 보낸다
 //   개인정보 요청(023): eraseRequest·eraseRequestCancel → church_erase_request(가정이 기록 지우기 요청·거둠) · eraseState·month의 eraseReq ← church_erase_asked
 //     eraseFamily(기록 지우기, 되돌릴 수 없음)·keepFamily(1년 더 두기) → church_erase_family·church_keep_family(운영 화면 모양으로 돌려받아 초대 링크를 붙인다) · ops의 privacy는 church_ops_view가 채운다
+//   엑셀 접근 기록(025): logExport(사랑방 엑셀·의견 표를 내려받기 전에 부른다. 실패하면 화면이 내려받지 않는다) → church_log_export
 //   churchPeek → church_peek · churchJoin → church_join · churchLeave → church_leave
 //   requestLink → church_link_pick·name·new · cancelLink → church_link_cancel · month → church_month · rooms → church_depts
 //   pending·approve·reject·approveAll·unlink → church_pending·decide·approve_all·unlink · ops·inviteRenew → church_invites·church_invite_renew
@@ -258,6 +259,8 @@ window.koideChurchApi = (() => {
       case 'openMonth': { const d = need(dept, '부서'); return opsWith(d, await rpc('church_open_month', { p_dept: d })); }
       case 'handover': { const d = need(dept, '부서'); return opsWith(d, await rpc('church_handover', { p_dept: d })); }
       case 'feedbackRead': { const d = need(dept, '부서'); return opsWith(d, await rpc('church_feedback_read', { p_dept: d, p_id: need(body.id, '의견'), p_read: body.read !== false })); }
+      // 엑셀·의견 표 내려받기 접근 기록(025): 파일을 만들기 전에 부른다. kind는 'room'(사랑방 엑셀)·'feedback'(의견 표). 개수(n)만 보내고 글은 보내지 않는다
+      case 'logExport': return rpc('church_log_export', { p_kind: String(body.kind || ''), p_lead: !!body.lead, p_n: Number(body.n) || 0, p_dept: body.kind === 'feedback' ? (body.dept || null) : null });
       // 의견 보내기(022): 교회에 연결된 사람만. 이름 밝히기가 꺼져 있으면 서버가 가정·이름을 남기지 않는다
       case 'sendFeedback': return rpc('church_feedback_send', { p_kind: String(body.kind || ''), p_text: String(body.text || ''), p_named: body.named === true, p_ver: String(body.ver || ''), p_width: String(body.width || '') });
       // 개인정보 요청(023): 가정이 기록 지우기를 요청·거둠, 관리자가 지우기·1년 더 두기. 지운 기록은 되돌릴 수 없다(서버가 가정 이름을 한 번 더 확인한다)

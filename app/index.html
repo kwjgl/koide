@@ -3118,6 +3118,7 @@ try { const p = JSON.parse(localStorage.getItem('koide-pref') || '{}'), d = docu
         ${E.period === 'pick' ? (months.length ? `<div class="chips">${months.map(m => `<button class="chip-btn${E.month === m ? ' on' : ''}" data-act="exmonth" data-v="${m}" aria-pressed="${E.month === m}">${monthLabel(m, M.month)}</button>`).join('')}</div>` : `<p class="hint">${S.hist ? '아직 지난 달 기록이 없어요. 다음 달부터 고를 수 있어요.' : '달 목록을 불러오는 중…'}</p>`) : ''}
         ${isLead() ? `<label class="check"><input type="checkbox" data-act="exlead"${E.lead ? ' checked' : ''}> 리더·목사님 항목도 넣기</label>${E.lead ? '<p class="hint warn-text">파일은 다른 사람에게 전달될 수 있어요. 꼭 필요할 때만 넣으세요.</p>' : ''}` : ''}
         <p class="hint">"${words().only}" 항목은 어떤 경우에도 파일에 넣지 않아요.${E.period === 'year' ? ' 1년 치는 달마다 탭 하나씩 나눠 담아요.' : ''}</p>
+        ${CHURCHSB ? '<p class="hint">내려받으면 교회 관리자의 기록에 남아요.</p>' : ''}
         <div class="actions"><button class="btn" data-act="exdo" ${S.busy ? 'disabled' : ''}>${S.busy ? '만드는 중…' : '내려받기 (.xlsx)'}</button></div></div>`;
     return `<section class="card print-area"><div class="row"><p class="label">${esc(M.room.name)} · ${M.month.slice(0, 4)}년 ${Number(M.month.slice(5))}월</p>
         <span class="actions print-hide"><button class="link" data-act="exprint">인쇄</button><button class="btn small ghost" data-act="exopen" aria-expanded="${E.open}">엑셀로 내려받기</button></span></div>
@@ -3134,6 +3135,15 @@ try { const p = JSON.parse(localStorage.getItem('koide-pref') || '{}'), d = docu
       rows: fams.map(f => ({ name: f.name, lines: f.items.filter(i => !i.pending && (i.scope === 'room' || (lead && i.scope === 'leader')))
         .map(i => '[' + i.target + '] ' + i.text + (i.scope === 'leader' ? ' (리더·목사님)' : '') + (i.ended ? ' (마침)' : '')) })) };
   }
+  // 새 서버만(025): 내려받기 전에 접근 기록을 먼저 남긴다. 어떤 이유로든 못 남기면 내려받지 않고(false) 이유를 토스트로 알린다
+  async function logExport(body) {
+    try { await api('logExport', body); return true; }
+    catch (e) {
+      const m = (e && e.message) || '';
+      toast(/받지 못했어요/.test(m) ? '서버 SQL을 025번까지 넣으면 내려받을 수 있어요.' : e && e.code === 'busy' ? m : '기록을 남기지 못해 내려받지 않았어요.' + (e && e.code === 'bad' && m ? ' ' + m : ''));
+      return false;
+    }
+  }
   async function exportXlsx() {
     const M = S.month, E = S.ex, lead = isLead() && E.lead, sheets = [];
     if (E.period === 'this') sheets.push(sheetOf(M.room.name, M.month, M.families, lead));
@@ -3147,6 +3157,7 @@ try { const p = JSON.parse(localStorage.getItem('koide-pref') || '{}'), d = docu
         sheets.push(sheetOf(H.room, m, H.families, lead));
       }
     }
+    if (CHURCHSB && !await logExport({ kind: 'room', lead, n: sheets.length })) return false;
     const url = URL.createObjectURL(xlsxBlob(sheets)), a = document.createElement('a'), first = sheets[0], last = sheets[sheets.length - 1];
     a.href = url; a.download = first.room + ' ' + (sheets.length > 1 ? first.month.slice(0, 4) + '년 ' + Number(first.month.slice(5)) + '~' + Number(last.month.slice(5)) + '월' : first.month.slice(0, 4) + '년 ' + Number(first.month.slice(5)) + '월') + ' 기도제목.xlsx';
     document.body.appendChild(a); a.click(); a.remove(); setTimeout(() => URL.revokeObjectURL(url), 10000);
@@ -4707,7 +4718,7 @@ try { const p = JSON.parse(localStorage.getItem('koide-pref') || '{}'), d = docu
   // 닫은 부서 기록 모두 지우기 확인(새 서버만): 되돌릴 수 없다는 경고는 그 자리에 한 문장, 부서 이름을 그대로 써야 지워진다. 옛 서버는 prompt로 같은 확인을 한다
   function deptEraseAsk(d) {
     return `<div class="erase-ask"><p class="plain">${esc(d.name)}의 기도제목 내용·자녀 이름·${KK} 연결을 모두 지우고, <b>되돌릴 수 없어요.</b></p>
-      <p class="hint">이 부서의 "함께 기도해요" 글도 지워요. 기도제목 개수와 받은 기도한 횟수만 남고, 지금 다른 부서에도 있는 가정은 지우지 않아요. 지우기 전에 그 부서 화면에서 엑셀로 내려받아 두세요.</p>
+      <p class="hint">이 부서의 "함께 기도해요" 글도 지워요. 기도제목 개수와 받은 기도한 횟수만 남고, 지금 다른 부서에도 있는 가정은 지우지 않아요. 지우기 전에 부서를 잠깐 다시 열어 사랑방마다 리더가 엑셀로 내려받아 둔 뒤 다시 닫아 주세요. 백업도 먼저 받아 두세요.</p>
       <label class="label" for="dp-erase-n">지우려면 부서 이름 "${esc(d.name)}"을 그대로 써 주세요</label>
       <input id="dp-erase-n" class="field" maxlength="12" placeholder="부서 이름" autocomplete="off">
       <div class="actions"><button class="btn small danger" data-act="dperasedo" data-v="${esc(d.id)}" data-n="${esc(d.name)}" ${S.busy ? 'disabled' : ''}>기록 모두 지우기</button><button class="btn small ghost" data-act="dperaseask" data-v="">그만두기</button></div></div>`;
@@ -5134,6 +5145,20 @@ try { const p = JSON.parse(localStorage.getItem('koide-pref') || '{}'), d = docu
   }
   const keepFb = () => { const t = $('#fb-t'); if (t && S.fb) S.fb.text = t.value; };
   const fbNew = () => S.ops && S.ops.feedback ? S.ops.feedback.filter(x => !x.read).length : 0;
+  // 새 서버만(025): 이 부서 의견함의 의견을 CSV 표로 내려받는다(보낸 날·종류·내용·보낸 사람·읽음). 접근 기록을 먼저 남기고, 못 남기면 내려받지 않는다.
+  //  surveyCsv는 옛 길 코드라 고치지 않고, 칸 글을 감싸는 규칙(앞에 BOM, = + - @로 시작하면 앞에 ', 따옴표 두 배)만 같게 쓴다. 보낸 사람은 이름을 밝힌 의견에만 있다
+  async function feedbackCsv() {
+    const L = S.ops && S.ops.feedback;
+    if (!L || !L.length) return toast('내려받을 의견이 없어요.');
+    if (!await logExport({ kind: 'feedback', n: L.length, dept: S.op })) return;
+    const cell = v => { let t = v === null || v === undefined ? '' : String(v); if (/^[=+\-@]/.test(t)) t = "'" + t; return '"' + t.replace(/"/g, '""') + '"'; };
+    const rows = [['보낸 날', '종류', '내용', '보낸 사람', '읽음'], ...L.map(x => [(t => isNaN(t) ? '' : `${t.getFullYear()}-${String(t.getMonth() + 1).padStart(2, '0')}-${String(t.getDate()).padStart(2, '0')}`)(new Date(x.at)), x.kind, x.text, x.who || '', x.read ? '읽음' : '새 의견'])];
+    const blob = new Blob(['\ufeff' + rows.map(r => r.map(cell).join(',')).join('\r\n')], { type: 'text/csv;charset=utf-8' }), url = URL.createObjectURL(blob), a = document.createElement('a'), d = new Date();
+    a.href = url; a.download = `코이데 의견 ${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}.csv`;
+    document.body.appendChild(a); a.click(); a.remove(); setTimeout(() => URL.revokeObjectURL(url), 10000);
+    track('내려받기', { range: '의견' });
+    toast('의견 표를 내려받았어요.');
+  }
   function feedbackCard() {
     const L = S.ops && S.ops.feedback;
     if (!L) return '';
@@ -5143,7 +5168,8 @@ try { const p = JSON.parse(localStorage.getItem('koide-pref') || '{}'), d = docu
       ${L.length ? `<div class="mchips" role="radiogroup" aria-label="의견 종류">${[['', '전체'], ...FB_KINDS.map(x => [x, x])].map(([v, l]) => `<button class="mchip${k === v ? ' on' : ''}" role="radio" aria-checked="${k === v}" data-act="fbfilter" data-v="${v}">${l}</button>`).join('')}</div>
         <ul class="fb-list">${more.map(x => `<li class="${x.read ? '' : 'new'}"><div class="row"><span class="fb-kind">${esc(x.kind)}</span><small>${day(x.at)}${x.who ? ' · ' + esc(x.who) : ''}</small></div>
           <p class="plain">${esc(x.text)}</p>${x.read ? '' : `<button class="link" data-act="fbread" data-v="${esc(x.id)}">읽음</button>`}</li>`).join('') || '<li class="hint">이 종류의 의견은 아직 없어요.</li>'}</ul>
-        ${list.length > 5 ? `<button class="link" data-act="fbmore">${S.fbMore ? '접기' : `${list.length - 5}개 더 보기`}</button>` : ''}` : '<p class="hint">아직 받은 의견이 없어요. 회원은 더보기 › 의견 보내기에서 보내요.</p>'}</section>`;
+        ${list.length > 5 ? `<button class="link" data-act="fbmore">${S.fbMore ? '접기' : `${list.length - 5}개 더 보기`}</button>` : ''}
+        ${CHURCHSB ? `<div class="row"><button class="link" data-act="fbcsv" ${S.busy ? 'disabled' : ''}>의견 표로 내려받기</button></div><p class="hint">내려받으면 교회 관리자의 기록에 남아요.</p>` : ''}` : '<p class="hint">아직 받은 의견이 없어요. 회원은 더보기 › 의견 보내기에서 보내요.</p>'}</section>`;
   }
   // 우리 가정 기록 내려받기: 해마다 탭 하나, 달마다 한 줄. "우리 가정만" 항목도 넣는다(우리 가정 것이라서)
   async function myExportXlsx() {
@@ -5972,6 +5998,7 @@ try { const p = JSON.parse(localStorage.getItem('koide-pref') || '{}'), d = docu
       }
       case 'fbfilter': S.fbFilter = v; return render();
       case 'fbmore': S.fbMore = !S.fbMore; return render();
+      case 'fbcsv': S.busy = true; render(); try { await feedbackCsv(); } catch (err) { oops(err); } S.busy = false; return render();
       case 'fbread': try { S.ops = await api('feedbackRead', { id: v }); render(); } catch (err) { oops(err); } return;
       case 'myexport': try { await myExportXlsx(); } catch (err) { oops(err.code === 'bad' ? { message: '서버를 새 버전으로 배포하면 내려받을 수 있어요.' } : err); } return;
       case 'erasereq': case 'erasereqoff': {
@@ -6072,7 +6099,7 @@ try { const p = JSON.parse(localStorage.getItem('koide-pref') || '{}'), d = docu
       case 'exmonth': S.ex.month = v; return render();
       case 'exlead': S.ex.lead = b.checked; return render();
       case 'exprint': return window.print();
-      case 'exdo': S.busy = true; render(); try { await exportXlsx(); track('내려받기', { range: S.ex.period || 'this' }); } catch (err) { oops(err); } S.busy = false; return render();
+      case 'exdo': S.busy = true; render(); try { if (await exportXlsx() !== false) track('내려받기', { range: S.ex.period || 'this' }); } catch (err) { oops(err); } S.busy = false; return render();
       case 'itemtoggle': S.openItems.has(id) ? S.openItems.delete(id) : S.openItems.add(id); return render();
       case 'famtoggle': S.openFams.has(id) ? S.openFams.delete(id) : S.openFams.add(id); return render();
       case 'servetoggle': S.serveOpen = !S.serveOpen; return render();
