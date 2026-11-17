@@ -1,5 +1,5 @@
 // 코이데 교회 층(Supabase)의 응답을 코이데 교회 화면(index.html)이 아는 옛 Apps Script 모양으로 바꾼다. koinonia-api.js와 같은 모양.
-// CHURCH_BACKEND가 'supabase'일 때만 index.html이 부른다(app/config.js, docs/setup.md 13~20장). 서버 함수는 supabase/009_church_setup.sql~022_church_ops.sql.
+// CHURCH_BACKEND가 'supabase'일 때만 index.html이 부른다(app/config.js, docs/setup.md 13~20장). 서버 함수는 supabase/009_church_setup.sql~023_church_privacy.sql.
 //   start·me → church_me(+church_invite_open·church_depts·church_month) · opsJoin → church_admin_accept 뒤 church_me · opsInvite → church_admin_invite · opsRemove → church_admin_remove
 //   opsCtx → church_ops_ctx · church → church_overview · deptSave → church_dept_save · deptClose·deptReopen → church_dept_state
 //   saveGroup → church_group_name · roster → church_roster · rosterSave(addRoom·renameRoom·dropRoom) → church_room_save
@@ -10,6 +10,8 @@
 //   변경 기록(020): changes → church_changes(부서 관리자는 그 부서, 교회 관리자의 all은 교회 전체. 줄의 되돌리기는 marryUndo·moveUndo가 받는다)
 //   앱 상태·새 달·인수인계·의견함(022): ops → church_invites + church_ops_view(초대 링크와 한 응답으로 합침) · openMonth·handover → church_open_month·church_handover
 //     feedbackRead → church_feedback_read · sendFeedback → church_feedback_send · church(교회 전체)의 앱 상태·알약은 church_overview가 이제 진짜 값을 보낸다
+//   개인정보 요청(023): eraseRequest·eraseRequestCancel → church_erase_request(가정이 기록 지우기 요청·거둠) · eraseState·month의 eraseReq ← church_erase_asked
+//     eraseFamily(기록 지우기, 되돌릴 수 없음)·keepFamily(1년 더 두기) → church_erase_family·church_keep_family(운영 화면 모양으로 돌려받아 초대 링크를 붙인다) · ops의 privacy는 church_ops_view가 채운다
 //   churchPeek → church_peek · churchJoin → church_join · churchLeave → church_leave
 //   requestLink → church_link_pick·name·new · cancelLink → church_link_cancel · month → church_month · rooms → church_depts
 //   pending·approve·reject·approveAll·unlink → church_pending·decide·approve_all·unlink · ops·inviteRenew → church_invites·church_invite_renew
@@ -28,7 +30,7 @@
 //   ② usage·surveyState·tourSeen은 빈 모양으로 달랜다
 //   ③ rosterSave의 pilotRoom(시범 중, 화면에서 숨김)과 표에 없는 액션(주제 흐름·주제 사전·기록 지우기 요청 등)은 '아직 쓸 수 없어요' 오류(화면은 토스트로 알린다)
 //   ④ 이번 달(church_month)은 일부러 덜 보낸다: 다른 가정 카드에 손봄 상태(status)·자녀 이름이 없고, 받는 가정 한 줄(received.n)은 가정 수가 아니라 0·1·of 세 단계다.
-//     serve·together는 빈 배열, shift·news는 null, eraseReq·room.pilot은 false, me.survey는 ''(화면은 CHURCHSB 갈래에서 견딘다)
+//     serve·together는 빈 배열, shift·news는 null, room.pilot은 false, me.survey는 ''(화면은 CHURCHSB 갈래에서 견딘다). eraseReq는 church_erase_asked가 채운다(023)
 window.koideChurchApi = (() => {
   const SOON = '교회 새 서버에서는 아직 쓸 수 없는 기능이에요. 곧 열려요.';
   const err = (code, message) => ({ code, message });
@@ -108,7 +110,10 @@ window.koideChurchApi = (() => {
     return depts;
   }
   // 이번 달 화면(011). 화면이 쓰는 키는 서버가 모두 보낸다. 목록이 비어 오면 빈 배열로만 채운다
-  async function monthOf() { return Object.assign({ families: [], serve: [], together: [] }, await rpc('church_month')); }
+  //   eraseReq(우리 가정이 기록 지우기를 요청했나, 023)는 church_month가 안 주므로 나란히 물어 붙인다. 못 받으면(옛 SQL 번호) false
+  const erasedAsk = () => rpc('church_erase_asked').then(r => !!(r && r.eraseReq), () => false);
+  const withAsk = async p => { const [m, ask] = await Promise.all([p, erasedAsk()]); if (m && typeof m === 'object') m.eraseReq = ask; return m; };
+  async function monthOf() { return withAsk(rpc('church_month').then(m => Object.assign({ families: [], serve: [], together: [] }, m))); }
   async function handle(body) {
     const dept = body.ops || null; // 운영 모드로 보는 부서 id(index.html의 api()가 S.op를 ops로 붙인다)
     switch (body.action) {
@@ -126,7 +131,7 @@ window.koideChurchApi = (() => {
       case 'deleteItem': return rpc('church_item_del', { p_item: itemId(body.id) });
       case 'confirmSame': return rpc('church_confirm_same');
       case 'pray': return rpc('church_pray', { p_household: need(body.familyId, '가정') });
-      case 'saveFamily': return rpc('church_family_save', { p_a: body.a || '', p_b: body.b || '', p_kids: (Array.isArray(body.kids) ? body.kids : []).map(String) });
+      case 'saveFamily': return withAsk(rpc('church_family_save', { p_a: body.a || '', p_b: body.b || '', p_kids: (Array.isArray(body.kids) ? body.kids : []).map(String) }));
       case 'tourDone': return rpc('church_tour_done');
       // 지난 기록(012). 그때 함께한 사람에게만 보이는 규칙은 서버가 지킨다. roomId(교역자의 사랑방 고르기)는 ⑤에서 쓴다
       case 'history': return staffNow ? rpc('church_staff_history', { p_period: body.month || null, p_room: body.roomId || null })
@@ -251,6 +256,11 @@ window.koideChurchApi = (() => {
       case 'feedbackRead': { const d = need(dept, '부서'); return opsWith(d, await rpc('church_feedback_read', { p_dept: d, p_id: need(body.id, '의견'), p_read: body.read !== false })); }
       // 의견 보내기(022): 교회에 연결된 사람만. 이름 밝히기가 꺼져 있으면 서버가 가정·이름을 남기지 않는다
       case 'sendFeedback': return rpc('church_feedback_send', { p_kind: String(body.kind || ''), p_text: String(body.text || ''), p_named: body.named === true, p_ver: String(body.ver || ''), p_width: String(body.width || '') });
+      // 개인정보 요청(023): 가정이 기록 지우기를 요청·거둠, 관리자가 지우기·1년 더 두기. 지운 기록은 되돌릴 수 없다(서버가 가정 이름을 한 번 더 확인한다)
+      case 'eraseRequest': case 'eraseRequestCancel': return rpc('church_erase_request', { p_on: body.action === 'eraseRequest' });
+      case 'eraseState': return rpc('church_erase_asked');
+      case 'eraseFamily': { const d = need(dept, '부서'); return opsWith(d, await rpc('church_erase_family', { p_dept: d, p_household: need(body.familyId, '가정'), p_name: String(body.name || '') })); }
+      case 'keepFamily': { const d = need(dept, '부서'); return opsWith(d, await rpc('church_keep_family', { p_dept: d, p_household: need(body.familyId, '가정') })); }
       case 'churchPeek': case 'churchJoin': {
         const peek = body.action === 'churchPeek';
         const r = await rpc(peek ? 'church_peek' : 'church_join', { p_code: body.code || '' });
