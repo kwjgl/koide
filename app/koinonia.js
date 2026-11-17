@@ -4,7 +4,7 @@
   const PRIVACY_URL='https://koinobia.com/privacy/'; // 개인정보 처리방침: 글은 대문 웹사이트 한 곳에만 둔다(2026-11-17)
   const scene=q.get('as')||'', explicitDemo=q.has('demo'), demo=explicitDemo||!CFG.SUPABASE_URL;
   const S={page:'load',list:[],places:3,info:null,peek:null,invite:q.get('invite')||'',sheet:'',busy:false,
-    error:'',msg:'',months:3,limited:false,loginProviders:['kakao'],id:'',joinError:'',sheetError:'',draftName:'',draftPerson:'',draftJoin:'',navigating:false};
+    error:'',msg:'',months:3,limited:false,loginProviders:['kakao'],id:'',joinError:'',ok:false,sheetError:'',draftName:'',draftPerson:'',draftJoin:'',navigating:false};
   const $=id=>document.getElementById(id), esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;','\'':'&#39;'}[c]));
   const nick=()=>{try{return localStorage.getItem('koide-koinonia-name')||'';}catch(e){return '';}};
   const remember=s=>{try{localStorage.setItem('koide-koinonia-name',s);}catch(e){}};
@@ -27,7 +27,9 @@
   const days=d=>{if(!d)return null;const a=String(d).slice(0,10),today=ymd(nday());return Math.round((Date.parse(a+'T00:00:00Z')-Date.parse(today+'T00:00:00Z'))/864e5)};
   const endText=e=>e?', '+krday(e)+'까지':'';
   const finishText=e=>e?krday(e)+'까지':'끝나는 날 없이 계속해요';
-  const agree=()=>'<ul class="agree hint"><li>공동체 사람들과 함께 보기 때문에 암호화되지 않고 서버에 저장돼요.</li><li>모임에서 나가면 내 기도제목도 지워져요.</li></ul>';
+  const agree=()=>'<ul class="agree hint"><li>공동체 사람들과 함께 보기 때문에 암호화되지 않고 서버에 저장돼요.</li><li>모임에서 나가면 내 기도제목도 지워져요.</li><li>서버는 서울에 있고, 운영사(Supabase)는 미국 회사예요.</li></ul>';
+  // 민감정보 동의 체크칸(필수)과 처리방침 링크. 체크해야 [동의하고 …] 단추가 눌린다(개인정보 처리방침 2장, 2026-11-17)
+  const consent=()=>'<label class="check" style="margin:16px 0;word-break:keep-all"><input type="checkbox" id="sens-ok"'+(S.ok?' checked':'')+'><span>신앙 정보(민감정보) 처리에 동의해요 (필수)<a href="'+PRIVACY_URL+'" target="_blank" rel="noopener" style="color:inherit;display:block;margin-top:4px;font-size:.88em">개인정보 처리방침 전체 보기</a></span></label>';
   const banner=()=>demo?'<div class="demo-banner"><span>데모 모드예요</span><button class="link" data-a="reset">데모 데이터 지우기</button></div>':'';
   const KNOT = '<svg class="ic" viewBox="0 0 16 16" aria-hidden="true"><path d="M.5 8.5h3.8c1.2 0 1.7-1.5 1.7-2.8C6 3.7 7.3 2.5 9 2.5s3 1.2 3 3.1-1.8 3.1-4 3.3"/><path d="M5.6 10.1C7.6 9 9.6 8.5 15.5 8.5"/></svg>';
   // 화면 설정: 노트·교회와 같은 곳(koide-pref)에 둔다
@@ -82,8 +84,8 @@
       '<p class="hint" style="margin-bottom:18px">모임장 '+esc(p.lead||'')+(p.endsOn?', '+esc(krday(p.endsOn))+'까지':'')+'</p>'+
       '<div class="card">'+agree()+'<label class="label" for="join-person">공동체에서 쓸 내 이름</label>'+
       '<input class="field" id="join-person" maxlength="10" autocomplete="name" value="'+esc(S.draftJoin||nick())+'" placeholder="이름을 적어 주세요">'+
-      (S.joinError?'<p class="error">'+esc(S.joinError)+'</p>':'')+
-      '<button class="btn" data-a="join"'+(S.busy?' disabled':'')+'>동의하고 함께하기 신청</button>'+
+      (S.joinError?'<p class="error">'+esc(S.joinError)+'</p>':'')+consent()+
+      '<button class="btn" data-a="join"'+(S.busy||!S.ok?' disabled':'')+'>동의하고 함께하기 신청</button>'+
       '<button class="link" data-a="back">나중에 할게요</button></div>';
   }
   const waiting=()=>'<div class="card"><h1>함께하기를 신청했어요</h1><p>모임장이 승인하면 들어갈 수 있어요.</p><button class="btn ghost" data-a="back">코이데 노트로</button></div>';
@@ -103,8 +105,8 @@
       '<input class="field" id="create-person" maxlength="10" value="'+esc(S.draftPerson)+'" placeholder="이름을 적어 주세요">'+
       '<div class="row"><span>끝나는 날 정하기</span><button class="switch'+(S.limited?' on':'')+'" data-a="limit" role="switch" aria-checked="'+S.limited+'"><span></span></button></div>'+
       (S.limited?'<div class="seg">'+[1,3,6,12].map(m=>'<button data-a="months" data-v="'+m+'" class="'+(S.months===m?'on':'')+'">'+m+'개월<small>'+krday(addMonthsStr(m))+'까지</small></button>').join('')+'</div>':'')+
-      agree()+(S.sheetError?'<p class="error" role="alert">'+esc(S.sheetError)+'</p>':'')+
-      '<button class="btn wide" data-a="create"'+(S.busy?' disabled':'')+'>'+(S.busy?'만드는 중…':'동의하고 만들기')+'</button></div>';
+      agree()+(S.sheetError?'<p class="error" role="alert">'+esc(S.sheetError)+'</p>':'')+consent()+
+      '<button class="btn wide" data-a="create"'+(S.busy||!S.ok?' disabled':'')+'>'+(S.busy?'만드는 중…':'동의하고 만들기')+'</button></div>';
   }
   function render(){
     let inside='';
@@ -124,7 +126,7 @@
     const u=new URL(location.href);u.searchParams.delete('invite');history.replaceState(null,'',u.pathname+u.search+u.hash);
   }
   async function loadCreate(){
-    S.page='load';S.error='';render();
+    S.ok=false;S.page='load';S.error='';render();
     try {
       const a=await kApi('community_mine');
       S.list=a.list||[];S.places=a.places??3;S.page='create';
@@ -141,7 +143,7 @@
   }
   async function loadInvite(){
     if(!S.invite)return noteMore();
-    S.page='load';S.error='';render();
+    S.ok=false;S.page='load';S.error='';render();
     try{
       const p=await kApi('community_peek',{p_token:S.invite});S.peek=p;
       if(p.mine==='함께'){
@@ -189,6 +191,12 @@
     }catch(e){S.page='login';S.error=err(e);S.loginProviders=await window.KoideSb.providers();render();}
   }
   document.addEventListener('input',ev=>{const id=ev.target.id;if(id==='create-name')S.draftName=ev.target.value;else if(id==='create-person')S.draftPerson=ev.target.value;else if(id==='join-person')S.draftJoin=ev.target.value;});
+  // 민감정보 동의 체크칸: 값을 기억하고 [동의하고 …] 단추를 켜고 끈다(다시 그리지 않는다)
+  document.addEventListener('change',ev=>{
+    if(ev.target.id!=='sens-ok')return;
+    S.ok=ev.target.checked;
+    const b=document.querySelector('[data-a="join"],[data-a="create"]');if(b)b.disabled=!S.ok||S.busy;
+  });
   document.addEventListener('click',async ev=>{
     const b=ev.target.closest('[data-a]');
     if(S.menu&&!ev.target.closest('.menu')&&!(b&&b.dataset.a==='menu')){S.menu=null;render();if(!b)return;}
@@ -208,6 +216,7 @@
     if(a==='oauth')return busy(async()=>window.KoideSb.oauth(v));
     if(a==='reset'){(await fake()).reset();clearInvite();return q.has('new')?loadCreate():noteMore();}
     if(a==='create'){
+      if(!S.ok)return;
       const name=$v('create-name'),person=$v('create-person');
       return busy(async()=>{
       const res=await kApi('community_create',{p_name:name,p_person:person,p_months:S.limited?S.months:null});
@@ -215,6 +224,7 @@
       location.replace('index.html'+(explicitDemo?'?demo&c=':'?c=')+encodeURIComponent(res.id));
     },'sheet'); }
     if(a==='join'){
+      if(!S.ok)return;
       const person=$v('join-person');
       return busy(async()=>{
       const res=await kApi('community_join',{p_token:S.invite,p_person:person});

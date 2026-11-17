@@ -84,6 +84,8 @@ h1,h2 {font-family:var(--f-display); line-height:1.45;} h1 {font-size:1.45em; ma
 .switch span{width:20px;height:20px;border-radius:50%;background:var(--ink-2);transition:transform .15s}.switch.on{background:var(--accent-soft);border-color:var(--accent)}.switch.on span{background:var(--accent);transform:translateX(20px)}
 .seg{display:grid;grid-template-columns:repeat(4,1fr);gap:7px}.seg button{background:var(--surface);border:1px solid var(--line-strong);border-radius:10px;padding:9px 4px;cursor:pointer;font:inherit;min-height:54px}.seg button.on{background:var(--accent-soft);color:var(--accent);border-color:var(--accent)}.seg small{display:block;font-size:.72em;white-space:nowrap;margin-top:3px}
 .agree {margin:2px 0 0;padding-left:1.1em;display:flex;flex-direction:column;gap:3px;font-size:.82em;color:var(--ink-2)}.agree li{margin:0}
+.check{display:flex;align-items:flex-start;gap:.5em;font-size:.92em;cursor:pointer}
+.check input{width:1.2em;height:1.2em;flex:none;margin-top:.15em;accent-color:var(--accent)}
 .sso-btn{display:flex;align-items:center;justify-content:center;gap:10px;width:100%;}.sso-btn svg{width:24px;height:24px;flex:none}
 .sso-kakao{background:#FEE500;color:#191919;border:1px solid #FEE500}.sso-google{background:white;color:#1f1f1f;border:1px solid #dadce0}.sso-apple{background:black;color:white;border:1px solid black}
 :root[data-mode="dark"] .sso-apple{background:white;color:black;border-color:white}
