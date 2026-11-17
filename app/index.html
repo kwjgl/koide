@@ -4704,16 +4704,24 @@ try { const p = JSON.parse(localStorage.getItem('koide-pref') || '{}'), d = docu
       <button class="btn small ghost" data-act="opsinv" ${S.busy ? 'disabled' : ''}>교회 관리자 초대</button></section>`;
   }
 
+  // 닫은 부서 기록 모두 지우기 확인(새 서버만): 되돌릴 수 없다는 경고는 그 자리에 한 문장, 부서 이름을 그대로 써야 지워진다. 옛 서버는 prompt로 같은 확인을 한다
+  function deptEraseAsk(d) {
+    return `<div class="erase-ask"><p class="plain">${esc(d.name)}의 기도제목 내용·자녀 이름·${KK} 연결을 모두 지우고, <b>되돌릴 수 없어요.</b></p>
+      <p class="hint">이 부서의 "함께 기도해요" 글도 지워요. 기도제목 개수와 받은 기도한 횟수만 남고, 지금 다른 부서에도 있는 가정은 지우지 않아요. 지우기 전에 그 부서 화면에서 엑셀로 내려받아 두세요.</p>
+      <label class="label" for="dp-erase-n">지우려면 부서 이름 "${esc(d.name)}"을 그대로 써 주세요</label>
+      <input id="dp-erase-n" class="field" maxlength="12" placeholder="부서 이름" autocomplete="off">
+      <div class="actions"><button class="btn small danger" data-act="dperasedo" data-v="${esc(d.id)}" data-n="${esc(d.name)}" ${S.busy ? 'disabled' : ''}>기록 모두 지우기</button><button class="btn small ghost" data-act="dperaseask" data-v="">그만두기</button></div></div>`;
+  }
   // 부서 만들기(교회 전체를 맡은 운영 관리자)
   function deptCard() {
     if (!S.op || !S.month.me.all) return '';
     const scope = S.church && S.church.depts ? S.church.depts : (S.month.scope || []);
     const E = S.deptNew || { group: '순', unit: '개인' };
     return `<section class="card"><h2>부서${KoideTip.btn('닫은 부서는 기록이 남아서 다시 열 수 있어요. 닫은 부서 사람들은 1년이 지나면 개인정보 요청에 올라와요. 부서를 만들면 그 부서의 관리 화면으로 바로 가요.', '부서')}</h2>
-      <ul class="staff-list">${scope.map(d => `<li><div><b>${esc(d.name)}</b>${d.closed ? '<span class="own-tag">닫음</span>' : ''}</div>
-        <span class="foot-acts">${d.closed
-          ? `<button class="link" data-act="dpreopen" data-v="${esc(d.id)}" data-n="${esc(d.name)}">다시 열기</button>${CHURCHSB ? '' : `<button class="link danger" data-act="dperase" data-v="${esc(d.id)}" data-n="${esc(d.name)}">기록 모두 지우기</button>`}`
-          : `<button class="link quiet" data-act="dpclose" data-v="${esc(d.id)}" data-n="${esc(d.name)}">닫기</button>`}</span></li>`).join('')}</ul>
+      <ul class="staff-list">${scope.map(d => `<li><div><b>${esc(d.name)}</b>${d.closed ? '<span class="own-tag">닫음</span>' : ''}${CHURCHSB && d.closed && S.dpErase === d.id ? deptEraseAsk(d) : ''}</div>
+        ${CHURCHSB && S.dpErase === d.id ? '' : `<span class="foot-acts">${d.closed
+          ? `<button class="link" data-act="dpreopen" data-v="${esc(d.id)}" data-n="${esc(d.name)}">다시 열기</button><button class="link danger" data-act="${CHURCHSB ? 'dperaseask' : 'dperase'}" data-v="${esc(d.id)}" data-n="${esc(d.name)}">기록 모두 지우기</button>`
+          : `<button class="link quiet" data-act="dpclose" data-v="${esc(d.id)}" data-n="${esc(d.name)}">닫기</button>`}</span>`}</li>`).join('')}</ul>
       <p class="hint">닫으면 첫 접속 목록에서 빠지고 그 부서 사람은 들어오지 못해요.</p>
       <form class="plain-form" data-form="deptsave" style="margin-top:10px">
         <label class="label" for="dp-n">새 부서 이름</label><input id="dp-n" class="field" maxlength="12" placeholder="예) 청년부" value="${esc(E.name || '')}" autocomplete="off">
@@ -4995,8 +5003,8 @@ try { const p = JSON.parse(localStorage.getItem('koide-pref') || '{}'), d = docu
   // ── 관리 › 운영 (설계서 S7): ① 앱 상태 ② 개인정보 요청. 할 일이 있는 카드만 관리 탭 위로 올라온다 ──
   //  NEED_SERVER: 이 화면이 바라는 서버 버전(서버 VERSION 앞 날짜). 서버 코드를 고쳐 배포해야 하는 기능을 넣을 때 함께 올린다
   const NEED_SERVER = '2026-11-08';
-  //  NEED_CHURCH_SQL: 새 길(Supabase)이 바라는 서버 SQL 번호의 앞 날짜(supabase/022_church_ops.sql의 church_sql_version). SQL을 더 넣는 기능을 열 때 함께 올린다. 옛 길은 NEED_SERVER 그대로
-  const NEED_CHURCH_SQL = '2026-11-16';
+  //  NEED_CHURCH_SQL: 새 길(Supabase)이 바라는 서버 SQL 번호의 앞 날짜(supabase/024_church_dept_erase.sql의 church_sql_version). SQL을 더 넣는 기능을 열 때 함께 올린다. 옛 길은 NEED_SERVER 그대로
+  const NEED_CHURCH_SQL = '2026-11-17';
   const needVer = () => CHURCHSB ? NEED_CHURCH_SQL : NEED_SERVER;
   const OLD_SRV = () => CHURCHSB ? '서버 SQL이 옛 번호예요' : '서버가 옛 버전이에요';
   // ── 시범 설문(survey.js): 이번 달 화면이 그려진 1.5초 뒤 3·7·14일째에 팝업 카드(앱을 연 뒤 한 번만). 처음 도움말·따라 하기·기도하기·모임 모드·다른 창이 떠 있거나 관리 화면·장면 주소에서는 없다 ──
@@ -5818,6 +5826,19 @@ try { const p = JSON.parse(localStorage.getItem('koide-pref') || '{}'), d = docu
           const r = await api(a === 'dpclose' ? 'deptClose' : a === 'dpreopen' ? 'deptReopen' : 'deptErase', a === 'dperase' ? { deptId: v, name: n } : { deptId: v });
           S.me = r.me; toast(a === 'dpclose' ? '닫았어요.' : a === 'dpreopen' ? '다시 열었어요.' : `기록을 지웠어요(${r.n}곳).`);
           if (S.op === v && a !== 'dpreopen') { S.busy = false; return enterChurch(); }
+          S.month = await api('opsCtx'); if (S.tab === 'church') S.church = await api('church');
+        } catch (err) { oops(err); }
+        S.busy = false; return render();
+      }
+      case 'dperaseask': S.dpErase = v || null; return render();
+      case 'dperasedo': {   // 새 서버만: 부서 이름을 그대로 써야 지운다(서버도 한 번 더 확인한다)
+        const n = b.dataset.n, el = $('#dp-erase-n');
+        if (!el || el.value.trim() !== n) return toast('부서 이름이 맞지 않아 지우지 않았어요.');
+        S.busy = true; render();
+        try {
+          const r = await api('deptErase', { deptId: v, name: el.value });
+          S.me = r.me; S.dpErase = null; toast(`기록을 지웠어요(${r.n}곳).`);
+          if (S.op === v) { S.busy = false; return enterChurch(); }
           S.month = await api('opsCtx'); if (S.tab === 'church') S.church = await api('church');
         } catch (err) { oops(err); }
         S.busy = false; return render();
