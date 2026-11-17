@@ -778,6 +778,10 @@ button.pg-tag::before { content: ''; position: absolute; inset: -10px; }
   //  없으면 이 기기에서 그 계정으로 동기화한 노트(vault.sb가 해시)를 찾아 쓰고, 그것도 없으면 koide-note-v1:sb-해시(예전 주인 없는 노트는 여기로 옮겨 온다).
   //  ③ 둘 다 있는 기기에서 교회 자리가 비어 있고 Supabase 자리에 노트가 있으면 교회 자리로 옮기고, 둘 다 있으면 둘 다 두고 교회 자리를 쓴다
   const lsg = k => { try { return localStorage.getItem(k); } catch (e) { return null; } };
+  // 동기화를 처음 켜기 전 민감정보 동의(개인정보 처리방침 2장, 2026-11-17). 한 번 동의하면 이 기기에 기억하고 다시 묻지 않는다
+  const SYNC_OK = DEMO_LINK ? 'koide-demo-note-consent' : 'koide-note-consent';
+  let syncOkMem = false;
+  const syncAgreed = () => syncOkMem || !!lsg(SYNC_OK);
   const sbCfgOn = () => !DEMO && !TUT && CFG.NOTE_BACKEND === 'supabase' && !!CFG.SUPABASE_URL && !!CFG.SUPABASE_KEY;
   const SBH = 'koide-note-sbh', SBMAP = 'koide-note-map';
   const noteHas = k => { try { const o = JSON.parse(localStorage.getItem(k) || 'null'); return !!(o && ((o.items || []).length || (o.people || []).length || (o.prays || []).length || (o.thanks || []).length || o.name || (o.vault && o.vault.on))); } catch (e) { return localStorage.getItem(k) != null; } };
@@ -1170,7 +1174,7 @@ button.pg-tag::before { content: ''; position: absolute; inset: -10px; }
     const h = lsg(SBH); if (!h || lsg('koide-note-asked-' + h)) return;
     try {
       const r = await vaultApi('noteGet');
-      if (r && !r.none) { try { localStorage.setItem('koide-note-asked-' + h, '1'); } catch (e) { /* 다음에 또 물을 수 있다 */ } S.vsheet = { mode: 'unlock', remote: r }; render(); }
+      if (r && !r.none) { try { localStorage.setItem('koide-note-asked-' + h, '1'); } catch (e) { /* 다음에 또 물을 수 있다 */ } S.vsheet = syncAgreed() ? { mode: 'unlock', remote: r } : { mode: 'agree', next: 'unlock', remote: r }; render(); }
     } catch (e) { /* 서버가 답하지 않으면 조용히 넘어간다. 더보기 › 동기화에서 켤 수 있다 */ }
   }
   async function welcomeInit() {
@@ -2986,6 +2990,12 @@ button.pg-tag::before { content: ''; position: absolute; inset: -10px; }
   }
   function vaultSheet() {
     const V = S.vsheet; if (!V) return '';
+    // 처음 맡기기 직전의 동의: 체크해야 [동의하고 켜기]가 눌린다
+    if (V.mode === 'agree') return `<div class="sheet-back" data-a="vclose"><section class="sheet" role="dialog" aria-modal="true" aria-labelledby="vs-t" data-stop>
+      <h2 id="vs-t">동기화 켜기</h2>
+      <p class="plain">기록은 이 휴대폰에서 잠가서 맡겨요. 운영자도 읽을 수 없어요.</p>
+      <label class="chk" style="margin:16px 0;align-items:flex-start;word-break:keep-all"><input type="checkbox" id="vs-ok" style="flex:none;margin-top:.2em"${V.ok ? ' checked' : ''}><span>신앙 정보(민감정보) 처리에 동의해요 (필수)<a class="link quiet" href="${PRIVACY_URL}" target="_blank" rel="noopener" style="display:block;margin-top:4px;font-size:.88em">개인정보 처리방침 전체 보기</a></span></label>
+      <div class="row" style="justify-content:flex-end"><button type="button" class="btn ghost" data-a="vclose">취소</button><button class="btn" id="vs-go" data-a="vagree"${V.ok ? '' : ' disabled'}>동의하고 켜기</button></div></section></div>`;
     const make = V.mode === 'create', rec = V.rec;
     const err = V.err ? `<p class="hint" style="color:var(--warm)" role="alert">${esc(V.err)}</p>` : '';
     const btns = txt => `<div class="row" style="justify-content:flex-end"><button type="button" class="btn ghost" data-a="vclose">취소</button><button class="btn" type="submit"${V.busy ? ' disabled' : ''}>${V.busy ? '잠그는 중…' : txt}</button></div>`;
@@ -3105,6 +3115,7 @@ button.pg-tag::before { content: ''; position: absolute; inset: -10px; }
   async function vaultMove(resumed) {
     if (S.vbusy || !canMove() || !canLock()) return;
     if (!resumed && !confirm('기록은 휴대폰에서 잠긴 그대로 옮겨요. 서버는 내용을 볼 수 없어요. 예전 보관함의 기록은 남아요. 옮길까요?')) return;
+    if (!syncAgreed()) { S.vsheet = { mode: 'agree', next: 'move' }; return render(); }
     S.vbusy = true; S.syncMsg = ''; render();
     try {
       const old = await vaultApi('noteGet', null, 'apps-script');
@@ -3126,6 +3137,7 @@ button.pg-tag::before { content: ''; position: absolute; inset: -10px; }
   }
   async function vaultStart() {
     if (!canLock()) return toast('이 화면 주소(https)에서만 쓸 수 있어요');
+    if (!syncAgreed()) { S.vsheet = { mode: 'agree', next: 'start' }; return render(); }
     const toLogin = () => { try { localStorage.setItem('koide-after-login', 'note'); localStorage.setItem('koide-note-resume', 'vault'); } catch (e) { /* 무시 */ } location.href = 'index.html' + QS; };
     const nb = vaultBackend() === 'supabase';
     // 새 길은 공동체 로그인(getToken) 대신 Supabase 로그인이 있어야 한다. 없으면 로그인 창
@@ -3551,6 +3563,13 @@ button.pg-tag::before { content: ''; position: absolute; inset: -10px; }
       case 'psnexttrack': playTrack((PS.track + 1) % HYMNS.length); return;
       case 'psxtra': psMark(); return psGo(1);
       case 'vstart': return vaultStart();
+      case 'vagree': {
+        const V = S.vsheet; if (!V || V.mode !== 'agree' || !V.ok) return;
+        syncOkMem = true; try { localStorage.setItem(SYNC_OK, '1'); } catch (e) { /* 이번만 */ }
+        if (V.next === 'unlock') { S.vsheet = { mode: 'unlock', remote: V.remote }; return render(); }
+        if (V.next === 'move') { S.vsheet = null; return vaultMove(true); }
+        S.vsheet = null; return vaultStart();
+      }
       case 'vclose': S.vsheet = null; return render();
       case 'vmove': return vaultMove(false);
       case 'sblogin': return sbLoginOpen('sync');
@@ -3710,6 +3729,7 @@ button.pg-tag::before { content: ''; position: absolute; inset: -10px; }
     r.readAsText(e.target.files[0]);
   });
   document.addEventListener('change', e => {
+    if (e.target.id === 'vs-ok' && S.vsheet) { S.vsheet.ok = e.target.checked; const g = $('#vs-go'); if (g) g.disabled = !S.vsheet.ok; }
     if (e.target.id === 'cut-del' && S.cut) { S.cut.del = e.target.checked; const h = $('#cut-hint'); if (h) h.hidden = !S.cut.del; }
   });
   document.addEventListener('keydown', e => {
