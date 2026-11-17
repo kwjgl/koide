@@ -1,7 +1,7 @@
 // 코이데 교회 층(Supabase)의 응답을 코이데 교회 화면(index.html)이 아는 옛 Apps Script 모양으로 바꾼다. koinonia-api.js와 같은 모양.
-// CHURCH_BACKEND가 'supabase'일 때만 index.html이 부른다(app/config.js, docs/setup.md 13~20장). 서버 함수는 supabase/009_church_setup.sql~023_church_privacy.sql.
+// CHURCH_BACKEND가 'supabase'일 때만 index.html이 부른다(app/config.js, docs/setup.md 13~20장). 서버 함수는 supabase/009_church_setup.sql~024_church_dept_erase.sql.
 //   start·me → church_me(+church_invite_open·church_depts·church_month) · opsJoin → church_admin_accept 뒤 church_me · opsInvite → church_admin_invite · opsRemove → church_admin_remove
-//   opsCtx → church_ops_ctx · church → church_overview · deptSave → church_dept_save · deptClose·deptReopen → church_dept_state
+//   opsCtx → church_ops_ctx · church → church_overview · deptSave → church_dept_save · deptClose·deptReopen → church_dept_state · deptErase(닫은 부서 기록 모두 지우기, 024) → church_dept_erase
 //   saveGroup → church_group_name · roster → church_roster · rosterSave(addRoom·renameRoom·dropRoom) → church_room_save
 //   rosterSave(addPerson·addPeople·role·unlink) → church_person_add·people_add·roster_role·unlink
 //   rosterSave(move·leave·unleave·admin) → church_roster_move·leave·unleave·admin(017) · 편성 모양에는 이번 달에 뺀 가정(left ← church_roster_left)을 붙인다
@@ -199,6 +199,10 @@ window.koideChurchApi = (() => {
       case 'deptClose': case 'deptReopen': {
         const r = await rpc('church_dept_state', { p_dept: need(body.deptId, '부서'), p_close: body.action === 'deptClose' });
         return { me: await meOf(r.me) };
+      }
+      case 'deptErase': {   // 닫은 부서만, 부서 이름을 그대로(서버가 확인). 지우면 되돌릴 수 없다
+        const r = await rpc('church_dept_erase', { p_dept: need(body.deptId, '부서'), p_name: body.name || '' });
+        return { me: await meOf(r.me), n: r.n };
       }
       case 'saveGroup': return rpc('church_group_name', { p_dept: need(dept, '부서'), p_group: body.group || '', p_rename: !!body.rename });
       case 'roster': { const d = need(dept, '부서'); return withLeft(d, rpc('church_roster', { p_dept: d })); }
