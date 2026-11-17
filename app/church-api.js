@@ -1,5 +1,5 @@
 // 코이데 교회 층(Supabase)의 응답을 코이데 교회 화면(index.html)이 아는 옛 Apps Script 모양으로 바꾼다. koinonia-api.js와 같은 모양.
-// CHURCH_BACKEND가 'supabase'일 때만 index.html이 부른다(app/config.js, docs/setup.md 13~20장). 서버 함수는 supabase/009_church_setup.sql~026_church_analysis.sql.
+// CHURCH_BACKEND가 'supabase'일 때만 index.html이 부른다(app/config.js, docs/setup.md 13~20장). 서버 함수는 supabase/009_church_setup.sql~027_church_topics.sql.
 //   start·me → church_me(+church_invite_open·church_depts·church_month) · opsJoin → church_admin_accept 뒤 church_me · opsInvite → church_admin_invite · opsRemove → church_admin_remove
 //   opsCtx → church_ops_ctx · church → church_overview · deptSave → church_dept_save · deptClose·deptReopen → church_dept_state · deptErase(닫은 부서 기록 모두 지우기, 024) → church_dept_erase
 //   saveGroup → church_group_name · roster → church_roster · rosterSave(addRoom·renameRoom·dropRoom) → church_room_save
@@ -13,7 +13,9 @@
 //   개인정보 요청(023): eraseRequest·eraseRequestCancel → church_erase_request(가정이 기록 지우기 요청·거둠) · eraseState·month의 eraseReq ← church_erase_asked
 //     eraseFamily(기록 지우기, 되돌릴 수 없음)·keepFamily(1년 더 두기) → church_erase_family·church_keep_family(운영 화면 모양으로 돌려받아 초대 링크를 붙인다) · ops의 privacy는 church_ops_view가 채운다
 //   엑셀 접근 기록(025): logExport(사랑방 엑셀·의견 표를 내려받기 전에 부른다. 실패하면 화면이 내려받지 않는다) → church_log_export
-//   분석(026): analysis(부서 분석) → church_analysis · churchAnalysis(교회 전체 분석) → church_analysis_all. 합계만 온다(가정 이름·글 없음, 가정 3곳 미만 칸은 null). 응답에 topics(주제 흐름, ⑦c)와 app(앱 개선, 새 길에는 없음)이 없다
+//   분석(026): analysis(부서 분석) → church_analysis · churchAnalysis(교회 전체 분석) → church_analysis_all. 합계만 온다(가정 이름·글 없음, 가정 3곳 미만 칸은 null). 응답에 app(앱 개선)은 새 길에 없다
+//   주제 흐름·주제 사전(027): topics → church_topics(목사님 홈은 부서 없이, 관리자가 부서 화면에서 부르면 p_dept. 목사님·장로님만 dict(사전)·etc(이번 달 기타 글)를 받고 관리자는 숫자만)
+//     topicWord → church_topic_word(교역자만. 사전은 교회마다 하나) · 분석 응답에는 topics(church_topics·church_topics_all)를 붙인다. 못 받으면 {err}로 두고 분석 숫자는 그대로 보여 준다
 //   churchPeek → church_peek · churchJoin → church_join · churchLeave → church_leave
 //   requestLink → church_link_pick·name·new · cancelLink → church_link_cancel · month → church_month · rooms → church_depts
 //   pending·approve·reject·approveAll·unlink → church_pending·decide·approve_all·unlink · ops·inviteRenew → church_invites·church_invite_renew
@@ -30,7 +32,8 @@
 //   logout → KoideSb.signOut(로그인 세션을 끊는다)
 // 옛 응답과 다른 곳: ⓪ 분석의 rooms·depts 칸 값이 null이면 가정이 3곳보다 적어서 가린 것이다(화면은 ·로 보인다) ① opsRemove·approve·reject·unlink의 body.kakaoId는 이제 관리자·연결 요청·연결 줄의 id(uuid)다(화면은 data-v를 그대로 넘긴다)
 //   ② usage·surveyState·tourSeen은 빈 모양으로 달랜다
-//   ③ rosterSave의 pilotRoom(시범 중, 화면에서 숨김)과 표에 없는 액션(주제 흐름·주제 사전·기록 지우기 요청 등)은 '아직 쓸 수 없어요' 오류(화면은 토스트로 알린다)
+//   ③ rosterSave의 pilotRoom(시범 중, 화면에서 숨김)과 표에 없는 액션은 '아직 쓸 수 없어요' 오류(화면은 토스트로 알린다)
+//      주제 숫자(027)는 "우리 가정만" 글을 세지 않고, 지운 가정·빈 글·교역자 글도 세지 않는다(옛 길은 세었다)
 //   ④ 이번 달(church_month)은 일부러 덜 보낸다: 다른 가정 카드에 손봄 상태(status)·자녀 이름이 없고, 받는 가정 한 줄(received.n)은 가정 수가 아니라 0·1·of 세 단계다.
 //     serve·together는 빈 배열, shift·news는 null, room.pilot은 false, me.survey는 ''(화면은 CHURCHSB 갈래에서 견딘다). eraseReq는 church_erase_asked가 채운다(023)
 window.koideChurchApi = (() => {
@@ -55,6 +58,8 @@ window.koideChurchApi = (() => {
       throw e;
     }
   };
+  // 주제 흐름 응답을 분석 응답에 붙일 때: 못 받으면 {err}(카드가 그 글을 보여 준다). 서버 SQL이 027보다 옛 번호면 함수가 없다
+  const topicsOf = p => p.catch(e => ({ err: e && e.code === 'bad' && /받지 못했어요/.test(e.message) ? '서버 SQL을 027번까지 넣으면 볼 수 있어요.' : (e && e.message) || '주제 흐름을 불러오지 못했어요.' }));
   const need = (v, what) => { if (!v) throw err('bad', what + ' 정보가 없어요. 화면을 다시 열어 주세요.'); return v; };
   // 기도제목 id: 저장 전 임시 id('new…')나 모르는 값은 서버에 보내지 않고 옛 서버와 같은 글로 알린다
   const itemId = (v, msg) => { if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(String(v || ''))) throw err('bad', msg || '기도제목을 찾지 못했어요.'); return String(v); };
@@ -260,9 +265,12 @@ window.koideChurchApi = (() => {
       case 'openMonth': { const d = need(dept, '부서'); return opsWith(d, await rpc('church_open_month', { p_dept: d })); }
       case 'handover': { const d = need(dept, '부서'); return opsWith(d, await rpc('church_handover', { p_dept: d })); }
       case 'feedbackRead': { const d = need(dept, '부서'); return opsWith(d, await rpc('church_feedback_read', { p_dept: d, p_id: need(body.id, '의견'), p_read: body.read !== false })); }
-      // 분석(026): 부서 분석은 운영 모드로 보는 부서(dept), 교회 전체 분석은 부서 없이. 주제 흐름은 ⑦c가 따로 붙인다
-      case 'analysis': return rpc('church_analysis', { p_dept: need(dept, '부서') });
-      case 'churchAnalysis': return rpc('church_analysis_all');
+      // 분석(026): 부서 분석은 운영 모드로 보는 부서(dept), 교회 전체 분석은 부서 없이. 주제 흐름(027)은 따로 받아 topics로 붙인다(못 받아도 분석 숫자는 그대로)
+      case 'analysis': { const d = need(dept, '부서'); const [a, t] = await Promise.all([rpc('church_analysis', { p_dept: d }), topicsOf(rpc('church_topics', { p_dept: d }))]); return Object.assign(a, { topics: t }); }
+      case 'churchAnalysis': { const [a, t] = await Promise.all([rpc('church_analysis_all'), topicsOf(rpc('church_topics_all'))]); return Object.assign(a, { topics: t }); }
+      // 주제 흐름·주제 사전(027): 목사님 홈은 부서 없이(서버가 활동 교역자의 부서를 안다), 관리자가 부서 화면에서 부르면 그 부서. 낱말 고치기는 교역자만
+      case 'topics': return rpc('church_topics', dept ? { p_dept: dept } : {});
+      case 'topicWord': return rpc('church_topic_word', { p_topic: String(body.topic || ''), p_word: String(body.word || ''), p_remove: body.remove === true });
       // 엑셀·의견 표 내려받기 접근 기록(025): 파일을 만들기 전에 부른다. kind는 'room'(사랑방 엑셀)·'feedback'(의견 표). 개수(n)만 보내고 글은 보내지 않는다
       case 'logExport': return rpc('church_log_export', { p_kind: String(body.kind || ''), p_lead: !!body.lead, p_n: Number(body.n) || 0, p_dept: body.kind === 'feedback' ? (body.dept || null) : null });
       // 의견 보내기(022): 교회에 연결된 사람만. 이름 밝히기가 꺼져 있으면 서버가 가정·이름을 남기지 않는다

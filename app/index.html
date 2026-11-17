@@ -2507,7 +2507,6 @@ try { const p = JSON.parse(localStorage.getItem('koide-pref') || '{}'), d = docu
       ${mine.status === 'confirmed' ? `<p class="hint">이번 달도 그대로라고 ${staffMe() ? '표시했어요' : '리더에게 알렸어요'}.</p>` : ''}</section>`;
   }
   // S5 목사님 홈: 부서 전체를 훑어보고(사랑방마다 손봄·확인), 사랑방을 눌러 그 사랑방 가정을 보며 기도한다
-  //  새 길(Supabase)은 기도 주제 흐름(⑦) 자리를 안내 카드 한 장으로 닫아 둔다
   function staffHomeView() {
     if (S.openRoom) return staffRoomView();
     const M = S.month, rooms = M.rooms || [], sum = k => rooms.reduce((a, r) => a + r[k], 0);
@@ -2527,8 +2526,8 @@ try { const p = JSON.parse(localStorage.getItem('koide-pref') || '{}'), d = docu
           <ul class="legend"><li><i class="sw edited"></i>이번 달 손봄</li><li><i class="sw confirmed"></i>그대로 확인</li><li><i class="sw same"></i>지난달 그대로</li></ul>`
         : `<p class="hint">아직 ${esc(gj('이/가'))} 없어요.</p>`}
         ${signalCard(M.signals, true)}
-        ${CHURCHSB ? '<section class="card"><p class="hint" style="margin:0">기도 주제 흐름은 아직 준비 중이에요.</p></section>' : `${topicFlowCard(loadTopics())}
-        ${topicDictCard(S.topics)}`}
+        ${topicFlowCard(loadTopics())}
+        ${topicDictCard(S.topics)}
         <section class="card"><div class="row"><div><p class="label" style="margin:0">하나님 나라 기도 문장${KoideTip.btn('기도하기에 날마다 나오는 간구 문장과 성경의 기도를 고쳐요.', '하나님 나라 기도 문장')}</p></div><button class="btn small ghost" data-act="tab" data-v="praytext">고치기</button></div></section>
         ${togetherEditCard()}
         ${serveCard()}
@@ -5254,11 +5253,11 @@ try { const p = JSON.parse(localStorage.getItem('koide-pref') || '{}'), d = docu
     if (S.topics || S.topicsLoading) return S.topics;
     S.topicsLoading = true;
     api('topics').then(r => { S.topics = r; S.topicsLoading = false; paint(); })
-      .catch(err => { S.topicsLoading = false; S.topics = { err: err.code === 'bad' ? '서버 코드를 새 버전으로 배포하면 볼 수 있어요.' : err.message }; paint(); });
+      .catch(err => { S.topicsLoading = false; S.topics = { err: CHURCHSB ? (/받지 못했어요/.test(err.message) ? '서버 SQL을 027번까지 넣으면 볼 수 있어요.' : err.message) : err.code === 'bad' ? '서버 코드를 새 버전으로 배포하면 볼 수 있어요.' : err.message }; paint(); });
     return null;
   }
   function topicFlowCard(T) {
-    const head = `<p class="label">기도 주제 흐름 <small class="hint">최근 6개월 · 기도제목 중 %</small></p>`;
+    const head = `<p class="label">기도 주제 흐름 <small class="hint">최근 6개월 · 기도제목 중 %</small>${CHURCHSB ? KoideTip.btn('"우리 가정만" 기도제목은 세지 않아요. 한 기도제목에 주제가 여럿 붙으면 각각 한 번씩 세요.', '기도 주제 흐름') : ''}</p>`;
     if (!T || T.err) return `<section class="card an-sec">${head}<p class="hint">${T ? esc(T.err) : '불러오는 중…'}</p></section>`;
     const mon = mm => Number(mm.slice(5)) + '월', pct = (k, n) => n ? Math.round(k / n * 100) : null;
     const rows = T.topics.map(t => `<tr><th scope="row">${esc(t)}</th>${T.flow.map(f => { const v = pct(f.counts[t], f.n);
@@ -5270,7 +5269,7 @@ try { const p = JSON.parse(localStorage.getItem('koide-pref') || '{}'), d = docu
   function topicDictCard(T) {
     if (!T || T.err || !T.dict) return '';
     const cur = T.dict.some(d => d.topic === S.tdTopic) ? S.tdTopic : T.dict[0].topic;
-    return `<section class="card"><h2>주제 사전${KoideTip.btn('기도제목에 이 낱말이 있으면 주제를 붙여요. 주제 흐름에만 쓰여요.', '주제 사전')}</h2>
+    return `<section class="card"><h2>주제 사전${KoideTip.btn(CHURCHSB ? '기도제목에 이 낱말이 있으면 주제를 붙여요. 사전은 교회 전체가 함께 쓰고, 주제 흐름에만 쓰여요.' : '기도제목에 이 낱말이 있으면 주제를 붙여요. 주제 흐름에만 쓰여요.', '주제 사전')}</h2>
       <p class="label" style="margin-top:12px">이번 달 기타로 빠진 기도제목 · ${T.etc.length}</p>
       ${T.etc.length ? `<ul class="td-etc">${T.etc.slice(0, S.tdMore ? 999 : 5).map(x => `<li><span class="tgt">${esc(x.target)}</span>${esc(x.text)}</li>`).join('')}</ul>${T.etc.length > 5 ? `<button class="link" data-act="tdmore">${S.tdMore ? '접기' : '모두 보기'}</button>` : ''}` : '<p class="hint">모두 주제가 붙었어요.</p>'}
       <p class="label" style="margin-top:12px">키워드 더하기</p>
