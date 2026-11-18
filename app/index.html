@@ -3864,7 +3864,7 @@ try { const p = JSON.parse(localStorage.getItem('koide-pref') || '{}'), d = docu
             <button class="mrow" data-act="setopen" aria-expanded="${setOpen}"><span><b class="mhead">화면 설정</b></span><span class="ops-chev" aria-hidden="true">${ICON.chev}</span></button>
             ${setOpen ? `<div class="mset">${themeControls()}<div class="set-row" style="flex-direction:column;align-items:stretch"><p class="mhead" style="margin:0">큰 글씨</p>${bigControls()}</div></div>` : ''}
             ${STANDALONE ? '' : row('a2hsopen', '', '홈 화면에 앱처럼 두기', '')}
-            <div class="mrow" style="cursor:default;border-top:1px solid var(--line)"><span><b>이용 통계 보내기</b><small>앱을 좋게 만들기 위해 이름 없는 사용 기록을 보내요. 누른 것, 연 때와 머문 시간 같은 숫자만이고 이름과 기도제목은 보내지 않아요. 끄면 이 기기에서는 더 보내지 않아요.</small></span>
+            <div class="mrow" style="cursor:default;border-top:1px solid var(--line)"><span><b>이용 통계 보내기</b>${KoideTip.btn('앱을 좋게 만들기 위해 이름 없는 사용 기록을 보내요. 누른 것, 연 때와 머문 시간 같은 숫자만이고 이름과 기도제목은 보내지 않아요. 끄면 이 기기에서는 더 보내지 않아요.', '이용 통계 보내기')}</span>
               <button type="button" class="switch${usageOff() ? '' : ' on'}" role="switch" aria-checked="${!usageOff()}" aria-label="이용 통계 보내기" data-act="usageoff"><span></span></button></div>
             ${KoidePilot.moreRows()}
           </section>
