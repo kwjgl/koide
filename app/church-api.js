@@ -96,13 +96,15 @@ window.koideChurchApi = (() => {
     }
   }
   // 사용 통계(028, 운영 이용 통계 006): 앱이 모아 둔 행동({at,e,d})을 church.* 이름으로 바꿔 보낸다. **기본 꺼짐** — 앱 설정 USAGE가 'on'이 아니면
-  //  서버로 아무것도 보내지 않는다(서버 스위치 usage_track도 'on'이어야 저장하는 이중 잠금. docs/setup.md 32장). 켜진 때에도 보내는 것은 이름·기기 폭·홈 화면 앱 여부뿐이다:
+  //  서버로 아무것도 보내지 않는다(서버 스위치 usage_track도 'on'이어야 저장하는 이중 잠금. docs/setup.md 32장) · 사용자가 앱 설정에서 끈 기기(koide-usage-off)에서도 보내지 않는다. 켜진 때에도 보내는 것은 이름·기기 폭·홈 화면 앱 여부뿐이다:
   //  행동의 부가 값(d: 역할·글자 수 등), 기기 번호(body.device), 시각, 교회·가정·사랑방·이름·글은 서버로 가는 길이 없다. 모르는 행동은 버린다.
   const USAGE_NAME = Object.assign(Object.create(null), { '열기': 'church.open', '기도제목 저장': 'church.item-save', '기도하기 시작': 'church.pray-start', '기도하기 마침': 'church.pray-done',
     '모임 모드 시작': 'church.meet-start', '모임 모드 마침': 'church.meet-done', '내려받기': 'church.export' });
   const USAGE_STEP = ['login', 'dept', 'room', 'family', 'consent', 'wait'];
   const USAGE_SCREEN = Object.assign(Object.create(null), { '표': 'church.view-table', '지난 기록': 'church.view-history', '검색': 'church.view-search', '분석': 'church.view-analysis',
     '교회 분석': 'church.view-analysis', '한 해 앨범': 'church.view-album', '사용법': 'church.view-help' });
+  // 앱 설정에서 이용 통계 보내기를 끈 기기(index.html·note.html이 같은 키를 쓴다): 보내지 않는다
+  const usageOffNow = () => { try { return localStorage.getItem('koide-usage-off') === '1'; } catch (e) { return false; } };
   function usageName(x) {
     const e = x && x.e, d = (x && x.d) || {};
     if (e === '첫접속 단계') return d.step === 'app' ? (d.done ? 'church.step-app' : '') : USAGE_STEP.indexOf(d.step) >= 0 ? 'church.step-' + d.step : '';
@@ -110,7 +112,7 @@ window.koideChurchApi = (() => {
     return USAGE_NAME[String(e)] || '';
   }
   async function usageSend(list) {
-    if (!Array.isArray(list) || !list.length || !(window.KOIDE_CONFIG && window.KOIDE_CONFIG.USAGE === 'on')) return { kept: true, n: 0 };
+    if (!Array.isArray(list) || !list.length || !(window.KOIDE_CONFIG && window.KOIDE_CONFIG.USAGE === 'on') || usageOffNow()) return { kept: true, n: 0 };
     const w = window.innerWidth || 0, device = w < 640 ? 'phone' : w < 1024 ? 'tablet' : 'pc';
     const standalone = !!((window.matchMedia && matchMedia('(display-mode: standalone)').matches) || navigator.standalone === true);
     const evs = list.map(usageName).filter(Boolean).map(ev => ({ app: 'koide', ev, device, standalone }));

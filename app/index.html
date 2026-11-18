@@ -1545,6 +1545,9 @@ try { const p = JSON.parse(localStorage.getItem('koide-pref') || '{}'), d = docu
   }
   // ── 사용기록(설계서 10장): 행동과 숫자·선택지만 기기에 모아 두었다가, 앱을 열 때(start) 함께 보낸다 ──
   //  기기ID는 이 기기에서 무작위로 만든 값이고 가정·사람과 잇지 않는다. 이름, 기도제목, 쓴 글은 넣지 않는다
+  // 이용 통계 끄기(더보기 › 앱 설정): 이 기기에만 기억한다. 노트(note.html)와 같은 주소라 같은 키를 함께 쓴다. '1'이면 끈 것 — 앞으로 모으지도 보내지도 않는다
+  const USAGE_OFF = 'koide-usage-off';
+  const usageOff = () => { try { return localStorage.getItem(USAGE_OFF) === '1'; } catch (e) { return false; } };
   const USAGE_Q = 'koide-usage', DEVICE = (() => {
     try {
       let d = localStorage.getItem('koide-device');
@@ -1558,12 +1561,13 @@ try { const p = JSON.parse(localStorage.getItem('koide-pref') || '{}'), d = docu
     // 시범 '해 볼 일'(pilot.js): 같은 행동 기록으로 저절로 체크한다
     if (e === '기도제목 저장') KoidePilot.done('c-edit');
     else if (e === '기도하기 마침' && d && !d.early) KoidePilot.done('c-ps');
+    if (usageOff()) return;   // 끈 기기: 기록을 모으지 않는다(시범 체크는 위에서 이미 했다)
     try { const q = usageQ(); q.push({ at: new Date().toISOString(), e, d: d || {} }); localStorage.setItem(USAGE_Q, JSON.stringify(q.slice(-200))); } catch (err) { /* 기록 못 해도 앱은 그대로 */ }
     if (usageQ().length >= 30) sendUsage();
   }
   // 보낼 것: start에 붙이거나(usagePart) 많이 쌓이면 따로(sendUsage). 서버가 받았다고 하면(kept) 보낸 만큼만 지운다
-  const usagePart = () => { const q = usageQ(); return q.length && DEVICE ? { device: DEVICE, events: q } : {}; };
-  function usageSent(part, r) { if (!part.events || !r || !r.kept) return; try { localStorage.setItem(USAGE_Q, JSON.stringify(usageQ().slice(part.events.length))); } catch (e) { /* 다음에 다시 */ } }
+  const usagePart = () => { if (usageOff()) return {}; const q = usageQ(); return q.length && DEVICE ? { device: DEVICE, events: q } : {}; };
+  function usageSent(part, r) { if (usageOff() || !part.events || !r || !r.kept) return; try { localStorage.setItem(USAGE_Q, JSON.stringify(usageQ().slice(part.events.length))); } catch (e) { /* 다음에 다시 */ } }
   async function sendUsage() {
     if (sendUsage.busy || !getToken()) return; const part = usagePart(); if (!part.events) return;
     sendUsage.busy = true; try { usageSent(part, await api('usage', part)); } catch (e) { /* 다음에 다시 보낸다 */ } sendUsage.busy = false;
@@ -1571,6 +1575,7 @@ try { const p = JSON.parse(localStorage.getItem('koide-pref') || '{}'), d = docu
   const widthKind = () => innerWidth < 640 ? 'phone' : innerWidth < 1024 ? 'tablet' : 'pc';
   // 앱을 연 기록은 하루 한 번
   function trackOpen() {
+    if (usageOff()) return;
     try { if (localStorage.getItem('koide-usage-day') === new Date().toDateString()) return; localStorage.setItem('koide-usage-day', new Date().toDateString()); } catch (e) { return; }
     const me = S.month && S.month.me || {};
     track('열기', { role: me.admin ? '관리자' : me.role || '회원', width: widthKind(), style: (STYLES.find(s => s[0] === (PREF.style || 'flat')) || STYLES[0])[1], group: grp(), big: !!PREF.big, mode: PREF.mode || 'auto', app: STANDALONE });
@@ -2379,7 +2384,7 @@ try { const p = JSON.parse(localStorage.getItem('koide-pref') || '{}'), d = docu
       <li><b>어디에</b><span>${CHURCHSB ? '코이데 서버의 비공개 저장 공간. 교회마다 나뉘어 있어요. 서버는 서울에 있고, 운영사(Supabase)는 미국 회사예요' : '교회가 관리하는 비공개 구글 시트 한 곳'}</span></li>
       <li><b>누가 보나</b><span>기도제목마다 고른 공개 범위대로만 보여요. ${CHURCHSB ? '서버는 코이데를 돌보는 관리자만 열 수 있고' : '시트는 교회가 맡긴 관리자만 열 수 있고'}, 앱을 돌보는 데에만 써요</span></li>
       <li><b>얼마나</b><span>교회를 떠나면 1년 뒤 내용을 지우고 개수만 남겨요. 언제든 ${solo() ? '내' : '우리 가정'} 기록을 지워 달라고 할 수 있어요</span></li>
-      <li><b>사용 기록</b><span>앱을 좋게 만들기 위해 이름 없는 사용 기록을 남겨요. "기도하기를 열었다"처럼 누른 것, 연 때와 머문 시간 같은 숫자만이고, 이름과 기도제목은 넣지 않아요</span></li></ul>`;
+      <li><b>사용 기록</b><span>앱을 좋게 만들기 위해 이름 없는 사용 기록을 남겨요. "기도하기를 열었다"처럼 누른 것, 연 때와 머문 시간 같은 숫자만이고, 이름과 기도제목은 넣지 않아요. 더보기 › 앱 설정에서 끌 수 있어요</span></li></ul>`;
 
   // 이번 달: 우리 가정 + 사랑방 가정마다 기도제목과 "기도했어요"
   const todayLabel = () => { const d = new Date(); return (d.getMonth() + 1) + '월 ' + d.getDate() + '일 ' + '일월화수목금토'[d.getDay()]; };
@@ -3859,6 +3864,8 @@ try { const p = JSON.parse(localStorage.getItem('koide-pref') || '{}'), d = docu
             <button class="mrow" data-act="setopen" aria-expanded="${setOpen}"><span><b class="mhead">화면 설정</b></span><span class="ops-chev" aria-hidden="true">${ICON.chev}</span></button>
             ${setOpen ? `<div class="mset">${themeControls()}<div class="set-row" style="flex-direction:column;align-items:stretch"><p class="mhead" style="margin:0">큰 글씨</p>${bigControls()}</div></div>` : ''}
             ${STANDALONE ? '' : row('a2hsopen', '', '홈 화면에 앱처럼 두기', '')}
+            <div class="mrow" style="cursor:default;border-top:1px solid var(--line)"><span><b>이용 통계 보내기</b><small>앱을 좋게 만들기 위해 이름 없는 사용 기록을 보내요. 누른 것, 연 때와 머문 시간 같은 숫자만이고 이름과 기도제목은 보내지 않아요. 끄면 이 기기에서는 더 보내지 않아요.</small></span>
+              <button type="button" class="switch${usageOff() ? '' : ' on'}" role="switch" aria-checked="${!usageOff()}" aria-label="이용 통계 보내기" data-act="usageoff"><span></span></button></div>
             ${KoidePilot.moreRows()}
           </section>
           ${S.grp && !KOINONIA ? '' : `<p class="more-h">코이데</p>
@@ -5840,6 +5847,11 @@ try { const p = JSON.parse(localStorage.getItem('koide-pref') || '{}'), d = docu
       case 'svmore': S.svMore = !S.svMore; return render();
       case 'svcsv': return surveyCsv(v);
       case 'setopen': S.setOpen = !S.setOpen; return render();
+      case 'usageoff': {   // 이용 통계 보내기 켜고 끄기: 끄면 모아 둔 줄도 지운다(이미 서버에 간 기록은 그대로)
+        try { if (usageOff()) localStorage.removeItem(USAGE_OFF); else { localStorage.setItem(USAGE_OFF, '1'); localStorage.removeItem(USAGE_Q); } }
+        catch (err) { toast('이 기기에 저장하지 못했어요. 잠시 뒤 다시 해 주세요.'); }
+        return render();
+      }
       case 'togmanage': if (S.month.me.staff) { S.tab = 'home'; render(); const c = $('[data-form="togsave"]'); if (c) c.scrollIntoView({ block: 'center' }); return; } S.fold = Object.assign({}, S.fold, { together: true }); if (CHURCHSB && !S.op && famDept()) return enterOps(famDept().id); S.tab = 'admin'; render(); window.scrollTo(0, 0); return loadAdmin();
       case 'togedit': S.togEdit = v || null; return render();
       case 'togstate': {
