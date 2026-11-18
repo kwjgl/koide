@@ -2690,7 +2690,7 @@ button.pg-tag::before { content: ''; position: absolute; inset: -10px; }
         <button class="mrow" data-a="setopen" aria-expanded="${!!S.setOpen}"><span><b class="mhead">화면 설정</b></span><span class="chev" aria-hidden="true">›</span></button>
         ${S.setOpen ? `<div class="mset">${screenControls()}</div>` : ''}
         ${HOME_APP ? '' : '<button class="mrow" data-a="a2hsopen"><span><b>홈 화면에 앱처럼 두기</b></span></button>'}
-        <div class="mrow" style="cursor:default;border-top:1px solid var(--line);padding-top:.8em"><span><b>이용 통계 보내기</b><small>앱을 좋게 만들기 위해 이름 없는 사용 기록을 보내요. 누른 것, 연 때와 머문 시간 같은 숫자만이고 이름과 기도제목은 보내지 않아요. 끄면 이 기기에서는 더 보내지 않아요.</small></span>
+        <div class="mrow" style="cursor:default;border-top:1px solid var(--line);padding-top:.8em"><span><b>이용 통계 보내기</b>${KoideTip.btn('앱을 좋게 만들기 위해 이름 없는 사용 기록을 보내요. 누른 것, 연 때와 머문 시간 같은 숫자만이고 이름과 기도제목은 보내지 않아요. 끄면 이 기기에서는 더 보내지 않아요.', '이용 통계 보내기')}</span>
           <button type="button" class="switch${usageOff() ? '' : ' on'}" role="switch" aria-checked="${!usageOff()}" aria-label="이용 통계 보내기" data-a="usageoff"><span></span></button></div>
         ${KoidePilot.moreRows()}</section>
       <p class="more-h">코이데</p>
