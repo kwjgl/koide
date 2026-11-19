@@ -256,6 +256,9 @@ window.koideChurchApi = (() => {
           case 'move': return rpc('church_roster_move', { p_dept: d, p_household: need(body.familyId, '가정'), p_room: need(body.roomId, '사랑방') });
           case 'leave': return rpc('church_roster_leave', { p_dept: d, p_household: need(body.familyId, '가정') });
           case 'unleave': return rpc('church_roster_unleave', { p_dept: d, p_household: need(body.familyId, '가정') });
+          case 'renameFamily': return rpc('church_household_rename', { p_dept: d, p_household: need(body.familyId, '가정'), p_a: body.a || '', p_b: body.b || '' });
+          case 'swapFamily': return rpc('church_household_swap', { p_dept: d, p_household: need(body.familyId, '가정') });
+          case 'dropFamily': return rpc('church_household_drop', { p_dept: d, p_household: need(body.familyId, '가정'), p_name: body.name || '' });
           case 'admin': return rpc('church_roster_admin', { p_dept: d, p_household: need(body.familyId, '가정'), p_on: !!body.on });
           default: throw err('bad', SOON);
         } })());

@@ -50,6 +50,9 @@ window.KoideSb = (() => {
       throw fail('login', '로그인이 필요해요.');
     const m = body && typeof body.message === 'string' && /^(bad|busy): ([\s\S]*)$/.exec(body.message);
     if (m) throw fail(m[1], m[2]);
+    // 탈퇴 함수가 서버에 아직 없을 때(404·PGRST202)만 따로 알린다. 다른 함수의 옛 글('서버가 받지 못했어요…')은 화면들이 그 글로 옛 서버를 알아보니 건드리지 않는다
+    if (!res.ok && /^account_delete/.test(name) && (res.status === 404 || (body && String(body.code) === 'PGRST202')))
+      throw fail('bad', '서버가 아직 탈퇴를 준비하지 않았어요. 운영자에게 알려 주세요.');
     if (!res.ok) throw fail('bad', '서버가 받지 못했어요. 잠시 뒤 다시 해 주세요.');
     return body;
   }
