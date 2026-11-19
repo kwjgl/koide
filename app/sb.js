@@ -54,18 +54,66 @@ window.KoideSb = (() => {
     if (!res.ok && /^account_delete/.test(name) && (res.status === 404 || (body && String(body.code) === 'PGRST202')))
       throw fail('bad', '서버가 아직 탈퇴를 준비하지 않았어요. 운영자에게 알려 주세요.');
     if (!res.ok) throw fail('bad', '서버가 받지 못했어요. 잠시 뒤 다시 해 주세요.');
+    if (/^community_(create|join|leave|end|ends_change|decide|remove|rename|renew|handoff)$|^account_delete$/.test(name)) circlesDrop();
     return body;
   }
-  async function providers() {
+  // 로그인 방법 목록을 이 기기에 기억해 바로 그린다(키 koide-sb-providers). note.html에 같은 키·같은 모양의 사본이 있다(30일 지나면 안 쓰고, 1시간 안이면 다시 받지 않는다)
+  const PROV_ALL = ['kakao', 'google', 'apple'];
+  function provMem() {
     try {
-      const ctl = new AbortController(), stop = setTimeout(() => ctl.abort(), 6000);
-      let res;
-      try { res = await fetch(base() + '/auth/v1/settings', { headers: { apikey: C.SUPABASE_KEY }, signal: ctl.signal }); }
-      finally { clearTimeout(stop); }
-      const r = await res.json(), e = r && r.external || {};
-      const list = ['kakao', 'google', 'apple'].filter(k => e[k]);
-      return list.length ? list : ['kakao'];
-    } catch (e) { return ['kakao']; }
+      const x = JSON.parse(localStorage.getItem('koide-sb-providers') || 'null');
+      if (!x || !Array.isArray(x.list) || !(Date.now() - x.at < 30 * 864e5)) return null;
+      const list = PROV_ALL.filter(k => x.list.includes(k));
+      return list.length ? { list, at: x.at } : null;
+    } catch (e) { return null; }
+  }
+  function providersCached() { const m = provMem(); return m ? m.list : null; }
+  let provP = null;
+  function providers() {
+    const m = provMem();
+    if (m && Date.now() - m.at < 36e5) return Promise.resolve(m.list);
+    if (provP) return provP;
+    provP = (async () => {
+      try {
+        const ctl = new AbortController(), stop = setTimeout(() => ctl.abort(), 6000);
+        let res;
+        try { res = await fetch(base() + '/auth/v1/settings', { headers: { apikey: C.SUPABASE_KEY }, signal: ctl.signal }); }
+        finally { clearTimeout(stop); }
+        const r = await res.json(), e = r && r.external || {};
+        const list = PROV_ALL.filter(k => e[k]);
+        if (list.length) {
+          try { localStorage.setItem('koide-sb-providers', JSON.stringify({ list, at: Date.now() })); } catch (e2) { /* 저장이 안 되어도 목록은 쓴다 */ }
+          return list;
+        }
+      } catch (e) { /* 아래 대체값 */ }
+      const old = providersCached();
+      return old || ['kakao'];
+    })();
+    provP.then(() => { provP = null; }, () => { provP = null; });
+    return provP;
+  }
+  // 내 코이데 공동체 목록 기억(키 koide-circle-list). 로그인 계정 id로 묶고, 로그아웃·탈퇴·수정 rpc 뒤에 지운다
+  function storedUid() {
+    try { const x = JSON.parse(localStorage.getItem('koide-note-sb') || 'null'); return x && x.user && x.user.id ? String(x.user.id) : ''; }
+    catch (e) { return ''; }
+  }
+  function circlesDrop() { try { localStorage.removeItem('koide-circle-list'); } catch (e) { /* 무시 */ } }
+  function circlesCached() {
+    let raw = null;
+    try { raw = localStorage.getItem('koide-circle-list'); } catch (e) { return null; }
+    if (!raw) return null;
+    try {
+      const x = JSON.parse(raw), uid = storedUid();
+      if (x && uid && x.uid === uid && Array.isArray(x.list)) return x.list;
+    } catch (e) { /* 아래에서 지운다 */ }
+    circlesDrop();
+    return null;
+  }
+  function circlesSave(uid, list) {
+    if (!uid || !Array.isArray(list)) return;
+    const keep = ['id', 'name', 'role', 'status', 'state', 'endsOn', 'eraseOn', 'n', 'asks', 'left'];
+    const slim = list.map(c => { const o = {}; keep.forEach(k => { if (c && c[k] !== undefined) o[k] = c[k]; }); return o; });
+    try { localStorage.setItem('koide-circle-list', JSON.stringify({ uid: String(uid), at: Date.now(), list: slim })); } catch (e) { /* 무시 */ }
   }
   async function oauth(provider) {
     if (!['kakao', 'google', 'apple'].includes(provider)) throw fail('bad', '로그인 방법을 고를 수 없어요.');
@@ -85,8 +133,9 @@ window.KoideSb = (() => {
   };
   // 이 기기의 로그인 세션만 끊는다(scope local). 노트·공동체와 같은 세션이라 노트에서도 로그아웃된다
   async function signOut() {
+    circlesDrop();
     const r = await (await instance()).auth.signOut({ scope: 'local' });
     if (r && r.error) throw fail('bad', '로그아웃하지 못했어요. 잠시 뒤 다시 해 주세요.');
   }
-  return { ready, session, rpc, providers, oauth, signOut, logos };
+  return { ready, session, rpc, providers, providersCached, storedUid, circlesCached, circlesSave, circlesDrop, oauth, signOut, logos };
 })();

@@ -1181,7 +1181,7 @@ body.pop-open { overflow: hidden; }
 .mrow small { flex-basis: 100%; color: var(--ink-2); font-size: .85em; }
 .mrow > .ic, .mrow > .ops-chev { color: var(--ink-2); flex: none; }
 .mrow[aria-expanded="true"] .ops-chev { transform: rotate(180deg); }
-.help-page { display: flex; flex-direction: column; gap: 12px; margin-top: 12px; max-width: 640px; }
+.help-page, .acct-page { display: flex; flex-direction: column; gap: 12px; margin-top: 12px; max-width: 640px; }
 .help-page .plain { margin: 0; line-height: 1.65; word-break: keep-all; }
 .help-go { min-height: 56px; font-size: 1.1em; font-weight: 700; margin-top: .6em; }
 .folds .fold-body .plain { margin: 0; line-height: 1.65; word-break: keep-all; }
@@ -1270,6 +1270,10 @@ body.pop-open { overflow: hidden; }
 .ops-fold .ops-rows { margin-top: .6em; }
 .ops-fold .fold-body { padding: .6em 0 0; }
 .more-out { align-self: center; margin: 4px auto 8px; display: block; }
+.acct-li { display: flex; align-items: center; gap: 10px; padding: .55em 0; border-top: 1px solid var(--line); }
+.acct-li:first-of-type { border-top: 0; }
+.acct-logo { width: 30px; height: 30px; flex: none; display: grid; place-items: center; border-radius: 50%; border: 1px solid var(--line); background: var(--surface-2); color: var(--ink); }
+.acct-logo svg { width: 16px; height: 16px; }
 .badge-dot { position: absolute; top: 2px; right: 2px; width: 8px; height: 8px; border-radius: 50%; background: var(--warn); }
 .mitem.on span { font-weight: 700; }
 .rs-rooms, .rs-people { list-style: none; margin: 0; padding: 0; }
@@ -2193,7 +2197,8 @@ try { const p = JSON.parse(localStorage.getItem('koide-pref') || '{}'), d = docu
   // 코이데 교회 Supabase 길의 로그인 단추: 서버가 켜 둔 방법(카카오·구글·애플)만. 노트 환영 화면과 같은 공식 모양(.sso-btn)
   const SB_LABEL = { kakao: '카카오로 시작하기', google: 'Google로 시작하기', apple: 'Apple로 시작하기' };
   const sbLoginButtons = () => {
-    if (!S.lp) { S.lp = []; window.KoideSb.providers().then(l => { S.lp = l; if (S.view === 'login') render(); }); }
+    if (!S.lp) { S.lp = window.KoideSb.providersCached() || [];   // 지난번 목록이 있으면 첫 그림부터 단추를 보이고, 서버 답이 다르면 조용히 맞춘다
+      window.KoideSb.providers().then(l => { if (l.join() !== S.lp.join()) { S.lp = l; if (S.view === 'login') render(); } }); }
     return S.lp.length ? `<div class="choices">${S.lp.map(k => `<button class="btn wide sso-btn sso-${k}" data-act="login" data-v="${k}">${window.KoideSb.logos[k]}<span>${SB_LABEL[k]}</span></button>`).join('')}</div>` : '<p class="hint">불러오는 중…</p>';
   };
 
@@ -2483,7 +2488,7 @@ try { const p = JSON.parse(localStorage.getItem('koide-pref') || '{}'), d = docu
       <p class="wait-links"><a class="link" href="note.html${DEMO_LINK ? '?demo' : ''}">기다리는 동안 노트 쓰기 ›</a>${CHURCHSB ? '<button class="link" data-act="cancellink">신청 취소</button>' : ''}<button class="link" data-act="logout">로그아웃</button></p>`,
     app: () => KOINONIA && S.month && S.month.closed
       ? '<section class="card"><h1>이 공동체는 닫혔어요</h1><a class="btn" href="note.html' + (KOINONIA_DEMO ? '?demo' : '') + '#my-groups">코이데 노트로</a></section>'
-      : ({ home: homeView, mine: mineView, pray: prayView, history: historyView, more: moreView, about: aboutView, help: helpView, praytext: prayTextView, feedback: feedbackView, acctdel: acctDelView, church: churchView, status: statusView, admin: adminView, import: importView, reorg: () => `<div class="rg-wiz">${reorgView()}</div>` })[S.tab]() + (KOINONIA ? careSheet() : '') + mvGroupSheet()
+      : ({ home: homeView, mine: mineView, pray: prayView, history: historyView, more: moreView, about: aboutView, help: helpView, praytext: prayTextView, feedback: feedbackView, acctdel: acctDelView, account: accountView, church: churchView, status: statusView, admin: adminView, import: importView, reorg: () => `<div class="rg-wiz">${reorgView()}</div>` })[S.tab]() + (KOINONIA ? careSheet() : '') + mvGroupSheet()
   };
   // 고른 가정: 사랑방 가정, 또는 '목사님·장로님으로 들어가기'에서 고른 교역자 가정
   const famPicked = () => S.pick.staff ? (dept().staff || []).find(f => f.id === S.pick.familyId) : S.rooms.find(x => x.id === S.pick.roomId).families.find(f => f.id === S.pick.familyId);
@@ -3930,7 +3935,7 @@ try { const p = JSON.parse(localStorage.getItem('koide-pref') || '{}'), d = docu
   const menuCard = (tab, title, role, roleLabel, what, feats) => `<button class="card menu-card" data-act="tab" data-v="${tab}">
       <span><span class="rm-head"><b>${title}</b><span class="role-tag ${role}">${roleLabel}</span></span><small>${what}</small>
         <span class="rm-feats">${feats.map(f => `<span>${f}</span>`).join('')}</span></span>${ICON.chevR}</button>`;
-  // 더보기(시안과 같게): 왼쪽 우리 가정 정보, 오른쪽 역할 메뉴(사랑방 현황·관리), 홈 화면에 두기, 로그아웃
+  // 더보기(시안과 같게): 왼쪽 우리 가정 정보, 오른쪽 역할 메뉴(사랑방 현황·관리), 홈 화면에 두기, 계정
   // 기도 노트가 남기는 켜짐/꺼짐 표시('on' | 'off' | '')만 읽는다. 노트 내용은 여기서 읽지 않는다
   const noteSyncOn = () => { try { return localStorage.getItem(DEMO_LINK ? 'koide-demo-note-sync' : 'koide-note-sync') === 'on'; } catch (e) { return false; } };
   // 더보기 › 함께하는 곳: 내 코이데 공동체(노트 더보기의 공동체 카드와 같은 모양). 지금 보는 곳은 링크 없이 표시
@@ -3985,12 +3990,11 @@ try { const p = JSON.parse(localStorage.getItem('koide-pref') || '{}'), d = docu
             ${STANDALONE ? '' : row('a2hsopen', '', '홈 화면에 앱처럼 두기', '')}
             <div class="mrow" style="cursor:default;border-top:1px solid var(--line)"><span><b>이용 통계 보내기</b>${KoideTip.btn('앱을 좋게 만들기 위해 이름 없는 사용 기록을 보내요. 누른 것, 연 때와 머문 시간 같은 숫자만이고 이름과 기도제목은 보내지 않아요. 끄면 이 기기에서는 더 보내지 않아요.', '이용 통계 보내기')}</span>
               <button type="button" class="switch${usageOff() ? '' : ' on'}" role="switch" aria-checked="${!usageOff()}" aria-label="이용 통계 보내기" data-act="usageoff"><span></span></button></div>
+            ${KOINONIA && DEMO ? '' : row('tab', 'account', '계정', '')}
             ${KoidePilot.moreRows()}
           </section>
           ${S.grp && !KOINONIA ? '' : `<p class="more-h">코이데</p>
           <section class="card mrows">${row('tab', 'about', '코이데 소개', '')}${row('tab', 'help', '사용법', '')}${row('tab', 'feedback', '의견 보내기', '')}<a class="mrow" style="text-decoration:none;color:inherit;border-top:1px solid var(--line)" href="${PRIVACY_URL}" target="_blank" rel="noopener"><span><b>개인정보 처리방침</b></span>${ICON.chevR}</a></section>`}
-          ${KOINONIA ? '' : '<button class="link quiet more-out" data-act="logout">이 기기에서 로그아웃</button>'}
-          ${(CHURCHSB && !S.grp) || (KOINONIA && !DEMO) ? '<button class="link quiet danger more-out" data-act="acctdel">계정 탈퇴</button>' : ''}
         </div></div>`;
   }
 
@@ -5289,10 +5293,32 @@ try { const p = JSON.parse(localStorage.getItem('koide-pref') || '{}'), d = docu
         </section>
         <section class="card mrows"><a class="mrow" style="text-decoration:none;color:inherit" href="manual.pdf" target="_blank" rel="noopener"><span><b>사용 안내서(PDF)</b></span>${ICON.chevR}</a></section></div>`;
   }
-  // ── 계정 탈퇴(더보기 › 계정 탈퇴, 새 길 교회와 공동체만): 문구와 서버 부르기는 account-delete.js. 단계 S.ad.step = check(확인 중) · block(막힘·불러오기 실패) · ask(확인 글) ──
+  // ── 계정(더보기 › 앱 설정 › 계정, 2026-11-19): 로그인한 방법, 이 기기에서 로그아웃, 계정 탈퇴. 노트의 '계정과 동기화' 맨 아래와 같은 방식 ──
+  const SB_NAME = { kakao: '카카오', google: '구글', apple: '애플' };
+  const sbLogin = () => CHURCHSB || (KOINONIA && !KOINONIA_DEMO);   // 새 길(교회·공동체) 로그인
+  const idsOf = u => { const ids = (u.identities || []).map(i => i.provider), md = u.app_metadata || {};
+    return (ids.length ? ids : md.providers || (md.provider ? [md.provider] : [])).filter((k, i, a) => k && a.indexOf(k) === i); };
+  // S.acctIds: null=불러오는 중, []=보여 줄 것 없음. 새 길은 기기에 남은 세션(koide-note-sb)을 먼저 읽고 KoideSb로 확인한다(노트 acctStored·acctLoad와 같은 방식). 옛 길은 카카오, 데모는 없음
+  function acctLoad() {
+    if (!sbLogin()) { S.acctIds = DEMO ? [] : ['kakao']; return; }
+    try { const raw = localStorage.getItem('koide-note-sb'); S.acctIds = raw ? idsOf(JSON.parse(raw).user) : null; } catch (e) { S.acctIds = null; }
+    const done = ids => { S.acctIds = ids; if (S.tab === 'account') render(); };
+    window.KoideSb.session().then(se => done(se && se.user ? idsOf(se.user) : []), () => done(S.acctIds || []));
+  }
+  function accountView() {
+    const L = S.acctIds === undefined ? null : S.acctIds;
+    const card = L === null ? '<section class="card"><p class="label">로그인 계정</p><p class="hint">불러오는 중…</p></section>'
+      : L.length ? `<section class="card"><p class="label">로그인 계정</p>${L.map(k => `<div class="acct-li"><span class="acct-logo">${window.KoideSb.logos[k] || ''}</span><b>${esc(SB_NAME[k] || k)}</b></div>`).join('')}</section>` : '';
+    return `<button class="link back" data-act="tab" data-v="more">${ICON.chevL}더보기</button>
+      <div class="page-top"><div><h1>계정</h1></div></div>
+      <div class="acct-page">${card}
+        ${KOINONIA ? '' : '<button class="link quiet more-out" data-act="logout">이 기기에서 로그아웃</button>'}
+        ${(CHURCHSB && !S.grp) || (KOINONIA && !DEMO) ? '<button class="link quiet danger more-out" data-act="acctdel">계정 탈퇴</button>' : ''}</div>`;
+  }
+  // ── 계정 탈퇴(더보기 › 앱 설정 › 계정 › 계정 탈퇴, 새 길 교회와 공동체만): 문구와 서버 부르기는 account-delete.js. 단계 S.ad.step = check(확인 중) · block(막힘·불러오기 실패) · ask(확인 글) ──
   function acctDelView() {
     const A = S.ad || (S.ad = { step: 'check' }), D = window.KoideAcctDel;
-    const back = `<button class="link back" data-act="tab" data-v="more">${ICON.chevL}더보기</button>`;
+    const back = `<button class="link back" data-act="tab" data-v="account">${ICON.chevL}계정</button>`;
     const head = `${back}<div class="page-top"><div><h1>계정 탈퇴</h1></div></div>
       <p class="hint" style="margin:.3em 0 .8em">계정 삭제는 탈퇴로 해요. 먼저 지워지는 것을 확인해요.</p>`;
     if (A.step === 'check') return `${head}<section class="card"><p class="loading">확인하는 중이에요…</p></section>`;
@@ -5333,9 +5359,11 @@ try { const p = JSON.parse(localStorage.getItem('koide-pref') || '{}'), d = docu
     try { setToken(null); lsSet(HUB_TOKEN, null); } catch (e) { /* 무시 */ }
     try { await window.KoideSb.signOut(); } catch (e) { /* 계정이 이미 없어서 실패해도 계속 */ }
     try { localStorage.removeItem('koide-note-sb'); } catch (e) { /* 무시 */ }
+    try { window.KoideSb.circlesDrop(); } catch (e) { /* 무시 */ }
+    try { circleReset(); } catch (e) { /* 무시 */ }
     S.cc = null; S.pending = null; S.hist = null; S.histTab = null; S.op = null; S.grp = null; S.home = null; S.ops = null; S.rost = null; S.mv = null; S.gmv = null; S.before = null;
     try { localStorage.removeItem(OP_KEY); } catch (e) { /* 무시 */ }
-    Object.assign(S, { famEdit: null, famMsg: '', a2hs: false, homeView: null, ex: null, draft: '', draftTgt: '', todayId: null, shareId: null, menu: null, imp: null, preview: null, tgtOpen: null, delAsk: null, month: null, me: null });
+    Object.assign(S, { famEdit: null, famMsg: '', a2hs: false, homeView: null, ex: null, draft: '', draftTgt: '', todayId: null, shareId: null, menu: null, imp: null, preview: null, tgtOpen: null, delAsk: null, month: null, me: null, acctIds: null });
     S.openItems.clear(); S.openFams.clear();
   }
   async function acctDelOpen() {
@@ -5517,11 +5545,26 @@ try { const p = JSON.parse(localStorage.getItem('koide-pref') || '{}'), d = docu
   }
 
 
-  const CIRCLE_MENU = { list: [], loaded: false, loading: false, session: false };
+  // fresh: 이번 화면에서 서버에 확인했는지, pre: 교회 화면에서 미리 받기를 걸었는지. 목록은 이 기기에 기억해(koide-circle-list, 계정 id로 묶음) 바로 그리고 서버 답이 다르면 조용히 맞춘다
+  const CIRCLE_MENU = { list: [], loaded: false, loading: false, session: false, fresh: false, pre: false };
   const communityOn = () => DEMO || (CFG.COMMUNITY === 'on' && !!CFG.SUPABASE_URL && !!CFG.SUPABASE_KEY);
+  (function circleRestore() {
+    try {
+      if (DEMO || !communityOn()) return;
+      const l = window.KoideSb && window.KoideSb.circlesCached();
+      if (l) { CIRCLE_MENU.list = l; CIRCLE_MENU.loaded = true; CIRCLE_MENU.session = true; }
+    } catch (e) { /* 기억을 못 읽으면 예전처럼 배지를 누를 때 받는다 */ }
+  })();
+  function circleReset() {
+    Object.assign(CIRCLE_MENU, { list: [], loaded: false, fresh: false, session: false, pre: false });
+    try { window.KoideSb.circlesDrop(); } catch (e) { /* 무시 */ }
+  }
+  // 교회 화면이 처음 그려진 뒤 한 번만 미리 받는다(새 길 로그인 사람만: supabase-js와 세션이 이미 있다)
+  function circlePreload() { if (CIRCLE_MENU.pre) return; CIRCLE_MENU.pre = true; setTimeout(loadCircleMenu, 800); }
   async function loadCircleMenu() {
-    if (!communityOn() || CIRCLE_MENU.loading || CIRCLE_MENU.loaded) return;
+    if (!communityOn() || CIRCLE_MENU.loading || CIRCLE_MENU.fresh) return;
     CIRCLE_MENU.loading = true;
+    const before = JSON.stringify(CIRCLE_MENU.list), had = CIRCLE_MENU.loaded;
     try {
       if (DEMO) {
         CIRCLE_MENU.session = true;
@@ -5531,10 +5574,24 @@ try { const p = JSON.parse(localStorage.getItem('koide-pref') || '{}'), d = docu
         });
         CIRCLE_MENU.list = (await window.koideKoinoniaDemo.call('community_mine')).list || [];
       }
-      else if (await window.KoideSb.session()) { CIRCLE_MENU.session = true; CIRCLE_MENU.list = (await window.KoideSb.rpc('community_mine')).list || []; }
-      CIRCLE_MENU.loaded = true;
-    } catch (e) { CIRCLE_MENU.loaded = false; }
-    finally { CIRCLE_MENU.loading = false; if (S.menu === 'badge' && S.view === 'app') $('#topbar').innerHTML = topHtml(); if (KOINONIA && CIRCLE_MENU.loaded && S.tab === 'more') render(); }
+      else {
+        const s = await window.KoideSb.session();
+        if (s) {
+          CIRCLE_MENU.session = true; CIRCLE_MENU.list = (await window.KoideSb.rpc('community_mine')).list || [];
+          if (s.user && s.user.id) window.KoideSb.circlesSave(s.user.id, CIRCLE_MENU.list);
+        } else { window.KoideSb.circlesDrop(); CIRCLE_MENU.list = []; CIRCLE_MENU.session = false; }
+      }
+      CIRCLE_MENU.loaded = CIRCLE_MENU.fresh = true;
+    } catch (e) {
+      if (e && e.code === 'login') { try { window.KoideSb.circlesDrop(); } catch (e2) { /* 무시 */ } CIRCLE_MENU.list = []; CIRCLE_MENU.session = false; CIRCLE_MENU.loaded = true; }
+      else CIRCLE_MENU.loaded = had;
+    }
+    finally {
+      CIRCLE_MENU.loading = false;
+      if (before !== JSON.stringify(CIRCLE_MENU.list) || had !== CIRCLE_MENU.loaded) {
+        if (S.menu === 'badge' && S.view === 'app') $('#topbar').innerHTML = topHtml(); if (KOINONIA && CIRCLE_MENU.loaded && S.tab === 'more') render();
+      }
+    }
   }
   const TABS = [['home', '이번 달', ICON.home], ['mine', '내 기도', ICON.pen], ['pray', '기도하기', ICON.hands], ['history', '돌아보기', ICON.book], ['more', '더보기', ICON.more]];
   // 화면 모드·색 테마·큰 글씨: 이 기기에만 기억(head에서 먼저 입힌 값을 그대로 이어 쓴다)
@@ -5560,7 +5617,7 @@ try { const p = JSON.parse(localStorage.getItem('koide-pref') || '{}'), d = docu
   };
   const bigControls = () => `<div class="seg" style="--n:3" role="radiogroup" aria-label="큰 글씨">${[[0,'보통'],[1,'크게'],[2,'아주 크게']].map(([k,l]) => `<button class="${(PREF.big === true ? 1 : Number(PREF.big) || 0) === k ? 'on' : ''}" role="radio" aria-checked="${(PREF.big === true ? 1 : Number(PREF.big) || 0) === k}" data-act="big" data-v="${k}">${l}</button>`).join('')}</div>`;
 
-  const tabOn = (t = S.tab) => S.op || ['import', 'status', 'admin', 'reorg', 'about', 'help', 'church', 'feedback', 'acctdel', 'praytext'].includes(t) ? 'more' : t;
+  const tabOn = (t = S.tab) => S.op || ['import', 'status', 'admin', 'reorg', 'about', 'help', 'church', 'feedback', 'acctdel', 'account', 'praytext'].includes(t) ? 'more' : t;
   // 상단 바: 로고(누르면 이번 달), PC에서는 메뉴, 사랑방 배지(누르면 사랑방 정보), 설정
   function topHtml() {
     const brand = `<button class="brand"${S.view === 'app' ? ' data-act="tab" data-v="home"' : ''} aria-label="코이데 홈"><span class="brand-mark">${ICON.knot}</span><span class="brand-name">코이데</span></button>`;
@@ -5687,6 +5744,7 @@ try { const p = JSON.parse(localStorage.getItem('koide-pref') || '{}'), d = docu
     lastSig = sig;
     const t0 = performance.now(), y0 = scrollY;
     draw();
+    if (S.view === 'app' && CHURCHSB && !KOINONIA) circlePreload();
     // 같은 화면 안에서 다시 그릴 때(고르기, 펼치기 등)는 보던 자리를 지킨다. 화면을 통째로 바꾸면 위로 튀는 브라우저가 있다(아이폰 사파리).
     //  다른 화면으로 갈 때 맨 위로 올리는 것은 부르는 쪽이 그린 뒤에 한다
     if (!kind && S.view === 'app' && Math.abs(scrollY - y0) > 1) window.scrollTo(0, y0);
@@ -5952,10 +6010,10 @@ try { const p = JSON.parse(localStorage.getItem('koide-pref') || '{}'), d = docu
         S.busy = false; S.pick = {}; S.view = 'loading'; render(); return refreshMe();
       }
       case 'demoreset': window.koideDemo && window.koideDemo.reset(); setToken(null); location.replace(location.pathname + location.search); return;
-      case 'logout': try { if (getToken()) await api('logout'); } catch (err) { /* 이미 끝난 로그인 */ } setToken(null); lsSet(HUB_TOKEN, null); if (frontDoor()) lsSet(DOOR, 'church'); S.cc = null; S.view = 'login'; S.tab = 'home'; S.pending = null; S.hist = null; S.histTab = null;
+      case 'logout': try { if (getToken()) await api('logout'); } catch (err) { /* 이미 끝난 로그인 */ } circleReset(); setToken(null); lsSet(HUB_TOKEN, null); if (frontDoor()) lsSet(DOOR, 'church'); S.cc = null; S.view = 'login'; S.tab = 'home'; S.pending = null; S.hist = null; S.histTab = null;
         // 한 기기를 여럿이 쓰면 앞사람이 보던 화면·쓰던 글이 다음 사람에게 남지 않게
         S.op = null; S.grp = null; S.home = null; S.ops = null; S.rost = null; S.mv = null; S.gmv = null; S.before = null; try { localStorage.removeItem(OP_KEY); } catch (err) { /* 무시 */ }
-        Object.assign(S, { famEdit: null, famMsg: '', a2hs: false, homeView: null, ex: null, draft: '', draftTgt: '', todayId: null, shareId: null, menu: null, imp: null, preview: null, tgtOpen: null, delAsk: null }); S.openItems.clear(); S.openFams.clear();
+        Object.assign(S, { famEdit: null, famMsg: '', a2hs: false, homeView: null, ex: null, draft: '', draftTgt: '', todayId: null, shareId: null, menu: null, imp: null, preview: null, tgtOpen: null, delAsk: null }); S.acctIds = null; S.openItems.clear(); S.openFams.clear();
         return render();
       case 'pickdept': pickDept(v); return render();
       case 'a2hsclose': a2hsOff(); return render();
@@ -6253,7 +6311,7 @@ try { const p = JSON.parse(localStorage.getItem('koide-pref') || '{}'), d = docu
       }
       case 'acctdel': return acctDelOpen();
       case 'acctdelgo': return acctDelGo();
-      case 'acctdelback': S.ad = null; S.tab = 'more'; render(); window.scrollTo(0, 0); return;
+      case 'acctdelback': S.ad = null; S.tab = 'account'; render(); window.scrollTo(0, 0); return;
       case 'acctdelcomm': try { await acctDelCommDl(); } catch (err) { oops(err); } return;
       case 'acctdelhome': location.replace('index.html'); return;
       case 'fbfilter': S.fbFilter = v; return render();
@@ -6280,6 +6338,7 @@ try { const p = JSON.parse(localStorage.getItem('koide-pref') || '{}'), d = docu
         if (S.op && ['home', 'mine', 'pray', 'history', 'more'].includes(v)) return leaveOps(v);
         // 부서 관리자가 우리 부서 관리를 처음 열 때도 같은 전환 화면
         if (v === 'admin' && S.tab !== 'admin' && !S.op) adminWait(true, (S.month.dept && S.month.dept.name ? S.month.dept.name : '부서') + ' 관리');
+        if (v === 'account') acctLoad();
         if (v === 'about') track('화면 보기', { screen: '코이데 소개' });
         if (v === 'help') { S.helpQ = null; track('화면 보기', { screen: '사용법' }); }
         if (v === 'home' && S.tab === 'home') S.openRoom = null;
