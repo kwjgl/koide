@@ -5,7 +5,7 @@ window.KOIDE_CONFIG = {
   //  교회 코드를 쓰면(HUB_URL) 이 기기가 들어간 교회의 서버 주소로 바뀐다(아래). 여기 적힌 주소는 교회 코드 전부터 쓰던 교회 서버다
   API_URL: 'https://script.google.com/macros/s/AKfycbyHCoWVMdWtKzaoago9cDYEZBOApu23dM61j_QkhFLT0cpzCunEGT3Fda8rxxs0iwqn/exec',
   // 기본 서버(apps-script/hub) 웹 앱 주소. 비어 있으면 교회 코드 없이 예전처럼 위 서버 하나로 로그인한다
-  HUB_URL: 'https://script.google.com/macros/s/AKfycbxzOsJrAvxkVn4iyfXhXwN-zodjeH8OJ3qeHYAE2MRdFJWiZCWdFHGEU1jYwODeaT0c/exec',
+  HUB_URL: '',
   // 카카오 개발자 앱의 REST API 키 (로그인 화면 주소에 들어가는 공개 값. Client Secret은 여기 넣지 않는다)
   KAKAO_REST_KEY: '797c76e7cc40eb0fb93ca86e6d1bb62e',
   // 카카오에 등록한 이 앱의 주소. 예: https://koide.koinobia.com/app/
@@ -17,7 +17,9 @@ window.KOIDE_CONFIG = {
   // 코이데 공동체 켜기. 비우면 꺼짐, 'on'이면 켬. 서버 스위치 community_open도 켜져 있어야 쓸 수 있다
   COMMUNITY: 'on',
   // 이용 통계 보내기(2026-11-18 켬). 'on'이면 서버 스위치 usage_track도 켜져 있을 때만 쌓인다. 사용자가 더보기 › 앱 설정에서 끈 기기는 보내지 않는다
-  USAGE: 'on'
+  USAGE: 'on',
+  // 코이데 교회를 Supabase로(2026-11-19 켬). 비우면 예전처럼 Apps Script(API_URL·HUB_URL). 서버 스위치 church_open도 열려야 쓸 수 있다
+  CHURCH_BACKEND: 'supabase'
 };
 // 교회 코드로 들어간 기기: 그 교회 서버로 이야기한다(공동체·기도 노트 모두). ?demo로 연 데모는 그대로
 (() => {
