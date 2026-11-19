@@ -119,7 +119,7 @@
   <p class="splash-name sw-in d1">코이데 노트</p><p class="splash-sub sw-in d2">하나님과 나누는 이야기</p><p class="loading"></p>`;
   } else if (mode === 'switch') {
     // 공동체: 사랑방 이름이 아니라 항상 '코이데 교회'로 보여 준다
-    inner = space === 'koinonia' ? cordInner('코이데 공동체', '함께 기도하는 공동체') : cordInner('코이데 교회', '사랑방과 함께 기도해요');
+    inner = space === 'koinonia' ? cordInner('코이데 공동체', '함께 기도하는 공동체') : cordInner('코이데 교회', '한 몸으로 기도하는 교회');
   }
   // 모임 전환 화면의 속: 수틀(바깥 고리와 속천), 그물 눈금, 걸리는 실 둘, 실이 만나는 매듭 둘
   const groupInner = (name, left) => `<span class="sw-hoop"><svg viewBox="0 0 156 156"><defs><clipPath id="sw-clip"><circle cx="78" cy="78" r="70"/></clipPath></defs>
