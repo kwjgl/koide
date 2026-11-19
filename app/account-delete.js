@@ -23,6 +23,8 @@ window.KoideAcctDel = (() => {
       else if (!('churchMode' in w)) out.push(w.church + ' 교회의 가정 기록(배우자 계정이 있으면 내 이름만 빠져요)');
       else out.push(w.church + ' 교회 소속');
     }
+    if (w.apply === '대기') out.push('교회 신청서가 취소되고 적어 주신 내용이 지워져요');
+    else if (w.apply === '만듦') out.push('신청한 교회는 이미 만들어졌어요. 탈퇴하면 그 교회의 첫 관리자가 비어요. 먼저 앱에서 첫 관리자로 시작하세요');
     if (w.didako) out.push('디다코 기록도 함께 지워져요');
     out.push('이 휴대폰에 저장된 이 계정의 코이데 노트');
     return out;

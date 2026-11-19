@@ -1551,6 +1551,28 @@ try { const p = JSON.parse(localStorage.getItem('koide-pref') || '{}'), d = docu
     S.cc = { code: lsGet(CODE_IN) || '' }; S.view = 'ccode'; render();
     if (S.cc.code) peekCode(S.cc.code);
   }
+  // 교회 신청(035): 안내 화면에 신청 상태를 채운다. applyState는 던지지 않고, 스위치가 꺼졌거나 서버에 035가 없으면 open false·mine null이라 화면은 그대로다.
+  //  불러오는 동안은 지금 화면 그대로 그리고(S.cin.open이 undefined), 도착했을 때 아직 안내 화면일 때만 다시 그린다
+  const APPLY_GO = 'koide-capply';
+  const applyMark = () => { const t = Number(lsGet(APPLY_GO)); lsSet(APPLY_GO, null); return t > 0 && Date.now() - t < 15 * 60e3; };   // 로그인하고 신청하기를 누른 지 15분 안인가(읽고 지운다)
+  async function cintroLoad() {
+    let r; try { r = await api('applyState'); } catch (e) { return; }
+    if (S.view !== 'cintro') return;
+    const go = r.auth && applyMark();
+    S.cin = Object.assign({}, S.cin, { open: !!r.open, mine: r.mine || null });
+    if (go && r.open && !r.mine) { S.capply = { draft: {} }; S.view = 'capply'; }
+    render();
+  }
+  // 로그인한 사람이 교회 코드 화면에 닿았을 때: 신청서가 있거나(결과를 알려야 한다) 방금 로그인하고 신청하기를 눌렀으면 안내 화면·신청서로 보낸다. 아니면 아무 일도 없다
+  async function applyAfterLogin() {
+    let r; try { r = await api('applyState'); } catch (e) { return; }
+    const go = applyMark();
+    if (S.view !== 'ccode' || (S.cc && (S.cc.peek || S.cc.code))) return;
+    if (!r.mine && !(go && r.open)) return;
+    S.cin = { auth: true, open: !!r.open, mine: r.mine || null, pick: 'staff' };
+    if (!r.mine) { S.capply = { draft: {} }; S.view = 'capply'; } else S.view = 'cintro';
+    render(); window.scrollTo(0, 0);
+  }
   async function peekCode(v) {
     S.busy = true; render();
     try { S.cc.peek = await (CHURCHSB ? api('churchPeek', { code: v }) : hubApi('peek', { code: v })); } catch (e) { if (e.code !== 'login') toast(e.message); }
@@ -1780,7 +1802,7 @@ try { const p = JSON.parse(localStorage.getItem('koide-pref') || '{}'), d = docu
         // 초대·코드 흔적 없이 ?connect로만 온 사람, 또는 안내 공유 링크(?cinfo)로 온 사람은 로그인 대신 코이데 교회 안내 화면
         const plain = !!lsGet(CINFO) || (!!lsGet(CONNECT) && !lsGet(JOIN) && !lsGet(OPS_JOIN) && !lsGet(GJOIN) && !lsGet(CODE_IN) && !GOPEN);
         if (plain) S.cin = { auth: false };
-        S.view = plain ? 'cintro' : 'login'; return render();
+        S.view = plain ? 'cintro' : 'login'; render(); if (plain) cintroLoad(); return;
       }
       if (!getToken()) { try { localStorage.setItem(TOKEN, 'sb'); } catch (e) { /* 이번만 */ } setUid(sbSes.user.id); } // 교회 로그인 표시. setToken()은 노트 쪽 표시도 지우므로 쓰지 않는다
     } else if (!getToken()) { S.view = 'login'; return render(); }
@@ -1849,7 +1871,7 @@ try { const p = JSON.parse(localStorage.getItem('koide-pref') || '{}'), d = docu
         const J0 = r.join;
         if (J0 && J0.bad) { toast(J0.message || '이 초대 링크는 더 이상 쓰지 않아요. 교회 코드를 넣어 주세요.'); try { localStorage.removeItem(JOIN); } catch (e) { /* 무시 */ } }
         S.cc = { code: lsGet(CODE_IN) || '' }; S.view = 'ccode';
-        render(); if (S.cc.code) peekCode(S.cc.code);
+        render(); if (S.cc.code) peekCode(S.cc.code); else applyAfterLogin();
         return;
       }
       if (!S.me.link) {
@@ -1879,7 +1901,7 @@ try { const p = JSON.parse(localStorage.getItem('koide-pref') || '{}'), d = docu
       if (e.code === 'login') return;
       if (quiet) return oops(e);
       // 서버 문이 닫혀 있으면(church_open이 admins·off) 오류 화면 대신 안내 화면과 시범 띠
-      if (CHURCHSB && e.code === 'bad' && /아직 열리지 않았어요/.test(e.message || '')) { S.cin = { auth: true, closed: true }; S.view = 'cintro'; }
+      if (CHURCHSB && e.code === 'bad' && /아직 열리지 않았어요/.test(e.message || '')) { S.cin = { auth: true, closed: true }; S.view = 'cintro'; setTimeout(cintroLoad, 0); }
       else { S.view = 'error'; S.err = e; }
     }
     quiet ? paint() : render();
@@ -2328,11 +2350,24 @@ try { const p = JSON.parse(localStorage.getItem('koide-pref') || '{}'), d = docu
     cintro: () => {
       const I = S.cin || {}, TRIAL = '지금은 시범 운영 중이에요. 신청을 받아 두고, 준비되는 대로 열어 드려요.';
       const role = (title, img, alt, h, items) => `<div class="ci-role"><div><h3 class="ci-h3">${title}</h3><ul class="ci-list">${items.map(t => `<li>${t}</li>`).join('')}</ul></div><img class="ci-shot" src="intro/${img}.webp" alt="${alt}" width="420" height="${h}" loading="lazy"></div>`;
-      const box = I.pick === 'staff' ? '<div class="notice ci-box"><p>신청서는 곧 이 앱에서 받을 수 있어요.</p></div>'
+      // 신청 스위치가 켜져 있을 때만(I.open) 새 갈래. 꺼져 있고 내 신청도 없으면 아래 옛 글 그대로(A단계와 글자 하나 다르지 않다)
+      const apBox = I.pick !== 'staff' || !I.open ? null : I.mine ? ''
+        : !I.auth ? '<div class="notice ci-box"><p>신청서는 로그인한 뒤에 써요. 구글이나 카카오로 로그인하면 이 화면으로 돌아와요.</p><div class="ci-note"><button class="btn small" data-act="capplylogin">로그인하고 신청하기</button></div></div>'
+        : '<div class="notice ci-box"><p>신청서는 5분이면 써요. 코이데가 확인한 뒤 적어 주신 연락처로 연락해요.</p><div class="ci-note"><button class="btn small" data-act="capplyform">신청서 쓰기</button></div></div>';
+      const M = I.mine, mineCard = !M ? '' : M.status === '대기'
+        ? `<section class="card ci-card"><h2 class="ci-h2">신청을 받았어요</h2><p style="margin:0;word-break:keep-all">${esc(M.name)} · ${esc(M.at)}에 신청했어요. 코이데가 확인한 뒤 적어 주신 연락처로 연락드려요.</p>
+          ${I.cancelAsk ? `<p style="margin:0;word-break:keep-all">신청서를 취소하면 적어 주신 내용이 바로 지워져요.</p><div class="actions"><button class="btn small ghost" data-act="capplycancel" ${S.busy ? 'disabled' : ''}>취소하기</button><button class="link" data-act="capplycancelno">아니요</button></div>`
+          : '<div class="actions"><button class="link" data-act="capplycancelask">신청 취소</button></div>'}</section>`
+        : M.status === '만듦'
+          ? `<section class="card ci-card"><h2 class="ci-h2">교회가 만들어졌어요</h2>${I.closed
+            ? `<p style="margin:0;word-break:keep-all">${esc(M.churchName)}가 만들어졌어요. 지금은 시범 운영 중이라 문이 닫혀 있어요. 문이 열리면 이 화면에서 첫 관리자로 시작할 수 있어요.</p>`
+            : `<p style="margin:0;word-break:keep-all">${esc(M.churchName)}의 첫 교회 관리자로 시작할 수 있어요. 시작하면 부서와 사랑방을 만들고 초대 링크나 교회 코드를 나눠 줘요.</p><div class="actions"><button class="btn wide" data-act="capplyclaim" ${S.busy ? 'disabled' : ''}>첫 관리자로 시작하기</button></div>`}</section>`
+          : `<section class="card ci-card"><h2 class="ci-h2">이번에는 열어 드리지 못했어요</h2>${M.reason ? `<p style="margin:0;word-break:keep-all">사유: ${esc(M.reason)}</p>` : ''}<p style="margin:0;word-break:keep-all">궁금한 점은 koinobia.admin@gmail.com 으로 물어봐 주세요.</p>${I.open && I.auth ? '<div class="actions"><button class="btn small" data-act="capplyform">다시 신청하기</button></div>' : ''}</section>`;
+      const box = apBox != null ? apBox : I.pick === 'staff' ? '<div class="notice ci-box"><p>신청서는 곧 이 앱에서 받을 수 있어요.</p></div>'
         : I.pick === 'member' ? `<div class="notice ci-box"><p>코이데 교회는 교역자가 신청해요. 아래 링크를 우리 교회 교역자에게 보내 주세요.</p><button class="link" data-act="cinfocopy">링크 복사</button>${copyNote('cinfo', cinfoText())}</div>` : '';
       return `<div class="ci">${I.closed ? `<div class="notice ci-band" role="status">${TRIAL}</div>` : ''}
       <p class="eyebrow">코이데 교회</p><h1>코이데 교회</h1>
-      <p class="ci-sub">부서와 사랑방 단위로 가정의 기도제목을 매달 모으고, 함께 기도하는 교회용 공간</p>
+      <p class="ci-sub">부서와 사랑방 단위로 가정의 기도제목을 매달 모으고, 함께 기도하는 교회용 공간</p>${mineCard}
       <section class="card ci-card"><h2 class="ci-h2">역할별로 하는 일</h2>
         ${role('회원(가정)', 'member', '회원 홈 화면: 지금 함께 기도할 가정과 기도했어요 단추', 420, ['매달 우리 가정 기도제목 쓰기. 항목마다 공개 범위 고르기(사랑방 공개 · 부서 공개 · 리더·목사님 · 우리 가정만)', '사랑방 가정을 한 집씩 넘기며 기도하고 <b>기도했어요</b>', '지난 기록 돌아보기, 내 기록 내려받기'])}
         ${role('리더', 'leader', '리더의 사랑방 현황 화면: 이번 달 손본 가정 수와 월별 추이', 909, ['이번 달에 기도제목을 손본 가정과 지난달 그대로인 가정 보기, 안부 문구 복사', '사랑방 연결 신청 승인'])}
@@ -2355,6 +2390,25 @@ try { const p = JSON.parse(localStorage.getItem('koide-pref') || '{}'), d = docu
       <p class="ci-foot">${I.closed ? '<button class="link" data-act="logout">다른 계정으로 로그인</button>'
         : I.auth ? '<button class="link" data-act="cintroccode">교회 코드 넣기</button>'
         : '이미 교회 코드나 초대 링크가 있어요 · <button class="link" data-act="cintrologin">로그인</button>'}</p></div>`;
+    },
+    // 교회 신청서(capply, 035): 교역자가 안내 화면에서 눌러 온다. 입력값은 S.capply.draft에 담아 오류가 나도 지워지지 않는다
+    capply: () => {
+      const D = (S.capply && S.capply.draft) || {}, v = k => esc(D[k] || ''), sizes = ['30명 이하', '31~50명', '51~100명', '101~300명', '301명 이상'];
+      return `<p class="eyebrow">코이데 교회 신청</p><h1>교회 신청서</h1>
+      <p class="hint">교역자가 써 주세요. 코이데가 확인한 뒤 연락드려요.</p>
+      <form class="plain-form" data-form="capply">
+        <label class="f" for="ca-region">지역</label><input id="ca-region" class="field" name="region" required maxlength="20" placeholder="예) 서울 강동구" autocomplete="off" value="${v('region')}">
+        <label class="f" for="ca-name">교회 이름</label><input id="ca-name" class="field" name="name" required maxlength="40" autocomplete="off" value="${v('name')}">
+        <div class="tip-line"><label class="f" for="ca-denom">교단</label>${KoideTip.btn("교단이 없으면 '독립'이라고 써 주세요.", '교단')}</div><input id="ca-denom" class="field" name="denom" required maxlength="20" list="capply-denoms" autocomplete="off" value="${v('denom')}">
+        <datalist id="capply-denoms">${['대한예수교장로회(통합)', '대한예수교장로회(합동)', '기독교대한감리회', '기독교대한성결교회', '대한기독교침례회', '기독교한국침례회', '순복음', '독립'].map(x => `<option value="${x}"></option>`).join('')}</datalist>
+        <label class="f" for="ca-pastor">대표 목사님</label><input id="ca-pastor" class="field" name="pastor" required maxlength="20" autocomplete="off" value="${v('pastor')}">
+        <label class="f" for="ca-contact">연락처 (전화번호 또는 이메일)</label><input id="ca-contact" class="field" name="contact" required maxlength="60" autocomplete="off" value="${v('contact')}">
+        <label class="f" for="ca-size">대략 인원</label><select id="ca-size" class="field" name="size" required><option value="">고르기</option>${sizes.map(x => `<option value="${x}"${D.size === x ? ' selected' : ''}>${x}</option>`).join('')}</select>
+        <label class="f" for="ca-site">교회 소개 주소 · 선택</label><input id="ca-site" class="field" name="site" type="url" inputmode="url" maxlength="200" placeholder="https://" autocomplete="off" value="${v('site')}">
+        <label class="check grp-ren" style="margin:16px 0;word-break:keep-all"><input type="checkbox" name="agree" required${D.agree ? ' checked' : ''}><span>신청서의 개인정보(교회 이름·대표 목사님·연락처 등)를 신청 확인과 연락에 쓰는 데 동의해요 (필수)<a class="link quiet" href="${PRIVACY_URL}" target="_blank" rel="noopener" style="display:block;margin-top:4px;font-size:.88em">개인정보 처리방침 전체 보기</a></span></label>
+        <button class="btn wide" type="submit" ${S.busy ? 'disabled' : ''}>신청하기</button>
+      </form>
+      <button class="link" data-act="capplyback">뒤로</button>`;
     },
     // 교회 코드(카카오 로그인 뒤, 처음 한 번): 코드가 없으면 코이데를 쓸 수 없다. 맞는 코드면 교회 이름을 보여 주고 묻는다
     ccode: () => {
@@ -5994,9 +6048,27 @@ try { const p = JSON.parse(localStorage.getItem('koide-pref') || '{}'), d = docu
         return render();
       case 'aacopy': return copy('aa', S.aaLink.link);
       case 'aaedit': S.aaEdit = !v ? null : v === 'new' ? {} : { orig: v }; render(); { const f = $('#aa-name'); if (f) f.focus(); } return;
-      case 'cintro': S.cin = { auth: true }; S.view = 'cintro'; render(); window.scrollTo(0, 0); return;
+      case 'cintro': S.cin = { auth: true }; S.view = 'cintro'; render(); window.scrollTo(0, 0); cintroLoad(); return;
       case 'cintrologin': lsSet(CINFO, null); S.cin = null; S.view = 'login'; render(); window.scrollTo(0, 0); return;
       case 'cintroccode': S.cin = null; S.cc = S.cc || { code: lsGet(CODE_IN) || '' }; S.view = 'ccode'; render(); window.scrollTo(0, 0); return;
+      case 'capplylogin': lsSet(APPLY_GO, String(Date.now())); lsSet(CINFO, null); S.cin = null; S.view = 'login'; render(); window.scrollTo(0, 0); return;
+      case 'capplyform': {
+        const M = S.cin && S.cin.mine, d = M ? { region: M.region, name: M.name, denom: M.denom, pastor: M.pastor, contact: M.contact, size: M.size, site: M.site } : {};
+        S.capply = { draft: d }; S.view = 'capply'; render(); window.scrollTo(0, 0); return;
+      }
+      case 'capplyback': S.view = 'cintro'; S.cin = Object.assign({}, S.cin, { pick: 'staff' }); render(); window.scrollTo(0, 0); return;
+      case 'capplycancelask': S.cin = Object.assign({}, S.cin, { cancelAsk: true }); render(); return;
+      case 'capplycancelno': S.cin = Object.assign({}, S.cin, { cancelAsk: false }); render(); return;
+      case 'capplycancel':
+        S.busy = true; render();
+        try { await api('applyCancel'); S.cin = Object.assign({}, S.cin, { mine: null, cancelAsk: false }); toast('신청을 취소했어요. 적어 주신 내용도 지웠어요.'); }
+        catch (err) { if (err.code !== 'login') toast(err.message); }
+        S.busy = false; return render();
+      case 'capplyclaim':
+        S.busy = true; render();
+        try { await api('applyClaim'); lsSet(OP_KEY, '*'); S.busy = false; S.cin = null; S.view = 'loading'; render(); return refreshMe(); }
+        catch (err) { if (err.code !== 'login') toast(err.message); }
+        S.busy = false; return render();
       case 'cintropick': S.cin = Object.assign({}, S.cin, { pick: v }); S.copied = null; render(); return;
       case 'cinfocopy': { let ok = false; try { await navigator.clipboard.writeText(cinfoText()); ok = true; } catch (err) { /* 막힌 기기 */ } S.copied = { key: 'cinfo', ok }; render(); if (ok) toast('링크를 복사했어요. 우리 교회 교역자에게 보내 주세요.'); return; }
       case 'pickstart':
@@ -6693,6 +6765,17 @@ try { const p = JSON.parse(localStorage.getItem('koide-pref') || '{}'), d = docu
       S.busy = true; render();
       try { S.tog = await api('togetherSave', Object.assign({ text: x, target: t }, f.dataset.v ? { id: f.dataset.v } : {})); S.month.together = S.tog.list; S.togEdit = null; toast(f.dataset.v ? '고쳤어요.' : '더했어요.'); }
       catch (err) { oops(err); }
+      S.busy = false; return render();
+    }
+    if (f.dataset.form === 'capply') {
+      const d = new FormData(f), body = { agree: d.get('agree') === 'on' };
+      ['region', 'name', 'denom', 'pastor', 'contact', 'size', 'site'].forEach(k => { body[k] = String(d.get(k) || '').trim(); });
+      S.capply = { draft: Object.assign({}, body) }; S.busy = true; render();
+      try {
+        const r = await api('applySend', body);
+        S.busy = false; S.capply = null; S.cin = Object.assign({}, S.cin, { auth: true, open: true, mine: r.apply || null, pick: 'staff', cancelAsk: false });
+        S.view = 'cintro'; render(); window.scrollTo(0, 0); toast('신청서를 보냈어요. 코이데가 확인한 뒤 연락드려요.'); return;
+      } catch (err) { if (err.code !== 'login') toast(err.message); }
       S.busy = false; return render();
     }
     if (f.dataset.form === 'aasave') {

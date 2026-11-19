@@ -57,6 +57,25 @@ window.KoideSb = (() => {
     if (/^community_(create|join|leave|end|ends_change|decide|remove|rename|renew|handoff)$|^account_delete$/.test(name)) circlesDrop();
     return body;
   }
+  // 로그인 없이 부르는 서버 함수(공개 키만 쓴다). 지금은 church_apply_open(신청을 받는지 true/false 하나)만 쓴다. 오류는 rpc와 같은 모양으로 던진다
+  async function rpcAnon(name, args = {}) {
+    if (!ready()) throw fail('net', '로그인 설정이 없어요.');
+    const ctl = new AbortController(), stop = setTimeout(() => ctl.abort(), 20000);
+    let res, body;
+    try {
+      res = await fetch(base() + '/rest/v1/rpc/' + encodeURIComponent(name), {
+        method: 'POST', signal: ctl.signal,
+        headers: { apikey: C.SUPABASE_KEY, Authorization: 'Bearer ' + C.SUPABASE_KEY, 'Content-Type': 'application/json' },
+        body: JSON.stringify(args || {})
+      });
+    } catch (e) { throw fail('net', '서버가 답하지 않아요. 잠시 뒤 다시 해 주세요.'); }
+    finally { clearTimeout(stop); }
+    try { const t = await res.text(); body = t ? JSON.parse(t) : null; } catch (e) { body = null; }
+    const m = body && typeof body.message === 'string' && /^(bad|busy): ([\s\S]*)$/.exec(body.message);
+    if (m) throw fail(m[1], m[2]);
+    if (!res.ok) throw fail('bad', '서버가 받지 못했어요. 잠시 뒤 다시 해 주세요.');
+    return body;
+  }
   // 로그인 방법 목록을 이 기기에 기억해 바로 그린다(키 koide-sb-providers). note.html에 같은 키·같은 모양의 사본이 있다(30일 지나면 안 쓰고, 1시간 안이면 다시 받지 않는다)
   const PROV_ALL = ['kakao', 'google', 'apple'];
   function provMem() {
@@ -137,5 +156,5 @@ window.KoideSb = (() => {
     const r = await (await instance()).auth.signOut({ scope: 'local' });
     if (r && r.error) throw fail('bad', '로그아웃하지 못했어요. 잠시 뒤 다시 해 주세요.');
   }
-  return { ready, session, rpc, providers, providersCached, storedUid, circlesCached, circlesSave, circlesDrop, oauth, signOut, logos };
+  return { ready, session, rpc, rpcAnon, providers, providersCached, storedUid, circlesCached, circlesSave, circlesDrop, oauth, signOut, logos };
 })();
