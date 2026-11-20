@@ -1186,7 +1186,8 @@ body.pop-open { overflow: hidden; }
 .help-page .plain { margin: 0; line-height: 1.65; word-break: keep-all; }
 .help-go { min-height: 56px; font-size: 1.1em; font-weight: 700; margin-top: .6em; }
 .folds .fold-body .plain { margin: 0; line-height: 1.65; word-break: keep-all; }
-.mset { display: flex; flex-direction: column; gap: 12px; padding: .2em 0 .9em; }
+.mset { display: flex; flex-direction: column; gap: 12px; padding: .9em 0; border-top: 1px solid var(--line); }   /* 펼치면 머리줄 아래 구분선(디다코와 같다) */
+.mset .mlabel { margin: 0 0 .4em .2em; }
 .together .itemlist, .together ul { margin-top: .4em; }
 .tog-list { list-style: none; margin: 0; padding: 0; }
 .tog-list li { display: flex; flex-wrap: wrap; justify-content: space-between; gap: .3em .8em; padding: .55em 0; border-top: 1px solid var(--line); }
@@ -3941,7 +3942,7 @@ try { const p = JSON.parse(localStorage.getItem('koide-pref') || '{}'), d = docu
           <p class="more-h">앱 설정</p>
           <section class="card mrows">
             <button class="mrow" data-act="setopen" aria-expanded="${setOpen}"><span><b class="mhead">화면 설정</b></span><span class="ops-chev" aria-hidden="true">${ICON.chev}</span></button>
-            ${setOpen ? `<div class="mset">${themeControls()}<div class="set-row" style="flex-direction:column;align-items:stretch"><p class="mhead" style="margin:0">큰 글씨</p>${bigControls()}</div></div>` : ''}
+            ${setOpen ? `<div class="mset">${themeControls(true)}<div><p class="mlabel">큰 글씨</p>${bigControls()}</div></div>` : ''}
             ${STANDALONE ? '' : row('a2hsopen', '', '홈 화면에 앱처럼 두기', '')}
             <div class="mrow" style="cursor:default;border-top:1px solid var(--line)"><span><b>이용 통계 보내기</b>${KoideTip.btn('앱을 좋게 만들기 위해 이름 없는 사용 기록을 보내요. 누른 것, 연 때와 머문 시간 같은 숫자만이고 이름과 기도제목은 보내지 않아요. 끄면 이 기기에서는 더 보내지 않아요.', '이용 통계 보내기')}</span>
               <button type="button" class="switch${usageOff() ? '' : ' on'}" role="switch" aria-checked="${!usageOff()}" aria-label="이용 통계 보내기" data-act="usageoff"><span></span></button></div>
@@ -5553,11 +5554,13 @@ try { const p = JSON.parse(localStorage.getItem('koide-pref') || '{}'), d = docu
     if (PREF.style && PREF.style !== 'flat') d.dataset.style = PREF.style; else delete d.dataset.style;
     if (PREF.big) d.dataset.big = PREF.big === 2 ? '2' : ''; else delete d.dataset.big;
   }
-  const themeControls = () => {
+  // labeled: 더보기 › 화면 설정은 디다코처럼 칸마다 이름표를 단다(톱니 메뉴는 이름표 없이)
+  const themeControls = (labeled) => {
     const mode = PREF.mode || 'system', accent = PREF.accent || 'green', style = PREF.style || 'flat';
-    return `<div class="seg" style="--n:3" role="radiogroup" aria-label="화면 모드">${MODES.map(([k, l]) => `<button class="${mode === k ? 'on' : ''}" role="radio" aria-checked="${mode === k}" data-act="mode" data-v="${k}">${l}</button>`).join('')}</div>
-      <div class="swatches" role="radiogroup" aria-label="색 테마">${ACCENTS.map(([k, l, c]) => `<button class="swatch${accent === k ? ' on' : ''}" role="radio" aria-checked="${accent === k}" data-act="accent" data-v="${k}" aria-label="${l}" title="${l}"><i style="background:${c}"></i></button>`).join('')}</div>
-      <div class="seg" style="--n:4" role="radiogroup" aria-label="디자인">${STYLES.map(([k, l]) => `<button class="${style === k ? 'on' : ''}" role="radio" aria-checked="${style === k}" data-act="style" data-v="${k}">${l}</button>`).join('')}</div>`;
+    const L = (t, html) => labeled ? `<div><p class="mlabel">${t}</p>${html}</div>` : html;
+    return L('화면 모드', `<div class="seg" style="--n:3" role="radiogroup" aria-label="화면 모드">${MODES.map(([k, l]) => `<button class="${mode === k ? 'on' : ''}" role="radio" aria-checked="${mode === k}" data-act="mode" data-v="${k}">${l}</button>`).join('')}</div>`)
+      + L('색 테마', `<div class="swatches" role="radiogroup" aria-label="색 테마">${ACCENTS.map(([k, l, c]) => `<button class="swatch${accent === k ? ' on' : ''}" role="radio" aria-checked="${accent === k}" data-act="accent" data-v="${k}" aria-label="${l}" title="${l}"><i style="background:${c}"></i></button>`).join('')}</div>`)
+      + L('디자인', `<div class="seg" style="--n:4" role="radiogroup" aria-label="디자인">${STYLES.map(([k, l]) => `<button class="${style === k ? 'on' : ''}" role="radio" aria-checked="${style === k}" data-act="style" data-v="${k}">${l}</button>`).join('')}</div>`);
   };
   const bigControls = () => `<div class="seg" style="--n:3" role="radiogroup" aria-label="큰 글씨">${[[0,'보통'],[1,'크게'],[2,'아주 크게']].map(([k,l]) => `<button class="${(PREF.big === true ? 1 : Number(PREF.big) || 0) === k ? 'on' : ''}" role="radio" aria-checked="${(PREF.big === true ? 1 : Number(PREF.big) || 0) === k}" data-act="big" data-v="${k}">${l}</button>`).join('')}</div>`;
 
