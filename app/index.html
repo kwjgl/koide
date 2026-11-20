@@ -741,6 +741,7 @@ h3 { font-size: 1.02em; font-weight: 600; margin: 0; }
 /* 관리 화면: [관리 | 분석] */
 .admin-seg { max-width: 320px; margin: 0 0 14px; }
 .admin-seg.three { grid-template-columns: repeat(3, 1fr); max-width: 420px; }
+.page-top + .admin-seg { margin-top: 10px; }   /* 제목과 [한눈에|분석] 탭 사이를 띄운다(디다코와 같게) */
 /* 분석: 한눈에(비율 막대·주별 막대)와 달마다 흐름·칸 그림 */
 .ov { display: flex; flex-direction: column; gap: .9em; }
 .ov > .row, .ov-row > .row { justify-content: space-between; align-items: baseline; gap: .6em; }
@@ -4413,24 +4414,15 @@ try { const p = JSON.parse(localStorage.getItem('koide-pref') || '{}'), d = docu
     const C = S.church;
     if (!C || C.err) return `${head}<section class="card"><p class="hint">${C ? esc(C.err) : '불러오는 중…'}</p></section>`;
     const pill = (n, l) => n ? `<span class="ch-todo">${l} ${n}</span>` : '';
-    const card = d => `<button class="card ch-dept${d.closed ? ' closed' : ''}" data-act="opsgo" data-v="${esc(d.id)}">
+    // 부서 카드(디다코와 같은 모양): 이름 · 소그룹 이름과 단위 · 규모 · 할 일 알약. 숫자 띠와 '할 일' 목록 대신 할 일은 카드 안에 둔다
+    const card = d => { const solo = d.unit === '개인', none = !d.closed && !d.asks && !d.privacy && !d.feedback && d.admins > 0;
+      return `<button class="card ch-dept${d.closed ? ' closed' : ''}" data-act="opsgo" data-v="${esc(d.id)}">
         <span class="row"><b>${esc(d.name)}</b>${d.closed ? '<span class="own-tag">닫음</span>' : ''}${ICON.chevR}</span>
-        <small>${esc(d.group)} ${d.rooms}곳 · ${d.n}${d.unit === '개인' ? '명' : '가정'} · 연결 ${d.linked}${d.closed ? ' · ' + esc(d.closedAt.slice(5).replace('-', '/')) + ' 닫음' : ''}</small>
-        <span class="ch-todos">${pill(d.asks, '연결 신청')}${pill(d.privacy, '개인정보')}${pill(d.feedback, '새 의견')}${!d.closed && !d.admins ? '<span class="ch-todo warn">부서 관리자 없음</span>' : ''}</span></button>`;
+        <small>소그룹 이름 ${esc(d.group)}, ${solo ? '개인' : '가정'} 단위</small>
+        <small>${esc(d.group)} ${d.rooms}곳, ${solo ? `사람 ${d.n}명` : `가정 ${d.n}`}${d.closed ? ' · ' + esc(d.closedAt.slice(5).replace('-', '/')) + ' 닫음' : ''}</small>
+        <span class="ch-todos">${pill(d.asks, '연결 신청')}${pill(d.privacy, '개인정보')}${pill(d.feedback, '새 의견')}${!d.closed && !d.admins ? '<span class="ch-todo warn">부서 관리자 없음</span>' : ''}${none ? '<span class="ch-todo warn">지금 할 일이 없어요</span>' : ''}</span></button>`; };
     const old = C.version.slice(0, 10) < needVer(), eN = CHURCHSB ? 0 : C.errors.n, bad = old || !!eN;
-    // 요약 띠: 닫지 않은 부서만 더한다(합계만, 부서끼리 견주지 않는다). 단위가 섞일 수 있어 '가정·사람'
-    const live = C.depts.filter(d => !d.closed), sum = k => live.reduce((n, d) => n + (Number(d[k]) || 0), 0);
-    const band = sumBand([['부서', live.length], ['소그룹', sum('rooms')], ['가정·사람', sum('n')], ['연결', sum('linked')]]);
-    // 할 일: 닫지 않은 부서마다 손볼 것을 한 줄씩. 누르면 그 부서의 관리 화면으로. 서버 문제는 아래 앱 상태를 펼친다
-    const go = (d, what) => `<button class="mrow" data-act="opsgo" data-v="${esc(d.id)}"><span><b>${esc(d.name)} · ${what}</b></span>${ICON.chevR}</button>`;
-    const todo = [
-      old ? `<button class="mrow" data-act="chstat" data-v="open"><span><b>앱 상태 · ${OLD_SRV()}</b></span>${ICON.chevR}</button>` : '',
-      eN ? `<button class="mrow" data-act="chstat" data-v="open"><span><b>앱 상태 · 최근 7일 오류 ${eN}번</b></span>${ICON.chevR}</button>` : '',
-      ...live.map(d => [d.asks ? go(d, `연결 신청 ${d.asks}`) : '',
-        d.privacy ? go(d, `개인정보 요청 ${d.privacy}`) : '',
-        d.feedback ? go(d, `새 의견 ${d.feedback}`) : '',
-        d.admins ? '' : go(d, '부서 관리자 없음')].join(''))
-    ].join('');
+    const live = C.depts.filter(d => !d.closed);
     // 앱 상태: 문제가 없으면 한 줄로 접어 두고, 문제가 있으면 처음부터 펼친다(누르면 접고 펼침)
     const stOpen = S.chStat !== undefined ? S.chStat : bad;
     const stat = `<div class="fold ops-fold${stOpen ? ' open' : ''}" id="ch-stat"><button class="ops-head" data-act="chstat" aria-expanded="${stOpen}"><span class="ops-dot${bad ? ' bad' : ''}" aria-hidden="true"></span><span><b>앱 상태</b><small>${bad ? [old ? OLD_SRV() : '', eN ? `최근 7일 오류 ${eN}번` : ''].filter(Boolean).join(' · ') : `모두 괜찮아요 · 서버 ${esc(C.version.slice(0, 10))}`}</small></span><span class="ops-chev" aria-hidden="true">${ICON.chev}</span></button>
@@ -4438,13 +4430,14 @@ try { const p = JSON.parse(localStorage.getItem('koide-pref') || '{}'), d = docu
         <p class="hint">${CHURCHSB ? '' : `최근 7일 오류 ${eN ? eN + '번 · 마지막 ' + opsWhen(C.errors.last) : '없어요'} · `}${C.month.opened ? `${Number(C.month.month.slice(5))}월 기도제목 넘기기: 끝남(${opsWhen(C.month.opened)})` : `${Number(C.month.month.slice(5))}월 아직 넘어온 기도제목이 없어요`}</p></div>` : ''}</div>`;
     const inbox = C.inbox ? `<div class="fold"><button class="mrow" data-act="churchtab" data-v="survey"><span><b>의견과 설문</b><small>설문 ${C.inbox.survey}개 · 의견 ${C.inbox.feedback}개${C.inbox.feedbackNoDept ? ` (코이데 노트에서 온 것 ${C.inbox.feedbackNoDept})` : ''}</small></span>${ICON.chevR}</button></div>` : '';
     const dp = deptCard(), nClosed = C.depts.length - live.length;
-    return `${head}${band}
+    const oa = opsAdminCard(), adm = ((C.opsList && C.opsList.live) || []).filter(o => o.all);
+    const admSub = adm.length < 2 ? '한 명뿐이에요, 한 명 더 정해 주세요' : esc(adm.map(o => o.name || '이름 없음').join(', '));
+    return `${head}
       <div class="two-col"><div class="col">
-        <p class="more-h">할 일</p>${todo ? `<section class="card mrows">${todo}</section>` : '<section class="card"><p class="hint" style="margin:0">지금 할 일이 없어요.</p></section>'}
         <p class="more-h">부서</p><div class="ch-grid">${C.depts.map(card).join('')}</div>
       </div><div class="col side">
         <p class="more-h">앱과 요청</p><section class="card mrows folds">${stat}${inbox}${fold('chgall', '변경 기록', '모든 부서', changesCard(true))}${CHURCHSB ? '' : groupCloseFold()}</section>
-        ${opsAdminCard() ? `<p class="more-h">사람</p>${opsAdminCard()}` : ''}
+        ${oa ? `<p class="more-h">사람</p><section class="card mrows folds">${fold('cadmins', '교회 관리자', admSub, oa)}</section>` : ''}
         ${dp ? `<p class="more-h">설정</p><section class="card mrows folds">${fold('dept', '부서 만들기 · 닫기', `부서 ${live.length}곳${nClosed ? ` · 닫은 부서 ${nClosed}곳` : ''}`, dp)}</section>` : ''}
       </div></div>`;
   }
@@ -4825,17 +4818,17 @@ try { const p = JSON.parse(localStorage.getItem('koide-pref') || '{}'), d = docu
     if (!S.op || !S.month.me.all) return '';
     const scope = S.church && S.church.depts ? S.church.depts : (S.month.scope || []);
     const E = S.deptNew || { group: '순', unit: '개인' };
-    return `<section class="card"><h2>부서${KoideTip.btn('닫은 부서는 기록이 남아서 다시 열 수 있어요. 닫은 부서 사람들은 1년이 지나면 개인정보 요청에 올라와요. 부서를 만들면 그 부서의 관리 화면으로 바로 가요.', '부서')}</h2>
-      <ul class="staff-list">${scope.map(d => `<li><div><b>${esc(d.name)}</b>${d.closed ? '<span class="own-tag">닫음</span>' : ''}${CHURCHSB && d.closed && S.dpErase === d.id ? deptEraseAsk(d) : ''}</div>
+    return `<section class="card"><h2>부서${KoideTip.btn('닫으면 첫 접속 목록에서 빠지고 그 부서 사람은 들어오지 못해요. 닫은 부서는 기록이 남아서 다시 열 수 있어요. 닫은 부서 사람들은 1년이 지나면 개인정보 요청에 올라와요. 부서를 만들면 그 부서의 관리 화면으로 바로 가요.', '부서')}</h2>
+      <ul class="staff-list">${scope.map(d => `<li><div><b>${esc(d.name)}</b><small>${d.closed ? '닫혀 있어요' + (d.closedAt ? ' · ' + esc(d.closedAt.slice(5).replace('-', '/')) + ' 닫음' : '') : '쓰는 중'}</small>${CHURCHSB && d.closed && S.dpErase === d.id ? deptEraseAsk(d) : ''}</div>
         ${CHURCHSB && S.dpErase === d.id ? '' : `<span class="foot-acts">${d.closed
           ? `<button class="link" data-act="dpreopen" data-v="${esc(d.id)}" data-n="${esc(d.name)}">다시 열기</button><button class="link danger" data-act="${CHURCHSB ? 'dperaseask' : 'dperase'}" data-v="${esc(d.id)}" data-n="${esc(d.name)}">기록 모두 삭제</button>`
-          : `<button class="link quiet" data-act="dpclose" data-v="${esc(d.id)}" data-n="${esc(d.name)}">닫기</button>`}</span>`}</li>`).join('')}</ul>
-      <p class="hint">닫으면 첫 접속 목록에서 빠지고 그 부서 사람은 들어오지 못해요.</p>
-      <form class="plain-form" data-form="deptsave" style="margin-top:10px">
+          : `<button class="link danger" data-act="dpclose" data-v="${esc(d.id)}" data-n="${esc(d.name)}">닫기</button>`}</span>`}</li>`).join('')}</ul>
+      ${S.deptNewOpen ? `<form class="plain-form" data-form="deptsave" style="margin-top:10px">
         <label class="label" for="dp-n">새 부서 이름</label><input id="dp-n" class="field" maxlength="12" placeholder="예) 청년부" value="${esc(E.name || '')}" autocomplete="off">
         <p class="label">소그룹 이름</p><div class="mchips" role="radiogroup" aria-label="소그룹 이름">${GROUP_PRESETS.map(g => `<button type="button" class="mchip${E.group === g ? ' on' : ''}" role="radio" aria-checked="${E.group === g}" data-act="dpgroup" data-v="${g}">${g}</button>`).join('')}</div>
         <p class="label">단위</p><div class="seg" style="--n:2" role="radiogroup" aria-label="단위">${[['가정', '가정 (부부·자녀)'], ['개인', '개인 (한 사람씩)']].map(([k, l]) => `<button type="button" class="${E.unit === k ? 'on' : ''}" role="radio" aria-checked="${E.unit === k}" data-act="dpunit" data-v="${k}">${l}</button>`).join('')}</div>
-        <div class="actions"><button class="btn" type="submit" ${S.busy ? 'disabled' : ''}>부서 만들기</button></div></form></section>`;
+        <div class="actions"><button class="btn small" type="submit" ${S.busy ? 'disabled' : ''}>부서 만들기</button><button class="btn small ghost" type="button" data-act="dpnew" data-v="">취소</button></div></form>`
+      : '<div class="actions" style="margin-top:10px"><button class="btn small ghost" type="button" data-act="dpnew" data-v="1">+ 부서 만들기</button></div>'}</section>`;
   }
 
   // ── 소그룹과 사람 (관리자·운영 관리자): 지금 편성의 소그룹마다 사람과 역할. 더하기·옮기기·역할·부서 관리자·떠남 ──
@@ -6191,6 +6184,7 @@ try { const p = JSON.parse(localStorage.getItem('koide-pref') || '{}'), d = docu
         try { const L = await api('opsRemove', b.dataset.act === 'opsrm' ? { kakaoId: v } : { invite: v }); if (S.church) S.church.opsList = L; render(); } catch (err) { oops(err); }
         return;
       }
+      case 'dpnew': S.deptNewOpen = !!v; if (!v) S.deptNew = null; return render();
       case 'dpgroup': case 'dpunit': S.deptNew = Object.assign(S.deptNew || { group: '순', unit: '개인' }, { [b.dataset.act === 'dpgroup' ? 'group' : 'unit']: v, name: ($('#dp-n') || {}).value || '' }); return render();
       case 'rsopen': S.rostOpen = Object.assign({}, S.rostOpen, { [v]: !(S.rostOpen || {})[v] }); S.rostSel = null; S.rsName = null; S.rsDrop = null; S.rostEdit = null; return render();
       case 'rssel': S.rostSel = S.rostSel === v ? null : v; S.rsName = null; S.rsDrop = null; return render();
@@ -6633,7 +6627,7 @@ try { const p = JSON.parse(localStorage.getItem('koide-pref') || '{}'), d = docu
       const E = S.deptNew || { group: '순', unit: '개인' }, name = ($('#dp-n') || {}).value.trim();
       if (!name) return toast('부서 이름을 적어 주세요.');
       S.busy = true; render();
-      try { const r = await api('deptSave', { name, group: E.group, unit: E.unit }); S.me = r.me; S.deptNew = null; toast(josa(name, '을/를') + ' 만들었어요.'); S.busy = false; return enterOps(r.id); }
+      try { const r = await api('deptSave', { name, group: E.group, unit: E.unit }); S.me = r.me; S.deptNew = null; S.deptNewOpen = false; toast(josa(name, '을/를') + ' 만들었어요.'); S.busy = false; return enterOps(r.id); }
       catch (err) { oops(err); }
       S.busy = false; return render();
     }
