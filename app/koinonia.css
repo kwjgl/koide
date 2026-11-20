@@ -1,3 +1,5 @@
+/* 두 손가락 확대는 허용한다(viewport에서 maximum-scale 뺌). 아이폰은 16px보다 작은 입력칸을 누르면 화면이 저절로 커지므로, 입력칸 글자는 16px 밑으로 내려가지 않게 한다 */
+@supports (-webkit-touch-callout: none) { input, textarea, select { font-size: max(16px, 1em) !important; } }
 /* 코이데 노트와 같은 화면 변수·색 모드 */
 :root {
   --page: #E8EBE8; --surface: #F7F8F6; --surface-2: #E9EDEA;

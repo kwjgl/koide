@@ -2,7 +2,7 @@
 <html lang="ko">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, viewport-fit=cover">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>코이데</title>
 <meta name="theme-color" content="#2B6A62">
 <!-- 홈 화면 앱(PWA): 홈 화면에 두면 주소창 없이 앱처럼 열린다. 아이폰은 apple- 줄들을 본다 -->
@@ -18,6 +18,8 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Gowun+Batang:wght@700&family=IBM+Plex+Sans+KR:wght@400;500;600&display=swap">
 <style>
+/* 두 손가락 확대는 허용한다(viewport에서 maximum-scale 뺌). 아이폰은 16px보다 작은 입력칸을 누르면 화면이 저절로 커지므로, 입력칸 글자는 16px 밑으로 내려가지 않게 한다 */
+@supports (-webkit-touch-callout: none) { input, textarea, select { font-size: max(16px, 1em) !important; } }
 /* 시안(prototype/index.html)의 색과 글꼴을 그대로 쓴다. 실제 앱은 핵심 흐름만: 로그인 → 연결 → 이번 달 / 내 기도 / 더보기 */
 :root {
   --page: #E8EBE8; --surface: #F7F8F6; --surface-2: #E9EDEA;
@@ -69,7 +71,7 @@
 html, body { margin: 0; }
 /* 휴대폰을 가로로 돌려도 브라우저가 글씨를 저절로 키우지 않게 */
 html { -webkit-text-size-adjust: 100%; text-size-adjust: 100%; }
-/* 두 번 눌러 확대 막기(아이폰 홈 화면 앱). 두 손가락 확대는 viewport의 maximum-scale=1로 막고, 3D 무대·큰 그림 등 자기 touch-action을 가진 곳은 그대로 둔다 */
+/* 두 번 눌러 확대 막기(아이폰 홈 화면 앱). 두 손가락 확대는 허용하고, 3D 무대·큰 그림 등 자기 touch-action을 가진 곳은 그대로 둔다 */
 html { touch-action: manipulation; }
 body { background: var(--page); color: var(--ink); font-family: var(--f-body); font-size: var(--base); line-height: 1.55; -webkit-tap-highlight-color: transparent; word-break: keep-all; overflow-wrap: anywhere; }
 button, input, textarea, select { font: inherit; color: inherit; }
@@ -2257,7 +2259,7 @@ try { const p = JSON.parse(localStorage.getItem('koide-pref') || '{}'), d = docu
     // 계정 탈퇴를 마친 뒤: 앱 화면(탭·내 기록)은 이미 내렸다. 여기서 처음 화면으로 나간다
     acctdone: () => `<section class="card" style="margin-top:24px"><h1>탈퇴했어요</h1><p class="plain">함께해 주셔서 고마워요.</p>
       <div class="actions"><button class="btn" data-act="acctdelhome">처음 화면으로</button></div></section>`,
-    error: () => `<h1>${S.err && /편성에서 우리 가정을 찾지 못했어요/.test(S.err.message || '') ? '지금은 사랑방 편성에 없어요' : '잠시 문제가 생겼어요'}</h1><p class="hint">${esc(S.err && S.err.message)}</p><button class="btn" data-act="retry">다시 해 보기</button>`,
+    error: () => `<h1>${S.err && /편성에서 우리 가정을 찾지 못했어요/.test(S.err.message || '') ? '지금은 사랑방 편성에 없어요' : '잠시 문제가 생겼어요'}</h1><p class="hint">${esc(S.err && S.err.message)}</p><button class="btn" data-act="retry">다시 불러오기</button>`,
     // 첫 화면(로그인 전): 시작 화면의 매듭이 이어지는 머리, 카카오로 시작하기, 짧은 소개 세 줄, 다른 방법, 이름의 뜻
     login: () => `<div class="welcome">
       <section class="wl-hero">
@@ -5341,7 +5343,7 @@ try { const p = JSON.parse(localStorage.getItem('koide-pref') || '{}'), d = docu
         <p class="hint fb-n"><span id="fb-n">${[...F.text].length}</span>/500</p>
         <div class="set-row"><div><p class="label" style="margin:0">이름 밝히기</p><p class="hint" style="margin:.2em 0 0">${F.named ? `관리자가 보낸 사람(${esc(S.month.me.person)})을 봐요.` : '끄면 누가 보냈는지 남기지 않아요.'}</p></div>
           <button type="button" class="switch${F.named ? ' on' : ''}" role="switch" aria-checked="${F.named}" aria-label="이름 밝히기" data-act="fbnamed"><span></span></button></div>
-        <div class="actions"><button class="btn" data-act="fbsend" ${S.busy ? 'disabled' : ''}>${S.busy ? '보내는 중…' : '보내기'}</button></div>
+        <div class="actions"><button class="btn wide" data-act="fbsend" ${S.busy || !F.text.trim() ? 'disabled' : ''}>${S.busy ? '보내는 중…' : '보내기'}</button></div>
         <p class="hint">답장은 따로 오지 않아요.</p></section>`;
   }
   const keepFb = () => { const t = $('#fb-t'); if (t && S.fb) S.fb.text = t.value; };
@@ -5544,7 +5546,7 @@ try { const p = JSON.parse(localStorage.getItem('koide-pref') || '{}'), d = docu
   const MODES = [['system', '기기 설정'], ['light', '밝게'], ['dark', '어둡게']];
   // 디자인 스타일: 저장하는 이름 → 화면에 보이는 이름(시안과 같게)
   const STYLES = [['flat', 'basic'], ['neu', 'new'], ['skeu', 'classic'], ['glass', 'glass']];
-  const ACCENTS = [['green', '초록', '#2B6A62'], ['amber', '주황', '#C46A24'], ['blue', '파랑', '#2F5D95'], ['rose', '장미', '#A8435C'], ['ink', '먹색', '#3A3A36'], ['paper', '종이', '#6B4A2E']];
+  const ACCENTS = [['green', '초록', '#2B6A62'], ['amber', '주황', '#A9561B'], ['blue', '파랑', '#2F5D95'], ['rose', '장미', '#A8435C'], ['ink', '먹색', '#33332F'], ['paper', '종이', '#6B4A2E']];
   function setPref(k, v) {
     PREF[k] = v;
     try { localStorage.setItem('koide-pref', JSON.stringify(PREF)); } catch (e) { /* 무시 */ }
@@ -5576,8 +5578,8 @@ try { const p = JSON.parse(localStorage.getItem('koide-pref') || '{}'), d = docu
           ${opsDepts().map(d => `<button class="mitem${d.id === S.op ? ' on' : ''}" role="menuitem" data-act="opsgo" data-v="${esc(d.id)}"><span>${esc(d.name)}${d.closed ? ' (닫음)' : ''}</span>${d.id === S.op && S.tab !== 'church' ? '<small>지금 보는 부서</small>' : ''}</button>`).join('')}
           <div class="mdiv"></div>${S.me.link && S.me.link.status === '연결' ? '<button class="mitem" role="menuitem" data-act="opsleave"><span>내 화면으로 돌아가기</span></button>' : ''}
           <button class="mitem" role="menuitem" data-act="logout"><span>이 기기에서 로그아웃</span></button></div>`
-        : S.menu === 'settings' ? `<div class="menu" role="menu" aria-label="설정"><p class="mlabel mhead">화면 설정</p>${themeControls()}<div class="mdiv"></div>
-          <div class="mitem static set-row big-row" style="flex-direction:column;align-items:stretch"><span class="mhead">큰 글씨</span>${bigControls()}</div></div>` : '';
+        : S.menu === 'settings' ? `<div class="menu" role="menu" aria-label="설정"><p class="mlabel mhead">화면 설정</p>${themeControls(true)}<div class="mdiv"></div>
+          <div class="mitem static set-row big-row" style="flex-direction:column;align-items:stretch"><span class="mlabel" style="margin:0 0 .3em .7em">큰 글씨</span>${bigControls()}</div></div>` : '';
       return `<div class="wrap">${S.home ? brand : brand.replace(' data-act="tab" data-v="home"', '')}${S.home ? `<nav class="topnav" aria-label="주 메뉴">${TABS.map(([k, l]) => `<button class="${k === 'more' ? 'on' : ''}" data-act="tab" data-v="${k}" ${k === 'more' ? 'aria-current="page"' : ''}>${l}</button>`).join('')}</nav>` : ''}<span class="spacer"></span>
         <button class="badge-btn" data-act="menu" data-v="badge" aria-haspopup="menu" aria-expanded="${S.menu === 'badge'}">${S.tab === 'church' ? '교회 전체' : esc(M.dept.name)}<span class="role-tag admin">${M.me.all ? '교회 관리자' : '지원'}</span></button>
         <button class="icon-btn" data-act="menu" data-v="settings" aria-haspopup="menu" aria-expanded="${S.menu === 'settings'}" aria-label="설정">${ICON.gear}</button>${opMenu}</div>`;
@@ -5589,8 +5591,8 @@ try { const p = JSON.parse(localStorage.getItem('koide-pref') || '{}'), d = docu
         ${koidePlaces.html({cur:KOINONIA_ID, linked:false, demo:KOINONIA_DEMO, circles:CIRCLE_MENU.list, circleMake:CIRCLE_MENU.session && koidePlaces.canMake(false,CIRCLE_MENU.list), groups:[],
           attr:(k,id)=>k==='note' ? `href="note.html${KOINONIA_DEMO?'?demo':''}"` : k==='circle' ? `href="index.html${KOINONIA_DEMO?'?demo&c=':'?c='}${encodeURIComponent(id)}"` : `href="koinonia.html${KOINONIA_DEMO?'?demo&new':'?new'}"`})}</div>`
         : S.menu === 'settings' ? `<div class="menu" role="menu" aria-label="설정">
-          <p class="mlabel mhead">화면 설정</p>${themeControls()}
-          <div class="mdiv"></div><div class="mitem static set-row big-row" style="flex-direction:column;align-items:stretch"><span class="mhead">큰 글씨</span>${bigControls()}</div></div>` : '';
+          <p class="mlabel mhead">화면 설정</p>${themeControls(true)}
+          <div class="mdiv"></div><div class="mitem static set-row big-row" style="flex-direction:column;align-items:stretch"><span class="mlabel" style="margin:0 0 .3em .7em">큰 글씨</span>${bigControls()}</div></div>` : '';
       return `<div class="wrap">${brand.replace('class="brand"', 'class="brand k-brand"')}
         <nav class="topnav" aria-label="주 메뉴">${TABS.map(([k,l])=>`<button class="${on===k?'on':''}" data-act="tab" data-v="${k}" ${on===k?'aria-current="page"':''}>${l}</button>`).join('')}</nav>
         <span class="spacer"></span>
@@ -5608,8 +5610,8 @@ try { const p = JSON.parse(localStorage.getItem('koide-pref') || '{}'), d = docu
           : `<div class="mdiv"></div><p class="mlabel">운영 지원</p>${opsDepts().map(d => `<button class="mitem" role="menuitem" data-act="opsgo" data-v="${esc(d.id)}"><span>${esc(d.name)} · 지원</span></button>`).join('')}`}
         ${me.admin && !DEMO ? '<div class="mdiv"></div><a class="mitem" role="menuitem" href="?demo" target="_blank" rel="noopener"><span>데모로 둘러보기</span></a>' : ''}</div>`
       : S.menu === 'settings' ? `<div class="menu" role="menu" aria-label="설정">
-        <p class="mlabel mhead">화면 설정</p>${themeControls()}<div class="mdiv"></div>
-        <div class="mitem static set-row big-row" style="flex-direction:column;align-items:stretch"><span class="mhead">큰 글씨</span>${bigControls()}</div>
+        <p class="mlabel mhead">화면 설정</p>${themeControls(true)}<div class="mdiv"></div>
+        <div class="mitem static set-row big-row" style="flex-direction:column;align-items:stretch"><span class="mlabel" style="margin:0 0 .3em .7em">큰 글씨</span>${bigControls()}</div>
         <button class="mitem" role="menuitem" data-act="tab" data-v="more"><span>${solo() ? '내 정보' : '우리 가정 정보'}</span></button>
         <div class="mdiv"></div><button class="mitem" role="menuitem" data-act="logout"><span>이 기기에서 로그아웃</span></button></div>` : '';
     return `<div class="wrap">${brand}
@@ -6532,7 +6534,7 @@ try { const p = JSON.parse(localStorage.getItem('koide-pref') || '{}'), d = docu
       if (CHURCHSB) { const two = mvNames(S.mv).length === 2, nx = $('[data-act="mvnext"]'), w = $('#mv-name-warn'); if (nx) nx.disabled = !(S.mv.name.trim() && two); if (w) w.hidden = two; }   // 새 서버는 두 사람 이름이어야 다음으로
     }
     if (S.mv && e.target.id === 'mv-np') { S.mv.newPerson = e.target.value; const nx = $('[data-act="mvnext"]'); if (nx) nx.disabled = !(S.mv.a && S.mv.newPerson.trim()); }
-    if (e.target.id === 'fb-t') { const n = $('#fb-n'); if (n) n.textContent = [...e.target.value].length; }
+    if (e.target.id === 'fb-t') { const n = $('#fb-n'); if (n) n.textContent = [...e.target.value].length; const sb = $('[data-act="fbsend"]'); if (sb) sb.disabled = S.busy || !e.target.value.trim(); }
     if (e.target.matches('textarea.field')) autosize(e.target);
     // 개편 미리보기의 이동표 찾기: 다시 그리지 않고 줄만 숨긴다
     if (e.target.id === 'rg-find' && S.rg) { S.rg.find = e.target.value.trim(); document.querySelectorAll('.mv-table tbody tr').forEach(tr => { tr.hidden = !!S.rg.find && !tr.dataset.name.includes(S.rg.find); }); }
@@ -6704,7 +6706,7 @@ try { const p = JSON.parse(localStorage.getItem('koide-pref') || '{}'), d = docu
   // 홈 화면 앱: 화면 파일을 기기에 남겨 두는 도우미(sw.js). https나 내 컴퓨터(localhost)에서만 된다
   if ('serviceWorker' in navigator && (location.protocol === 'https:' || location.hostname === 'localhost')) navigator.serviceWorker.register('sw.js').catch(() => { /* 없어도 앱은 그대로 */ });
 
-  // 시작하다 막히면 "불러오는 중"에 멈춰 있지 않고 다시 해 보기 버튼을 보여 준다
+  // 시작하다 막히면 "불러오는 중"에 멈춰 있지 않고 다시 불러오기 버튼을 보여 준다
   boot().catch(e => { S.view = 'error'; S.err = e; render(); });
 })();
 </script>

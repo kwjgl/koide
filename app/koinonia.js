@@ -76,7 +76,7 @@
     return '<div class="card" style="max-width:460px;margin:45px auto;align-items:center;text-align:center">'+
       '<span class="wl-mark" aria-hidden="true">'+KNOT+'</span><h1>코이데 공동체</h1>'+
       '<div style="width:100%;display:grid;gap:8px">'+S.loginProviders.map(k=>'<button class="btn sso-btn sso-'+k+'" data-a="oauth" data-v="'+k+'">'+(window.KoideSb.logos[k]||'')+
-      '<span>'+({kakao:'카카오로 계속',google:'Google로 계속',apple:'Apple로 계속'}[k]||'로그인')+'</span></button>').join('')+'</div>'+error()+'<p class="hint"><a href="'+PRIVACY_URL+'" target="_blank" rel="noopener" style="color:inherit">개인정보 처리방침</a></p></div>';
+      '<span>'+({kakao:'카카오로 시작하기',google:'Google로 시작하기',apple:'Apple로 시작하기'}[k]||'로그인')+'</span></button>').join('')+'</div>'+error()+'<p class="hint"><a href="'+PRIVACY_URL+'" target="_blank" rel="noopener" style="color:inherit">개인정보 처리방침</a></p></div>';
   }
   const inviteUrl=t=>location.origin+location.pathname+(demo?'?demo&invite=':'?invite=')+encodeURIComponent(t);
   function invite(){
