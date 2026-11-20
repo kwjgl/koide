@@ -3915,6 +3915,8 @@ try { const p = JSON.parse(localStorage.getItem('koide-pref') || '{}'), d = docu
   // 더보기(시안과 같게): 왼쪽 우리 가정 정보, 오른쪽 역할 메뉴(사랑방 현황·관리), 홈 화면에 두기, 계정
   // 기도 노트가 남기는 켜짐/꺼짐 표시('on' | 'off' | '')만 읽는다. 노트 내용은 여기서 읽지 않는다
   const noteSyncOn = () => { try { return localStorage.getItem(DEMO_LINK ? 'koide-demo-note-sync' : 'koide-note-sync') === 'on'; } catch (e) { return false; } };
+  // 노트가 남긴 마지막 동기화 시각 → " · 마지막 동기화 11월 21일 08:11"(코이데 노트·디다코와 같은 말과 모양)
+  const noteSyncAt = () => { try { const t = Number(localStorage.getItem(DEMO_LINK ? 'koide-demo-note-sync-at' : 'koide-note-sync-at')); if (!noteSyncOn() || !t) return ''; const d = new Date(t); return ` · 마지막 동기화 ${d.getMonth() + 1}월 ${d.getDate()}일 ${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`; } catch (e) { return ''; } };
   // 더보기 › 함께하는 곳: 내 코이데 공동체(노트 더보기의 공동체 카드와 같은 모양). 지금 보는 곳은 링크 없이 표시
   function kcCirclesCard() {
     if (!CIRCLE_MENU.loaded && !CIRCLE_MENU.loading) queueMicrotask(loadCircleMenu);
@@ -5278,8 +5280,8 @@ try { const p = JSON.parse(localStorage.getItem('koide-pref') || '{}'), d = docu
     return `<button class="link back" data-act="tab" data-v="more">${ICON.chevL}더보기</button>
       <div class="page-top"><div><h1>계정과 동기화</h1></div></div>
       <div class="acct-page">${card}
-        <section class="card"><p class="label">동기화</p><p class="plain"><b>${noteSyncOn() ? '켜짐' : '꺼짐'}</b></p>
-          <p class="hint">${noteSyncOn() ? '기록은 암호화되기 때문에 운영자도 볼 수 없어요.' : '켜면 휴대폰을 바꿔도 기록이 이어져요.'}</p>
+        <section class="card"><p class="label">동기화</p><p class="plain"><b>${noteSyncOn() ? '켜짐' : '꺼짐'}</b>${esc(noteSyncAt())}</p>
+          <p class="hint">${noteSyncOn() ? '기록은 암호화되기 때문에 운영자도 볼 수 없어요.' : '켜면 기기를 바꿔도 기록이 이어져요.'}</p>
           <p style="margin:.4em 0 0"><a class="link quiet" href="note.html${DEMO_LINK ? '?demo' : ''}">코이데 노트에서 켜고 끄기 ›</a></p></section>
         ${KOINONIA ? '' : '<button class="link quiet more-out" data-act="logout">이 기기에서 로그아웃</button>'}
         ${(CHURCHSB && !S.grp) || (KOINONIA && !DEMO) ? '<button class="link quiet danger more-out" data-act="acctdel">계정 탈퇴</button>' : ''}</div>`;

@@ -56,8 +56,9 @@ button, a, label, summary, select, input, [role="button"], [data-a], .brand { to
 /* 기존 노트와 같은 표면·단추·폰트·테마를 쓰는 독립 공동체 화면 */
 .wrap { max-width: 680px; margin: 0 auto; padding: 24px 16px 80px; }
 .topbar { position: sticky; top: 0; z-index: 10; background: var(--surface); border-bottom: 1px solid var(--line); padding-top: env(safe-area-inset-top,0px); }
-.topbar .inner { max-width: 1160px; margin: auto; min-height: 52px; display:flex; align-items:center; justify-content:space-between; padding: 0 16px; gap:12px; }
-.brand { font: 700 1.05em var(--f-display); color:var(--ink); text-decoration:none; display:flex; align-items:center; gap:8px; }
+.topbar .inner { max-width: 1160px; margin: auto; min-height: 52px; display:flex; align-items:center; justify-content:space-between; padding: 0 16px; gap:.6em; }
+.brand { color:var(--ink); text-decoration:none; display:flex; align-items:center; gap:.45em; padding:.3em 0; min-height:44px; }
+.brand-name { font: 700 1.05em var(--f-display); white-space:nowrap; }
 .brand-mark { background:var(--accent); border-radius:50%; color:var(--on-accent); width:1.6em;height:1.6em; display:grid;place-items:center; }
 .brand-mark .ic { width:.95em; height:.95em; fill:none; stroke:currentColor; stroke-width:1.5; stroke-linecap:round; stroke-linejoin:round; }
 .wl-mark { width:76px; height:76px; border-radius:50%; background:var(--accent); color:var(--on-accent); display:grid;place-items:center; margin-bottom:.3em; }
@@ -73,7 +74,7 @@ h1,h2 {font-family:var(--f-display); line-height:1.45;} h1 {font-size:1.45em; ma
 .row{display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;}
 .mlist{border:1px solid var(--line);border-radius:15px;overflow:hidden;background:var(--surface);}
 .new-community { margin-top:14px; }
-.badge-btn { position:relative; display:inline-flex; align-items:center; gap:.4em; font:inherit; font-size:.8em; font-weight:600; color:var(--ink); background:var(--surface-2); border:1px solid var(--line); border-radius:999px; padding:.35em .5em .35em .85em; min-height:38px; white-space:nowrap; }
+.badge-btn { position:relative; display:inline-flex; align-items:center; gap:.4em; font:inherit; font-size:.84em; font-weight:600; color:var(--ink); background:var(--surface-2); border:1px solid var(--line); border-radius:999px; padding:.35em .5em .35em .85em; min-height:38px; white-space:nowrap; }
 .badge-link { text-decoration:none; cursor:pointer; }
 .name-chips { display:flex; align-items:center; gap:6px; flex-wrap:wrap; }
 .mrow b.name-chips { display:flex; } /* 목록 줄의 이름과 꼬리표 사이 틈 */

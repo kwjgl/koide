@@ -64,8 +64,8 @@
     return window.koidePlaces.html({cur:'',room,linked,demo:explicitDemo,groups:[],circles:S.list,circleMake:S.page!=='login'&&S.page!=='off'&&S.places>0,
       attr:(k,id)=>k==='note'?'href="note.html'+D+'"':k==='room'?'href="index.html'+D+'"':k==='circle'?'href="index.html'+(explicitDemo?'?demo&c=':'?c=')+encodeURIComponent(id)+'"':'data-a="new"'});
   }
-  const head=()=>'<header class="topbar"><div class="inner"><a href="note.html'+(explicitDemo?'?demo':'')+'" class="brand"><span class="brand-mark">'+KNOT+'</span>코이데</a>'+
-    '<span style="display:flex;align-items:center;gap:.3em"><button class="badge-btn" data-a="menu" data-v="badge" aria-haspopup="menu" aria-expanded="'+(S.menu==='badge')+'">코이데 공동체</button>'+
+  const head=()=>'<header class="topbar"><div class="inner"><a href="note.html'+(explicitDemo?'?demo':'')+'" class="brand"><span class="brand-mark">'+KNOT+'</span><span class="brand-name">코이데</span></a>'+
+    '<span style="display:flex;align-items:center;gap:.6em"><button class="badge-btn" data-a="menu" data-v="badge" aria-haspopup="menu" aria-expanded="'+(S.menu==='badge')+'">코이데 공동체</button>'+
     '<button class="icon-btn" data-a="menu" data-v="settings" aria-haspopup="menu" aria-expanded="'+(S.menu==='settings')+'" aria-label="설정">'+GEAR+'</button></span>'+
     (S.menu==='badge'?'<div class="menu" role="menu" aria-label="함께하는 곳">'+placesMenu()+'</div>':S.menu==='settings'?'<div class="menu" role="menu" aria-label="설정"><p class="mlabel mhead">화면 설정</p><div class="menu-set">'+screenControls()+'</div></div>':'')+
     '</div></header>';
