@@ -29,7 +29,7 @@
 //   함께 기도해요·기도 문장(015): together·togetherSave·togetherState → church_together·church_together_save·church_together_state
 //     prayText·prayTextSave → church_pray_text_list·church_pray_text_save
 //   연도 개편(016): reorg·reorgSave·reorgCancel → church_reorg·church_reorg_save·church_reorg_cancel(관리 화면의 부서)
-//   교회 신청(035): applyState·applySend·applyCancel·applyClaim·applyAdminList·applyMake·applyReject → church_apply_*(applyState는 절대 던지지 않는다: 스위치가 꺼졌거나 서버에 035가 없거나 오류면 open false로 달랜다)
+//   교회 신청(035): applyState·applySend·applyCancel·applyClaim → church_apply_*(신청서 목록·만들기·거절은 운영자 사이트(admin.koinobia.com)가 서버를 직접 부른다. applyState는 절대 던지지 않는다: 스위치가 꺼졌거나 서버에 035가 없거나 오류면 open false로 달랜다)
 //   logout → KoideSb.signOut(로그인 세션을 끊는다)
 // 옛 응답과 다른 곳: ⓪ 분석의 rooms·depts 칸 값이 null이면 가정이 3곳보다 적어서 가린 것이다(화면은 ·로 보인다) ① opsRemove·approve·reject·unlink의 body.kakaoId는 이제 관리자·연결 요청·연결 줄의 id(uuid)다(화면은 data-v를 그대로 넘긴다)
 //   ② surveyState·tourSeen은 빈 모양으로 달랜다. usage는 앱 설정 USAGE가 'on'일 때만 서버(usage_track, 028)로 보낸다(기본 꺼짐: 아무것도 보내지 않고 {kept:true,n:0}으로 달랜다)
@@ -332,9 +332,6 @@ window.koideChurchApi = (() => {
         p_contact: String(body.contact || ''), p_size: String(body.size || ''), p_site: String(body.site || ''), p_agree: body.agree === true });
       case 'applyCancel': return rpc('church_apply_cancel');
       case 'applyClaim': return rpc('church_apply_claim', { p_name: (await ident()).nick });
-      case 'applyAdminList': return rpc('church_apply_admin_list');
-      case 'applyMake': return rpc('church_apply_make', { p_id: need(body.id, '신청'), p_name: String(body.name || ''), p_code: String(body.code || ''), p_dept: String(body.dept || '') });
-      case 'applyReject': return rpc('church_apply_reject', { p_id: need(body.id, '신청'), p_reason: String(body.reason || '') });
       case 'logout': await window.KoideSb.signOut(); return {};
       case 'usage': return usageSend(body.events);
       case 'surveyState': return { survey: body.survey || {} };

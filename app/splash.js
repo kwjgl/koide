@@ -9,12 +9,14 @@
   const me = document.currentScript, q = new URLSearchParams(location.search), demo = q.has('demo');
   // 장면 모드(데모 주소에 ?as=사람 또는 ?at=화면): 화면 지도처럼 한 브라우저에 앱 창을 여러 개 띄워도 서로 로그인·기억을 덮어쓰지 않게,
   //  이 창의 localStorage를 메모리 판으로 바꾼다(창을 닫으면 사라짐). 데모 데이터(koide-demo-db)만 기기에서 읽어 오고 쓰지는 않는다.
-  //  시작 화면도 없다. 실제 앱(서버 주소가 있고 ?demo가 없음)에서는 쓰지 않는다
+  //  시작 화면도 없다. 실제 앱(서버 주소나 Supabase 설정이 있고 ?demo가 없음)에서는 쓰지 않는다
   const CFG = window.KOIDE_CONFIG || {};
+  // 실제 앱 판정: 옛 서버 주소(API_URL)가 있거나 Supabase 설정(NOTE_BACKEND 또는 CHURCH_BACKEND 'supabase' + 주소 + 키)이 있을 때(2026-11-20)
+  const SB_ON = !!CFG.SUPABASE_URL && !!CFG.SUPABASE_KEY && (CFG.NOTE_BACKEND === 'supabase' || CFG.CHURCH_BACKEND === 'supabase'); const LIVE = !!CFG.API_URL || SB_ON;
   // 따라 하기 페이지(공동체·기도 노트의 ?tutorial)도 같은 메모리 판을 쓴다: 연습한 것이 진짜 노트와 로그인에 닿지 않게. 장면 표시(KOIDE_SCENE)는 달지 않는다.
   //  공동체의 연습 페이지는 데모 데이터를 늘 새로 만든다(예전에 ?demo를 쓴 기기의 데이터를 읽어 오지 않는다)
   const tutorial = q.has('tutorial');
-  if (((q.has('as') || q.has('at')) && (!CFG.API_URL || demo)) || tutorial) {
+  if (((q.has('as') || q.has('at')) && (!LIVE || demo)) || tutorial) {
     const mem = new Map(), real = (() => { try { return window.localStorage; } catch (e) { return null; } })();
     const store = {
       getItem: k => mem.has(k) ? mem.get(k) : k === 'koide-demo-db' && real && !tutorial ? real.getItem(k) : null,
