@@ -693,6 +693,7 @@ button.pg-tag::before { content: ''; position: absolute; inset: -10px; }
 </head>
 <body>
 <script src="config.js"></script>
+<script src="usage-fields.js"></script>
 <script src="splash.js" data-space="note"></script>
 <script src="places.js"></script>
 <script src="survey.js"></script>
@@ -1517,7 +1518,7 @@ button.pg-tag::before { content: ''; position: absolute; inset: -10px; }
     }
     // 이번 주 처음 그 사람의 매듭이 지어지면 끈에서 매듭이 묶이고 끈이 당겨진다(다 그린 뒤 한 번)
     if (it && !D.items.some(i => i.target === it.target && prayedThisWeek(i.id))) S.cordNew = it.target;
-    if (!p || p.off) { if (S.tab === 'today') KoidePilot.done('n-today'); }
+    if (!p || p.off) { if (S.tab === 'today') KoidePilot.done('n-today'); if (!(it && it.practice)) track('note.prayed'); }   // 켜지는 쪽만 센다(끄기·연습 기도제목은 안 센다)
     if (p) { p.off = !p.off; p.up = now(); } else D.prays.push({ d: t, item: id, up: now() });
     save();
     const r1 = pgCur(), pk1 = pgK(r1); if (r1 === r0 && pk1 > pk0) S.pgStep = { route: r0, from: pk0, to: pk1, rest: pgRest }; else if (r1 === r0 && pk1 < pk0) S.pgStep = null; // 새로 한 구간 걸었으면 오늘 카드에서 걷는다
@@ -1543,9 +1544,52 @@ button.pg-tag::before { content: ''; position: absolute; inset: -10px; }
   if (SC && SC.at === 'weaves') S.tab = 'weaves';
 
   // ── 화면 설정: 공동체 앱과 같은 곳(koide-pref)에 둔다. 예전 노트의 화면 모드는 한 번 옮긴다 ──────────
-  // 이용 통계 끄기(더보기 › 앱 설정): 공동체 앱(index.html)과 같은 키를 쓴다. 노트는 아직 사용 기록을 보내지 않지만, 기록 도구를 붙일 때(docs/usage-stats.md 8장) 이 값이 '1'이면 모으지도 보내지도 않아야 한다
+  // 이용 통계 끄기(더보기 › 앱 설정): 공동체 앱(index.html)과 같은 키를 쓴다. 이 값이 '1'이면 아래 사용 기록(track)은 모으지도 보내지도 않는다
   const USAGE_OFF = 'koide-usage-off';
   const usageOff = () => { try { return localStorage.getItem(USAGE_OFF) === '1'; } catch (e) { return false; } };
+  // ── 사용 기록(docs/usage-stats.md): 이름·머문 초만 모아 서버 usage_track으로 보낸다. 글·이름·기도제목은 큐에 넣는 자리가 없다 ──────────
+  //  모으고 보내는 조건은 셋이 모두 맞을 때뿐: ① 앱 설정 USAGE가 'on' ② 앱 설정에서 끄지 않음(usageOff) ③ 로그인한 Supabase 세션이 있음(서버가 로그인을 요구한다).
+  //  데모(?demo)·따라 하기(?tutorial)·화면 지도 장면(QUIET)에서는 모으지 않는다. 서버 스위치(usage_track)도 'on'이어야 서버가 저장한다.
+  //  기기 큐에는 계정 해시(w)를 함께 두어, 다른 계정이 쌓은 줄은 보내지 않고 지운다. 로그인하지 않은 사람의 사용은 서버에 오지 않는다(노트 지표는 로그인한 사람의 하한).
+  const UQ = 'koide-note-usage', UDAY = 'koide-note-usage-day';
+  const usageOn = () => !DEMO && !QUIET && SB_CFG && CFG.USAGE === 'on' && !usageOff();
+  const uqRead = () => { try { return JSON.parse(localStorage.getItem(UQ) || '[]'); } catch (e) { return []; } };
+  const uqWrite = q => { try { localStorage.setItem(UQ, JSON.stringify(q.slice(-200))); } catch (e) { /* 기록 못 해도 앱은 그대로 */ } };
+  let uTimer = 0, uBusy = false, uRetry = 0;
+  async function usageWho() { try { const se = await sbSession(); return se ? await sbHash(se.user.id) : ''; } catch (e) { return ''; } }
+  // ev: 허용 목록(006) 이름. o.n은 머문 초(정수), o.daily면 하루 한 번만
+  async function track(ev, o) {
+    try {
+      if (!usageOn()) return;
+      o = o || {};
+      const at = new Date().toISOString(), day = o.daily ? TODAY() : '';
+      if (day) { try { if (localStorage.getItem(UDAY) === day) return; } catch (e) { return; } }
+      const w = await usageWho(); if (!w || !usageOn()) return;
+      if (day) { try { localStorage.setItem(UDAY, day); } catch (e) { return; } }
+      const line = { i: Math.random().toString(36).slice(2, 10), ev, at, w };
+      if (o.n != null) line.n = o.n;
+      const q = uqRead(); q.push(line); uqWrite(q);
+      if (q.length >= 20) usageFlush(); else if (!uTimer) uTimer = setTimeout(() => { uTimer = 0; usageFlush(); }, 20000);
+    } catch (e) { /* 기록 못 해도 앱은 그대로 */ }
+  }
+  async function usageFlush() {
+    if (uBusy || Date.now() < uRetry || !usageOn()) return;
+    uBusy = true;
+    try {
+      const w = await usageWho(); if (!w) return;   // 로그인 전: 줄은 그대로 둔다
+      let q = uqRead(); if (!q.length) return;
+      const mine = q.filter(x => x.w === w), gone = new Set(q.filter(x => x.w !== w).map(x => x.i));   // 다른 계정 줄은 보내지 않고 지운다
+      for (let k = 0; k < mine.length; k += 50) {
+        const part = mine.slice(k, k + 50);
+        await sbFetch('/rest/v1/rpc/usage_track', { method: 'POST', body: JSON.stringify({ events: part.map(x => KoideUsageFields.build(x.ev, { at: x.at, n: x.n })) }) });
+        part.forEach(x => gone.add(x.i));
+      }
+      uqWrite(uqRead().filter(x => !gone.has(x.i)));
+    } catch (e) { uRetry = Date.now() + 60000; /* 1분 쉬었다 다시 */ }
+    finally { uBusy = false; }
+  }
+  document.addEventListener('visibilitychange', () => { if (document.hidden && usageOn()) usageFlush(); });
+  window.addEventListener('online', () => { uRetry = 0; if (usageOn()) usageFlush(); });
   const PREF = (() => { try { return JSON.parse(localStorage.getItem('koide-pref')) || {}; } catch (e) { return {}; } })();
   const MODES = [['system', '기기 설정'], ['light', '밝게'], ['dark', '어둡게']];
   const STYLES = [['flat', 'basic'], ['neu', 'new'], ['skeu', 'classic'], ['glass', 'glass']];
@@ -3587,6 +3631,7 @@ button.pg-tag::before { content: ''; position: absolute; inset: -10px; }
           if (t.startsWith('new:')) { const n = t.slice(4).slice(0, 12), had = people().find(p => p.name === n); t = 'p:' + (had ? had.id : (made[n] || (made[n] = (() => { const p = { id: uid(), name: n, up: now(), ord: nextOrd() }; if (pr) p.practice = true; D.people.push(p); return p.id; })()))); }
           D.items.push(Object.assign({ id: uid(), text: x.text, target: t, created: TODAY(), done: null, up: now() }, pr ? { practice: true } : {}));
         });
+        if (!pr) track('note.item-add');
         filterReveal([...new Set(D.items.slice(-parts.length).map(i => i.target))]);
         S.preview = null; S.draft = null; save(); a2hsDue(); pilotTwo();
         return toast(parts.length + '개를 기도 제목에 더했어요' + (Object.keys(made).length ? ` · 새 사람 ${Object.keys(made).join(', ')}` : ''));
@@ -3627,7 +3672,7 @@ button.pg-tag::before { content: ''; position: absolute; inset: -10px; }
       case 'psopen': {
         // 기도하기 탭은 고른 대로, 오늘 화면의 '한 장씩 기도하기'는 그 기도제목에 하나님 나라(켜 두었으면)를 더해서
         const L = psList(v === 'tab' ? PS.set : v); if (!L.length) return;
-        S.ps = { list: L, i: 0, extra: [], dur: PS.dur, left: PS.dur, flow: !!(PS.flow && PS.dur), cd: 0, stay: false, held: false, pt0: Date.now() }; if (PS.music) playTrack(PS.track);
+        S.ps = { list: L, i: 0, extra: [], dur: PS.dur, left: PS.dur, flow: !!(PS.flow && PS.dur), cd: 0, stay: false, held: false, pt0: Date.now(), t0: Date.now() }; track('note.pray-start'); if (PS.music) playTrack(PS.track);
         // 기도를 열며(기본 켜짐): 첫 장 앞에 한 장. 몇 초 뒤 저절로, 또는 누르면 첫 장으로
         if (PS.open !== false) { const ps = S.ps; ps.open = true; KoidePrayOpen.begin(() => psOpenDone(ps)); }
         if (PS.dur === 60 && PS.flow) KoidePilot.done('n-ps');
@@ -3641,7 +3686,7 @@ button.pg-tag::before { content: ''; position: absolute; inset: -10px; }
       case 'psstay': clearInterval(psTimer); S.ps.cd = 0; S.ps.stay = true; return psRender();
       case 'psdur': PS.dur = Number(v); savePs(); return render();
       case 'psflow': PS.flow = !PS.flow; savePs(); return render();
-      case 'psclose': psStop(); return render();
+      case 'psclose': if (S.ps && S.ps.t0) track('note.pray-done', { n: Math.round((Date.now() - S.ps.t0) / 1000) }); psStop(); return render();
       case 'renperson': { const p = D.people.find(x => x.id === v), n = (prompt('새 이름', p.name) || '').trim().slice(0, 12); if (n) { p.name = n; p.up = now(); save(); } return render(); }
       // 기도제목 지우기: 기도 기록과 함께 지우고, 지움 표시(D.gone)를 남겨 동기화가 되살리지 않게 한다
       case 'delitem': {
@@ -3943,6 +3988,7 @@ button.pg-tag::before { content: ''; position: absolute; inset: -10px; }
       catch (e) { if (e && e.code === 'login') { if (window.koideSpace) window.koideSpace.going('community'); return location.replace('index.html' + QS); } }
     }
     acctLoad();
+    track('note.open', { daily: true });   // 하루 한 번(로그인한 사람만)
     let resume = null; try { resume = localStorage.getItem('koide-note-resume'); localStorage.removeItem('koide-note-resume'); } catch (e) { /* 무시 */ }
     if ((resume === 'acct' || resume === 'sync') && (getToken() || nb)) { S.tab = 'sync'; S.acctProv = null; sbProviders().then(l => { S.acctProv = l; render(); }); acctLoad(true); acctResult(); }
     else if (resume === 'door' && nb) doorArrive();

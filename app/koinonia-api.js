@@ -88,6 +88,23 @@ window.koideCommunityApi = (() => {
     result.state = status.state;
     return result;
   };
+  // 사용 통계(docs/usage-stats.md): church-api.js의 usageSend와 같은 게이트·모양. **기본 꺼짐** — 앱 설정 USAGE가 'on'이 아니거나 앱 설정에서 끈 기기(koide-usage-off)·데모면
+  //  아무것도 보내지 않는다(서버 스위치 usage_track도 'on'이어야 저장한다). 이름은 셋뿐('열기', '기도했어요', '기도하기 마침'(머문 초 n만)), 나머지 행동은 버린다. 보내는 칸은 usage-fields.js가 정한다.
+  const USAGE_NAME = Object.assign(Object.create(null), { '열기': 'community.open', '기도했어요': 'community.prayed', '기도하기 마침': 'community.pray-done' });
+  const usageOffNow = () => { try { return localStorage.getItem('koide-usage-off') === '1'; } catch (e) { return false; } };
+  const usageN = (ev, d) => ev === 'community.pray-done' && d && d.mins != null && isFinite(d.mins) ? d.mins * 60 : undefined;   // d.mins는 분
+  async function usageSend(list) {
+    if (demo || !Array.isArray(list) || !list.length || !(window.KOIDE_CONFIG && window.KOIDE_CONFIG.USAGE === 'on') || usageOffNow()) return {kept:true,n:0};
+    await window.KoideUsageFields.ready();
+    const evs = list.map(x => ({ ev: USAGE_NAME[String(x && x.e)] || '', x })).filter(o => o.ev)
+      .map(o => window.KoideUsageFields.build(o.ev, { at: o.x.at, n: usageN(o.ev, o.x.d) }));
+    let n = 0;
+    for (let i = 0; i < evs.length; i += 50) {
+      try { n += Number(await rpc('usage_track', {events: evs.slice(i, i + 50)})) || 0; }
+      catch (e) { return n ? {kept:true,n} : {kept:false,n:0}; }   // 첫 묶음이 막히면 다음에 다시. 앞 묶음이 나갔으면 겹쳐 세지 않게 나머지는 버린다
+    }
+    return {kept:true,n};
+  }
   async function handle(body) {
     const id=body.grp;
     switch(body.action) {
@@ -133,7 +150,7 @@ window.koideCommunityApi = (() => {
         return rpc('community_report',{p_id:id,p_reason:body.reason,p_note:body.note||''});
       case 'sendFeedback':
         return rpc('feedback_put',{p_kind:body.kind,p_text:body.text,p_named:!!body.named,p_ver:body.ver||'',p_width:body.width||''});
-      case 'usage': return {kept:true,n:0};
+      case 'usage': return usageSend(body.events);
       case 'tourDone': await rpc('tour_mark').catch(() => {}); return {ok:true};
       case 'tourSeen': return {seen:!!(await rpc('tour_seen'))};
       case 'surveyState': return {survey:body.survey||{}};
