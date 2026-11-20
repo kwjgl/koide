@@ -3967,7 +3967,7 @@ try { const p = JSON.parse(localStorage.getItem('koide-pref') || '{}'), d = docu
             ${STANDALONE ? '' : row('a2hsopen', '', '홈 화면에 앱처럼 두기', '')}
             <div class="mrow" style="cursor:default;border-top:1px solid var(--line)"><span><b>이용 통계 보내기</b>${KoideTip.btn('앱을 좋게 만들기 위해 이름 없는 사용 기록을 보내요. 누른 것, 연 때와 머문 시간 같은 숫자만이고 이름과 기도제목은 보내지 않아요. 끄면 이 기기에서는 더 보내지 않아요.', '이용 통계 보내기')}</span>
               <button type="button" class="switch${usageOff() ? '' : ' on'}" role="switch" aria-checked="${!usageOff()}" aria-label="이용 통계 보내기" data-act="usageoff"><span></span></button></div>
-            ${KOINONIA && DEMO ? '' : row('tab', 'account', '계정', '')}
+            ${KOINONIA && DEMO ? '' : row('tab', 'account', '계정과 동기화', noteSyncOn() ? '동기화 켜짐' : '동기화 꺼짐')}
             ${KoidePilot.moreRows()}
           </section>
           ${S.grp && !KOINONIA ? '' : `<p class="more-h">코이데</p>
@@ -5259,7 +5259,7 @@ try { const p = JSON.parse(localStorage.getItem('koide-pref') || '{}'), d = docu
         </section>
         <section class="card mrows"><a class="mrow" style="text-decoration:none;color:inherit" href="manual.pdf" target="_blank" rel="noopener"><span><b>사용 안내서(PDF)</b></span>${ICON.chevR}</a></section></div>`;
   }
-  // ── 계정(더보기 › 앱 설정 › 계정, 2026-11-19): 로그인한 방법, 이 기기에서 로그아웃, 계정 탈퇴. 노트의 '계정과 동기화' 맨 아래와 같은 방식 ──
+  // ── 계정과 동기화(더보기 › 앱 설정 › 계정과 동기화, 2026-11-20 이름 변경): 로그인한 방법, 동기화 상태, 이 기기에서 로그아웃, 계정 탈퇴. 동기화는 코이데 노트에서 켜고 끈다(여기서는 상태만 보여 준다) ──
   const SB_NAME = { kakao: '카카오', google: '구글', apple: '애플' };
   const sbLogin = () => CHURCHSB || (KOINONIA && !KOINONIA_DEMO);   // 새 길(교회·공동체) 로그인
   const idsOf = u => { const ids = (u.identities || []).map(i => i.provider), md = u.app_metadata || {};
@@ -5276,15 +5276,18 @@ try { const p = JSON.parse(localStorage.getItem('koide-pref') || '{}'), d = docu
     const card = L === null ? '<section class="card"><p class="label">로그인 계정</p><p class="hint">불러오는 중…</p></section>'
       : L.length ? `<section class="card"><p class="label">로그인 계정</p>${L.map(k => `<div class="acct-li"><span class="acct-logo">${window.KoideSb.logos[k] || ''}</span><b>${esc(SB_NAME[k] || k)}</b></div>`).join('')}</section>` : '';
     return `<button class="link back" data-act="tab" data-v="more">${ICON.chevL}더보기</button>
-      <div class="page-top"><div><h1>계정</h1></div></div>
+      <div class="page-top"><div><h1>계정과 동기화</h1></div></div>
       <div class="acct-page">${card}
+        <section class="card"><p class="label">동기화</p><p class="plain"><b>${noteSyncOn() ? '켜짐' : '꺼짐'}</b></p>
+          <p class="hint">${noteSyncOn() ? '기록은 암호화되기 때문에 운영자도 볼 수 없어요.' : '켜면 휴대폰을 바꿔도 기록이 이어져요.'}</p>
+          <p style="margin:.4em 0 0"><a class="link quiet" href="note.html${DEMO_LINK ? '?demo' : ''}">코이데 노트에서 켜고 끄기 ›</a></p></section>
         ${KOINONIA ? '' : '<button class="link quiet more-out" data-act="logout">이 기기에서 로그아웃</button>'}
         ${(CHURCHSB && !S.grp) || (KOINONIA && !DEMO) ? '<button class="link quiet danger more-out" data-act="acctdel">계정 탈퇴</button>' : ''}</div>`;
   }
-  // ── 계정 탈퇴(더보기 › 앱 설정 › 계정 › 계정 탈퇴, 새 길 교회와 공동체만): 문구와 서버 부르기는 account-delete.js. 단계 S.ad.step = check(확인 중) · block(막힘·불러오기 실패) · ask(확인 글) ──
+  // ── 계정 탈퇴(더보기 › 앱 설정 › 계정과 동기화 › 계정 탈퇴, 새 길 교회와 공동체만): 문구와 서버 부르기는 account-delete.js. 단계 S.ad.step = check(확인 중) · block(막힘·불러오기 실패) · ask(확인 글) ──
   function acctDelView() {
     const A = S.ad || (S.ad = { step: 'check' }), D = window.KoideAcctDel;
-    const back = `<button class="link back" data-act="tab" data-v="account">${ICON.chevL}계정</button>`;
+    const back = `<button class="link back" data-act="tab" data-v="account">${ICON.chevL}계정과 동기화</button>`;
     const head = `${back}<div class="page-top"><div><h1>계정 탈퇴</h1></div></div>
       <p class="hint" style="margin:.3em 0 .8em">계정 삭제는 탈퇴로 해요. 먼저 지워지는 것을 확인해요.</p>`;
     if (A.step === 'check') return `${head}<section class="card"><p class="loading">확인하는 중이에요…</p></section>`;
