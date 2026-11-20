@@ -234,10 +234,10 @@
     },'join'); }
     if(a==='copy')return busy(async()=>{await navigator.clipboard.writeText(inviteUrl(S.info.token));S.msg='초대 링크를 복사했어요.';});
     if(a==='share')return busy(async()=>{try{await navigator.share({title:S.info.name,url:inviteUrl(S.info.token)});}catch(e){if(e.name!=='AbortError')throw e;}});
-    if(a==='renew'){if(!confirm('새 링크를 만들면 예전 링크로는 들어올 수 없어요. 새로 만들까요?'))return;
+    if(a==='renew'){if(!await KoideAsk.ok('새 링크를 만들면 예전 링크로는 들어올 수 없어요. 새로 만들까요?'))return;
       return busy(async()=>{const r=await kApi('community_renew',{p_id:S.id});S.info.token=r.token;S.info.expires=r.expires;S.msg='새 초대 링크를 만들었어요.';});}
     if(a==='approve'||a==='reject'){
-      if(a==='reject'&&!confirm('함께하기 신청을 거절할까요?'))return;
+      if(a==='reject'&&!await KoideAsk.ok('함께하기 신청을 거절할까요?'))return;
       return busy(async()=>{await kApi('community_decide',{p_id:S.id,p_member:v,p_ok:a==='approve'});
         S.info=await kApi('community_info',{p_id:S.id});S.sheet=S.info.asks?.length?'asks':'';S.msg=a==='approve'?'함께하기를 승인했어요.':'신청을 거절했어요.';},'sheet');
     }

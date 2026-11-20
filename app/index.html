@@ -311,7 +311,10 @@ body.wbig-open { overflow: hidden; }
 .album-item figcaption { font-size: .84em; font-weight: 600; }
 .coll-year > .btn { margin: .8em 0 .4em; }
 /* 화면마다 처음 한 번 나오는 도움말 */
-.tg-tip { display: flex; align-items: center; gap: 12px; margin: 10px 0 2px; padding: .75em .9em; border-radius: 14px; background: var(--accent-soft); color: var(--ink); }
+.calm { display: flex; flex-direction: column; gap: .7em; align-items: flex-start; }   /* 빈 화면 카드: 제목, 설명, 이어 갈 링크 한 장(디다코와 같은 모양, 2026-11-20) */
+.calm-t { font-family: var(--f-display); font-size: 1.3em; margin: 0; }
+.calm p:not(.calm-t) { margin: 0; }
+.tg-tip { display: flex; align-items: center; gap: 12px; margin: 10px 0 8px; padding: .75em .9em; border-radius: 14px; background: var(--accent-soft); color: var(--ink); }
 .tg-tip p { margin: 0; flex: 1; font-size: .86em; line-height: 1.55; word-break: keep-all; }
 .tg-tip b { color: var(--accent); margin-right: .4em; }
 .tg-tip .btn { flex: none; }
@@ -1440,6 +1443,7 @@ try { const p = JSON.parse(localStorage.getItem('koide-pref') || '{}'), d = docu
 <script src="pray-open.js"></script>
 <script src="guide.js"></script>
 <script src="info-tip.js"></script>
+<script src="ask.js"></script>
 <script src="beatitudes.js"></script>
 <script src="sb.js"></script>
 <script src="account-delete.js"></script>
@@ -2843,6 +2847,8 @@ try { const p = JSON.parse(localStorage.getItem('koide-pref') || '{}'), d = docu
   const monthLabel = (m, now) => (m.slice(0, 4) !== now.slice(0, 4) ? m.slice(0, 4) + '년 ' : '') + Number(m.slice(5)) + '월';
   // 지난 기록도 이번 달 카드와 같은 모양(대상별로 묶고 긴 글은 휴대폰에서 2줄까지). 지난 항목엔 id가 없어서 '더 보기'용으로 붙여 준다
   //  이번 달처럼 4개까지만 보이고 나머지는 '더 보기'로 펼친다
+  // 빈 화면 카드(2026-11-20): 막다른 길이 되지 않게 제목·설명·이어 갈 곳을 한 장에 둔다. link는 [글, data-act, data-v]
+  const emptyCard = (title, text, link) => `<section class="card calm"><p class="calm-t">${title}</p><p class="plain">${text}</p>${link ? `<button class="btn ghost" data-act="${link[1]}" data-v="${link[2]}">${link[0]}</button>` : ''}</section>`;
   function histItems(its, key) {
     if (!its.length) return '<p class="hint">이 달에는 올린 기도제목이 없어요.</p>';
     const id = 'h-' + key, open = S.openFams.has(id);
@@ -3131,13 +3137,12 @@ try { const p = JSON.parse(localStorage.getItem('koide-pref') || '{}'), d = docu
     if (tab === 'pray') return head + myPrayView(loadMyPrayers());
     if (!H) return head + '<p class="loading">불러오는 중…</p>';
     const past = H.months.filter(m => m < H.now);
-    const first = past.length ? '' : `<section class="card"><p style="margin:0">돌아볼 기록은 다음 달부터 쌓여요.</p>
-      <p class="hint">${Number(H.now.slice(5)) % 12 + 1}월 1일이 되면 ${Number(H.now.slice(5))}월 기도제목이 첫 기록으로 남아요. 그때까지는 이번 달 화면에서 볼 수 있어요.</p></section>`;
+    const first = past.length ? '' : emptyCard('돌아볼 기록은 다음 달부터 쌓여요', `${Number(H.now.slice(5)) % 12 + 1}월 1일이 되면 ${Number(H.now.slice(5))}월 기도제목이 첫 기록으로 남아요. 그때까지는 이번 달 화면에서 볼 수 있어요.`, ['이번 달로 가기', 'tab', 'home']);
     if (tab === 'timeline') return head + timelineCard(H);
     // 우리 가정 탭(목사님·장로님만): 지난 달 것만
     if (tab === 'mine') { const mine = H.mine.filter(x => x.month < H.now);
       return head + first + (mine.length ? `<div class="fam-grid wide hist-grid">${mine.map(x => `<section class="card${S.hlMonth === x.month ? ' hl' : ''}" id="hm-${x.month}"><h3>${monthLabel(x.month, H.now)}</h3>${histItems(x.items, 'm' + x.month)}</section>`).join('')}</div>`
-        : past.length ? '<p class="hint" style="margin-top:12px">아직 올린 기도제목이 없어요.</p>' : ''); }
+        : past.length ? emptyCard('아직 올린 기도제목이 없어요', '지난 달에 올린 기도제목이 없어요. 기도제목을 쓰면 달이 바뀐 뒤 여기서 다시 볼 수 있어요.', ['내 기도로 가기', 'tab', 'mine']) : ''); }
     // 사랑방 탭: 지난 달 칩만(이번 달 칩은 없다). 지난 달이 없으면 위의 첫 달 안내만
     if (!past.length) return head + first + beforeCard();
     return head + first + `<div class="hist-chips" role="radiogroup" aria-label="달">${past.map(m => `<button class="chip-btn${m === H.month ? ' on' : ''}" role="radio" aria-checked="${m === H.month}" data-act="histmonth" data-v="${m}">${monthLabel(m, H.now)}</button>`).join('')}</div>
@@ -3151,7 +3156,7 @@ try { const p = JSON.parse(localStorage.getItem('koide-pref') || '{}'), d = docu
   //  F가 있으면 목사님·장로님이 보는 다른 가정의 타임라인(리더·목사님 항목까지). 줄을 눌러 가는 곳은 없다
   function timelineCard(H, F) {
     const T = H.threads || [], now = H.now;
-    if (!T.length) return `<p class="hint" style="margin-top:12px">${F ? '이 ' + words().one + '은 ' : ''}아직 올린 기도제목이 없어요.</p>`;
+    if (!T.length) return F ? `<p class="hint" style="margin-top:12px">이 ${words().one}은 아직 올린 기도제목이 없어요.</p>` : emptyCard('아직 올린 기도제목이 없어요', '기도제목을 쓰면 달마다 이어지는 모습이 여기에 보여요.', ['내 기도로 가기', 'tab', 'mine']);
     // 열은 가장 오래된 기도제목이 시작한 달부터 이번 달까지, 많아도 12달
     const oldest = T.reduce((a, t) => t.from < a ? t.from : a, now), cols = [now];
     while (cols.length < 12 && cols[0] > oldest) cols.unshift(prevMon(cols[0]));
@@ -4887,7 +4892,7 @@ try { const p = JSON.parse(localStorage.getItem('koide-pref') || '{}'), d = docu
       if (RS_QUICK.includes(op)) rsBackground(op, seq);
       else S.pending = await api('pending');
     } catch (e) {
-      if (e.code === 'same' && confirm(e.message)) { S.busy = false; S.rbusy = null; return rosterDo(Object.assign({}, payload, { force: true }), msg, opts); }
+      if (e.code === 'same' && await KoideAsk.ok(e.message)) { S.busy = false; S.rbusy = null; return rosterDo(Object.assign({}, payload, { force: true }), msg, opts); }
       oops(e);
     }
     S.busy = false; S.rbusy = null; S.rostHl = ok ? rsHlIds(old, S.rost, payload) : null; render(); rsShowHl();
@@ -5103,10 +5108,10 @@ try { const p = JSON.parse(localStorage.getItem('koide-pref') || '{}'), d = docu
     try {
       if (kind === 'marry') {
         const P = await api('marryPreview', { familyId: ref });
-        if (!confirm(`${P.name} 가정 합치기를 되돌릴까요? 합친 뒤 쓴 기도제목 ${P.items}개가 지워지고, 옛 가정들이 다시 목록에 돌아와요.` + (CHURCHSB && P.nextPlan ? ' 합칠 때 다음 편성 예약에서 뺀 옛 가정의 줄은 되돌아오지 않아요.' : ''))) return;
+        if (!await KoideAsk.ok(`${P.name} 가정 합치기를 되돌릴까요? 합친 뒤 쓴 기도제목 ${P.items}개가 지워지고, 옛 가정들이 다시 목록에 돌아와요.` + (CHURCHSB && P.nextPlan ? ' 합칠 때 다음 편성 예약에서 뺀 옛 가정의 줄은 되돌아오지 않아요.' : ''))) return;
         await api('marryUndo', { familyId: ref });
       } else {
-        if (!confirm(`${name} 부서 옮기기를 되돌릴까요? 옛 부서의 사랑방으로 돌아가요.` + (CHURCHSB ? ' 옛 부서 다음 편성 예약에서 뺀 줄과 꺼진 부서 관리자 표시는 되돌아오지 않아요.' : ''))) return;
+        if (!await KoideAsk.ok(`${name} 부서 옮기기를 되돌릴까요? 옛 부서의 사랑방으로 돌아가요.` + (CHURCHSB ? ' 옛 부서 다음 편성 예약에서 뺀 줄과 꺼진 부서 관리자 표시는 되돌아오지 않아요.' : ''))) return;
         await api('moveUndo', { familyId: ref });
       }
       toast('되돌렸어요.'); S.rost = null; S.before = null;
@@ -5899,20 +5904,20 @@ try { const p = JSON.parse(localStorage.getItem('koide-pref') || '{}'), d = docu
         const msg=G.people.length===1 ? '공동체에서 나가면 공동체가 지워져요. 나갈까요?'
           : G.lead ? `공동체에서 나갈까요? 가장 먼저 들어온 ${p[0].person} 님이 모임장이 돼요. 내 기도제목과 기도한 기록도 함께 지워져요.`
           : '공동체에서 나갈까요? 내 기도제목과 기도한 기록도 함께 지워져요.';
-        if(!confirm(msg))return;
+        if(!await KoideAsk.ok(msg))return;
         try{await api('groupLeave');leaveGroupView();}catch(err){oops(err);}
         return;
       }
       case 'kchandoff':
-        if(!confirm(v && b.dataset.n + ' 님이 모임장이 되고 나는 지체가 돼요. 넘길까요?'))return;
+        if(!await KoideAsk.ok(v && b.dataset.n + ' 님이 모임장이 되고 나는 지체가 돼요. 넘길까요?'))return;
         try{S.month=await api('groupHandoff',{id:v});S.care=null;toast('모임장을 넘겼어요.');}catch(err){oops(err);}
         return render();
       case 'kcends':
-        if(!confirm('끝나는 날을 바꿀까요?'))return;
+        if(!await KoideAsk.ok('끝나는 날을 바꿀까요?'))return;
         try{S.month=await api('groupEnds',{months:v==='none'?null:Number(v)});S.care=null;toast('끝나는 날을 바꿨어요.');}catch(err){oops(err);}
         return render();
       case 'kcend':
-        if(!confirm('공동체를 끝맺을까요? 30일 동안 읽기만 할 수 있고, 그 뒤 모든 기록이 지워져요.'))return;
+        if(!await KoideAsk.ok('공동체를 끝맺을까요? 30일 동안 읽기만 할 수 있고, 그 뒤 모든 기록이 지워져요.'))return;
         try{S.month=await api('groupEnd');toast('공동체를 끝맺었어요.');}catch(err){oops(err);}
         return render();
       case 'menu': S.menu = S.menu === v ? null : v; $('#topbar').innerHTML = topHtml(); if (v === 'badge' && S.menu === 'badge') loadCircleMenu(); return;
@@ -5957,7 +5962,7 @@ try { const p = JSON.parse(localStorage.getItem('koide-pref') || '{}'), d = docu
         lsSet(CONNECT, '1'); S.view = 'loading'; render(); return refreshMe();
       case 'retry': S.view = 'loading'; render(); return refreshMe();
       case 'cancellink': {
-        if (!confirm('신청을 취소할까요? 취소하면 가정을 다시 골라 신청할 수 있어요.')) return;
+        if (!await KoideAsk.ok('신청을 취소할까요? 취소하면 가정을 다시 골라 신청할 수 있어요.')) return;
         S.busy = true; render();
         try { await api('cancelLink'); toast('신청을 취소했어요.'); } catch (err) { oops(err); }   // 이미 승인됐으면 "취소할 신청이 없어요."가 토스트로 나오고 아래에서 화면이 다시 정해진다
         S.busy = false; S.pick = {}; S.view = 'loading'; render(); return refreshMe();
@@ -6005,18 +6010,18 @@ try { const p = JSON.parse(localStorage.getItem('koide-pref') || '{}'), d = docu
       case 'album': S.album = v; render(); return track('화면 보기', { screen: '한 해 앨범' });
       case 'albumclose': S.album = null; return render();
       case 'artedit': S.bigView.edit = !S.bigView.edit; if (S.bigView.edit) track('화면 보기', { screen: '그림 꾸미기' }); return render();
-      case 'artreset': if (!confirm('이 달 그림을 처음 자리로 되돌릴까요?')) return; setArtPos(S.bigView.month, {}); return render();
+      case 'artreset': if (!await KoideAsk.ok('이 달 그림을 처음 자리로 되돌릴까요?')) return; setArtPos(S.bigView.month, {}); return render();
       case 'artsave': S.artSaving = true; render(); try { await saveArt(); track('화면 보기', { screen: '그림 저장' }); } catch (err) { toast('그림을 저장하지 못했어요. 다시 해 주세요.'); } S.artSaving = false; return render();
       case 'bigclose': S.bigView = null; render(); if (document.fullscreenElement) document.exitFullscreen().catch(() => {}); return;
       case 'tipok': { tipDone(v); const tip = b.closest('.tg-tip'); tip.remove(); pilotBand(); return; }
-      case 'ptk': if (S.pt.dirty && !confirm('고친 것을 저장하지 않고 다른 주제로 갈까요?')) return; S.pt.k = v; S.pt.rows = null; S.pt.dirty = false; return render();
+      case 'ptk': if (S.pt.dirty && !await KoideAsk.ok('고친 것을 저장하지 않고 다른 주제로 갈까요?')) return; S.pt.k = v; S.pt.rows = null; S.pt.dirty = false; return render();
       case 'ptadd': { const at = S.pt.rows.map(r => r.kind).lastIndexOf(v); S.pt.rows.splice(at + 1, 0, { kind: v, text: '', ref: '', status: '' }); S.pt.dirty = true; render(); const f = $(`[data-pt="${at + 1}"]`); if (f) f.focus(); return; }
       case 'ptdel': if (S.pt.rows.filter(r => r.kind === S.pt.rows[v].kind).length < 2) return toast('하나는 남겨 주세요.'); S.pt.rows.splice(Number(v), 1); S.pt.dirty = true; return render();
       case 'pttoggle': { const r = S.pt.rows[v]; if (r.status !== '뺌' && S.pt.rows.filter(x => x.kind === r.kind && x.status !== '뺌').length < 2) return toast('하나는 남겨 주세요.'); r.status = r.status === '뺌' ? '' : '뺌'; S.pt.dirty = true; return render(); }
       case 'ptundo': S.pt.rows = null; S.pt.dirty = false; return render();
       case 'ptsave': case 'ptreset': {
         const a = b.dataset.act;
-        if (a === 'ptreset' && !confirm('이 주제를 앱의 기본 문장으로 되돌릴까요? 고친 문장은 지워져요.')) return;
+        if (a === 'ptreset' && !await KoideAsk.ok('이 주제를 앱의 기본 문장으로 되돌릴까요? 고친 문장은 지워져요.')) return;
         const rows = a === 'ptreset' ? [] : S.pt.rows.filter(r => r.text.trim());
         if (a === 'ptsave' && ['a', 'b'].some(k => !S.pt.k.startsWith('season:') && !rows.some(r => r.kind === k && r.status !== '뺌'))) return toast('간구 문장과 성경의 기도를 하나씩은 남겨 주세요.');
         S.busy = true; render();
@@ -6058,11 +6063,11 @@ try { const p = JSON.parse(localStorage.getItem('koide-pref') || '{}'), d = docu
       }
       case 'tdtopic': S.tdTopic = v; return render();
       case 'tdmore': S.tdMore = !S.tdMore; return render();
-      case 'tdrm': { const [t, w] = v.split('|'); if (confirm(t + '에서 "' + w + '"을(를) 뺄까요?')) topicWord(t, w, true); return; }
+      case 'tdrm': { const [t, w] = v.split('|'); if (await KoideAsk.ok(t + '에서 "' + w + '"을(를) 뺄까요?')) topicWord(t, w, true); return; }
       case 'opsopen': S.opsOpen = !(S.opsOpen !== undefined ? S.opsOpen : opsProblems().length > 0); return render();
       case 'opsmonth': case 'opshand': case 'keepfam': case 'erasedo': {
         const a = b.dataset.act;
-        if (a === 'erasedo' && !confirm(b.dataset.n + ' 기록을 지울까요? 되돌릴 수 없어요.' + (CHURCHSB ? '\n기록을 내려받아 두었는지 먼저 확인해 주세요.' : ''))) return;
+        if (a === 'erasedo' && !await KoideAsk.ok(b.dataset.n + ' 기록을 지울까요? 되돌릴 수 없어요.' + (CHURCHSB ? '\n기록을 내려받아 두었는지 먼저 확인해 주세요.' : ''))) return;
         S.busy = true; render();
         try {
           S.ops = await api(a === 'opsmonth' ? 'openMonth' : a === 'opshand' ? 'handover' : a === 'keepfam' ? 'keepFamily' : 'eraseFamily', a === 'erasedo' ? { familyId: v, name: b.dataset.n } : { familyId: v });
@@ -6092,15 +6097,15 @@ try { const p = JSON.parse(localStorage.getItem('koide-pref') || '{}'), d = docu
       case 'togmanage': if (S.month.me.staff) { S.tab = 'home'; render(); const c = $('[data-form="togsave"]'); if (c) c.scrollIntoView({ block: 'center' }); return; } S.fold = Object.assign({}, S.fold, { together: true }); if (CHURCHSB && !S.op && famDept()) return enterOps(famDept().id); S.tab = 'admin'; render(); window.scrollTo(0, 0); return loadAdmin();
       case 'togedit': S.togEdit = v || null; return render();
       case 'togstate': {
-        const op = b.dataset.op; if (op === 'delete' && !confirm('이 제목을 지울까요? 잘못 쓴 것만 지우고, 다 기도한 것은 "마치기"를 눌러요.')) return;
+        const op = b.dataset.op; if (op === 'delete' && !await KoideAsk.ok('이 제목을 지울까요? 잘못 쓴 것만 지우고, 다 기도한 것은 "마치기"를 눌러요.')) return;
         try { S.tog = await api('togetherState', { id: v, op }); S.month.together = S.tog.list; toast(op === 'end' ? '마쳤어요. 다음 달로 넘어가지 않아요.' : op === 'reopen' ? '다시 이어가요.' : '지웠어요.'); } catch (err) { oops(err); }
         return render();
       }
       case 'dpclose': case 'dpreopen': case 'dperase': {
         const a = b.dataset.act, n = b.dataset.n;
-        if (a === 'dpclose' && !confirm(`${josa(n, '을/를')} 닫을까요? 그 부서 사람은 다시 열 때까지 들어오지 못해요. 기록은 남아요.`)) return;
-        if (a === 'dpreopen' && !confirm(`${josa(n, '을/를')} 다시 열까요?`)) return;
-        if (a === 'dperase' && prompt(`${n}의 기도제목·이름·연결을 모두 지워요. 되돌릴 수 없어요.\n지우려면 부서 이름 "${n}"을 그대로 써 주세요.`) !== n) return toast('부서 이름이 맞지 않아 지우지 않았어요.');
+        if (a === 'dpclose' && !await KoideAsk.ok(`${josa(n, '을/를')} 닫을까요? 그 부서 사람은 다시 열 때까지 들어오지 못해요. 기록은 남아요.`)) return;
+        if (a === 'dpreopen' && !await KoideAsk.ok(`${josa(n, '을/를')} 다시 열까요?`)) return;
+        if (a === 'dperase' && await KoideAsk.text(`${n}의 기도제목·이름·연결을 모두 지워요. 되돌릴 수 없어요.\n지우려면 부서 이름 "${n}"을 그대로 써 주세요.`) !== n) return toast('부서 이름이 맞지 않아 지우지 않았어요.');
         S.busy = true; render();
         try {
           const r = await api(a === 'dpclose' ? 'deptClose' : a === 'dpreopen' ? 'deptReopen' : 'deptErase', a === 'dperase' ? { deptId: v, name: n } : { deptId: v });
@@ -6134,11 +6139,11 @@ try { const p = JSON.parse(localStorage.getItem('koide-pref') || '{}'), d = docu
         if ((v === 'changes' || v === 'chgall') && S.fold[v]) { S.chg = null; S.chgN = 20; render(); loadChanges(v === 'chgall'); }
         return;
       case 'chgmore': S.chgN = (S.chgN || 20) + 40; return render();
-      case 'rsunlink': if (!confirm(b.dataset.n + ' 님의 ' + (CHURCHSB ? '연결을' : '카카오 연결을') + ' 해제할까요? 휴대폰을 잃어버렸거나 잘못 고른 경우에만 해제해요.')) return; return rosterDo({ op: 'unlink', familyId: S.rostSel, kakaoId: v }, '연결을 해제했어요.');
+      case 'rsunlink': if (!await KoideAsk.ok(b.dataset.n + ' 님의 ' + (CHURCHSB ? '연결을' : '카카오 연결을') + ' 해제할까요? 휴대폰을 잃어버렸거나 잘못 고른 경우에만 해제해요.')) return; return rosterDo({ op: 'unlink', familyId: S.rostSel, kakaoId: v }, '연결을 해제했어요.');
       // 교회 관리자: 문제가 있는 자율 모임 하나를 초대 링크로 닫는다(모임 목록은 보지 않는다)
       case 'gafind': case 'gaclose': {
         const t = (($('#ga-link') || {}).value || '').trim(); if (!t) return toast('모임 초대 링크를 넣어 주세요.');
-        if (b.dataset.act === 'gaclose' && !confirm(`"${S.gaFound.name}" 모임을 지울까요? 모임 사람과 기도제목, 기도 기록이 모두 지워지고 되돌릴 수 없어요.`)) return;
+        if (b.dataset.act === 'gaclose' && !await KoideAsk.ok(`"${S.gaFound.name}" 모임을 지울까요? 모임 사람과 기도제목, 기도 기록이 모두 지워지고 되돌릴 수 없어요.`)) return;
         S.busy = true; render();
         try { const r = await api('groupAdmin', { invite: t, op: b.dataset.act === 'gaclose' ? 'close' : '' });
           if (r.closed) { S.gaFound = null; toast(`"${r.closed}" 모임을 지웠어요.`); } else S.gaFound = Object.assign(r, { t }); }
@@ -6161,8 +6166,8 @@ try { const p = JSON.parse(localStorage.getItem('koide-pref') || '{}'), d = docu
       case 'gcopy': { const t = S.month.group.token; let ok = false; try { await navigator.clipboard.writeText(groupUrl(t)); ok = true; } catch (err) { /* 막힌 기기 */ } S.copied = { key: 'g' + t, ok }; render(); if (ok) toast('초대 링크를 복사했어요. 카톡으로 보내 주세요.'); return; }
       case 'gdecide': case 'gremove': case 'grenew': {
         const a = b.dataset.act;
-        if (a === 'gremove' && !confirm(b.dataset.n + ' 님을 ' + (KOINONIA ? '공동체' : '모임') + '에서 내보낼까요?')) return;
-        if (a === 'grenew' && !confirm('초대 링크를 새로 만들까요? 예전 링크로는 신청할 수 없어요.')) return;
+        if (a === 'gremove' && !await KoideAsk.ok(b.dataset.n + ' 님을 ' + (KOINONIA ? '공동체' : '모임') + '에서 내보낼까요?')) return;
+        if (a === 'grenew' && !await KoideAsk.ok('초대 링크를 새로 만들까요? 예전 링크로는 신청할 수 없어요.')) return;
         S.busy = true; render();
         try { S.month = await api(a === 'gdecide' ? 'groupDecide' : a === 'gremove' ? 'groupRemove' : 'groupRenew', a === 'grenew' ? {} : { id: v, ok: !!b.dataset.ok });
           toast(a === 'gdecide' ? (b.dataset.ok ? '함께하게 되었어요.' : '거절했어요.') : a === 'gremove' ? '내보냈어요.' : '새 링크를 만들었어요.'); }
@@ -6171,7 +6176,7 @@ try { const p = JSON.parse(localStorage.getItem('koide-pref') || '{}'), d = docu
       }
       case 'gleave': {
         const G = S.month.group;
-        if (!confirm(`"${G.name}"에서 나갈까요?` + (G.lead ? (G.people.length > 1 ? ' 가장 먼저 들어온 분이 모임장이 돼요.' : ' 함께하는 사람이 없어 모임이 지워져요.') : '') + ' 나가면 이 모임을 더 볼 수 없어요. 남기고 싶은 기도제목은 먼저 코이데 노트로 옮겨 두세요.')) return;
+        if (!await KoideAsk.ok(`"${G.name}"에서 나갈까요?` + (G.lead ? (G.people.length > 1 ? ' 가장 먼저 들어온 분이 모임장이 돼요.' : ' 함께하는 사람이 없어 모임이 지워져요.') : '') + ' 나가면 이 모임을 더 볼 수 없어요. 남기고 싶은 기도제목은 먼저 코이데 노트로 옮겨 두세요.')) return;
         try { await api('groupLeave'); leaveGroupView(true); } catch (err) { oops(err); }
         return;
       }
@@ -6241,8 +6246,8 @@ try { const p = JSON.parse(localStorage.getItem('koide-pref') || '{}'), d = docu
       case 'mvundo': return mvUndo(v, b.dataset.n || '');
       case 'rsmove': { const to = ($('#rs-move') || {}).value; if (!to) return; S.rostOpen = Object.assign({}, S.rostOpen, { [to]: true }); return rosterDo({ op: 'move', familyId: S.rostSel, roomId: to }, '옮겼어요.'); }
       case 'rsunleave': return rosterDo({ op: 'unleave', familyId: v }, josa(b.dataset.n, '을/를') + ' 다시 편성에 넣었어요.');
-      case 'rsleave': if (!confirm(josa(b.dataset.n, '을/를') + ' 지금 편성에서 뺄까요? 지난 기록은 남고, 1년이 지나면 개인정보 요청에 올라와요.')) return; return rosterDo({ op: 'leave', familyId: S.rostSel }, '편성에서 뺐어요.', { done: () => { S.rostSel = null; } });
-      case 'rsdrop': if (!confirm(josa(b.dataset.n, '을/를') + ' 지울까요?')) return; return rosterDo({ op: 'dropRoom', roomId: v }, '지웠어요.');
+      case 'rsleave': if (!await KoideAsk.ok(josa(b.dataset.n, '을/를') + ' 지금 편성에서 뺄까요? 지난 기록은 남고, 1년이 지나면 개인정보 요청에 올라와요.')) return; return rosterDo({ op: 'leave', familyId: S.rostSel }, '편성에서 뺐어요.', { done: () => { S.rostSel = null; } });
+      case 'rsdrop': if (!await KoideAsk.ok(josa(b.dataset.n, '을/를') + ' 지울까요?')) return; return rosterDo({ op: 'dropRoom', roomId: v }, '지웠어요.');
       case 'invcopy': {
         const url = inviteUrl(v);
         let ok = false; try { await navigator.clipboard.writeText(url); ok = true; } catch (err) { /* 막힌 기기 */ }
@@ -6251,7 +6256,7 @@ try { const p = JSON.parse(localStorage.getItem('koide-pref') || '{}'), d = docu
       case 'qropen': S.qrOpen = S.qrOpen === v ? null : v; render(); if (S.qrOpen && !window.qrcode) loadQR().then(render, () => toast('QR을 만들지 못했어요.')); return;
       case 'qrpng': try { await loadQR(); qrPng(inviteUrl(v), b.dataset.n); } catch (err) { toast('QR을 만들지 못했어요.'); } return;
       case 'invrenew':
-        if (!confirm(b.dataset.n + ' 초대 링크를 새로 만들까요? 예전 링크로는 더 들어올 수 없어요.')) return;
+        if (!await KoideAsk.ok(b.dataset.n + ' 초대 링크를 새로 만들까요? 예전 링크로는 더 들어올 수 없어요.')) return;
         S.busy = true; render();
         try { S.ops = await api('inviteRenew', { roomId: v }); S.qrOpen = null; toast('새 링크를 만들었어요.'); } catch (err) { oops(err); }
         S.busy = false; return render();
@@ -6276,7 +6281,7 @@ try { const p = JSON.parse(localStorage.getItem('koide-pref') || '{}'), d = docu
       case 'myexport': try { await myExportXlsx(); } catch (err) { oops(err.code === 'bad' ? { message: '서버를 새 버전으로 배포하면 내려받을 수 있어요.' } : err); } return;
       case 'erasereq': case 'erasereqoff': {
         const a = b.dataset.act;
-        if (a === 'erasereq' && !confirm(`${solo() ? '내' : '우리 가정'} 기록(기도제목, ${solo() ? '' : '자녀 이름, '}${KK} 연결)을 지워 달라고 관리자에게 요청할까요?\n${CHURCHSB ? '지우면 되돌릴 수 없어요. 교회에는 남지만 ' + (solo() ? '내 이름' : '우리 가정') + '은 다시 골라야 해요.' : '지우면 되돌릴 수 없고 이 앱에서도 빠져요.'} 먼저 기록을 내려받아 두면 좋아요.`)) return;
+        if (a === 'erasereq' && !await KoideAsk.ok(`${solo() ? '내' : '우리 가정'} 기록(기도제목, ${solo() ? '' : '자녀 이름, '}${KK} 연결)을 지워 달라고 관리자에게 요청할까요?\n${CHURCHSB ? '지우면 되돌릴 수 없어요. 교회에는 남지만 ' + (solo() ? '내 이름' : '우리 가정') + '은 다시 골라야 해요.' : '지우면 되돌릴 수 없고 이 앱에서도 빠져요.'} 먼저 기록을 내려받아 두면 좋아요.`)) return;
         try { const r = await api(a === 'erasereq' ? 'eraseRequest' : 'eraseRequestCancel'); S.month.eraseReq = r.eraseReq; toast(r.eraseReq ? '관리자에게 요청했어요.' : '요청을 취소했어요.'); render(); }
         catch (err) { oops(err.code === 'bad' && !CHURCHSB ? { message: '서버를 새 버전으로 배포하면 요청할 수 있어요.' } : err); }
         return;
@@ -6402,7 +6407,7 @@ try { const p = JSON.parse(localStorage.getItem('koide-pref') || '{}'), d = docu
         S.busy = false; render(); return window.scrollTo(0, 0);
       }
       case 'rgcancel':
-        if (!confirm('예약한 새 편성을 취소할까요? 예약 때 새로 만든 ' + gj('과/와') + ' ' + words().one + '도 지워져요.')) return;
+        if (!await KoideAsk.ok('예약한 새 편성을 취소할까요? 예약 때 새로 만든 ' + gj('과/와') + ' ' + words().one + '도 지워져요.')) return;
         try { S.rgData = await api('reorgCancel'); toast('예약을 취소했어요.'); } catch (err) { oops(err); }
         return render();
       case 'tlgo': return histGoOwn(v, S.hist.now);
@@ -6508,7 +6513,7 @@ try { const p = JSON.parse(localStorage.getItem('koide-pref') || '{}'), d = docu
       case 'stserve': keepStaff(); S.staffEdit.serve = S.staffEdit.serve === false; return render();
       case 'stend': {
         const s = S.pending.staff.find(x => x.familyId === v);
-        if (!confirm(s.label + '을(를) 교역자 목록에서 마칠까요? 연결도 풀리고, 기도제목 기록은 남아요.')) return;
+        if (!await KoideAsk.ok(s.label + '을(를) 교역자 목록에서 마칠까요? 연결도 풀리고, 기도제목 기록은 남아요.')) return;
         try { S.pending = await api('endStaff', { familyId: v }); render(); toast('교역자 목록에서 마쳤어요.'); } catch (err) { oops(err); }
         return;
       }
