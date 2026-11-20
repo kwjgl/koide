@@ -2778,7 +2778,7 @@ button.pg-tag::before { content: ''; position: absolute; inset: -10px; }
   }
   // 위쪽 막대: 공동체 화면과 같은 짜임(코이데 · 배지 · 톱니바퀴). 배지를 누르면 함께하는 곳(기도 노트 · 교회 사랑방 · 내 모임)으로 오간다
   const TOP_ICON = { knot: '<svg class="ic" viewBox="0 0 16 16" aria-hidden="true"><path d="M.5 8.5h3.8c1.2 0 1.7-1.5 1.7-2.8C6 3.7 7.3 2.5 9 2.5s3 1.2 3 3.1-1.8 3.1-4 3.3"/><path d="M5.6 10.1C7.6 9 9.6 8.5 15.5 8.5"/></svg>',
-    gear: '<svg class="ic" viewBox="0 0 16 16" aria-hidden="true"><circle cx="8" cy="8" r="2"/><path d="M8 1.8v1.6M8 12.6v1.6M3.6 3.6l1.1 1.1M11.3 11.3l1.1 1.1M1.8 8h1.6M12.6 8h1.6M3.6 12.4l1.1-1.1M11.3 4.7l1.1-1.1"/></svg>' };
+    gear: '<svg class="ic" viewBox="0 0 24 24" style="stroke-width:1.8" aria-hidden="true"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.9l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.9-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1-1.5 1.7 1.7 0 0 0-1.9.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.9 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1 1.7 1.7 0 0 0-.3-1.9l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.9.3 1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.9-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.9 1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/></svg>' };
   function topBar() {
     const P = places(), M = noteMe(), G = (M && M.groups) || [], linked = inCommunity();
     let room = null; if (!churchless()) try { const c = JSON.parse(localStorage.getItem(DEMO_LINK ? 'koide-demo-cache' : 'koide-cache') || 'null'); if (c && c.month && c.month.room && c.me && c.me.link && c.me.link.status === '연결') room = { name: c.month.room.name, group: (c.month.dept && c.month.dept.group) || '소그룹' }; } catch (e) { /* 없음 */ }
