@@ -116,13 +116,17 @@ button, a, label, summary, select, input, [role="button"], [data-act], .brand { 
 .card .swatches { margin: .6em 0 0; }
 .set-row { display: flex; justify-content: space-between; align-items: center; gap: 12px; }
 .mdiv { height: 1px; background: var(--line); margin: .35em .3em; }
-@media (max-width: 420px) { .brand-name { display: none; } .brand.k-brand .brand-name { display: inline; } }
+/* 좁은 화면에서도 로고 옆 앱 이름 글자를 보인다(디다코와 같다, 2026-11-20). 큰 글씨 "아주 크게"나 359px 아래에서만 로고만 두고, 이름표의 이름은 모자라면 말줄임(…)으로 줄인다 */
+.topbar .badge-btn { min-width: 0; flex: 0 1 auto; }
+.badge-btn .badge-name { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.badge-btn .role-tag, .topbar .demo-tag { flex: none; }
+@media (max-width: 359px) { .topbar .wrap { gap: .3em; } .topbar .brand-name { display: none; } }
 /* 큰 글씨 선택칸: 위 두 줄(화면 모드·디자인)과 같은 왼쪽·오른쪽 끝에 맞춘다(메뉴 줄의 좌우 안쪽 여백을 빼고 글만 같은 들여쓰기) */
 .menu .mitem.big-row { padding-left: 0; padding-right: 0; }
 .menu .mitem.big-row > .mhead { margin-left: .7em; }
 .menu .mitem.big-row > .seg { margin: 0 .333em .333em; } /* 메뉴 줄 글씨가 .9배라 같은 간격이 되도록 */
 /* 아주 크게 + 좁은 휴대폰: 위쪽 막대가 넘쳐 톱니바퀴가 잘리지 않게 로고 글자를 숨기고 뱃지 여백을 줄인다 */
-@media (max-width: 430px) { :root[data-big="2"] .brand.k-brand .brand-name { display: none; } :root[data-big="2"] .topbar .wrap { gap: .4em; } :root[data-big="2"] .badge-btn { padding-left: .7em; gap: .3em; } }
+@media (max-width: 430px) { :root[data-big="2"] .brand-name { display: none; } :root[data-big="2"] .topbar .wrap { gap: .4em; } :root[data-big="2"] .badge-btn { padding-left: .7em; gap: .3em; } }
 /* 스크롤을 내리면 상단 바와 하단 바가 함께 숨고, 조금이라도 올리면 다시 보인다 */
 body.hide-bars .topbar { transform: translateY(-100%); }
 body.hide-bars .tabs { transform: translateY(100%); }
@@ -5582,6 +5586,12 @@ try { const p = JSON.parse(localStorage.getItem('koide-pref') || '{}'), d = docu
   const bigControls = () => `<div class="seg" style="--n:3" role="radiogroup" aria-label="큰 글씨">${[[0,'보통'],[1,'크게'],[2,'아주 크게']].map(([k,l]) => `<button class="${(PREF.big === true ? 1 : Number(PREF.big) || 0) === k ? 'on' : ''}" role="radio" aria-checked="${(PREF.big === true ? 1 : Number(PREF.big) || 0) === k}" data-act="big" data-v="${k}">${l}</button>`).join('')}</div>`;
 
   const tabOn = (t = S.tab) => S.op || ['import', 'status', 'admin', 'reorg', 'about', 'help', 'church', 'feedback', 'acctdel', 'account', 'praytext'].includes(t) ? 'more' : t;
+  // 위 막대 이름표의 이름(2026-11-20, 디다코와 같게): 내 소속을 보인다. 모임은 모임 이름, 교역자는 맡은 부서, 리더·회원은 내 사랑방(한 사람만이면 그 이름). 이름을 모르면 "코이데 교회"
+  function badgeName() {
+    const M = S.month, me = M.me;
+    if (S.grp) return M.room.name;
+    return (me.staff ? M.dept && M.dept.name : M.room && M.room.name) || '코이데 교회';
+  }
   // 상단 바: 로고(누르면 이번 달), PC에서는 메뉴, 사랑방 배지(누르면 사랑방 정보), 설정
   function topHtml() {
     const brand = `<button class="brand"${S.view === 'app' ? ' data-act="tab" data-v="home"' : ''} aria-label="코이데 홈"><span class="brand-mark">${ICON.knot}</span><span class="brand-name">코이데</span></button>`;
@@ -5596,7 +5606,7 @@ try { const p = JSON.parse(localStorage.getItem('koide-pref') || '{}'), d = docu
         : S.menu === 'settings' ? `<div class="menu" role="menu" aria-label="설정"><p class="mlabel mhead">화면 설정</p>${themeControls(true)}<div class="mdiv"></div>
           <div class="mitem static set-row big-row" style="flex-direction:column;align-items:stretch"><span class="mlabel" style="margin:0 0 .3em .7em">큰 글씨</span>${bigControls()}</div></div>` : '';
       return `<div class="wrap">${S.home ? brand : brand.replace(' data-act="tab" data-v="home"', '')}${S.home ? `<nav class="topnav" aria-label="주 메뉴">${TABS.map(([k, l]) => `<button class="${k === 'more' ? 'on' : ''}" data-act="tab" data-v="${k}" ${k === 'more' ? 'aria-current="page"' : ''}>${l}</button>`).join('')}</nav>` : ''}<span class="spacer"></span>
-        <button class="badge-btn" data-act="menu" data-v="badge" aria-haspopup="menu" aria-expanded="${S.menu === 'badge'}">${S.tab === 'church' ? '교회 전체' : esc(M.dept.name)}<span class="role-tag admin">${M.me.all ? '교회 관리자' : '지원'}</span></button>
+        <button class="badge-btn" data-act="menu" data-v="badge" aria-haspopup="menu" aria-expanded="${S.menu === 'badge'}"><span class="badge-name">${S.tab === 'church' ? '교회 전체' : esc(M.dept.name)}</span><span class="role-tag admin">${M.me.all ? '교회 관리자' : '지원'}</span></button>
         <button class="icon-btn" data-act="menu" data-v="settings" aria-haspopup="menu" aria-expanded="${S.menu === 'settings'}" aria-label="설정">${ICON.gear}</button>${opMenu}</div>`;
     }
     const role = S.grp ? me.role : lead || me.staff ? me.role : me.admin ? '관리자' : '회원', rc = S.grp ? (me.role === '모임장' ? 'leader' : '') : lead || me.staff ? 'leader' : me.admin ? 'admin' : '';
@@ -5611,7 +5621,7 @@ try { const p = JSON.parse(localStorage.getItem('koide-pref') || '{}'), d = docu
       return `<div class="wrap">${brand.replace('class="brand"', 'class="brand k-brand"')}
         <nav class="topnav" aria-label="주 메뉴">${TABS.map(([k,l])=>`<button class="${on===k?'on':''}" data-act="tab" data-v="${k}" ${on===k?'aria-current="page"':''}>${l}</button>`).join('')}</nav>
         <span class="spacer"></span>
-        <button class="badge-btn" data-act="menu" data-v="badge" aria-haspopup="menu" aria-expanded="${S.menu==='badge'}">코이데 공동체<span class="role-tag ${M.me.role==='모임장'?'leader':''}">${esc(M.me.role)}</span></button>
+        <button class="badge-btn" data-act="menu" data-v="badge" aria-haspopup="menu" aria-expanded="${S.menu==='badge'}"><span class="badge-name">코이데 공동체</span><span class="role-tag ${M.me.role==='모임장'?'leader':''}">${esc(M.me.role)}</span></button>
         <button class="icon-btn" data-act="menu" data-v="settings" aria-haspopup="menu" aria-expanded="${S.menu==='settings'}" aria-label="설정">${ICON.gear}</button>${badgeMenu}</div>`;
     }
     // 함께하는 곳: 노트의 위쪽 막대와 같은 목록(places.js 하나로 그린다). 자율 모임은 기도 노트 소속이라 만들기만 노트로 보내고, 열기는 여기서 바로 된다
@@ -5632,7 +5642,7 @@ try { const p = JSON.parse(localStorage.getItem('koide-pref') || '{}'), d = docu
     return `<div class="wrap">${brand}
       <nav class="topnav" aria-label="주 메뉴">${TABS.map(([k, l]) => `<button class="${on === k ? 'on' : ''}" data-act="tab" data-v="${k}" ${on === k ? 'aria-current="page"' : ''}>${l}</button>`).join('')}</nav>
       <span class="spacer"></span>
-      <button class="badge-btn" data-act="menu" data-v="badge" aria-haspopup="menu" aria-expanded="${S.menu === 'badge'}">${S.grp ? esc(M.room.name) : '코이데 교회'}<span class="role-tag ${rc}">${role}</span>${G.some(g => g.asks) ? '<i class="badge-dot" aria-label="모임 신청이 있어요"></i>' : ''}</button>
+      <button class="badge-btn" data-act="menu" data-v="badge" aria-haspopup="menu" aria-expanded="${S.menu === 'badge'}"><span class="badge-name">${esc(badgeName())}</span><span class="role-tag ${rc}">${role}</span>${G.some(g => g.asks) ? '<i class="badge-dot" aria-label="모임 신청이 있어요"></i>' : ''}</button>
       <button class="icon-btn" data-act="menu" data-v="settings" aria-haspopup="menu" aria-expanded="${S.menu === 'settings'}" aria-label="설정">${ICON.gear}</button>
       ${menu}</div>`;
   }
