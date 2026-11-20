@@ -133,7 +133,8 @@ main.wrap { padding-top: 14px; padding-bottom: calc(110px + env(safe-area-inset-
 /* 화면 제목 줄: 왼쪽 사랑방·제목, 오른쪽 날짜와 버튼 */
 .page-top { display: flex; justify-content: space-between; align-items: center; gap: 12px; min-height: 44px; }
 /* 화면 제목: 디다코 노트와 같은 크기(큰 글씨 모드에서는 기본 글씨와 함께 커진다) */
-.page-top h1 { font: 700 calc(var(--base) * 1.375)/1.4 var(--f-display); margin: 0; }
+.page-top h1 { font: 700 calc(var(--base) * 1.5)/1.35 var(--f-display); margin: 0; }   /* 화면 제목 24px(2026-11-20, 디다코 26px에 가깝게. 제목 옆 날짜가 있어 같게까지는 키우지 않는다) */
+@media (min-width: 1000px) { .page-top h1 { font-size: calc(var(--base) * 1.65); } }
 /* 화면 제목의 그림은 글자 크기에 맞춰 커지고, 밝은·어두운 테마의 글자색을 따른다. */
 .h-ic { display:inline-flex; width:1.1em; height:1.1em; align-items:center; justify-content:center; vertical-align:-.16em; flex:none; color:inherit; }
 .h-ic svg { display:block; width:100%; height:100%; overflow:visible; }
@@ -580,6 +581,13 @@ body.praying .tabs { display: none; }
 .pss-ring circle { fill: none; stroke-width: 12; }
 .pss-ring .track { stroke: var(--accent-soft); }
 .pss-ring .bar { stroke: var(--accent); stroke-linecap: round; transition: stroke-dashoffset 1s linear; }
+.pss-ask { position: fixed; inset: 0; z-index: 6; display: flex; align-items: flex-end; justify-content: center; }
+.pss-ask-scrim { position: absolute; inset: 0; background: rgb(0 0 0 / .4); }
+.pss-ask-sheet { position: relative; width: 100%; max-width: 480px; border-radius: 18px 18px 0 0; background: var(--surface); color: var(--ink); padding: 1.1em 1.1em max(1.1em, env(safe-area-inset-bottom)); box-shadow: 0 -6px 24px rgb(0 0 0 / .18); }
+.pss-ask-sheet h3 { margin: 0 0 .3em; font-size: 1.05em; }
+.pss-ask-sheet .hint { margin: 0; }
+.pss-ask .close-ask { display: flex; flex-direction: column; gap: 10px; margin-top: .8em; }
+@media (min-width: 640px) { .pss-ask { align-items: center; } .pss-ask-sheet { border-radius: 18px; } }
 .pss-x, .pss-music { font: inherit; font-size: .84em; font-weight: 600; background: var(--surface); color: var(--ink-2); border: 1px solid var(--line); border-radius: 999px; padding: .35em .9em; min-height: 40px; cursor: pointer; }
 .pss-music.on { color: var(--accent); background: var(--accent-soft); border-color: transparent; }
 .pss-mus { display: inline-flex; gap: 6px; }
@@ -3555,8 +3563,10 @@ try { const p = JSON.parse(localStorage.getItem('koide-pref') || '{}'), d = docu
         <div class="pss-nav one"><button data-act="psclose">마치기</button></div>`;
     }
     // 기도를 열며: 첫 장 앞의 한 장. 장 수에 세지 않고, 누르면 바로 첫 장으로 간다
+    // 끝내기를 누르면 한 번 묻는다(디다코 나눔하기와 같다): 모임·기도 도중 실수로 끝내는 일을 막는다
+    const ask = ps.ask ? `<div class="pss-ask" role="alertdialog" aria-modal="true" aria-labelledby="pssAskT"><div class="pss-ask-scrim" data-act="psaskno"></div><div class="pss-ask-sheet"><h3 id="pssAskT">기도를 마칠까요?</h3><p class="hint">마친 화면으로 가요.</p><div class="close-ask"><button class="btn" type="button" data-act="psaskno">계속 기도하기</button><button class="btn ghost" type="button" data-act="psendok">끝내기</button></div></div></div>` : '';
     if (ps.open) return `<div class="pss-top"><button class="pss-x" data-act="psend">끝내기</button><span></span></div>
-      <div class="pss-body" data-act="psskip" style="justify-content:center;cursor:pointer">${KoidePrayOpen.html()}</div>`;
+      <div class="pss-body" data-act="psskip" style="justify-content:center;cursor:pointer">${KoidePrayOpen.html()}</div>${ask}`;
     const id = ps.list[ps.i], last = ps.i === ps.list.length - 1, ready = ps.dur && ps.left === 0;
     const ring = ps.dur ? `<span class="pss-timer"><svg class="pss-ring" viewBox="0 0 100 100" aria-hidden="true"><circle cx="50" cy="50" r="44" class="track"/><circle cx="50" cy="50" r="44" class="bar" stroke-dasharray="276.5" stroke-dashoffset="${(276.5 * (1 - ps.left / ps.dur)).toFixed(1)}"/></svg><span id="pss-time">${fmtTime(ps.left)}</span></span>` : '';
     const top = `<div class="pss-top"><button class="pss-x" data-act="psend">끝내기</button><span class="pss-step">${ring}<span>${ps.i + 1} / ${ps.list.length}</span></span>${musicBtn()}</div>`;
@@ -3583,7 +3593,7 @@ try { const p = JSON.parse(localStorage.getItem('koide-pref') || '{}'), d = docu
       pray = `<button class="pss-pray${ready ? ' ready' : ''}" data-act="psextra">${ICON.hands.replace('<svg', '<svg width="20" height="20"')} 기도했어요</button>`;
     }
     const cd = ps.cd ? `<div class="pss-cd" role="status"><span><b id="pss-cd">${ps.cd}</b>초 뒤 ${last ? '마쳐요' : '다음 장으로 넘어가요'}</span><button data-act="psstay">머무르기</button></div>` : '';
-    return `${top}<div class="pss-body">${body}</div><div class="pss-nav trio"><button data-act="psprev"${ps.i ? '' : ' disabled'}>이전</button>${pray}<button data-act="psnext">${last ? '마치기' : '다음'}</button>${cd}</div>`;
+    return `${top}<div class="pss-body">${body}</div><div class="pss-nav trio"><button data-act="psprev"${ps.i ? '' : ' disabled'}>이전</button>${pray}<button data-act="psnext">${last ? '마치기' : '다음'}</button>${cd}</div>${ask}`;
   }
   // 한 장에 머무는 시간: 줄어드는 고리와 숫자. 다 되면 '기도했어요'가 부드럽게 반짝인다
   //  '저절로 다음 장으로'(flow)를 켰으면 3초 세고 기도한 것으로 세어 넘어간다. '머무르기'를 누르면 그 장에서는 멈춘다
@@ -3874,7 +3884,7 @@ try { const p = JSON.parse(localStorage.getItem('koide-pref') || '{}'), d = docu
       ${solo() ? '' : `<div class="kids">${mine.kids.length ? mine.kids.map((k, n) => `<span class="kid"><small>${n + 1}</small>${esc(k)}</span>`).join('') : '<span class="hint">등록한 자녀가 없어요</span>'}</div>
       ${S.famMsg ? `<p class="hint"><span class="ok">${esc(S.famMsg)}</span></p>` : ''}`}
       <p class="fam-rec"><button class="link quiet" data-act="myexport">${solo() ? '내' : '우리 가정'} 기록 내려받기</button>
-        ${S.month.eraseReq ? '<span>기록 삭제를 요청했어요</span><button class="link quiet" data-act="erasereqoff">요청 취소</button>' : '<button class="link quiet" data-act="erasereq">기록 삭제 요청</button>'}</p></section>`; // 새 길의 eraseReq는 church-api.js가 church_erase_asked로 채운다(023)
+        ${S.month.eraseReq ? '<span>기록 지우기를 요청했어요</span><button class="link quiet" data-act="erasereqoff">요청 취소</button>' : '<button class="link quiet" data-act="erasereq">기록 지우기 요청</button>'}</p></section>`; // 새 길의 eraseReq는 church-api.js가 church_erase_asked로 채운다(023)
     return `<section class="card"><p class="label">${solo() ? '내 정보 고치기' : '우리 가정 정보 고치기'}</p>
       <form class="plain-form" data-form="famsave">
         <label class="label" for="fi-a">${solo() ? '이름' : '남편 또는 본인 이름'}</label><input id="fi-a" class="field" value="${esc(E.a)}" required maxlength="10" autocomplete="off">
@@ -4205,14 +4215,14 @@ try { const p = JSON.parse(localStorage.getItem('koide-pref') || '{}'), d = docu
       const P = S.pending, O = S.ops, reqs = P ? P.requests : [], I = O && O.invites, pv = O && O.privacy, nf = fbNew();
       // 할 일: 연결 신청·앱 상태(문제가 있을 때)·개인정보 요청과 새 의견(개수가 달린 한 줄). 옛 길 관리 탭과 같은 모양이다(접는 키는 오른쪽 '앱과 요청'과 같다)
       const todoRows = S.op ? [
-        privacyN() ? fold('privacy', `개인정보 요청 <span class="ops-n">${privacyN()}</span>`, [pv.requests.length ? `삭제해 달라는 요청 ${pv.requests.length}` : '', pv.due.length ? `삭제해야 할 기록 ${pv.due.length}` : ''].filter(Boolean).join(' · '), privacyCard()) : '',
+        privacyN() ? fold('privacy', `개인정보 요청 <span class="ops-n">${privacyN()}</span>`, [pv.requests.length ? `지워 달라는 요청 ${pv.requests.length}` : '', pv.due.length ? `지워야 할 기록 ${pv.due.length}` : ''].filter(Boolean).join(' · '), privacyCard()) : '',
         nf ? fold('feedback', `의견함 <span class="ops-n">${nf}</span>`, `새 의견 ${nf}${O.feedback.length > nf ? ` · 받은 의견 ${O.feedback.length}` : ''}`, feedbackCard()) : ''
       ].join('') : '';
       const todo = [reqs.length ? reqCard() : '', S.op && opsProblems().length ? opsCard() : '', todoRows ? `<section class="card mrows folds">${todoRows}</section>` : ''].join('');
       const oc = S.op ? opsCard() : '';
       const opsRows = S.op ? [
         opsProblems().length || !oc ? '' : `<div class="fold ops-fold">${oc.replace(/^\s*<section[^>]*>/, '').replace(/<\/section>\s*$/, '')}</div>`,
-        privacyN() ? '' : fold('privacy', '개인정보 요청', O ? (O.privacy && O.privacy.later ? `떠난 ${words().one} ${O.privacy.later}곳 · 1년이 되면 올라와요` : '삭제할 기록이 없어요') : '불러오는 중…', privacyCard()),
+        privacyN() ? '' : fold('privacy', '개인정보 요청', O ? (O.privacy && O.privacy.later ? `떠난 ${words().one} ${O.privacy.later}곳 · 1년이 되면 올라와요` : '지울 기록이 없어요') : '불러오는 중…', privacyCard()),
         fold('changes', '변경 기록', '', changesCard(false)),
         nf ? '' : fold('feedback', '의견함', O ? (O.feedback && O.feedback.length ? `받은 의견 ${O.feedback.length}` : '아직 없어요') : '불러오는 중…', feedbackCard())
       ].join('') : '';
@@ -4234,7 +4244,7 @@ try { const p = JSON.parse(localStorage.getItem('koide-pref') || '{}'), d = docu
     // 할 일: 연결 신청은 펼친 채, 개인정보 요청과 새 의견은 개수가 달린 한 줄 메뉴로 묶는다(누르면 그 자리에서 펼침). 접는 키는 오른쪽 '앱과 요청'과 같다(둘이 함께 나오지 않는다)
     const pv = O && O.privacy, nf = fbNew();
     const todoRows = [
-      privacyN() ? fold('privacy', `개인정보 요청 <span class="ops-n">${privacyN()}</span>`, [pv.requests.length ? `삭제해 달라는 요청 ${pv.requests.length}` : '', pv.due.length ? `삭제해야 할 기록 ${pv.due.length}` : ''].filter(Boolean).join(' · '), privacyCard()) : '',
+      privacyN() ? fold('privacy', `개인정보 요청 <span class="ops-n">${privacyN()}</span>`, [pv.requests.length ? `지워 달라는 요청 ${pv.requests.length}` : '', pv.due.length ? `지워야 할 기록 ${pv.due.length}` : ''].filter(Boolean).join(' · '), privacyCard()) : '',
       nf ? fold('feedback', `의견함 <span class="ops-n">${nf}</span>`, `새 의견 ${nf}${O.feedback.length > nf ? ` · 받은 의견 ${O.feedback.length}` : ''}`, feedbackCard()) : ''
     ].join('');
     const todo = [reqs.length ? reqCard() : '', opsProblems().length ? opsCard() : '', todoRows ? `<section class="card mrows folds">${todoRows}</section>` : ''].join('');
@@ -4248,7 +4258,7 @@ try { const p = JSON.parse(localStorage.getItem('koide-pref') || '{}'), d = docu
       ],
       ops: [
         opsProblems().length ? '' : `<div class="fold ops-fold">${opsCard().replace(/^\s*<section[^>]*>/, '').replace(/<\/section>\s*$/, '')}</div>`,
-        privacyN() ? '' : fold('privacy', '개인정보 요청', O ? (O.privacy.later ? `떠난 ${words().one} ${O.privacy.later}곳 · 1년이 되면 올라와요` : '삭제할 기록이 없어요') : '불러오는 중…', privacyCard()),
+        privacyN() ? '' : fold('privacy', '개인정보 요청', O ? (O.privacy.later ? `떠난 ${words().one} ${O.privacy.later}곳 · 1년이 되면 올라와요` : '지울 기록이 없어요') : '불러오는 중…', privacyCard()),
         fold('changes', '변경 기록', '', changesCard(false)),
         fbNew() ? '' : fold('feedback', '의견함', O ? (O.feedback.length ? `받은 의견 ${O.feedback.length}` : '아직 없어요') : '불러오는 중…', feedbackCard()),
       ],
@@ -4799,12 +4809,12 @@ try { const p = JSON.parse(localStorage.getItem('koide-pref') || '{}'), d = docu
 
   // 닫은 부서 기록 모두 지우기 확인(새 서버만): 되돌릴 수 없다는 경고는 그 자리에 한 문장, 부서 이름을 그대로 써야 지워진다. 옛 서버는 prompt로 같은 확인을 한다
   function deptEraseAsk(d) {
-    return `<div class="erase-ask"><p class="erase-warn"><b>되돌릴 수 없어요.</b> ${esc(d.name)}의 기도제목 내용·자녀 이름·${KK} 연결을 모두 삭제해요.</p>
-      <div class="tip-line"><p class="label">삭제하기 전에</p>${KoideTip.btn('이 부서의 "함께 기도해요" 글도 삭제돼요. 기도제목 개수와 받은 기도 횟수만 남아요. 지금 다른 부서에도 있는 가정은 삭제하지 않아요.', '삭제하면 남는 것')}</div>
+    return `<div class="erase-ask"><p class="erase-warn"><b>되돌릴 수 없어요.</b> ${esc(d.name)}의 기도제목 내용·자녀 이름·${KK} 연결을 모두 지워요.</p>
+      <div class="tip-line"><p class="label">지우기 전에</p>${KoideTip.btn('이 부서의 "함께 기도해요" 글도 지워져요. 기도제목 개수와 받은 기도 횟수만 남아요. 지금 다른 부서에도 있는 가정은 지우지 않아요.', '지우면 남는 것')}</div>
       <ol class="erase-steps"><li>부서를 잠깐 다시 열어 사랑방마다 리더가 엑셀로 내려받아 둔 뒤 다시 닫아요.</li><li>백업을 먼저 받아 둬요.</li></ol>
-      <label class="label" for="dp-erase-n">삭제하려면 부서 이름 "${esc(d.name)}"을 그대로 써 주세요</label>
+      <label class="label" for="dp-erase-n">지우려면 부서 이름 "${esc(d.name)}"을 그대로 써 주세요</label>
       <input id="dp-erase-n" class="field" maxlength="12" placeholder="부서 이름" autocomplete="off">
-      <div class="actions"><button class="btn small danger" data-act="dperasedo" data-v="${esc(d.id)}" data-n="${esc(d.name)}" ${S.busy ? 'disabled' : ''}>기록 모두 삭제</button><button class="btn small ghost" data-act="dperaseask" data-v="">그만두기</button></div></div>`;
+      <div class="actions"><button class="btn small danger" data-act="dperasedo" data-v="${esc(d.id)}" data-n="${esc(d.name)}" ${S.busy ? 'disabled' : ''}>기록 모두 지우기</button><button class="btn small ghost" data-act="dperaseask" data-v="">그만두기</button></div></div>`;
   }
   // 부서 만들기(교회 전체를 맡은 운영 관리자)
   function deptCard() {
@@ -4814,7 +4824,7 @@ try { const p = JSON.parse(localStorage.getItem('koide-pref') || '{}'), d = docu
     return `<section class="card"><h2>부서${KoideTip.btn('닫으면 첫 접속 목록에서 빠지고 그 부서 사람은 들어오지 못해요. 닫은 부서는 기록이 남아서 다시 열 수 있어요. 닫은 부서 사람들은 1년이 지나면 개인정보 요청에 올라와요. 부서를 만들면 그 부서의 관리 화면으로 바로 가요.', '부서')}</h2>
       <ul class="staff-list">${scope.map(d => `<li><div><b>${esc(d.name)}</b><small>${d.closed ? '닫혀 있어요' + (d.closedAt ? ' · ' + esc(d.closedAt.slice(5).replace('-', '/')) + ' 닫음' : '') : '쓰는 중'}</small>${CHURCHSB && d.closed && S.dpErase === d.id ? deptEraseAsk(d) : ''}</div>
         ${CHURCHSB && S.dpErase === d.id ? '' : `<span class="foot-acts">${d.closed
-          ? `<button class="link" data-act="dpreopen" data-v="${esc(d.id)}" data-n="${esc(d.name)}">다시 열기</button><button class="link danger" data-act="${CHURCHSB ? 'dperaseask' : 'dperase'}" data-v="${esc(d.id)}" data-n="${esc(d.name)}">기록 모두 삭제</button>`
+          ? `<button class="link" data-act="dpreopen" data-v="${esc(d.id)}" data-n="${esc(d.name)}">다시 열기</button><button class="link danger" data-act="${CHURCHSB ? 'dperaseask' : 'dperase'}" data-v="${esc(d.id)}" data-n="${esc(d.name)}">기록 모두 지우기</button>`
           : `<button class="link danger" data-act="dpclose" data-v="${esc(d.id)}" data-n="${esc(d.name)}">닫기</button>`}</span>`}</li>`).join('')}</ul>
       ${S.deptNewOpen ? `<form class="plain-form" data-form="deptsave" style="margin-top:10px">
         <label class="label" for="dp-n">새 부서 이름</label><input id="dp-n" class="field" maxlength="12" placeholder="예) 청년부" value="${esc(E.name || '')}" autocomplete="off">
@@ -5169,15 +5179,15 @@ try { const p = JSON.parse(localStorage.getItem('koide-pref') || '{}'), d = docu
     const P = S.ops && S.ops.privacy;
     if (!P) return '';
     const X = S.eraseAsk, unit = words().one, n = privacyN();
-    const ask = (f, req) => X !== f.id ? '' : `<div class="erase-ask"><p class="plain">${esc(f.name)}의 기도제목 내용, ${solo() ? '' : '자녀 이름, '}${KK} 연결을 삭제해요. <b>되돌릴 수 없어요.</b> 기도제목 개수와 기도한 횟수만 남아요.</p>
-      ${f.old ? `<p class="plain">결혼 전 옛 ${unit} ${f.old}곳의 기록도 함께 삭제돼요.</p>` : ''}
-      ${req ? `<p class="hint">삭제하기 전에 "더보기 › ${solo() ? '내' : '우리 가정'} 기록 내려받기"를 한 번 권해 주세요.</p>` : ''}
-      <div class="actions"><button class="btn small danger" data-act="erasedo" data-v="${esc(f.id)}" data-n="${esc(f.name)}" ${S.busy ? 'disabled' : ''}>${esc(f.name)} 기록 삭제</button><button class="btn small ghost" data-act="eraseask" data-v="">그만두기</button></div></div>`;
+    const ask = (f, req) => X !== f.id ? '' : `<div class="erase-ask"><p class="plain">${esc(f.name)}의 기도제목 내용, ${solo() ? '' : '자녀 이름, '}${KK} 연결을 지워요. <b>되돌릴 수 없어요.</b> 기도제목 개수와 기도한 횟수만 남아요.</p>
+      ${f.old ? `<p class="plain">결혼 전 옛 ${unit} ${f.old}곳의 기록도 함께 지워져요.</p>` : ''}
+      ${req ? `<p class="hint">지우기 전에 "더보기 › ${solo() ? '내' : '우리 가정'} 기록 내려받기"를 한 번 권해 주세요.</p>` : ''}
+      <div class="actions"><button class="btn small danger" data-act="erasedo" data-v="${esc(f.id)}" data-n="${esc(f.name)}" ${S.busy ? 'disabled' : ''}>${esc(f.name)} 기록 지우기</button><button class="btn small ghost" data-act="eraseask" data-v="">그만두기</button></div></div>`;
     const li = (f, why, req, chips = '') => `<li><div><b>${esc(f.name)}</b><small>${why}</small>${chips}${ask(f, req)}</div>
-      ${X === f.id ? '' : f.id === S.month.me.familyId ? '<span class="hint">다른 관리자가 삭제해요</span>' : `<span class="foot-acts">${req ? '' : `<button class="link quiet" data-act="keepfam" data-v="${esc(f.id)}">1년 연장</button>`}<button class="link danger" data-act="eraseask" data-v="${esc(f.id)}">삭제</button></span>`}</li>`;
-    return `<section class="card"><h2>개인정보 요청${n ? ` <span class="ops-n">${n}</span>` : ''}${KoideTip.btn(`떠난 지 1년이 된 ${unit}과 기록을 삭제해 달라고 한 ${unit}이 여기 올라와요. 저절로 삭제하지 않아요.${P.later ? ` 떠난 ${unit} ${P.later}곳은 1년이 되면 올라와요.` : ''}`, '개인정보 요청')}</h2>
-      ${n ? `<ul class="staff-list">${P.requests.map(f => li(f, esc(f.at) + ' 삭제 요청', true)).join('')}${P.due.map(f => li(f, `${monName(f.since)}부터 함께하지 않아요`, false, `<span class="tgt">1년 지남</span>${f.kept ? '<span class="tgt">1년 연장함</span>' : ''}`)).join('')}</ul>`
-        : '<p class="hint">삭제할 기록이 없어요.</p>'}</section>`;
+      ${X === f.id ? '' : f.id === S.month.me.familyId ? '<span class="hint">다른 관리자가 지워요</span>' : `<span class="foot-acts">${req ? '' : `<button class="link quiet" data-act="keepfam" data-v="${esc(f.id)}">1년 연장</button>`}<button class="link danger" data-act="eraseask" data-v="${esc(f.id)}">지우기</button></span>`}</li>`;
+    return `<section class="card"><h2>개인정보 요청${n ? ` <span class="ops-n">${n}</span>` : ''}${KoideTip.btn(`떠난 지 1년이 된 ${unit}과 기록을 지워 달라고 한 ${unit}이 여기 올라와요. 저절로 지우지 않아요.${P.later ? ` 떠난 ${unit} ${P.later}곳은 1년이 되면 올라와요.` : ''}`, '개인정보 요청')}</h2>
+      ${n ? `<ul class="staff-list">${P.requests.map(f => li(f, esc(f.at) + ' 지우기 요청', true)).join('')}${P.due.map(f => li(f, `${monName(f.since)}부터 함께하지 않아요`, false, `<span class="tgt">1년 지남</span>${f.kept ? '<span class="tgt">1년 연장함</span>' : ''}`)).join('')}</ul>`
+        : '<p class="hint">지울 기록이 없어요.</p>'}</section>`;
   }
   // ── ⑤ 초대 링크 · QR: 링크로 들어온 사람은 부서·사랑방 고르기를 건너뛴다. 승인은 지금처럼 리더가 ──
   const JOIN = 'koide-join';
@@ -6052,11 +6062,11 @@ try { const p = JSON.parse(localStorage.getItem('koide-pref') || '{}'), d = docu
       case 'opsopen': S.opsOpen = !(S.opsOpen !== undefined ? S.opsOpen : opsProblems().length > 0); return render();
       case 'opsmonth': case 'opshand': case 'keepfam': case 'erasedo': {
         const a = b.dataset.act;
-        if (a === 'erasedo' && !confirm(b.dataset.n + ' 기록을 삭제할까요? 되돌릴 수 없어요.' + (CHURCHSB ? '\n기록을 내려받아 두었는지 먼저 확인해 주세요.' : ''))) return;
+        if (a === 'erasedo' && !confirm(b.dataset.n + ' 기록을 지울까요? 되돌릴 수 없어요.' + (CHURCHSB ? '\n기록을 내려받아 두었는지 먼저 확인해 주세요.' : ''))) return;
         S.busy = true; render();
         try {
           S.ops = await api(a === 'opsmonth' ? 'openMonth' : a === 'opshand' ? 'handover' : a === 'keepfam' ? 'keepFamily' : 'eraseFamily', a === 'erasedo' ? { familyId: v, name: b.dataset.n } : { familyId: v });
-          toast(a === 'opsmonth' ? '이번 달로 모두 넘겼어요.' : a === 'opshand' ? '오늘 확인한 것으로 적었어요.' : a === 'keepfam' ? '1년 연장했어요.' : '기록을 삭제했어요.');
+          toast(a === 'opsmonth' ? '이번 달로 모두 넘겼어요.' : a === 'opshand' ? '오늘 확인한 것으로 적었어요.' : a === 'keepfam' ? '1년 연장했어요.' : '기록을 지웠어요.');
           if (a === 'erasedo') S.eraseAsk = null;
         } catch (err) { oops(err); S.busy = false; return render(); }
         if (a === 'erasedo') {   // 삭제 뒤 새로 읽기: 운영 화면이면 내 가정이 아니라 그 부서(opsCtx)로 읽는다. 실패해도 말풍선 없이 넘긴다(삭제는 이미 됐다)
@@ -6090,11 +6100,11 @@ try { const p = JSON.parse(localStorage.getItem('koide-pref') || '{}'), d = docu
         const a = b.dataset.act, n = b.dataset.n;
         if (a === 'dpclose' && !confirm(`${josa(n, '을/를')} 닫을까요? 그 부서 사람은 다시 열 때까지 들어오지 못해요. 기록은 남아요.`)) return;
         if (a === 'dpreopen' && !confirm(`${josa(n, '을/를')} 다시 열까요?`)) return;
-        if (a === 'dperase' && prompt(`${n}의 기도제목·이름·연결을 모두 삭제해요. 되돌릴 수 없어요.\n삭제하려면 부서 이름 "${n}"을 그대로 써 주세요.`) !== n) return toast('부서 이름이 맞지 않아 삭제하지 않았어요.');
+        if (a === 'dperase' && prompt(`${n}의 기도제목·이름·연결을 모두 지워요. 되돌릴 수 없어요.\n지우려면 부서 이름 "${n}"을 그대로 써 주세요.`) !== n) return toast('부서 이름이 맞지 않아 지우지 않았어요.');
         S.busy = true; render();
         try {
           const r = await api(a === 'dpclose' ? 'deptClose' : a === 'dpreopen' ? 'deptReopen' : 'deptErase', a === 'dperase' ? { deptId: v, name: n } : { deptId: v });
-          S.me = r.me; toast(a === 'dpclose' ? '닫았어요.' : a === 'dpreopen' ? '다시 열었어요.' : `기록을 삭제했어요(${r.n}곳).`);
+          S.me = r.me; toast(a === 'dpclose' ? '닫았어요.' : a === 'dpreopen' ? '다시 열었어요.' : `기록을 지웠어요(${r.n}곳).`);
           if (S.op === v && a !== 'dpreopen') { S.busy = false; return enterChurch(); }
           S.month = await api('opsCtx'); if (S.tab === 'church') S.church = await api('church');
         } catch (err) { oops(err); }
@@ -6103,11 +6113,11 @@ try { const p = JSON.parse(localStorage.getItem('koide-pref') || '{}'), d = docu
       case 'dperaseask': S.dpErase = v || null; return render();
       case 'dperasedo': {   // 새 서버만: 부서 이름을 그대로 써야 지운다(서버도 한 번 더 확인한다)
         const n = b.dataset.n, el = $('#dp-erase-n');
-        if (!el || el.value.trim() !== n) return toast('부서 이름이 맞지 않아 삭제하지 않았어요.');
+        if (!el || el.value.trim() !== n) return toast('부서 이름이 맞지 않아 지우지 않았어요.');
         S.busy = true; render();
         try {
           const r = await api('deptErase', { deptId: v, name: el.value });
-          S.me = r.me; S.dpErase = null; toast(`기록을 삭제했어요(${r.n}곳).`);
+          S.me = r.me; S.dpErase = null; toast(`기록을 지웠어요(${r.n}곳).`);
           if (S.op === v) { S.busy = false; return enterChurch(); }
           S.month = await api('opsCtx'); if (S.tab === 'church') S.church = await api('church');
         } catch (err) { oops(err); }
@@ -6266,7 +6276,7 @@ try { const p = JSON.parse(localStorage.getItem('koide-pref') || '{}'), d = docu
       case 'myexport': try { await myExportXlsx(); } catch (err) { oops(err.code === 'bad' ? { message: '서버를 새 버전으로 배포하면 내려받을 수 있어요.' } : err); } return;
       case 'erasereq': case 'erasereqoff': {
         const a = b.dataset.act;
-        if (a === 'erasereq' && !confirm(`${solo() ? '내' : '우리 가정'} 기록(기도제목, ${solo() ? '' : '자녀 이름, '}${KK} 연결)을 삭제해 달라고 관리자에게 요청할까요?\n${CHURCHSB ? '삭제하면 되돌릴 수 없어요. 교회에는 남지만 ' + (solo() ? '내 이름' : '우리 가정') + '은 다시 골라야 해요.' : '삭제하면 되돌릴 수 없고 이 앱에서도 빠져요.'} 먼저 기록을 내려받아 두면 좋아요.`)) return;
+        if (a === 'erasereq' && !confirm(`${solo() ? '내' : '우리 가정'} 기록(기도제목, ${solo() ? '' : '자녀 이름, '}${KK} 연결)을 지워 달라고 관리자에게 요청할까요?\n${CHURCHSB ? '지우면 되돌릴 수 없어요. 교회에는 남지만 ' + (solo() ? '내 이름' : '우리 가정') + '은 다시 골라야 해요.' : '지우면 되돌릴 수 없고 이 앱에서도 빠져요.'} 먼저 기록을 내려받아 두면 좋아요.`)) return;
         try { const r = await api(a === 'erasereq' ? 'eraseRequest' : 'eraseRequestCancel'); S.month.eraseReq = r.eraseReq; toast(r.eraseReq ? '관리자에게 요청했어요.' : '요청을 취소했어요.'); render(); }
         catch (err) { oops(err.code === 'bad' && !CHURCHSB ? { message: '서버를 새 버전으로 배포하면 요청할 수 있어요.' } : err); }
         return;
@@ -6450,7 +6460,9 @@ try { const p = JSON.parse(localStorage.getItem('koide-pref') || '{}'), d = docu
       case 'pspray': case 'psextra': return psMark() && psGo(S.ps.i + 1);
       case 'psstay': clearInterval(psTimer); S.ps.cd = 0; S.ps.stay = true; return psRender();
       case 'psflow': PSET.flow = !PSET.flow; savePset(); return render();
-      case 'psend': S.ps.done = true; S.ps.open = false; KoidePrayOpen.stop(); clearInterval(psTimer); return render();
+      case 'psend': S.ps.ask = true; return psRender();
+      case 'psaskno': S.ps.ask = false; return psRender();
+      case 'psendok': S.ps.ask = false; S.ps.done = true; S.ps.open = false; KoidePrayOpen.stop(); clearInterval(psTimer); return render();
       case 'psclose':
         // 몇 장까지 봤는지, 끝 장까지 가기 전에 끝냈는지(early: '끝내기'도 마친 화면을 보여 주므로 본 장 수로 정한다), 머문 시간(분)
         { const seen = Math.min(S.ps.list.length, Math.max(S.ps.seen || 1, S.ps.i + 1));
