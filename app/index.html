@@ -5286,7 +5286,7 @@ try { const p = JSON.parse(localStorage.getItem('koide-pref') || '{}'), d = docu
         <section class="card"><p class="label">동기화</p><p class="plain"><b>${noteSyncOn() ? '연결됨' : '꺼짐'}</b>${esc(noteSyncAt())}</p>
           <p class="hint">${noteSyncOn() ? '기록은 암호화되기 때문에 운영자도 볼 수 없어요.' : '켜면 기기를 바꿔도 기록이 이어져요.'}</p>
           <p style="margin:.4em 0 0"><a class="link quiet" href="note.html${DEMO_LINK ? '?demo' : ''}">코이데 노트에서 켜고 끄기 ›</a></p></section>
-        ${KOINONIA ? '' : '<button class="link quiet more-out" data-act="logout">이 기기에서 로그아웃</button>'}
+        <button class="link quiet more-out" data-act="${KOINONIA ? 'kclogout' : 'logout'}">이 기기에서 로그아웃</button>
         ${(CHURCHSB && !S.grp) || (KOINONIA && !DEMO) ? '<button class="link quiet danger more-out" data-act="acctdel">계정 탈퇴</button>' : ''}</div>`;
   }
   // ── 계정 탈퇴(더보기 › 앱 설정 › 계정과 동기화 › 계정 탈퇴, 새 길 교회와 공동체만): 문구와 서버 부르기는 account-delete.js. 단계 S.ad.step = check(확인 중) · block(막힘·불러오기 실패) · ask(확인 글) ──
@@ -5984,6 +5984,12 @@ try { const p = JSON.parse(localStorage.getItem('koide-pref') || '{}'), d = docu
         S.busy = false; S.pick = {}; S.view = 'loading'; render(); return refreshMe();
       }
       case 'demoreset': window.koideDemo && window.koideDemo.reset(); setToken(null); location.replace(location.pathname + location.search); return;
+      // 코이데 공동체에서 로그아웃(2026-11-21): 교회 로그인 줄과 달리 이 기기의 로그인 세션만 끊고, 교회 로그인 화면으로 간다. 노트는 이 기기에 그대로 남는다
+      case 'kclogout':
+        if (!await KoideAsk.ok('로그아웃할까요? 코이데 노트는 이 기기에 그대로 남아요. 같은 계정으로 다시 로그인하면 이어서 볼 수 있어요.')) return;
+        try { await window.KoideSb.signOut(); } catch (err) { return oops(err); }
+        try { setToken(null); lsSet(HUB_TOKEN, null); } catch (err) { /* 무시 */ }
+        circleReset(); location.replace('index.html' + (DEMO_LINK ? '?demo' : '?door=church')); return;   // 노트에서 로그아웃할 때와 같은 곳(교회 로그인 화면)으로
       case 'logout': try { if (getToken()) await api('logout'); } catch (err) { /* 이미 끝난 로그인 */ } circleReset(); setToken(null); lsSet(HUB_TOKEN, null); if (frontDoor()) lsSet(DOOR, 'church'); S.cc = null; S.view = 'login'; S.tab = 'home'; S.pending = null; S.hist = null; S.histTab = null;
         // 한 기기를 여럿이 쓰면 앞사람이 보던 화면·쓰던 글이 다음 사람에게 남지 않게
         S.op = null; S.grp = null; S.home = null; S.ops = null; S.rost = null; S.mv = null; S.gmv = null; S.before = null; try { localStorage.removeItem(OP_KEY); } catch (err) { /* 무시 */ }
