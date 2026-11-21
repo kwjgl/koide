@@ -2335,6 +2335,8 @@ try { const p = JSON.parse(localStorage.getItem('koide-pref') || '{}'), d = docu
         ? `<section class="card ci-card"><h2 class="ci-h2">신청을 받았어요</h2><p style="margin:0;word-break:keep-all">${esc(M.name)} · ${esc(M.at)}에 신청했어요. 코이데가 확인한 뒤 적어 주신 연락처로 연락드려요.</p>
           ${I.cancelAsk ? `<p style="margin:0;word-break:keep-all">신청서를 취소하면 적어 주신 내용이 바로 지워져요.</p><div class="actions"><button class="btn small ghost" data-act="capplycancel" ${S.busy ? 'disabled' : ''}>취소하기</button><button class="link" data-act="capplycancelno">아니요</button></div>`
           : '<div class="actions"><button class="link" data-act="capplycancelask">신청 취소</button></div>'}</section>`
+        : M.status === '만듦' && M.app === 'didako'
+          ? `<section class="card ci-card"><h2 class="ci-h2">교회가 만들어졌어요</h2><p style="margin:0;word-break:keep-all">${esc(M.churchName)}는 디다코 앱에서 신청한 교회예요. 디다코 앱에서 첫 관리자로 시작해 주세요.</p></section>`
         : M.status === '만듦'
           ? `<section class="card ci-card"><h2 class="ci-h2">교회가 만들어졌어요</h2>${I.closed
             ? `<p style="margin:0;word-break:keep-all">${esc(M.churchName)}가 만들어졌어요. 지금은 시범 운영 중이라 문이 닫혀 있어요. 문이 열리면 이 화면에서 첫 관리자로 시작할 수 있어요.</p>`
