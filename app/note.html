@@ -2912,7 +2912,7 @@ button.pg-tag::before { content: ''; position: absolute; inset: -10px; }
         <button class="mrow" data-a="kcforgot"><span><b>비밀번호를 잊었어요</b></span><span aria-hidden="true">›</span></button>
         <button class="mrow" data-a="vrec"${S.recBusy ? ' disabled' : ''}><span><b>${D.vault.rec ? '복구용 낱말 새로 만들기' : '복구용 낱말 만들기'}</b>${D.vault.rec ? '' : '<small>아직 없어요</small>'}</span><span aria-hidden="true">›</span></button>
         ${canMove() ? '<button class="mrow" data-a="vmove"' + (S.vbusy ? ' disabled' : '') + '><span><b>새 보관함으로 옮기기</b></span><span aria-hidden="true">›</span></button>' : ''}
-        <p class="hint" style="margin-top:4px">비밀번호·복구용 낱말을 모두 잃으면 기록을 불러올 수 없어요.</p></section>` : ''}
+        <p class="hint" style="margin-top:-4px">비밀번호·복구용 낱말을 모두 잃으면 기록을 불러올 수 없어요.</p></section>` : ''}
       <section class="card mrows"><p class="label">기록 파일</p>
         <button class="mrow" data-a="backup"><span><b>기록 저장하기</b></span></button>
         <button class="mrow" data-a="restore"><span><b>불러오기</b></span></button>
