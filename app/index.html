@@ -5600,7 +5600,7 @@ try { const p = JSON.parse(localStorage.getItem('koide-pref') || '{}'), d = docu
   function badgeName() {
     const M = S.month, me = M.me;
     if (S.grp) return M.room.name;
-    return (me.staff ? M.dept && M.dept.name : M.room && M.room.name) || '코이데 교회';
+    return (me.staff ? M.dept && M.dept.name : M.room && M.room.name) || (S.me && S.me.church && S.me.church.name) || '코이데 교회';   // 사랑방도 부서도 없으면 교회 이름(디다코와 같다)
   }
   // 상단 바: 로고(누르면 이번 달), PC에서는 메뉴, 사랑방 배지(누르면 사랑방 정보), 설정
   function topHtml() {
@@ -5644,8 +5644,7 @@ try { const p = JSON.parse(localStorage.getItem('koide-pref') || '{}'), d = docu
           : `<div class="mdiv"></div><p class="mlabel">운영 지원</p>${opsDepts().map(d => `<button class="mitem" role="menuitem" data-act="opsgo" data-v="${esc(d.id)}"><span>${esc(d.name)} · 지원</span></button>`).join('')}`}</div>`
       : S.menu === 'settings' ? `<div class="menu" role="menu" aria-label="설정">
         <p class="mlabel mhead">화면 설정</p>${screenControls()}
-        <div class="mdiv"></div><button class="mitem" role="menuitem" data-act="tab" data-v="more"><span>${solo() ? '내 정보' : '우리 가정 정보'}</span></button>
-        <div class="mdiv"></div><button class="mitem" role="menuitem" data-act="logout"><span>이 기기에서 로그아웃</span></button></div>` : '';
+        <div class="mdiv"></div><button class="mitem" role="menuitem" data-act="tab" data-v="more"><span>${solo() ? '내 정보' : '우리 가정 정보'}</span></button></div>` : '';   // 로그아웃은 '계정과 동기화'에서만 한다(2026-11-21)
     return `<div class="wrap">${brand}
       <nav class="topnav" aria-label="주 메뉴">${TABS.map(([k, l]) => `<button class="${on === k ? 'on' : ''}" data-act="tab" data-v="${k}" ${on === k ? 'aria-current="page"' : ''}>${l}</button>`).join('')}</nav>
       <span class="spacer"></span>

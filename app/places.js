@@ -1,5 +1,5 @@
 // '함께하는 곳' 공통 메뉴. 오른쪽 작은 회색 글은 '지금 상태'만 쓴다(지금 보는 곳 · 승인을 기다려요 · D-숫자 · 신청 수 · 교회 코드로 들어가기). 곳이 무엇인지 설명은 붙이지 않는다(2026-11-21).
-// 노트 → 코이데 공동체 → 예전 모임 → 공동체 만들기 → 코이데 교회(맨 아래). 노트와 공동체 화면이 같은 순서.
+// 노트 → 코이데 공동체 → 예전 모임 → 코이데 교회(맨 아래). 공동체 만들기는 창에 두지 않고 더보기 "함께하는 곳"에서 한다(2026-11-21). 노트와 공동체 화면이 같은 순서.
 (() => {
   const MAX = 3; // 코이데 공동체만 센다. 교회와 예전 모임은 따로
   const esc = s => String(s == null ? '' : s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
@@ -27,8 +27,6 @@
             })())).join('')}
         ${G.map(g => g.wait ? `<div class="mitem" role="menuitem" aria-disabled="true"><span>${esc(g.name)}</span><small>승인을 기다려요</small></div>`
           : item('group', g.id, g.name, [o.cur === g.id ? here : '', dday(g), g.asks ? '신청 ' + g.asks : ''].filter(Boolean).join(', '))).join('')}
-        ${o.circleMake ? '<div class="mdiv"></div>' : ''}
-        ${o.circleMake ? `<a class="mitem" role="menuitem" ${o.attr('circleMake', '')}><span>+ 공동체 만들기</span></a>` : ''}
         ${o.room || !o.linked ? '<div class="mdiv"></div>' : ''}
         ${o.room ? item('room', '', '코이데 교회', o.cur === 'room' ? here : '')
           : o.linked ? '' : `<a class="mitem" role="menuitem" href="index.html${o.demo ? '?demo&connect' : '?connect'}"><span>코이데 교회</span><small>교회 코드로 들어가기</small></a>`}`;
