@@ -481,6 +481,7 @@ html.kg-on body.hide-bars .topbar, html.kg-on body.hide-bars .tabs { transform: 
 .na-n{display:grid;place-items:center;width:1.8em;height:1.8em;border-radius:50%;background:var(--accent-soft);color:var(--accent);font-size:.9em;font-weight:700}
 .na-keep{list-style:none;margin:0;padding:0}.na-keep li{display:grid;grid-template-columns:minmax(6em,36%) 1fr;gap:.7em;padding:.7em 0;border-top:1px solid var(--line);font-size:.92em;line-height:1.65;word-break:keep-all}
 .na-keep li:first-child{border-top:0;padding-top:0}.na-keep b{color:var(--accent)}
+.na-credit b{color:var(--ink)}
 /* 코이데 소개 맨 위 영상(첫 화면 영상과 같은 파일). 가로로 눕힌 둥근 칸이라 위쪽 손·노트가 보이게 아래쪽을 맞춘다(object-position). 꾸미는 영상이라 글은 없다 */
 .na-film{position:relative;overflow:hidden;border-radius:16px;border:1px solid var(--line);aspect-ratio:4/3;background:radial-gradient(circle at 50% 46%,var(--surface) 0,var(--accent-soft) 72%)}
 .na-film video,.na-film .na-film-poster{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;object-position:50% 72%}
@@ -2860,7 +2861,8 @@ button.pg-tag::before { content: ''; position: absolute; inset: -10px; }
           <section class="card"><p class="label">나만 보는 기록 · 동기화</p><p class="plain">기도제목과 기도한 기록은 먼저 이 기기에 남아요. 다른 기기에서도 이어 쓰려면 계정과 동기화에서 동기화를 켜고 비밀번호를 정해 주세요. 비밀번호와 복구용 낱말은 잘 보관해 주세요.</p>${go('계정과 동기화','sync')}</section>
         </div><div class="col">
           <section class="card"><p class="label">코이데는 기도를 이렇게 이해해요${KoideTip.btn('웨스트민스터 대요리문답이 풀어 쓴 기도의 뜻을 쉬운 말로 옮겼어요.', '코이데는 기도를 이렇게 이해해요')}</p><ol class="na-list">${teach.map(([a,b,t,l],i)=>`<li><span class="na-n">${i+1}</span><div><h3>${a}</h3><p class="plain">${b}</p>${go(l,t)}</div></li>`).join('')}</ol></section>
-          <section class="card"><p class="label">의견 보내기</p><p class="plain">코이데 교회·공동체와 코이데 노트는 서로 다른 방식으로 기도를 돌보는 하나의 앱이에요. 불편한 점이나 바라는 점이 있으면 알려 주세요.</p><button class="link" data-a="fbopen">의견 보내기 ›</button></section>
+          <section class="card"><p class="label">만든 곳 · 의견 보내기</p><p class="plain">쓰는 분들이 함께 만들어 가고 있어요. 불편한 점이나 바라는 점, 고마운 점을 보내 주세요.</p><button class="link" data-a="fbopen">의견 보내기 ›</button></section>
+          <section class="card"><p class="label">쓴 것들</p><ul class="na-keep na-credit"><li><b>그림</b><span>나의 배지 그림과 첫 화면 영상은 AI로 만들었어요.</span></li><li><b>음악</b><span>기도하기의 찬송가 1~8장(송영) 연주</span></li><li><b>글꼴</b><span>고운바탕, IBM Plex Sans KR (SIL Open Font License)</span></li></ul></section>
         </div></div>
       </div>`;
   }
