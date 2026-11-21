@@ -175,3 +175,9 @@
 .info-tip[data-side="up"]::before { bottom: -6px; border-right: 1px solid var(--tip-line); border-bottom: 1px solid var(--tip-line); }
 :root[data-style="skeu"] .info-tip { box-shadow: inset 0 1px 0 rgba(255, 255, 255, .12), 0 8px 24px -8px var(--shadow); }
 @media (prefers-reduced-motion: reduce) { .info-tip { transition: none; } }
+
+/* ── new(뉴모피즘)에서 빠졌던 것 채우기 (2026-11-20, 두 앱 차이 50번) ──
+   로그인 단추(카카오·구글·애플)는 색과 테두리는 그대로 두고 볼록한 그림자만 더한다 */
+:root[data-style="neu"] .kakao { box-shadow: var(--raise-sm); }
+:root[data-style="neu"] .kakao:disabled { box-shadow: none; }
+:root:root:root[data-style="neu"] .btn.sso-btn:not(:disabled) { box-shadow: var(--raise-sm) !important; }

@@ -116,7 +116,7 @@ button, a, label, summary, select, input, [role="button"], [data-a], .brand { to
 .icon-btn .ic { width: 1.35em; height: 1.35em; }
 .icon-btn[aria-expanded="true"] { background: var(--surface-2); }
 .menu { position: absolute; top: calc(100% + 6px); right: max(16px, env(safe-area-inset-right, 0px)); width: min(300px, calc(100vw - 32px)); background: var(--surface); border: 1px solid var(--line); border-radius: 16px; box-shadow: 0 16px 40px -12px var(--shadow); padding: .5em; display: flex; flex-direction: column; gap: .1em; z-index: 25; }
-.mlabel { font-size: .72em; font-weight: 600; color: var(--ink-2); margin: .6em .7em .3em; }
+.mlabel { font-size: .84em; font-weight: 600; color: var(--ink-2); margin: .6em .7em .3em; }   /* 팝업 이름표는 늘 .84배(휴대폰 약 13.4px). 코이데·디다코 모두 같다 */
 /* 톱니바퀴 메뉴의 '화면 설정' 제목과 더보기 › 앱 설정 안쪽 '큰 글씨': 같은 크기 · 굵기. 기본 글씨(--base)의 0.97배라 휴대폰에서 15.5px, 큰 글씨 모드에서는 함께 커진다. 더보기의 '화면 설정' 줄(b.mhead)은 다른 더보기 줄처럼 기본 글씨 크기 · 굵기를 따른다 */
 .mhead { font-size: calc(var(--base) * .97); font-weight: 600; color: var(--ink); }
 .mrow b.mhead { font-size: inherit; font-weight: bolder; color: inherit; }
@@ -125,8 +125,8 @@ button, a, label, summary, select, input, [role="button"], [data-a], .brand { to
 .mitem.on { cursor: default; } .mitem.on span { font-weight: 700; } .mitem.on:hover { background: none; }
 .mitem[aria-disabled="true"] { cursor: default; opacity: .7; } .mitem[aria-disabled="true"]:hover { background: none; }
 .mitem small { font-size: .82em; color: var(--ink-2); text-align: right; }
-.mdiv { height: 1px; background: var(--line); margin: .35em .3em; }
-.menu-set { display: flex; flex-direction: column; gap: .6em; padding: 0 .4em .4em; }
+.mdiv { flex: none; height: 1px; background: var(--line); margin: .35em .3em; }
+.menu .seg { margin: 0 .3em .3em; }
 .pilot { font-size: .74em; color: var(--accent); background: var(--accent-soft); border-radius: 999px; padding: .3em .9em; display: inline-block; margin-bottom: 10px; }
 .top { display: flex; justify-content: space-between; align-items: center; gap: 12px; min-height: 44px; margin-bottom: 12px; }
 /* 화면 제목(탭 화면·더보기 안 화면): 디다코 노트와 같은 크기. 큰 글씨 모드에서는 기본 글씨(--base)와 함께 커진다. 오른쪽 날짜는 공동체의 날짜와 같은 크기·색 */
@@ -499,7 +499,8 @@ html.kg-on body.hide-bars .topbar, html.kg-on body.hide-bars .tabs { transform: 
 .mrows > .hint { margin: 11px 0 12px; }
 /* 창(.sheet)의 줄이 이어질 때: 창의 gap(12px)만큼 당겨서 줄 사이 틈을 없앤다 */
 .sheet > .mrow + .mrow { margin-top: -12px; }
-.mset { display: flex; flex-direction: column; gap: 10px; border-top: 1px solid var(--line); padding: .9em 0; }
+.mset { display: flex; flex-direction: column; gap: 12px; padding: .9em 0; border-top: 1px solid var(--line); }
+.mset .mlabel { margin: 0 0 .4em .2em; }
 /* 고르는 버튼 묶음: 공동체 앱과 같은 모양(디자인 스타일 new·classic·glass가 그대로 입혀진다) */
 .seg { display: grid; grid-auto-flow: column; grid-auto-columns: 1fr; gap: 3px; padding: 3px; background: var(--surface-2); border-radius: 12px; }
 .seg button { font: inherit; font-size: .86em; word-break: keep-all; padding: 0 4px; border: 0; border-radius: 9px; min-height: 44px; background: transparent; color: var(--ink-2); cursor: pointer; }
@@ -528,10 +529,11 @@ html.kg-on body.hide-bars .topbar, html.kg-on body.hide-bars .tabs { transform: 
 .people .drag-h:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
 .people li.dragging { position: relative; z-index: 2; transition: none; background: var(--surface); border-radius: 10px; box-shadow: 0 8px 20px -6px var(--shadow); }
 @media (prefers-reduced-motion: reduce) { .people li { transition: none; } }
-.swatches { display: flex; gap: 4px; flex-wrap: wrap; } /* 색 테마 여섯 개가 설정 창 한 줄에 들어가게 간격만 줄인다(디다코와 같은 4px) */
+.swatches { display: flex; gap: 4px; margin: .2em .2em .4em; flex-wrap: wrap; } /* 색 테마 여섯 개가 설정 창 한 줄에 들어가게 간격만 줄인다(디다코와 같은 4px) */
 .swatch { width: 40px; height: 40px; border-radius: 50%; padding: 0; border: 2px solid transparent; background: none; cursor: pointer; display: grid; place-items: center; }
 .swatch i { width: 28px; height: 28px; border-radius: 50%; display: block; box-shadow: inset 0 0 0 1px rgba(0, 0, 0, .12); }
 .swatch.on { border-color: var(--ink); }
+.card .swatches { margin: .6em 0 0; }
 .switch { width: 48px; height: 28px; border-radius: 999px; border: 0; background: var(--line-strong); position: relative; flex: none; padding: 0; cursor: pointer; }
 .switch > span { position: absolute; top: 3px; left: 3px; width: 22px; height: 22px; border-radius: 50%; background: var(--surface); transition: left .2s; }
 .switch.on { background: var(--accent); }
@@ -2773,10 +2775,11 @@ button.pg-tag::before { content: ''; position: absolute; inset: -10px; }
   // 화면 설정(더보기 › 앱 설정 › 화면 설정, 위쪽 톱니바퀴): 화면 모드 · 색 테마 · 디자인 · 큰 글씨. 공동체 화면과 함께 바뀐다
   function screenControls() {
     const mode = PREF.mode || 'system', accent = PREF.accent || 'green', style = PREF.style || 'flat';
-    return `<div class="seg" role="radiogroup" aria-label="화면 모드">${MODES.map(([k, l]) => `<button class="${mode === k ? 'on' : ''}" role="radio" aria-checked="${mode === k}" data-a="mode" data-v="${k}">${l}</button>`).join('')}</div>
-        <div class="swatches" role="radiogroup" aria-label="색 테마">${ACCENTS.map(([k, l, c]) => `<button class="swatch${accent === k ? ' on' : ''}" role="radio" aria-checked="${accent === k}" data-a="accent" data-v="${k}" aria-label="${l}" title="${l}"><i style="background:${c}"></i></button>`).join('')}</div>
-        <div class="seg" role="radiogroup" aria-label="디자인">${STYLES.map(([k, l]) => `<button class="${style === k ? 'on' : ''}" role="radio" aria-checked="${style === k}" data-a="style" data-v="${k}">${l}</button>`).join('')}</div>
-        <div class="row"><p class="plain mhead">큰 글씨</p></div>${bigControls()}`;
+    const L = (t, html) => `<div><p class="mlabel">${t}</p>${html}</div>`;
+    return L('화면 모드', `<div class="seg" role="radiogroup" aria-label="화면 모드">${MODES.map(([k, l]) => `<button class="${mode === k ? 'on' : ''}" role="radio" aria-checked="${mode === k}" data-a="mode" data-v="${k}">${l}</button>`).join('')}</div>`)
+      + L('색 테마', `<div class="swatches" role="radiogroup" aria-label="색 테마">${ACCENTS.map(([k, l, c]) => `<button class="swatch${accent === k ? ' on' : ''}" role="radio" aria-checked="${accent === k}" data-a="accent" data-v="${k}" aria-label="${l}" title="${l}"><i style="background:${c}"></i></button>`).join('')}</div>`)
+      + L('디자인', `<div class="seg" role="radiogroup" aria-label="디자인">${STYLES.map(([k, l]) => `<button class="${style === k ? 'on' : ''}" role="radio" aria-checked="${style === k}" data-a="style" data-v="${k}">${l}</button>`).join('')}</div>`)
+      + L('큰 글씨', bigControls());
   }
   // 위쪽 막대: 공동체 화면과 같은 짜임(코이데 · 배지 · 톱니바퀴). 배지를 누르면 함께하는 곳(기도 노트 · 교회 사랑방 · 내 모임)으로 오간다
   const TOP_ICON = { knot: '<svg class="ic" viewBox="0 0 16 16" aria-hidden="true"><path d="M.5 8.5h3.8c1.2 0 1.7-1.5 1.7-2.8C6 3.7 7.3 2.5 9 2.5s3 1.2 3 3.1-1.8 3.1-4 3.3"/><path d="M5.6 10.1C7.6 9 9.6 8.5 15.5 8.5"/></svg>',
@@ -2787,7 +2790,7 @@ button.pg-tag::before { content: ''; position: absolute; inset: -10px; }
     const circleMake = communityOn() && CIRCLES.session && CIRCLES.places > 0;
     const menu = S.menu === 'badge' ? `<div class="menu" role="menu" aria-label="함께하는 곳">${koidePlaces.html({ cur: 'note', room, groups: G, circles: CIRCLES.list, circleMake, linked, demo: DEMO_LINK,
         attr: (k, id) => k === 'room' ? `href="index.html${QS}"` : k === 'group' ? `href="${groupUrl(id, G.find(x => x.id === id))}"` : k === 'circle' ? `href="${circleUrl(id)}"` : k === 'circleMake' ? `href="koinonia.html${DEMO ? '?demo&new' : '?new'}"` : 'data-a="menunew"' })}</div>`
-      : S.menu === 'settings' ? `<div class="menu" role="menu" aria-label="설정"><p class="mlabel mhead">화면 설정</p><div class="menu-set">${screenControls()}</div></div>` : '';
+      : S.menu === 'settings' ? `<div class="menu" role="menu" aria-label="설정"><p class="mlabel mhead">화면 설정</p>${screenControls()}</div>` : '';
     return `<header class="topbar"><div class="wrap">
       <button class="brand" data-a="tab" data-v="today" aria-label="코이데 노트 오늘의 기도"><span class="brand-mark">${TOP_ICON.knot}</span><span class="brand-name">코이데</span></button>
       <nav class="topnav" aria-label="주 메뉴">${TABS.map(([k, l]) => { const on = (['fb', 'sync', 'acct', 'acctdel', 'help', 'about', 'weaves', 'people'].includes(S.tab) ? 'more' : S.tab) === k; return `<button class="${on ? 'on' : ''}" data-a="tab" data-v="${k}" ${on ? 'aria-current="page"' : ''}>${l}</button>`; }).join('')}</nav><span class="spacer"></span>
@@ -2890,7 +2893,7 @@ button.pg-tag::before { content: ''; position: absolute; inset: -10px; }
     let st;
     if (sbReady() && vaultBackend() === 'supabase' && !QUIET) {
       // 줄 아래 글은 짧게(상태만). 로그인 방법 이름은 계정 카드에서 보여 준다.
-      const status = !live ? '동기화 꺼짐' : syncing ? '동기화 중…' : D.vault.last ? '동기화 켜짐 · ' + hhmm(D.vault.last) : '동기화 켜짐';
+      const status = !conn ? '켜면 기기를 바꿔도 기록이 이어져요' : !live ? '꺼짐' : syncLabel();   // 동기화 상태 줄은 한 가지(가족 앱 공용 규칙 49번)
       st = S.sess === 'out' || S.sbIn === false ? '로그인되어 있지 않아요' : status;
     } else st = !canLock() ? '이 화면 주소(https)에서만 쓸 수 있어요' : V && V.paused ? '꺼짐' : live ? syncLabel() : '켜면 기기를 바꿔도 기록이 이어져요';
     return `<section class="card mrows"><button class="mrow" data-a="acctopen"><span style="min-width:0"><b>계정과 동기화</b><small>${esc(st)}</small></span><span class="mrow-end"><span aria-hidden="true">›</span></span></button></section>`;
