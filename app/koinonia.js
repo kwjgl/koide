@@ -50,10 +50,11 @@
   }
   function screenControls(){
     const mode=PREF.mode||'system',accent=PREF.accent||'green',style=PREF.style||'flat';
-    return '<div class="seg" role="radiogroup" aria-label="화면 모드">'+MODES.map(([k,l])=>'<button class="'+(mode===k?'on':'')+'" role="radio" aria-checked="'+(mode===k)+'" data-a="pref" data-k="mode" data-v="'+k+'">'+l+'</button>').join('')+'</div>'+
-      '<div class="swatches" role="radiogroup" aria-label="색 테마">'+ACCENTS.map(([k,l,c])=>'<button class="swatch'+(accent===k?' on':'')+'" role="radio" aria-checked="'+(accent===k)+'" data-a="pref" data-k="accent" data-v="'+k+'" aria-label="'+l+'" title="'+l+'"><i style="background:'+c+'"></i></button>').join('')+'</div>'+
-      '<div class="seg" role="radiogroup" aria-label="디자인">'+STYLES.map(([k,l])=>'<button class="'+(style===k?'on':'')+'" role="radio" aria-checked="'+(style===k)+'" data-a="pref" data-k="style" data-v="'+k+'">'+l+'</button>').join('')+'</div>'+
-      '<div class="row"><span class="mhead">큰 글씨</span></div>'+bigControls();
+    const L=(t,html)=>'<div><p class="mlabel">'+t+'</p>'+html+'</div>';
+    return L('화면 모드','<div class="seg" role="radiogroup" aria-label="화면 모드">'+MODES.map(([k,l])=>'<button class="'+(mode===k?'on':'')+'" role="radio" aria-checked="'+(mode===k)+'" data-a="pref" data-k="mode" data-v="'+k+'">'+l+'</button>').join('')+'</div>')+
+      L('색 테마','<div class="swatches" role="radiogroup" aria-label="색 테마">'+ACCENTS.map(([k,l,c])=>'<button class="swatch'+(accent===k?' on':'')+'" role="radio" aria-checked="'+(accent===k)+'" data-a="pref" data-k="accent" data-v="'+k+'" aria-label="'+l+'" title="'+l+'"><i style="background:'+c+'"></i></button>').join('')+'</div>')+
+      L('디자인','<div class="seg" role="radiogroup" aria-label="디자인">'+STYLES.map(([k,l])=>'<button class="'+(style===k?'on':'')+'" role="radio" aria-checked="'+(style===k)+'" data-a="pref" data-k="style" data-v="'+k+'">'+l+'</button>').join('')+'</div>')+
+      L('큰 글씨',bigControls());
   }
   const GEAR='<svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.9l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.9-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1-1.5 1.7 1.7 0 0 0-1.9.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.9 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1 1.7 1.7 0 0 0-.3-1.9l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.9.3 1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.9-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.9 1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/></svg>';
   // 함께하는 곳 메뉴: 노트·교회 화면과 같은 places.js로 그린다(교회 사랑방은 이 기기에 남은 교회 화면에서 이름을 가져온다)
@@ -67,7 +68,7 @@
   const head=()=>'<header class="topbar"><div class="inner"><a href="note.html'+(explicitDemo?'?demo':'')+'" class="brand"><span class="brand-mark">'+KNOT+'</span><span class="brand-name">코이데</span></a>'+
     '<span style="display:flex;align-items:center;gap:.6em"><button class="badge-btn" data-a="menu" data-v="badge" aria-haspopup="menu" aria-expanded="'+(S.menu==='badge')+'">코이데 공동체</button>'+
     '<button class="icon-btn" data-a="menu" data-v="settings" aria-haspopup="menu" aria-expanded="'+(S.menu==='settings')+'" aria-label="설정">'+GEAR+'</button></span>'+
-    (S.menu==='badge'?'<div class="menu" role="menu" aria-label="함께하는 곳">'+placesMenu()+'</div>':S.menu==='settings'?'<div class="menu" role="menu" aria-label="설정"><p class="mlabel mhead">화면 설정</p><div class="menu-set">'+screenControls()+'</div></div>':'')+
+    (S.menu==='badge'?'<div class="menu" role="menu" aria-label="함께하는 곳">'+placesMenu()+'</div>':S.menu==='settings'?'<div class="menu" role="menu" aria-label="설정"><p class="mlabel mhead">화면 설정</p>'+screenControls()+'</div>':'')+
     '</div></header>';
   const notice=()=>S.msg?'<p class="hint" role="status">'+esc(S.msg)+'</p>':'';
   const error=()=>S.error?'<p class="error" role="alert">'+esc(S.error)+'</p>':'';

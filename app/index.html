@@ -99,7 +99,7 @@ button, a, label, summary, select, input, [role="button"], [data-act], .brand { 
 .icon-btn .ic { width: 1.35em; height: 1.35em; }
 .icon-btn[aria-expanded="true"] { background: var(--surface-2); }
 .menu { position: absolute; top: calc(100% + 6px); right: max(16px, env(safe-area-inset-right, 0px)); width: min(300px, calc(100vw - 32px)); background: var(--surface); border: 1px solid var(--line); border-radius: 16px; box-shadow: 0 16px 40px -12px var(--shadow); padding: .5em; display: flex; flex-direction: column; gap: .1em; z-index: 25; }
-.mlabel { font-size: .72em; font-weight: 600; color: var(--ink-2); margin: .6em .7em .3em; }
+.mlabel { font-size: .84em; font-weight: 600; color: var(--ink-2); margin: .6em .7em .3em; }   /* 팝업 이름표는 늘 .84배(휴대폰 약 13.4px). 코이데·디다코 모두 같다 */
 /* 톱니바퀴 메뉴의 '화면 설정' · '큰 글씨' 제목과 더보기 › 앱 설정 안쪽 '큰 글씨' 제목: 같은 크기 · 굵기(기도 노트와 같게). 기본 글씨(--base)의 0.97배라 휴대폰에서 15.5px, 큰 글씨 모드에서는 함께 커진다. 더보기의 '화면 설정' 줄(b.mhead)은 다른 더보기 줄처럼 기본 글씨 크기 · 굵기를 따른다 */
 .mhead, .menu .mhead { font-size: calc(var(--base) * .97); font-weight: 600; color: var(--ink); }
 .mrow b.mhead { font-size: inherit; font-weight: bolder; color: inherit; }
@@ -115,16 +115,12 @@ button, a, label, summary, select, input, [role="button"], [data-act], .brand { 
 .menu .seg { margin: 0 .3em .3em; }
 .card .swatches { margin: .6em 0 0; }
 .set-row { display: flex; justify-content: space-between; align-items: center; gap: 12px; }
-.mdiv { height: 1px; background: var(--line); margin: .35em .3em; }
+.mdiv { flex: none; height: 1px; background: var(--line); margin: .35em .3em; }
 /* 좁은 화면에서도 로고 옆 앱 이름 글자를 보인다(디다코와 같다, 2026-11-20). 큰 글씨 "아주 크게"나 359px 아래에서만 로고만 두고, 이름표의 이름은 모자라면 말줄임(…)으로 줄인다 */
 .topbar .badge-btn { min-width: 0; flex: 0 1 auto; }
 .badge-btn .badge-name { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .badge-btn .role-tag, .topbar .demo-tag { flex: none; }
 @media (max-width: 359px) { .topbar .wrap { gap: .3em; } .topbar .brand-name { display: none; } }
-/* 큰 글씨 선택칸: 위 두 줄(화면 모드·디자인)과 같은 왼쪽·오른쪽 끝에 맞춘다(메뉴 줄의 좌우 안쪽 여백을 빼고 글만 같은 들여쓰기) */
-.menu .mitem.big-row { padding-left: 0; padding-right: 0; }
-.menu .mitem.big-row > .mhead { margin-left: .7em; }
-.menu .mitem.big-row > .seg { margin: 0 .333em .333em; } /* 메뉴 줄 글씨가 .9배라 같은 간격이 되도록 */
 /* 아주 크게 + 좁은 휴대폰: 위쪽 막대가 넘쳐 톱니바퀴가 잘리지 않게 로고 글자를 숨기고 뱃지 여백을 줄인다 */
 @media (max-width: 430px) { :root[data-big="2"] .brand-name { display: none; } :root[data-big="2"] .topbar .wrap { gap: .4em; } :root[data-big="2"] .badge-btn { padding-left: .7em; gap: .3em; } }
 /* 스크롤을 내리면 상단 바와 하단 바가 함께 숨고, 조금이라도 올리면 다시 보인다 */
@@ -3918,6 +3914,9 @@ try { const p = JSON.parse(localStorage.getItem('koide-pref') || '{}'), d = docu
   // 기도 노트가 남기는 켜짐/꺼짐 표시('on' | 'off' | '')만 읽는다. 노트 내용은 여기서 읽지 않는다
   const noteSyncOn = () => { try { return localStorage.getItem(DEMO_LINK ? 'koide-demo-note-sync' : 'koide-note-sync') === 'on'; } catch (e) { return false; } };
   // 노트가 남긴 마지막 동기화 시각 → " · 마지막 동기화 11월 21일 08:11"(코이데 노트·디다코와 같은 말과 모양)
+  const noteSyncFlag = () => { try { return localStorage.getItem(DEMO_LINK ? 'koide-demo-note-sync' : 'koide-note-sync') || ''; } catch (e) { return ''; } };
+  // 동기화 상태 줄은 세 앱 어디서나 한 가지(가족 앱 공용 규칙 49번): 켜짐 "연결됨 · 마지막 동기화 11월 21일 08:47", 잠시 끔 "꺼짐", 연결 없음 "켜면 기기를 바꿔도 기록이 이어져요"
+  const noteSyncLine = () => noteSyncFlag() === 'on' ? '연결됨' + (noteSyncAt() || ' · 아직 동기화하지 않았어요') : noteSyncFlag() === 'off' ? '꺼짐' : '켜면 기기를 바꿔도 기록이 이어져요';
   const noteSyncAt = () => { try { const t = Number(localStorage.getItem(DEMO_LINK ? 'koide-demo-note-sync-at' : 'koide-note-sync-at')); if (!noteSyncOn() || !t) return ''; const d = new Date(t); return ` · 마지막 동기화 ${d.getMonth() + 1}월 ${d.getDate()}일 ${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`; } catch (e) { return ''; } };
   // 더보기 › 함께하는 곳: 내 코이데 공동체(노트 더보기의 공동체 카드와 같은 모양). 지금 보는 곳은 링크 없이 표시
   function kcCirclesCard() {
@@ -3967,11 +3966,11 @@ try { const p = JSON.parse(localStorage.getItem('koide-pref') || '{}'), d = docu
           <p class="more-h">앱 설정</p>
           <section class="card mrows">
             <button class="mrow" data-act="setopen" aria-expanded="${setOpen}"><span><b class="mhead">화면 설정</b></span><span class="ops-chev" aria-hidden="true">${ICON.chev}</span></button>
-            ${setOpen ? `<div class="mset">${themeControls(true)}<div><p class="mlabel">큰 글씨</p>${bigControls()}</div></div>` : ''}
+            ${setOpen ? `<div class="mset">${screenControls()}</div>` : ''}
             ${STANDALONE ? '' : row('a2hsopen', '', '홈 화면에 앱처럼 두기', '')}
             <div class="mrow" style="cursor:default;border-top:1px solid var(--line)"><span><b>이용 통계 보내기</b>${KoideTip.btn('앱을 좋게 만들기 위해 이름 없는 사용 기록을 보내요. 누른 것, 연 때와 머문 시간 같은 숫자만이고 이름과 기도제목은 보내지 않아요. 끄면 이 기기에서는 더 보내지 않아요.', '이용 통계 보내기')}</span>
               <button type="button" class="switch${usageOff() ? '' : ' on'}" role="switch" aria-checked="${!usageOff()}" aria-label="이용 통계 보내기" data-act="usageoff"><span></span></button></div>
-            ${KOINONIA && DEMO ? '' : row('tab', 'account', '계정과 동기화', noteSyncOn() ? '동기화 켜짐' : '동기화 꺼짐')}
+            ${KOINONIA && DEMO ? '' : row('tab', 'account', '계정과 동기화', noteSyncLine())}
             ${KoidePilot.moreRows()}
           </section>
           ${S.grp && !KOINONIA ? '' : `<p class="more-h">코이데</p>
@@ -5282,7 +5281,7 @@ try { const p = JSON.parse(localStorage.getItem('koide-pref') || '{}'), d = docu
     return `<button class="link back" data-act="tab" data-v="more">${ICON.chevL}더보기</button>
       <div class="page-top"><div><h1>계정과 동기화</h1></div></div>
       <div class="acct-page">${card}
-        <section class="card"><p class="label">동기화</p><p class="plain"><b>${noteSyncOn() ? '켜짐' : '꺼짐'}</b>${esc(noteSyncAt())}</p>
+        <section class="card"><p class="label">동기화</p><p class="plain"><b>${noteSyncOn() ? '연결됨' : '꺼짐'}</b>${esc(noteSyncAt())}</p>
           <p class="hint">${noteSyncOn() ? '기록은 암호화되기 때문에 운영자도 볼 수 없어요.' : '켜면 기기를 바꿔도 기록이 이어져요.'}</p>
           <p style="margin:.4em 0 0"><a class="link quiet" href="note.html${DEMO_LINK ? '?demo' : ''}">코이데 노트에서 켜고 끄기 ›</a></p></section>
         ${KOINONIA ? '' : '<button class="link quiet more-out" data-act="logout">이 기기에서 로그아웃</button>'}
@@ -5582,7 +5581,7 @@ try { const p = JSON.parse(localStorage.getItem('koide-pref') || '{}'), d = docu
     if (PREF.style && PREF.style !== 'flat') d.dataset.style = PREF.style; else delete d.dataset.style;
     if (PREF.big) d.dataset.big = PREF.big === 2 ? '2' : ''; else delete d.dataset.big;
   }
-  // labeled: 더보기 › 화면 설정은 디다코처럼 칸마다 이름표를 단다(톱니 메뉴는 이름표 없이)
+  // labeled: 칸마다 이름표를 단다(톱니 메뉴와 더보기 모두, 디다코와 같게. 이름표 없는 모양은 쓰지 않는다)
   const themeControls = (labeled) => {
     const mode = PREF.mode || 'system', accent = PREF.accent || 'green', style = PREF.style || 'flat';
     const L = (t, html) => labeled ? `<div><p class="mlabel">${t}</p>${html}</div>` : html;
@@ -5591,6 +5590,8 @@ try { const p = JSON.parse(localStorage.getItem('koide-pref') || '{}'), d = docu
       + L('디자인', `<div class="seg" style="--n:4" role="radiogroup" aria-label="디자인">${STYLES.map(([k, l]) => `<button class="${style === k ? 'on' : ''}" role="radio" aria-checked="${style === k}" data-act="style" data-v="${k}">${l}</button>`).join('')}</div>`);
   };
   const bigControls = () => `<div class="seg" style="--n:3" role="radiogroup" aria-label="큰 글씨">${[[0,'보통'],[1,'크게'],[2,'아주 크게']].map(([k,l]) => `<button class="${(PREF.big === true ? 1 : Number(PREF.big) || 0) === k ? 'on' : ''}" role="radio" aria-checked="${(PREF.big === true ? 1 : Number(PREF.big) || 0) === k}" data-act="big" data-v="${k}">${l}</button>`).join('')}</div>`;
+  // 화면 설정 한 벌(톱니 메뉴와 더보기가 같이 쓴다): 화면 모드 · 색 테마 · 디자인 · 큰 글씨, 칸마다 이름표(ux-common 50번)
+  const screenControls = () => `${themeControls(true)}<div><p class="mlabel">큰 글씨</p>${bigControls()}</div>`;
 
   const tabOn = (t = S.tab) => S.op || ['import', 'status', 'admin', 'reorg', 'about', 'help', 'church', 'feedback', 'acctdel', 'account', 'praytext'].includes(t) ? 'more' : t;
   // 위 막대 이름표의 이름(2026-11-20, 디다코와 같게): 내 소속을 보인다. 모임은 모임 이름, 교역자는 맡은 부서, 리더·회원은 내 사랑방(한 사람만이면 그 이름). 이름을 모르면 "코이데 교회"
@@ -5610,8 +5611,7 @@ try { const p = JSON.parse(localStorage.getItem('koide-pref') || '{}'), d = docu
           ${opsDepts().map(d => `<button class="mitem${d.id === S.op ? ' on' : ''}" role="menuitem" data-act="opsgo" data-v="${esc(d.id)}"><span>${esc(d.name)}${d.closed ? ' (닫음)' : ''}</span>${d.id === S.op && S.tab !== 'church' ? '<small>지금 보는 부서</small>' : ''}</button>`).join('')}
           <div class="mdiv"></div>${S.me.link && S.me.link.status === '연결' ? '<button class="mitem" role="menuitem" data-act="opsleave"><span>내 화면으로 돌아가기</span></button>' : ''}
           <button class="mitem" role="menuitem" data-act="logout"><span>이 기기에서 로그아웃</span></button></div>`
-        : S.menu === 'settings' ? `<div class="menu" role="menu" aria-label="설정"><p class="mlabel mhead">화면 설정</p>${themeControls(true)}<div class="mdiv"></div>
-          <div class="mitem static set-row big-row" style="flex-direction:column;align-items:stretch"><span class="mlabel" style="margin:0 0 .3em .7em">큰 글씨</span>${bigControls()}</div></div>` : '';
+        : S.menu === 'settings' ? `<div class="menu" role="menu" aria-label="설정"><p class="mlabel mhead">화면 설정</p>${screenControls()}</div>` : '';
       return `<div class="wrap">${S.home ? brand : brand.replace(' data-act="tab" data-v="home"', '')}${S.home ? `<nav class="topnav" aria-label="주 메뉴">${TABS.map(([k, l]) => `<button class="${k === 'more' ? 'on' : ''}" data-act="tab" data-v="${k}" ${k === 'more' ? 'aria-current="page"' : ''}>${l}</button>`).join('')}</nav>` : ''}<span class="spacer"></span>
         <button class="badge-btn" data-act="menu" data-v="badge" aria-haspopup="menu" aria-expanded="${S.menu === 'badge'}"><span class="badge-name">${S.tab === 'church' ? '교회 전체' : esc(M.dept.name)}</span><span class="role-tag admin">${M.me.all ? '교회 관리자' : '지원'}</span></button>
         <button class="icon-btn" data-act="menu" data-v="settings" aria-haspopup="menu" aria-expanded="${S.menu === 'settings'}" aria-label="설정">${ICON.gear}</button>${opMenu}</div>`;
@@ -5623,8 +5623,7 @@ try { const p = JSON.parse(localStorage.getItem('koide-pref') || '{}'), d = docu
         ${koidePlaces.html({cur:KOINONIA_ID, linked:false, demo:KOINONIA_DEMO, circles:CIRCLE_MENU.list, circleMake:CIRCLE_MENU.session && koidePlaces.canMake(false,CIRCLE_MENU.list), groups:[],
           attr:(k,id)=>k==='note' ? `href="note.html${KOINONIA_DEMO?'?demo':''}"` : k==='circle' ? `href="index.html${KOINONIA_DEMO?'?demo&c=':'?c='}${encodeURIComponent(id)}"` : `href="koinonia.html${KOINONIA_DEMO?'?demo&new':'?new'}"`})}</div>`
         : S.menu === 'settings' ? `<div class="menu" role="menu" aria-label="설정">
-          <p class="mlabel mhead">화면 설정</p>${themeControls(true)}
-          <div class="mdiv"></div><div class="mitem static set-row big-row" style="flex-direction:column;align-items:stretch"><span class="mlabel" style="margin:0 0 .3em .7em">큰 글씨</span>${bigControls()}</div></div>` : '';
+          <p class="mlabel mhead">화면 설정</p>${screenControls()}</div>` : '';
       return `<div class="wrap">${brand.replace('class="brand"', 'class="brand k-brand"')}
         <nav class="topnav" aria-label="주 메뉴">${TABS.map(([k,l])=>`<button class="${on===k?'on':''}" data-act="tab" data-v="${k}" ${on===k?'aria-current="page"':''}>${l}</button>`).join('')}</nav>
         <span class="spacer"></span>
@@ -5642,9 +5641,8 @@ try { const p = JSON.parse(localStorage.getItem('koide-pref') || '{}'), d = docu
           : `<div class="mdiv"></div><p class="mlabel">운영 지원</p>${opsDepts().map(d => `<button class="mitem" role="menuitem" data-act="opsgo" data-v="${esc(d.id)}"><span>${esc(d.name)} · 지원</span></button>`).join('')}`}
         ${me.admin && !DEMO ? '<div class="mdiv"></div><a class="mitem" role="menuitem" href="?demo" target="_blank" rel="noopener"><span>데모로 둘러보기</span></a>' : ''}</div>`
       : S.menu === 'settings' ? `<div class="menu" role="menu" aria-label="설정">
-        <p class="mlabel mhead">화면 설정</p>${themeControls(true)}<div class="mdiv"></div>
-        <div class="mitem static set-row big-row" style="flex-direction:column;align-items:stretch"><span class="mlabel" style="margin:0 0 .3em .7em">큰 글씨</span>${bigControls()}</div>
-        <button class="mitem" role="menuitem" data-act="tab" data-v="more"><span>${solo() ? '내 정보' : '우리 가정 정보'}</span></button>
+        <p class="mlabel mhead">화면 설정</p>${screenControls()}
+        <div class="mdiv"></div><button class="mitem" role="menuitem" data-act="tab" data-v="more"><span>${solo() ? '내 정보' : '우리 가정 정보'}</span></button>
         <div class="mdiv"></div><button class="mitem" role="menuitem" data-act="logout"><span>이 기기에서 로그아웃</span></button></div>` : '';
     return `<div class="wrap">${brand}
       <nav class="topnav" aria-label="주 메뉴">${TABS.map(([k, l]) => `<button class="${on === k ? 'on' : ''}" data-act="tab" data-v="${k}" ${on === k ? 'aria-current="page"' : ''}>${l}</button>`).join('')}</nav>
