@@ -1108,6 +1108,7 @@ body.pop-open { overflow: hidden; }
 .a2hs.pop-sheet { border: 0; background: var(--surface); }
 .a2hs .row { justify-content: space-between; align-items: center; }
 .a2hs p { margin: 0; word-break: keep-all; }
+.a2hs .a2hs-t { font-family: var(--f-display); font-size: 1.15em; margin: 0; }   /* 팝업 제목은 디다코와 같은 크기 */
 .a2hs-steps { margin: 0; padding-left: 1.3em; display: flex; flex-direction: column; gap: .25em; font-size: .92em; }
 /* 시작 화면: 앱을 켤 때 매듭이 지어지고, 첫 화면이 준비되면 사라진다. 서버가 느리면 기다리는 이유를 여기 적는다 */
 /* 시작 화면: splash.js */
@@ -2551,8 +2552,8 @@ try { const p = JSON.parse(localStorage.getItem('koide-pref') || '{}'), d = docu
     // 화면 위에 뜨는 창(휴대폰은 아래에서 올라옴). 바깥, ×, '알겠어요' 어느 것으로 닫아도 다시 권하지 않는다
     return `<div class="pop-scrim" data-act="a2hshide"></div>
       <section class="card a2hs pop-sheet" role="dialog" aria-modal="true" aria-labelledby="a2hs-t">
-      <div class="row"><p class="label" id="a2hs-t">휴대폰 홈 화면에 코이데를 두세요</p><button class="icon-btn sm" data-act="a2hshide" aria-label="닫기">${ICON.x}</button></div>
-      <p>앱처럼 아이콘을 눌러 바로 열 수 있어요. 링크를 찾지 않아도 돼요.</p>
+      <div class="row"><h2 class="a2hs-t" id="a2hs-t">휴대폰 홈 화면에 코이데를 두세요</h2><button class="icon-btn" data-act="a2hshide" aria-label="닫기">${ICON.x}</button></div>
+      <p>앱처럼 아이콘을 눌러 바로 열 수 있어요. 홈 화면에 두면 휴대폰이 저장된 내용을 함부로 정리하지 않아서 기록도 더 안전해요.</p>
       ${installAsk ? '<button class="btn" data-act="a2hsinstall">바로 설치하기</button>' : ''}
       <div class="seg2" role="tablist" aria-label="휴대폰 종류">${[['ios', '아이폰'], ['android', '안드로이드']].map(([k, l]) => `<button class="${os === k ? 'on' : ''}" role="tab" aria-selected="${os === k}" data-act="a2hsos" data-v="${k}">${l}</button>`).join('')}</div>
       <ol class="a2hs-steps">${how.map(x => `<li>${x}</li>`).join('')}</ol>
@@ -3933,7 +3934,7 @@ try { const p = JSON.parse(localStorage.getItem('koide-pref') || '{}'), d = docu
         : `<a class="mrow" ${link} href="index.html${KOINONIA_DEMO ? '?demo&c=' : '?c='}${encodeURIComponent(c.id)}">${body}${ICON.chevR}</a>`;
     }).join('');
     const make = CIRCLE_MENU.session && koidePlaces.canMake(false, CIRCLE_MENU.list)
-      ? `<a class="mrow" ${link} href="koinonia.html${KOINONIA_DEMO ? '?demo&new' : '?new'}"><span><b>코이데 공동체 만들기</b></span>${ICON.chevR}</a>`
+      ? `<a class="mrow" ${link} href="koinonia.html${KOINONIA_DEMO ? '?demo&new' : '?new'}"><span><b>코이데 공동체 만들기</b><small>함께 기도할 사람을 초대해요</small></span>${ICON.chevR}</a>`
       : `<div class="mrow" aria-disabled="true"><span><b>코이데 공동체 만들기</b><small>세 곳이 다 찼어요</small></span></div>`;
     return `<section class="card mrows">${rows}${make}</section>`;
   }
@@ -5260,7 +5261,8 @@ try { const p = JSON.parse(localStorage.getItem('koide-pref') || '{}'), d = docu
           return `<div class="fold${on ? ' open' : ''}"><button class="mrow" data-act="helpq" data-v="${k}" aria-expanded="${on}"><span><b>${q}</b></span><span class="ops-chev" aria-hidden="true">${ICON.chev}</span></button>
             ${on ? `<div class="fold-body"><p class="plain">${text}</p><button class="link ab-go" data-act="helpgo" data-v="${to}">${go}${ICON.chevR}</button></div>` : ''}</div>`; }).join('')}
         </section>
-        <section class="card mrows"><a class="mrow" style="text-decoration:none;color:inherit" href="manual.pdf" target="_blank" rel="noopener"><span><b>사용 안내서(PDF)</b></span>${ICON.chevR}</a></section></div>`;
+        <section class="card"><p class="label">사용 안내서</p><p class="plain">그림과 함께 차근차근 설명한 안내서예요.</p>
+          <a class="link ab-go" style="text-decoration:none" href="manual.pdf" target="_blank" rel="noopener">사용 안내서(PDF)${ICON.chevR}</a></section></div>`;
   }
   // ── 계정과 동기화(더보기 › 앱 설정 › 계정과 동기화, 2026-11-20 이름 변경): 로그인한 방법, 동기화 상태, 이 기기에서 로그아웃, 계정 탈퇴. 동기화는 코이데 노트에서 켜고 끈다(여기서는 상태만 보여 준다) ──
   const SB_NAME = { kakao: '카카오', google: '구글', apple: '애플' };
@@ -5360,7 +5362,7 @@ try { const p = JSON.parse(localStorage.getItem('koide-pref') || '{}'), d = docu
   function feedbackView() {
     const F = S.fb || (S.fb = { kind: '이랬으면', text: '', named: false });
     return `<button class="link back" data-act="tab" data-v="more">${ICON.chevL}더보기</button>
-      <div class="page-top"><div><h1>의견 보내기${KoideTip.btn(`${S.month.dept.name} 관리자와 교회 관리자가 읽어요. 이야기가 필요하면 ${grp()} 리더에게 카톡으로 알려 주세요.`, '의견 보내기')}</h1></div></div>
+      <div class="page-top"><div><p class="eyebrow">코이데를 함께 만들어요</p><h1>의견 보내기${KoideTip.btn(`${S.month.dept.name} 관리자와 교회 관리자가 읽어요. 이야기가 필요하면 ${grp()} 리더에게 카톡으로 알려 주세요.`, '의견 보내기')}</h1></div></div>
       <section class="card fb-form" style="margin-top:12px">
         <div class="seg" style="--n:3" role="radiogroup" aria-label="의견 종류">${FB_KINDS.map(k => `<button class="${F.kind === k ? 'on' : ''}" role="radio" aria-checked="${F.kind === k}" data-act="fbkind" data-v="${k}">${k}</button>`).join('')}</div>
         <p class="hint warn-text">기도제목은 여기 쓰지 말아 주세요.</p>
