@@ -1,4 +1,5 @@
-// '함께하는 곳' 공통 메뉴. 노트 → 코이데 공동체 → 예전 모임 → 공동체 만들기 → 코이데 교회(맨 아래). 노트와 공동체 화면이 같은 순서.
+// '함께하는 곳' 공통 메뉴. 오른쪽 작은 회색 글은 '지금 상태'만 쓴다(지금 보는 곳 · 승인을 기다려요 · D-숫자 · 신청 수 · 교회 코드로 들어가기). 곳이 무엇인지 설명은 붙이지 않는다(2026-11-21).
+// 노트 → 코이데 공동체 → 예전 모임 → 공동체 만들기 → 코이데 교회(맨 아래). 노트와 공동체 화면이 같은 순서.
 (() => {
   const MAX = 3; // 코이데 공동체만 센다. 교회와 예전 모임은 따로
   const esc = s => String(s == null ? '' : s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
@@ -17,7 +18,7 @@
     };
     const here = '지금 보는 곳';
     return `<p class="mlabel">함께하는 곳</p>
-        ${item('note', '', '코이데 노트', o.cur === 'note' ? here : '나의 기도 노트')}
+        ${item('note', '', '코이데 노트', o.cur === 'note' ? here : '')}
         ${C.map(c => c.status === '요청' ? `<div class="mitem" role="menuitem" aria-disabled="true"><span>${esc(c.name)}</span><small>승인을 기다려요</small></div>`
           : c.state === '닫음' ? `<div class="mitem" role="menuitem" aria-disabled="true"><span>${esc(c.name)}</span><small>닫힌 공동체예요</small></div>`
           : item('circle', c.id, c.name, (() => {
@@ -25,11 +26,11 @@
               return [o.cur === c.id ? here : '', ['끝남', '끝맺음'].includes(c.state) ? '끝난 공동체' : left != null && left <= 30 ? dday({ left }) : '', c.asks ? '신청 ' + c.asks : ''].filter(Boolean).join(', ');
             })())).join('')}
         ${G.map(g => g.wait ? `<div class="mitem" role="menuitem" aria-disabled="true"><span>${esc(g.name)}</span><small>승인을 기다려요</small></div>`
-          : item('group', g.id, g.name, [o.cur === g.id ? here : '예전 모임', dday(g), g.asks ? '신청 ' + g.asks : ''].filter(Boolean).join(', '))).join('')}
+          : item('group', g.id, g.name, [o.cur === g.id ? here : '', dday(g), g.asks ? '신청 ' + g.asks : ''].filter(Boolean).join(', '))).join('')}
         ${o.circleMake ? '<div class="mdiv"></div>' : ''}
         ${o.circleMake ? `<a class="mitem" role="menuitem" ${o.attr('circleMake', '')}><span>+ 공동체 만들기</span></a>` : ''}
         ${o.room || !o.linked ? '<div class="mdiv"></div>' : ''}
-        ${o.room ? item('room', '', '코이데 교회', o.cur === 'room' ? here : esc(o.room.name))
+        ${o.room ? item('room', '', '코이데 교회', o.cur === 'room' ? here : '')
           : o.linked ? '' : `<a class="mitem" role="menuitem" href="index.html${o.demo ? '?demo&connect' : '?connect'}"><span>코이데 교회</span><small>교회 코드로 들어가기</small></a>`}`;
   }
   window.koidePlaces = { MAX, canMake, html, dday };

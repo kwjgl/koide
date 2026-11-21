@@ -5634,14 +5634,14 @@ try { const p = JSON.parse(localStorage.getItem('koide-pref') || '{}'), d = docu
     }
     // 함께하는 곳: 노트의 위쪽 막대와 같은 목록(places.js 하나로 그린다). 자율 모임은 기도 노트 소속이라 만들기만 노트로 보내고, 열기는 여기서 바로 된다
     const linked = !!(S.me && S.me.link && S.me.link.status === '연결'), G = myGroups();
-    const places = !linked && !S.grp && !G.length ? '' : `<div class="mdiv"></div>` + koidePlaces.html({ cur: S.grp || 'room', linked, demo: DEMO_LINK, groups: G, circles: CIRCLE_MENU.list, circleMake: communityOn() && CIRCLE_MENU.session && koidePlaces.canMake(false, CIRCLE_MENU.list),
-      room: linked && H && H.room ? { name: H.room.name, group: H.dept && H.dept.group } : null,
+    // 소속(사랑방·부서·편성 해)은 위 막대 이름표와 더보기에 있어서 창에는 되풀이하지 않는다. 지금 있는 곳은 "함께하는 곳" 줄의 굵은 글씨와 "지금 보는 곳"으로 알린다(2026-11-21)
+    const places = koidePlaces.html({ cur: S.grp || 'room', linked: linked || !S.grp, demo: DEMO_LINK, groups: G, circles: CIRCLE_MENU.list, circleMake: communityOn() && CIRCLE_MENU.session && koidePlaces.canMake(false, CIRCLE_MENU.list),
+      room: S.grp && !(linked && H && H.room) ? null : { name: (H && H.room ? H.room.name : M.room.name) },
       attr: (k, id) => k === 'note' ? `href="note.html${DEMO_LINK ? '?demo' : ''}"` : k === 'circleMake' ? `href="koinonia.html${DEMO_LINK?'?demo&new':'?new'}"` : k === 'circle' ? `href="index.html${DEMO_LINK?'?demo&c=':'?c='}${encodeURIComponent(id)}"` : k === 'room' ? 'data-act="gback"' : `data-act="gopen" data-v="${esc(id)}"` });
-    const menu = S.menu === 'badge' ? `<div class="menu" role="menu" aria-label="사랑방">
-        <p class="mlabel">${esc(grp())}</p><div class="mitem static"><b>${S.grp ? esc(M.room.name) : '코이데 교회'}</b><small>${S.grp ? '' : esc(M.room.name) + ' · '}${S.grp ? `모임 · ${M.families.length}명` : ''}${S.grp ? '' : M.dept && M.dept.name ? esc(M.dept.name) + ' · ' : ''}${S.grp ? '' : me.staff ? `${grp()} ${(M.rooms || []).length}곳 · ${(M.rooms || []).reduce((a, r) => a + r.n, 0)}${words().count}` : `${M.term || M.month.slice(0, 4)}년 편성 · ${M.families.length}${words().count}`}</small></div>${places}
+    const menu = S.menu === 'badge' ? `<div class="menu" role="menu" aria-label="함께하는 곳">
+        ${places}
         ${!opsDepts().length ? '' : S.me.ops.all ? `<div class="mdiv"></div><p class="mlabel">교회 관리</p><button class="mitem" role="menuitem" data-act="church"><span>교회 전체</span></button>`
-          : `<div class="mdiv"></div><p class="mlabel">운영 지원</p>${opsDepts().map(d => `<button class="mitem" role="menuitem" data-act="opsgo" data-v="${esc(d.id)}"><span>${esc(d.name)} · 지원</span></button>`).join('')}`}
-        ${me.admin && !DEMO ? '<div class="mdiv"></div><a class="mitem" role="menuitem" href="?demo" target="_blank" rel="noopener"><span>데모로 둘러보기</span></a>' : ''}</div>`
+          : `<div class="mdiv"></div><p class="mlabel">운영 지원</p>${opsDepts().map(d => `<button class="mitem" role="menuitem" data-act="opsgo" data-v="${esc(d.id)}"><span>${esc(d.name)} · 지원</span></button>`).join('')}`}</div>`
       : S.menu === 'settings' ? `<div class="menu" role="menu" aria-label="설정">
         <p class="mlabel mhead">화면 설정</p>${screenControls()}
         <div class="mdiv"></div><button class="mitem" role="menuitem" data-act="tab" data-v="more"><span>${solo() ? '내 정보' : '우리 가정 정보'}</span></button>
