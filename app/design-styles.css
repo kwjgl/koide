@@ -181,3 +181,28 @@
 :root[data-style="neu"] .kakao { box-shadow: var(--raise-sm); }
 :root[data-style="neu"] .kakao:disabled { box-shadow: none; }
 :root:root:root[data-style="neu"] .btn.sso-btn:not(:disabled) { box-shadow: var(--raise-sm) !important; }
+
+/* ── 떠 있는 하단 메뉴 (2026-11-22, 사용자) ──
+   화면 끝에 붙지 않고 살짝 떠 있는 짧은 둥근 막대. 모양(위치·폭·둥글기)은 모든 스타일이 같고, 겉모습(바탕·그림자)만 스타일을 따른다.
+   기본은 거의 불투명한 유리(뒤 글이 살짝만 비친다), new는 바탕색 막대 + 부드러운 그림자, glass는 지금보다 조금 진한 유리. 스큐어모피즘(skeu)만 예전 모양(화면 아래에 붙은 넓은 막대)을 그대로 둔다 */
+:root { --tabs-gap: 0px; }
+:root:not([data-style="skeu"]) { --tabs-gap: max(12px, calc(env(safe-area-inset-bottom, 0px) + 6px)); }
+:root:not([data-style="skeu"]) .tabs { left: 0; right: 0; bottom: var(--tabs-gap); margin: 0 auto; width: min(calc(100% - 40px), 340px); padding: 0 6px; border: 1px solid var(--line); border-radius: 32px;
+  background: color-mix(in srgb, var(--surface) 92%, transparent); -webkit-backdrop-filter: blur(14px) saturate(140%); backdrop-filter: blur(14px) saturate(140%); box-shadow: 0 8px 22px -12px var(--shadow), 0 1px 3px -1px var(--shadow); }
+:root:not([data-style="skeu"]) .tabs button { min-height: 56px; padding: 0; border-radius: 28px; }
+:root:not([data-style="skeu"]) .tabs .ic { width: 26px; height: 26px; }
+:root:not([data-style="skeu"]) .tabs button.pray-tab .ic { width: 42px; height: 42px; padding: 8px; }
+:root:not([data-style="skeu"]) .tabs button.on::after { bottom: 7px; }
+/* 아래로 스크롤하면 숨는 것도 떠 있는 높이만큼 더 내려가야 화면 밖으로 나간다. 따라 하기 중에는 늘 보인다 */
+:root:not([data-style="skeu"]) :is(body.hide-bars, body.tabs-off) .tabs { transform: translateY(calc(100% + var(--tabs-gap) + 8px)); }
+:root:not([data-style="skeu"]).kg-on :is(body.hide-bars, body.tabs-off) .tabs { transform: none; }
+:root[data-style="neu"] .tabs { background: var(--page); border-color: transparent; -webkit-backdrop-filter: none; backdrop-filter: none; box-shadow: var(--raise); }
+:root[data-style="neu"] .tabs button.on:not(.pray-tab) { margin: 7px 3px; min-height: 42px; border-radius: 20px; }
+:root[data-style="glass"] .tabs { background: color-mix(in srgb, var(--surface) 72%, transparent); border: var(--glass-edge); -webkit-backdrop-filter: var(--glass-blur); backdrop-filter: var(--glass-blur); box-shadow: var(--glass-shadow); }
+@supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) { :root[data-style="glass"] .tabs { background: color-mix(in srgb, var(--surface) 92%, transparent); } }
+/* 메뉴 위에 붙거나 뜨는 것(안내 글·아래에 붙는 막대)도 떠 있는 높이만큼 올린다 */
+@media (max-width: 999px) {
+  :root:not([data-style="skeu"]) .toast { bottom: calc(var(--tabs-gap) + 74px); }
+  :root:not([data-style="skeu"]) .stickbar { bottom: calc(var(--tabs-gap) + 66px); }
+  :root:not([data-style="skeu"]) body.tabs-off .stickbar { bottom: env(safe-area-inset-bottom, 0px); }
+}
