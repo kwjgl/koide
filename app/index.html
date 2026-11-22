@@ -6730,6 +6730,7 @@ try { const p = JSON.parse(localStorage.getItem('koide-pref') || '{}'), d = docu
     requestAnimationFrame(() => {
       ticking = false;
       const y = window.scrollY, dy = y - lastY;
+      if (matchMedia('(min-width: 1000px)').matches) { document.body.classList.remove('hide-bars'); lastY = y; return; }   // PC 폭은 상단 메뉴가 유일한 메뉴라 숨기지 않는다(디다코와 같게)
       if (S.menu || S.ps || S.meet != null) { lastY = y; return; }
       if (y < 40 || dy < -6) document.body.classList.remove('hide-bars');
       else if (dy > 6) document.body.classList.add('hide-bars');

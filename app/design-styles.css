@@ -196,6 +196,9 @@
 /* 아래로 스크롤하면 숨는 것도 떠 있는 높이만큼 더 내려가야 화면 밖으로 나간다. 따라 하기 중에는 늘 보인다 */
 :root:not([data-style="skeu"]) :is(body.hide-bars, body.tabs-off) .tabs { transform: translateY(calc(100% + var(--tabs-gap) + 8px)); }
 :root:not([data-style="skeu"]).kg-on :is(body.hide-bars, body.tabs-off) .tabs { transform: none; }
+/* 스큐어모피즘(classic)은 화면 끝에 붙은 선반이라 그림자와 물건이 비치지 않게 조금 더 내려간다 */
+:root[data-style="skeu"] :is(body.hide-bars, body.tabs-off) .tabs { transform: translateY(calc(100% + 16px)); }
+:root[data-style="skeu"].kg-on :is(body.hide-bars, body.tabs-off) .tabs { transform: none; }
 :root[data-style="neu"] .tabs { background: var(--page); border-color: transparent; -webkit-backdrop-filter: none; backdrop-filter: none; box-shadow: var(--raise); }
 :root[data-style="neu"] .tabs button.on:not(.pray-tab) { margin: 7px 3px; min-height: 42px; border-radius: 20px; }
 :root[data-style="glass"] .tabs { background: color-mix(in srgb, var(--surface) 72%, transparent); border: var(--glass-edge); -webkit-backdrop-filter: var(--glass-blur); backdrop-filter: var(--glass-blur); box-shadow: var(--glass-shadow); }

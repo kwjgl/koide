@@ -4069,6 +4069,7 @@ button.pg-tag::before { content: ''; position: absolute; inset: -10px; }
     requestAnimationFrame(() => {
       ticking = false;
       const y = window.scrollY, dy = y - lastY;
+      if (matchMedia('(min-width: 1000px)').matches) { document.body.classList.remove('hide-bars'); lastY = y; return; }   // PC 폭은 상단 메뉴가 유일한 메뉴라 숨기지 않는다(디다코와 같게)
       if (S.menu || S.mv || document.documentElement.style.overflow === 'hidden') { lastY = y; return; }
       if (y < 40 || dy < -6) document.body.classList.remove('hide-bars');
       else if (dy > 6) document.body.classList.add('hide-bars');
