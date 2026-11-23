@@ -4223,7 +4223,7 @@ try { const p = JSON.parse(localStorage.getItem('koide-pref') || '{}'), d = docu
     const tab = S.adminTab || 'manage';
     const seg = `<div class="seg2 admin-seg" role="tablist" aria-label="관리 화면">${[['manage', '관리'], ['analysis', '분석']].map(([k, l]) => `<button class="${tab === k ? 'on' : ''}" role="tab" aria-selected="${tab === k}" data-act="admintab" data-v="${k}">${l}</button>`).join('')}</div>`;
     const head = `${S.op ? (S.month.me.all ? `<button class="link back" data-act="church">${ICON.chevL}교회 전체</button>` : S.home ? `<button class="link back" data-act="tab" data-v="more">${ICON.chevL}더보기</button>` : '') : `<button class="link back" data-act="tab" data-v="more">${ICON.chevL}더보기</button>`}
-      <div class="page-top"><div><p class="eyebrow">${S.month.dept && S.month.dept.name ? esc(S.month.dept.name) : '관리자'}${S.op ? (S.month.me.all ? ' · 교회 관리자' : famOps() ? ' · 부서 관리자' : ' · 운영 지원') : ''}${S.op && S.month.dept.closed ? ' · 닫힌 부서' : ''}</p><h1>${tab === 'analysis' ? '분석' : '관리'}</h1></div></div>${seg}`;
+      <div class="page-top"><div><p class="eyebrow">${S.month.dept && S.month.dept.name ? esc(S.month.dept.name) : '관리자'}${S.op ? (S.month.me.all ? ' · 교회 관리자' : famOps() ? ' · 부서 관리자' : ' · 운영 지원') : ''}${S.op && S.month.dept.closed ? ' · 닫힌 부서' : ''}</p><h1>${tab === 'analysis' ? '분석' : '관리'}</h1></div>${S.me && S.me.ops && S.me.ops.all && !(S.op && S.month.me.all) ? '<button class="link" type="button" data-act="church">교회 전체 ›</button>' : ''}</div>${seg}`;
     if (CHURCHSB) {
       // 분석 탭(⑦b, 026): 옛 길과 같은 함수·같은 모양. 밴드(요약 띠)는 분석 탭에서는 그리지 않는다
       if (tab === 'analysis') return head + analysisView();
@@ -4243,7 +4243,7 @@ try { const p = JSON.parse(localStorage.getItem('koide-pref') || '{}'), d = docu
       ].join('') : '';
       return `${head}
       <div class="two-col"><div class="col">
-        ${todo ? `<p class="more-h">할 일</p>${todo}` : ''}
+        <p class="more-h">할 일</p>${todo || `<section class="card"><p class="hint" style="margin:0">${P && (!S.op || O) ? '지금 할 일이 없어요.' : '불러오는 중…'}</p></section>`}
         <p class="more-h">편성</p>${rosterCard()}
       </div><div class="col side">
         ${S.op ? `<p class="more-h">사람</p><section class="card mrows folds">${fold('together', '함께 기도해요', '', togetherEditCard())}${P && P.staff && !famOps() ? fold('staff', '교역자', P.staff.length ? P.staff.map(x => esc(x.label)).join(' · ') : '아직 없어요', staffCard()) : ''}${fold('invite', '초대 링크 · QR', I ? `${esc(S.month.dept.name)} 전체 · ${esc(grp())} ${I.rooms.length}곳` : '불러오는 중…', inviteCard())}</section>` : ''}
@@ -4739,10 +4739,11 @@ try { const p = JSON.parse(localStorage.getItem('koide-pref') || '{}'), d = docu
   async function loadChanges(all) { try { S.chg = await api('changes', all ? { all: true } : {}); } catch (e) { S.chg = { err: CHURCHSB ? (/받지 못했어요/.test(e.message) ? '서버 SQL을 020번까지 넣으면 볼 수 있어요.' : e.message) : e.code === 'bad' ? '서버를 새 버전으로 배포하면 볼 수 있어요.' : e.message }; } render(); }
   function changesCard(all) {
     const L = S.chg;
-    if (!L) return `<section class="card"><h2>변경 기록</h2><p class="hint">불러오는 중…</p></section>`;
-    if (L.err) return `<section class="card"><h2>변경 기록</h2><p class="hint">${esc(L.err)}</p></section>`;
+    const h = `<h2>변경 기록${KoideTip.btn('누가 언제 무엇을 바꿨는지 남아요. 기도제목 내용은 남기지 않고, 1년 1개월 뒤에 지워요.', '변경 기록')}</h2>`;   // 불러오는 중에도 ⓘ가 보이게 같은 제목을 쓴다
+    if (!L) return `<section class="card">${h}<p class="hint">불러오는 중…</p></section>`;
+    if (L.err) return `<section class="card">${h}<p class="hint">${esc(L.err)}</p></section>`;
     const n = S.chgN || 20, list = L.slice(0, n);
-    return `<section class="card"><h2>변경 기록${KoideTip.btn('누가 언제 무엇을 바꿨는지 남아요. 기도제목 내용은 남기지 않고, 1년 1개월 뒤에 지워요.', '변경 기록')}</h2>
+    return `<section class="card">${h}
       ${list.length ? `<ul class="chg-list">${list.map(x => `<li><small>${opsWhen(x.at)}${all && x.dept ? ' · ' + esc(x.dept) : ''}</small>
         <span><b>${esc(x.kind)}</b>${x.target ? ' ' + esc(x.target) : ''}${x.extra ? ` <small>(${esc(x.extra)})</small>` : ''}</span><small>${esc(x.who)}${x.role ? ' · ' + esc(x.role) : ''}</small>${x.undo ? `<span class="foot-acts"><button class="link quiet" data-act="mvundo" data-v="${esc(x.undo)}|${esc(x.ref)}" data-n="${esc(x.target)}" ${S.busy ? 'disabled' : ''}>되돌리기</button></span>` : ''}</li>`).join('')}</ul>` : '<p class="hint">아직 기록이 없어요.</p>'}
       ${L.length > n ? `<button class="link" data-act="chgmore">${L.length - n}개 더 보기</button>` : ''}</section>`;
