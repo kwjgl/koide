@@ -1,0 +1,210 @@
+/* ═══════════════════════════════════════════════════════════════════════
+   가족 앱 공용 부품 (family-ui.css)  ─ 디다코 · 코이데 · 텔리오가 함께 쓴다
+   위 막대 · 아래 메뉴 · 톱니·이름표 메뉴 · 카드 · 단추 · 입력칸 · 고르는 줄(seg) · 알림(toast) · 창(pop) ·
+   스위치 · 계정 줄 · 시작 화면 · 로그인 단추 · 화면 넘기기(vt) 같은 "세 앱이 같아야 하는 것".
+   숫자는 family-tokens.css의 이름표(var(--touch) 등)를 쓴다. 이 파일은 복사본이다: 원본은 kwjgl/gbs의 shared/family-ui/
+   ═══════════════════════════════════════════════════════════════════════ */
+
+* { box-sizing: border-box; }
+html, body { margin: 0; }
+/* 휴대폰을 가로로 돌려도 브라우저가 글씨를 저절로 키우지 않게 */
+html { -webkit-text-size-adjust: 100%; text-size-adjust: 100%; }
+body { background: var(--page); color: var(--ink); font-family: var(--f-body); font-size: var(--base); line-height: 1.55; -webkit-tap-highlight-color: transparent; word-break: keep-all; overflow-wrap: anywhere; }
+button, input, textarea, select { font: inherit; color: inherit; }
+/* 아이폰에서 빠르게 두세 번 눌러도 화면이 확대되지 않게(두 손가락으로 벌려 확대하는 것은 그대로). 캔버스·3D 무대는 건드리지 않는다 */
+button, a, label, summary, select, input, [role="button"], [data-act], .brand { touch-action: manipulation; }
+/* 틀(시안과 같게): 휴대폰·태블릿은 상단 바(배지·설정) + 하단 바(아이콘만), PC(1000px 이상)는 메뉴가 상단 바로 올라가고 2단 */
+.ic { width: 1em; height: 1em; fill: none; stroke: currentColor; stroke-width: 1.5; stroke-linecap: round; stroke-linejoin: round; flex: none; }
+.wrap { width: 100%; max-width: 1160px; margin: 0 auto; padding-left: max(var(--gutter), env(safe-area-inset-left, 0px)); padding-right: max(var(--gutter), env(safe-area-inset-right, 0px)); }
+.topbar { position: sticky; top: 0; z-index: 20; background: var(--surface); border-bottom: 1px solid var(--line); padding-top: env(safe-area-inset-top, 0px); transition: transform .25s ease; }
+.topbar .wrap { display: flex; align-items: center; gap: .6em; min-height: var(--h-topbar); position: relative; }   /* 막대 높이 51px · 좌우 여백 16px · 칸 사이 .6em은 코이데와 같다(가족 앱 공용 규칙 48번) */
+.brand { display: inline-flex; align-items: center; gap: .45em; background: none; border: 0; padding: .3em 0; color: var(--ink); cursor: pointer; min-height: var(--touch); }
+.brand-mark { width: 1.6em; height: 1.6em; border-radius: 50%; background: var(--accent); color: var(--on-accent); display: grid; place-items: center; }
+.brand-mark .ic { width: .95em; height: .95em; }
+.brand-name { font-family: var(--f-display); font-size: 1.05em; font-weight: 700; white-space: nowrap; }
+.topnav { display: none; gap: .2em; margin-left: 1.2em; }
+.topnav :is(button, a) { text-decoration: none; font-size: .92em; background: none; border: 0; color: var(--ink-2); padding: .5em .9em; border-radius: var(--r-sm); cursor: pointer; min-height: 40px; }
+.topnav :is(button, a).on { background: var(--accent-soft); color: var(--accent); font-weight: 600; }
+.spacer { flex: 1; }
+.badge-btn { display: inline-flex; align-items: center; gap: .4em; font-size: .84em; font-weight: 600; color: var(--ink); background: var(--surface-2); border: 1px solid var(--line); border-radius: var(--r-pill); padding: .35em .5em .35em .85em; min-height: 38px; cursor: pointer; white-space: nowrap; position: relative; }
+.role-tag { font-size: .86em; padding: .15em .6em; border-radius: var(--r-pill); background: var(--surface); color: var(--ink-2); border: 1px solid var(--line); }
+.role-tag.leader { color: var(--leader); border-color: var(--leader); background: var(--leader-soft); }
+.role-tag.admin { color: var(--on-accent); background: var(--accent); border-color: var(--accent); }
+.icon-btn { width: var(--touch); height: var(--touch); display: grid; place-items: center; background: none; border: 0; border-radius: var(--r-md); color: var(--ink); cursor: pointer; flex: none; }
+.icon-btn .ic { width: 1.35em; height: 1.35em; }
+.icon-btn[aria-expanded="true"] { background: var(--surface-2); }
+.menu { position: absolute; top: calc(100% + 6px); right: max(var(--gutter), env(safe-area-inset-right, 0px)); width: min(300px, calc(100vw - 32px)); background: var(--surface); border: 1px solid var(--line); border-radius: var(--r-lg); box-shadow: 0 16px 40px -12px var(--shadow); padding: .5em; display: flex; flex-direction: column; gap: .1em; z-index: 25; }
+.mlabel { font-size: var(--fs-label); font-weight: 600; color: var(--ink-2); margin: .6em .7em .3em; }   /* 팝업 이름표는 늘 .84배(휴대폰 약 13.4px). 코이데·디다코 모두 같다 */
+/* 톱니 메뉴의 '화면 설정' 제목: 코이데와 같은 크기 · 굵기(2026-11-20) */
+.mhead, .menu .mhead { font-size: calc(var(--base) * .97); font-weight: 600; color: var(--ink); }
+.mitem { display: flex; justify-content: space-between; align-items: center; gap: .6em; width: 100%; text-align: left; font-size: .9em; color: var(--ink); background: none; border: 0; border-radius: var(--r-sm); padding: .55em .7em; min-height: var(--touch); cursor: pointer; text-decoration: none; }
+.mitem:hover { background: var(--surface-2); }
+.mitem.static { cursor: default; flex-direction: column; align-items: flex-start; gap: .1em; }
+.mitem.static:hover { background: none; }
+.mitem small { font-size: .82em; color: var(--ink-2); }
+.swatches { display: flex; gap: 4px; margin: .2em .2em .4em; flex-wrap: nowrap; }   /* 색 테마 여섯 개는 늘 한 줄. 칸이 좁으면(더보기 화면 설정, 320px 휴대폰) 동그라미가 조금 작아진다. 간격은 노트 설정과 같은 4px(S-77) */
+.swatch { flex: 0 1 40px; min-width: 0; max-width: 40px; aspect-ratio: 1; height: auto; border-radius: 50%; padding: 0; border: 2px solid transparent; background: none; cursor: pointer; display: grid; place-items: center; }
+.swatch i { width: 28px; height: 28px; border-radius: 50%; display: block; box-shadow: inset 0 0 0 1px rgba(0, 0, 0, .12); }
+.swatch.on { border-color: var(--ink); }
+.menu .seg { margin: 0 .3em .3em; }
+.card .swatches { margin: .6em 0 0; }
+.set-row { display: flex; justify-content: space-between; align-items: center; gap: 12px; }
+.mdiv { flex: none; height: 1px; background: var(--line); margin: .35em .3em; }
+/* 스크롤을 내리면 상단 바와 하단 바가 함께 숨고, 조금이라도 올리면 다시 보인다(코이데·디다코 노트와 같게. 공용 규칙 68번) */
+body.hide-bars .topbar { transform: translateY(-100%); }
+body.hide-bars .tabs { transform: translateY(100%); }
+@media (prefers-reduced-motion: reduce) { .topbar, .tabs { transition: none; } }
+h1 { font-family: var(--f-display); font-size: var(--fs-title); line-height: 1.3; margin: .3em 0 .2em; }
+/* 탭 제목 옆 그림(코이데와 같게): 글자색과 크기를 따라가며, 그림만 따로 줄바꿈하지 않게 한다. */
+.h-ic { display:inline-flex; width:1.1em; height:1.1em; align-items:center; justify-content:center; vertical-align:-.16em; flex:none; color:inherit; }
+.h-ic svg { display:block; width:100%; height:100%; overflow:visible; }
+h2 { font-size: var(--fs-section); margin: 0; }
+.eyebrow { font-size: var(--fs-label); color: var(--ink-2); margin: 1em 0 0; }
+.hint { font-size: var(--fs-hint); color: var(--ink-2); margin: .4em 0 0; }
+.card { background: var(--surface); border: 1px solid var(--line); border-radius: var(--r-lg); padding: var(--sp-4); margin: var(--sp-3) 0; }
+.row { display: flex; justify-content: space-between; align-items: center; gap: .6em; }
+.btn { display: inline-flex; align-items: center; justify-content: center; gap: .4em; min-height: var(--touch); padding: 0 1.1em; border-radius: var(--r-md); border: 1px solid var(--accent); background: var(--accent); color: var(--on-accent); font-weight: 600; cursor: pointer; }
+.btn.ghost { background: transparent; color: var(--accent); }
+.btn.small { min-height: 36px; padding: 0 .8em; font-size: .88em; border-radius: var(--r-sm); }
+.btn.wide { width: 100%; }
+.btn:disabled { opacity: .5; cursor: default; }
+.field { width: 100%; min-height: var(--touch); padding: .5em .75em; border-radius: var(--r-sm); border: 1px solid var(--line-strong); background: var(--surface); }
+textarea.field { resize: vertical; line-height: 1.55; overflow-y: hidden; }
+.tabs[hidden] { display: none !important; }
+.tabs { position: fixed; left: 0; right: 0; bottom: 0; display: grid; grid-template-columns: repeat(5, 1fr); background: var(--surface); border-top: 1px solid var(--line); padding: 0 env(safe-area-inset-right, 0px) max(6px, env(safe-area-inset-bottom, 0px)) env(safe-area-inset-left, 0px); z-index: 10; transition: transform .25s ease; }
+.tabs .ic { width: 28px; height: 28px; stroke-width: 1.4; }
+.tabs :is(button, a).on { color: var(--accent); }
+.tabs :is(button, a).on .ic { stroke-width: 1.8; }
+.tabs :is(button, a).on::after { content: ''; position: absolute; bottom: 6px; width: 5px; height: 5px; border-radius: 50%; background: var(--accent); }
+.tabs :is(button, a).pray-tab .ic { width: 44px; height: 44px; padding: 8px; border-radius: 50%; background: var(--accent-soft); color: var(--accent); }
+.tabs :is(button, a).pray-tab.on .ic { background: var(--accent); color: var(--on-accent); }
+.tabs :is(button, a).pray-tab.on::after { content: none; }
+.seg { display: grid; grid-template-columns: repeat(var(--n, 3), 1fr); gap: 3px; padding: 3px; background: var(--surface-2); border-radius: var(--r-md); margin-top: 6px; }
+.seg button { font: inherit; font-size: .86em; word-break: keep-all; padding: 0 4px; border: 0; border-radius: 9px; min-height: var(--touch); background: transparent; color: var(--ink-2); cursor: pointer; }
+.seg button.on { background: var(--surface); color: var(--ink); font-weight: 600; box-shadow: 0 1px 3px rgba(0,0,0,.12); }
+.toast { pointer-events: none; position: fixed; left: 50%; bottom: 90px; transform: translateX(-50%); background: var(--ink); color: var(--page); padding: .6em 1em; border-radius: var(--r-sm); font-size: .88em; z-index: 20; text-align: center; max-width: calc(100% - 32px); }
+.pop { position: fixed; inset: 0; z-index: 40; display: flex; align-items: flex-end; justify-content: center; }
+.pop[hidden] { display: none; }
+.pop-scrim { position: absolute; inset: 0; background: rgb(0 0 0 / .4); animation: pop-fade .2s ease-out; }
+.pop-sheet { position: relative; width: 100%; max-width: 480px; max-height: 85vh; overflow-y: auto; border-radius: 18px 18px 0 0; padding: 1.1em 1.1em max(1.1em, env(safe-area-inset-bottom)); box-shadow: 0 -6px 24px rgb(0 0 0 / .18); animation: pop-up .25s ease-out; }
+@media (min-width: 640px) { .pop { align-items: center; } .pop-sheet { border-radius: 18px; } }
+@keyframes pop-up { from { transform: translateY(24px); opacity: 0; } }
+@keyframes pop-fade { from { opacity: 0; } }
+@media (prefers-reduced-motion: reduce) { .pop-scrim, .pop-sheet { animation: none; } }
+/* 부드럽게 넘어가기(디다코 노트 S-72·S-73과 같은 값, 2026-11-18): 화면 전환 기능이 있으면 옛 화면과 새 화면을 겹쳐 넘기고(아래 view-transition), 없으면 새 화면만 움직인다(.vt-*) */
+.vt-in-r { animation: vt-in-r .2s cubic-bezier(.2, .8, .2, 1) both; }
+.vt-in-l { animation: vt-in-l .2s cubic-bezier(.2, .8, .2, 1) both; }
+@keyframes vt-in-r { from { opacity: 0; transform: translateX(14px); } }
+@keyframes vt-in-l { from { opacity: 0; transform: translateX(-14px); } }
+@keyframes vt-fade { from { opacity: 0; } }
+/* 겹쳐 넘기기: 보이는 화면 전체(root)를 사진처럼 찍어 넘긴다. 내용 칸만 떼면 긴 화면이 맨 위부터 붙어 위로 튀고, 말씀을 열며·나눔 화면처럼 위에 덮이는 막보다 내용이 위에 겹쳤다(2026-11-18). 위쪽 바·하단 탭은 따로 떼어 움직이지 않는다 */
+:root[data-vt] #topbar { view-transition-name: topbar; }
+:root[data-vt] #tabs { view-transition-name: tabs; }
+::view-transition-old(topbar), ::view-transition-old(tabs) { animation: none; opacity: 0; }
+::view-transition-new(topbar), ::view-transition-new(tabs) { animation: none; }
+:root[data-vt="vt-in-r"] { --vt-in: 14px; --vt-out: -10px; }
+:root[data-vt="vt-in-l"] { --vt-in: -14px; --vt-out: 10px; }
+@keyframes vt-old-out { to { opacity: 0; transform: translateX(var(--vt-out, 0px)); } }
+@keyframes vt-new-in { from { opacity: 0; transform: translateX(var(--vt-in, 0px)); } }
+body.pop-open { overflow: hidden; }
+.kids { display: flex; flex-wrap: wrap; gap: .4em; }
+/* 아주 좁은 휴대폰(320px)에서도 상단 바가 옆으로 밀리지 않게: 이름표의 이름은 모자라면 말줄임(…)으로 줄이고, 역할 알약·[데모]·설정 톱니는 줄이지 않는다. 360px 아래에서만 칸 사이를 조금 좁힌다 */
+.topbar .badge-btn { min-width: 0; flex: 0 1 auto; }
+.badge-btn .badge-name { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.badge-btn .role-tag, .topbar .demo-tag { flex: none; }
+/* 359px 아래(보통 글씨)에서는 큰 글씨 때처럼 로고 옆 "디다코" 글자를 숨긴다. 로고 그림은 그대로 두어 누르면 이번 주로 간다 */
+@media (max-width: 359px) { .topbar .wrap { gap: .3em; } .topbar .brand-name { display: none; } }
+.sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+.topnav :is(button, a) { display: inline-flex; align-items: center; }
+.toast { z-index: 60; }
+.acct-li { display: flex; align-items: center; gap: 10px; padding: .55em 0; border-top: 1px solid var(--line); }
+.acct-li:first-of-type { border-top: 0; }
+.acct-logo { width: 30px; height: 30px; flex: none; display: grid; place-items: center; border-radius: 50%; border: 1px solid var(--line); background: var(--surface-2); color: var(--ink); }
+.acct-logo svg { width: 16px; height: 16px; }
+.erase-ask p { margin: 0 0 .5em; }
+.erase-ask .erase-warn { margin-bottom: .8em; }
+.erase-steps { margin: .1em 0 .9em; padding-left: 1.3em; font-size: .94em; }
+.erase-steps li { margin: .2em 0; }
+.erase-ask .field { margin: .3em 0 .7em; }
+.btn.danger { background: var(--warn); border-color: var(--warn); color: var(--on-accent); }
+
+
+/* ── 코이데에서 그대로 옮긴 것: 첫 화면(.welcome), 카카오 버튼 ── */
+.topbar[hidden] { display: none !important; }
+.welcome { display: grid; gap: 18px; max-width: 30rem; margin: 0 auto; padding: 1.2em 0 2em; }
+.ab-mark { width: 64px; height: 64px; border-radius: 50%; background: var(--accent); color: var(--on-accent); display: grid; place-items: center; }
+.ab-mark svg { width: 38px; height: 38px; }   /* .wl-mark svg(46px)보다 앞에 있어야 시작 화면 로고가 커진다 */
+.ab-words { display: flex; align-items: center; justify-content: center; gap: .5em; margin: .6em 0 .2em; }
+.ab-words span { display: flex; flex-direction: column; align-items: center; gap: .1em; padding: .5em .7em; border: 1px solid var(--line); border-radius: var(--r-md); background: var(--page); min-width: 6.4em; }
+.ab-words b { font-weight: 600; }
+.ab-words i { font-style: normal; font-family: var(--f-display); color: var(--accent); }
+.ab-words small { font-size: .74em; color: var(--ink-2); }
+.ab-words em { font-style: normal; color: var(--ink-2); }
+.wl-hero { display: flex; flex-direction: column; align-items: center; text-align: center; gap: .35em; padding: 1.2em 0 .2em; }
+.wl-mark { width: 76px; height: 76px; margin-bottom: .3em; }
+.wl-mark svg { width: 46px; height: 46px; }
+.wl-name { font-family: var(--f-display); font-size: 2.1em; margin: 0; letter-spacing: .02em; }
+.wl-tag { margin: 0; font-family: var(--f-display); font-size: 1.15em; line-height: 1.55; color: var(--ink-2); }
+.wl-act { display: flex; flex-direction: column; gap: 10px; }
+.wl-act .hint { margin: 0; }
+.wl-once { text-align: center; word-break: keep-all; }
+.wl-feat { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 14px; }
+.wl-feat li { display: flex; gap: 12px; align-items: flex-start; }
+.wl-ico { flex: none; width: 38px; height: 38px; border-radius: 50%; background: var(--accent-soft); color: var(--accent); display: grid; place-items: center; }
+.wl-ico svg { width: 20px; height: 20px; }
+.wl-feat div { display: flex; flex-direction: column; gap: .15em; }
+.wl-feat b { font-weight: 600; }
+.wl-feat div span { color: var(--ink-2); font-size: .9em; line-height: 1.55; word-break: keep-all; }
+.wl-name-note { text-align: center; border-top: 1px solid var(--line); padding-top: 1em; }
+.wl-name-note .hint { margin: .4em 0 0; }
+@media (min-width: 860px) {
+  /* 두 칸: 왼쪽 절반에 머리·로그인 카드·소개·이름의 뜻을 위에서 아래로(세로 가운데), 오른쪽 절반 가운데에 3:4 세로 영상 카드(.wl-film, body에 따로 붙는 고정 요소) */
+  /* 큰 모니터에서 두 칸이 너무 멀어지지 않게, 두 칸 전체 폭 L을 1100px까지만 쓰고 가운데에 둔다(.wl-film도 같은 L을 쓴다) */
+  :root { --wl-L: min(100%, 1100px); }
+  body.wl-on main.wrap { max-width: none; padding: 0; }   /* 첫 화면에서는 틀의 좌우 여백을 풀어 100%가 화면 폭이 되게 한다(영상 카드와 같은 기준) */
+  .welcome { width: calc(var(--wl-L) / 2); max-width: none; margin: 0 0 0 calc((100% - var(--wl-L)) / 2); min-height: 100vh; min-height: 100dvh; display: flex; flex-direction: column; justify-content: center; align-items: center; gap: 14px; padding: 20px clamp(24px, 4vw, 64px); }
+  .welcome > * { width: 100%; max-width: 26rem; }
+  .wl-hero { align-items: center; text-align: center; padding-top: 0; }
+  .wl-name { font-size: 2.6em; }
+  .wl-feat { gap: 12px; }
+  .wl-name-note { padding-top: .8em; }
+}
+/* 첫 화면 영상 칸(2026-11-15, 코이데 index.html의 것을 그대로 옮겼다). 860px 이상: 오른쪽 3:4 카드(.wl-film). 860px 미만(휴대폰·아이패드 세로): 위쪽 머리 뒤에 깔리는 배경(.wl-film.wl-film-m).
+   영상 파일이 없거나 못 불러오면 PC는 디다코 마크가 천천히 숨 쉬는 대체 화면이, 휴대폰은 은은한 빛 번짐이 그대로 보인다. 바뀐 것은 대체 화면의 그림(디다코 마크)뿐이다 */
+.wl-film { display: none; }
+.wl-film video, .wl-film .wl-film-poster { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
+.wl-film video { opacity: 0; transition: opacity .8s ease; }
+.wl-film video.on { opacity: 1; }
+.wl-film.paused *, .wl-film.paused *::before, .wl-film.paused *::after { animation-play-state: paused; }
+@keyframes wl-breathe { 0%, 100% { transform: translateY(0) scale(1); } 50% { transform: translateY(-8px) scale(1.04); } }
+@keyframes wl-ring { 0%, 100% { transform: scale(.96); opacity: .15; } 50% { transform: scale(1.04); opacity: .55; } }
+@media (prefers-reduced-motion: reduce) { .wl-film *, .wl-film *::before, .wl-film *::after { animation: none !important; } .wl-film video { transition: none; } }
+.kakao { display: flex; align-items: center; justify-content: center; gap: .5em; width: 100%; min-height: 52px; border: 0; border-radius: var(--r-md); background: #FEE500; color: rgba(0,0,0,.85); font-weight: 600; cursor: pointer; }
+.choices { display: flex; flex-direction: column; gap: 8px; margin: 12px 0; }
+.choice.new { border-style: dashed; color: var(--ink-2); }
+.steps { display: flex; gap: 6px; margin-top: 16px; }
+.steps span { flex: 1; height: 4px; border-radius: 4px; background: var(--line); }
+.steps span.on { background: var(--accent); }
+.consent { list-style: none; padding: 0; margin: 12px 0; display: flex; flex-direction: column; gap: 8px; }
+.consent li { display: grid; grid-template-columns: 4.6em 1fr; gap: .6em; background: var(--surface); border: 1px solid var(--line); border-radius: var(--r-md); padding: .7em .85em; font-size: .92em; }
+.consent b { color: var(--accent); font-size: .9em; }
+label.f { display: block; font-size: .85em; font-weight: 600; margin: 12px 0 4px; }
+.wait { display: flex; align-items: center; gap: .6em; background: var(--accent-soft); border-radius: var(--r-md); padding: .9em 1em; font-weight: 600; margin: 12px 0; }
+.calm { display: flex; flex-direction: column; gap: .7em; align-items: flex-start; }
+.calm-t { font-family: var(--f-display); font-size: 1.3em; margin: 0; }
+.seg2 { display: grid; grid-template-columns: repeat(2, 1fr); gap: 3px; padding: 3px; background: var(--surface-2); border-radius: var(--r-sm); border: 1px solid var(--line); }
+.seg2 button.on { background: var(--surface); color: var(--ink); font-weight: 600; box-shadow: 0 1px 3px var(--shadow); }
+.more-h { font-size: .8em; font-weight: 600; color: var(--ink-2); margin: 6px 4px -4px; letter-spacing: .02em; }
+.folds { padding-top: 0; padding-bottom: 0; }
+.fb-kind { font-size: .78em; font-weight: 600; color: var(--accent); background: var(--accent-soft); border-radius: var(--r-pill); padding: .1em .6em; }
+.mchips { display: flex; flex-wrap: wrap; gap: .35em; }
+.mchip.on { background: var(--accent); border-color: var(--accent); color: var(--on-accent); font-weight: 600; }
+.req { background: var(--accent-soft); border-radius: var(--r-md); padding: 12px; margin: 8px 0; }
+
+/* ── 펼치기·나눔하기 시안(read.html, sharing.html)에서 그대로 옮긴 것 ── */
+.switch { width: 48px; height: 28px; border-radius: var(--r-pill); border: 0; background: var(--line-strong); position: relative; flex: none; padding: 0; cursor: pointer; }
+.switch > span { position: absolute; top: 3px; left: 3px; width: 22px; height: 22px; border-radius: 50%; background: var(--surface); transition: left .2s; }
+.switch.on { background: var(--accent); }
+.switch.on > span { left: 23px; }
+.a2hs-steps { margin: 0; padding-left: 1.3em; display: flex; flex-direction: column; gap: .25em; font-size: .92em; }
+.ps-topics { margin-top: 8px; padding: 8px 10px; border-radius: var(--r-md); background: var(--surface-2); }
