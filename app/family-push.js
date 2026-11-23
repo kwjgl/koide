@@ -17,7 +17,7 @@
     ],
     didako: [
       { k: 'today', type: 'time', def: '07:00', name: '오늘의 질문', desc: '정한 시각에 오늘의 질문이 기다린다고 알려요.' },
-      { k: 'meet', type: 'day', t: '20:00', def: 0, name: '모임 전날 저녁', desc: '모임 요일을 고르면 전날 저녁 8시에 "내일 모임이 있어요"라고 알려요.' }
+      { k: 'week', type: 'weekday', t: '08:00', def: 0, name: '이번 주의 질문', desc: '정한 요일 아침 8시에 이번 주의 질문이 열렸다고 알려요. 이번 주의 질문은 주일마다 바뀌어요.' }
     ]
   };
   const DAYS = ['일', '월', '화', '수', '목', '금', '토'];
@@ -61,7 +61,7 @@
       if (d.type === 'times') (it.times || []).slice(0, d.max).forEach(t => out.push({ k: d.k, t }));
       else if (d.type === 'time') out.push({ k: d.k, t: it.t || d.def });
       else if (d.type === 'fixed') out.push({ k: d.k, t: d.t, m: d.m });
-      else if (d.type === 'day') out.push({ k: d.k, t: d.t, d: [(Number(it.day == null ? d.def : it.day) + 6) % 7] });   // 모임 전날
+      else if (d.type === 'weekday') out.push({ k: d.k, t: d.t, d: [Number(it.day == null ? d.def : it.day)] });   // 고른 요일
     });
     return out;
   }
@@ -115,7 +115,7 @@
         if (perm !== 'granted') { msg = perm === 'denied' ? '알림이 막혀 있어요. 폰 설정에서 이 앱의 알림을 켜 주세요.' : '알림을 허락해야 켤 수 있어요.'; busy = false; return C.render(); }
         if (d.type === 'times') it.times = it.times && it.times.length ? it.times : d.def.slice();
         else if (d.type === 'time') it.t = it.t || d.def;
-        else if (d.type === 'day') it.day = it.day == null ? d.def : it.day;
+        else if (d.type === 'weekday') it.day = it.day == null ? d.def : it.day;
         it.on = true; save();
         await sync(); C.toast && C.toast('알림을 켰어요.');
       } catch (e) { it.on = false; fail(e); if (!msg || /서버/.test(msg)) msg = '알림을 켜지 못했어요. 잠시 뒤 다시 해 보세요.'; save(); }
@@ -167,9 +167,9 @@
       const ts = it.times || [];
       ex = `<div class="fp-times">${ts.map((t, i) => `<span class="fp-t">${timeInput(d.k, 't' + i, t, d.name + ' ' + (i + 1))}<button type="button" class="fp-x" aria-label="이 시각 지우기" data-fp="drop" data-k="${d.k}" data-i="${i}">×</button></span>`).join('')}${ts.length < d.max ? `<button type="button" class="fp-add" data-fp="add" data-k="${d.k}">+ 시각 더하기</button>` : ''}</div>`;
     } else if (on && d.type === 'time') ex = `<div class="fp-times">${timeInput(d.k, 't', it.t || d.def, d.name + ' 시각')}</div>`;
-    else if (on && d.type === 'day') {
+    else if (on && d.type === 'weekday') {
       const dv = it.day == null ? d.def : it.day;
-      ex = `<div class="fp-days" role="group" aria-label="모임 요일">${DAYS.map((n, i) => `<button type="button" class="fp-day${dv === i ? ' on' : ''}" aria-pressed="${dv === i}" data-fp="day" data-k="${d.k}" data-v="${i}">${n}</button>`).join('')}</div>`;
+      ex = `<div class="fp-days" role="group" aria-label="알림 받을 요일">${DAYS.map((n, i) => `<button type="button" class="fp-day${dv === i ? ' on' : ''}" aria-pressed="${dv === i}" data-fp="day" data-k="${d.k}" data-v="${i}">${n}</button>`).join('')}</div>`;
     }
     return `<div class="fp-item"><div class="fp-head"><span class="fp-name"><b>${esc(d.name)}</b>${tip(d.desc, d.name)}</span>${sw}</div>${ex}</div>`;
   }
@@ -215,7 +215,7 @@
   }
   // 앱을 열 때: 켜 둔 기기인데 구독이 사라졌거나 주소가 바뀌었으면 맞추고, 지난번에 못 보낸 것이 있으면 다시 보낸다
   async function reconcile() {
-    if (!anyOn() || support() !== 'ok' || Notification.permission !== 'granted') return;
+    if ((!anyOn() && !dirty) || support() !== 'ok' || Notification.permission !== 'granted') return;
     try {
       const s = await sub(false);
       if (!s) { await sync(); }                     // 구독이 사라졌다 → 다시 만든다
@@ -225,6 +225,8 @@
   window.FamilyPush = {
     init(opts) {
       C = opts; ST = load(); style();
+      // 앱에서 없앤 알림 종류(예: 옛 '모임 전날 저녁')가 이 기기에 켜진 채 남아 있으면 지우고 서버에도 알린다
+      Object.keys(ST.items).forEach(k => { if (!kinds().some(d => d.k === k)) { delete ST.items[k]; ST.dirty = true; } });
       dirty = ST.dirty; if (!window.__fpWired) { window.__fpWired = true; wire(); }
       setTimeout(reconcile, 2500);
     },
