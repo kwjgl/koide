@@ -241,6 +241,12 @@
   --obj-quill: url("img/menu/quill.webp");
   --obj-satchel: url("img/menu/satchel.webp");
   --obj-lamp: url("img/menu/lamp.webp");
+  --obj-calendar: url("img/menu/calendar.webp");
+  --obj-teacup: url("img/menu/teacup.webp");
+  --obj-notebook: url("img/menu/notebook.webp");
+  --obj-candle: url("img/menu/candle.webp");
+  --obj-mirror: url("img/menu/mirror.webp");
+  --obj-chest: url("img/menu/chest.webp");
 }
 @media (prefers-color-scheme: dark) { :root[data-style="skeu"]:not([data-mode="light"]) { --bar-hi: color-mix(in srgb, var(--accent) 38%, #0d1513); --bar-lo: color-mix(in srgb, var(--accent) 22%, #0a100f); --btn-ts: none; --h1-ts: none; --card-hi: rgba(255,255,255,.07); --dock-a: color-mix(in srgb, var(--accent) 40%, #0c0a08); --dock-b: color-mix(in srgb, var(--accent) 22%, #060504); --linen: repeating-linear-gradient(0deg, rgba(255,255,255,.025) 0 1px, transparent 1px 3px), repeating-linear-gradient(90deg, rgba(0,0,0,.25) 0 1px, transparent 1px 3px); } }
 :root[data-style="skeu"][data-mode="dark"] { --bar-hi: color-mix(in srgb, var(--accent) 38%, #0d1513); --bar-lo: color-mix(in srgb, var(--accent) 22%, #0a100f); --btn-ts: none; --h1-ts: none; --card-hi: rgba(255,255,255,.07); --dock-a: color-mix(in srgb, var(--accent) 40%, #0c0a08); --dock-b: color-mix(in srgb, var(--accent) 22%, #060504); --linen: repeating-linear-gradient(0deg, rgba(255,255,255,.025) 0 1px, transparent 1px 3px), repeating-linear-gradient(90deg, rgba(0,0,0,.25) 0 1px, transparent 1px 3px); }
@@ -249,7 +255,8 @@
 :root[data-style="skeu"] .topbar:not(.bare) { background-image: radial-gradient(130% 120% at 50% -48%, rgba(255,255,255,.85) 0, rgba(255,255,255,.3) 62%, rgba(255,255,255,0) 63%), linear-gradient(180deg, var(--bar-hi), var(--bar-lo)); background-color: var(--bar-lo); color: #fff; border-bottom: 1px solid rgba(0,0,0,.55); box-shadow: inset 0 1px 0 rgba(255,255,255,.8), inset 0 -1px 0 rgba(0,0,0,.4), 0 3px 8px -2px rgba(0,0,0,.5); }
 :root[data-style="skeu"] .topbar:not(.bare) :is(.brand, .brand-name, .icon-btn, .tm.ic-btn, .topnav :is(button, a)) { color: #fff; text-shadow: 0 -1px 0 rgba(0,0,0,.45); }
 :root[data-style="skeu"] .topbar:not(.bare) .topnav :is(button, a).on { background: rgba(0,0,0,.28); color: #fff; box-shadow: inset 0 2px 4px rgba(0,0,0,.45), 0 1px 0 rgba(255,255,255,.25); }
-:root[data-style="skeu"] .topbar .brand-mark { background-image: radial-gradient(120% 70% at 50% -10%, rgba(255,255,255,.75), rgba(255,255,255,0) 62%), linear-gradient(180deg, #fff, #cfe4df); background-color: #fff; color: var(--accent-edge); box-shadow: 0 1px 3px rgba(0,0,0,.5), inset 0 -1px 2px rgba(0,0,0,.2); }
+:root[data-style="skeu"] .topbar .brand-mark { --disc: color-mix(in srgb, var(--accent) 78%, #000); background-image: radial-gradient(120% 70% at 50% -10%, rgba(255,255,255,.7), rgba(255,255,255,0) 62%), linear-gradient(180deg, color-mix(in srgb, var(--accent) 88%, #000), var(--disc)); background-color: var(--disc); color: #fff; box-shadow: 0 1px 3px rgba(0,0,0,.5), inset 0 0 0 1px rgba(255,255,255,.55), inset 0 -1px 2px rgba(0,0,0,.25); }
+:root[data-style="skeu"] .topbar .brand-mark .mk { --cord-bg: var(--disc); }
 :root[data-style="skeu"] .topbar:not(.bare) :is(.badge-btn, .place-btn, .role-tag) { text-shadow: none; }
 /* 카드: 깨끗한 바탕(글이 놓이는 곳) + 맨 윗가장자리에만 얇은 유리 빛과 하얀 테두리 */
 :root[data-style="skeu"] :is(.card, .gc, .notice, .menu) { background: linear-gradient(180deg, var(--card-hi) 0, rgba(255,255,255,0) 36px), linear-gradient(180deg, var(--hi), var(--surface)); border: 1px solid color-mix(in srgb, var(--line-strong) 80%, #000 10%); box-shadow: inset 0 0 0 1px rgba(255,255,255,.55), inset 0 1px 0 #fff, 0 1px 3px rgba(0,0,0,.2), 0 12px 22px -12px rgba(0,0,0,.4); }
@@ -270,6 +277,8 @@
 :root[data-style="skeu"] .tabs .ic { display: none; }
 :root[data-style="skeu"] .tabs :is(button, a)::before { content: ""; width: 48px; height: 48px; background: var(--obj) center / contain no-repeat; filter: drop-shadow(0 2px 2px rgba(0,0,0,.45)); opacity: .8; transform: scale(.92); transition: transform .15s, opacity .15s; -webkit-box-reflect: below -6px linear-gradient(transparent 62%, rgba(255,255,255,.28)); }
 :root[data-style="skeu"] .tabs :is(button, a).on::before { opacity: 1; transform: translateY(-3px) scale(1.04); }
+/* 화면을 넘기는 동안(data-vt)에는 아래 메뉴가 사진처럼 얼려 보였다가 끝나면 진짜 메뉴로 바뀐다. 그때 물건이 올라오는 움직임이 아직 진행 중이면 한 번 깜빡이므로, 넘기는 동안은 움직임 없이 바로 최종 모양으로 둔다 */
+:root[data-style="skeu"][data-vt] .tabs :is(button, a)::before { transition: none; }
 :root[data-style="skeu"] .tabs :is(button, a).on::after, :root[data-style="skeu"] .tabs :is(button, a).pray-tab.on::after { content: ""; background: #fff; box-shadow: 0 0 5px 1px rgba(255,255,255,.8); bottom: 3px; }
 @media (prefers-reduced-motion: reduce) { :root[data-style="skeu"] .tabs :is(button, a)::before { transition: none; } }
 /* 메뉴 칸마다 그림 */
@@ -282,3 +291,12 @@
 :root[data-style="skeu"] .tabs [data-tab="explore"] { --obj: var(--obj-compass); }
 :root[data-style="skeu"] .tabs [data-tab="write"] { --obj: var(--obj-quill); }
 :root[data-style="skeu"] .tabs [data-tab="mine"] { --obj: var(--obj-journal); }
+/* 코이데(data-v) 메뉴 칸 그림. 디다코 그림과 코이데 그림은 두 앱 폴더에 모두 들어 있다 */
+:root[data-style="skeu"] .tabs [data-v="home"] { --obj: var(--obj-calendar); }
+:root[data-style="skeu"] .tabs [data-v="mine"] { --obj: var(--obj-notebook); }
+:root[data-style="skeu"] .tabs [data-v="pray"] { --obj: var(--obj-candle); }
+:root[data-style="skeu"] .tabs [data-v="history"] { --obj: var(--obj-mirror); }
+:root[data-style="skeu"] .tabs [data-v="more"] { --obj: var(--obj-chest); }
+:root[data-style="skeu"] .tabs [data-v="today"] { --obj: var(--obj-teacup); }
+:root[data-style="skeu"] .tabs [data-v="note"] { --obj: var(--obj-notebook); }
+:root[data-style="skeu"] .tabs [data-v="look"] { --obj: var(--obj-mirror); }
