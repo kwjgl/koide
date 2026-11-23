@@ -4033,7 +4033,7 @@ button.pg-tag::before { content: ''; position: absolute; inset: -10px; }
   // 순례길 장면: 오늘 카드에서 시작하는 것(pilgrimtoday · pilgrimrest · wildtoday · wildrest)과 지난 기록(pilgrimbadge · wildbadge)이 아니면 순례길 화면을 바로 연다
   if (SC && /^(pilgrim|wild|land|david)/.test(SC.at)) { if (['pilgrimbadge', 'wildbadge', 'landbadge', 'davidbadge'].includes(SC.at)) S.tab = 'badges'; else if (!['pilgrimtoday', 'pilgrimrest', 'wildtoday', 'wildrest', 'landtoday', 'landarrive', 'landrest', 'davidtoday'].includes(SC.at)) { S.pg = true; pgEnter(); pgLoad(); pgNext(); } }
   // 알림(family-push.js): 서버 설정(SUPABASE_URL·KEY·PUSH_KEY)이 있는 실제 앱에서만. 데모·장면·따라 하기에서는 켜지 않는다
-  if (SB_CFG && CFG.PUSH_KEY && !DEMO && !SC && !TUT && window.FamilyPush) FamilyPush.init({ app: 'koide', url: CFG.SUPABASE_URL, key: CFG.SUPABASE_KEY, vapid: CFG.PUSH_KEY, render: () => render(), toast, a2hs: () => { S.a2hs = true; render(); } });
+  if (SB_CFG && CFG.PUSH_KEY && !DEMO && !SC && !TUT && window.FamilyPush) FamilyPush.init({ app: 'koide', url: CFG.SUPABASE_URL, key: CFG.SUPABASE_KEY, vapid: CFG.PUSH_KEY, render: () => render(), tip: (t, l) => KoideTip.btn(t, l), toast, a2hs: () => { S.a2hs = true; render(); } });
   // 알림을 눌러 들어온 길(?from=push&go=pray): 기도하기 탭으로 열고 주소의 표시는 지운다
   { const q = new URLSearchParams(location.search); if (q.has('from')) { if (q.get('go') === 'pray' && !SC && !TUT) S.tab = 'pray'; q.delete('from'); q.delete('go'); history.replaceState(null, '', location.pathname + (q.toString() ? '?' + q.toString().replace(/=(&|$)/g, '$1') : '') + location.hash); } }
   render();

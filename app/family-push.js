@@ -3,7 +3,7 @@
 // 서버에 가는 것: 폰 알림 주소와 열쇠, 어느 앱인지, 알림 시각 목록, 시간대. 카카오 계정·이름·기도제목·내용은 가지 않는다(supabase/044_push_device.sql).
 // 설정은 이 기기에만 기억한다(알림 허락도 기기마다 따로다). 켜고 끄는 값은 localStorage 'family-push-<앱>'.
 // 쓰는 법(앱 화면 파일):
-//   FamilyPush.init({ app: 'koide'|'didako', url, key, vapid, render: () => 화면을 다시 그리는 함수, toast: msg => 알림 글, a2hs: () => '홈 화면에 두기' 안내 열기(선택) })
+//   FamilyPush.init({ app: 'koide'|'didako', url, key, vapid, render: () => 화면을 다시 그리는 함수, tip: (글, 이름) => ⓘ 툴팁 html(각 앱의 info-tip 도구), toast: msg => 알림 글, a2hs: () => '홈 화면에 두기' 안내 열기(선택) })
 //   FamilyPush.on()  → 알림 설정 칸을 보여 줄 수 있는가(설정값이 있고 데모가 아닐 때)
 //   FamilyPush.hint() → 설정 줄 아래에 보일 짧은 말("꺼짐" 등)
 //   FamilyPush.panel() → 펼친 안쪽 html
@@ -154,6 +154,8 @@
     } catch (e) { msg = '알림을 보여 주지 못했어요.'; C.render(); }
   }
 
+  // 설명은 글로 늘어놓지 않고 이름 옆 ⓘ 툴팁으로(각 앱의 툴팁 도구를 init의 tip으로 받는다. 없으면 작은 글)
+  const tip = (text, label) => C.tip ? C.tip(text, label) : `<small class="fp-sm">${esc(text)}</small>`;
   function timeInput(k, field, v, label) {
     return `<input class="fp-time" type="time" step="300" value="${esc(v)}" aria-label="${esc(label)}" data-fp="edit" data-k="${k}" data-f="${field}">`;
   }
@@ -167,9 +169,9 @@
     } else if (on && d.type === 'time') ex = `<div class="fp-times">${timeInput(d.k, 't', it.t || d.def, d.name + ' 시각')}</div>`;
     else if (on && d.type === 'day') {
       const dv = it.day == null ? d.def : it.day;
-      ex = `<div class="fp-days" role="group" aria-label="모임 요일">${DAYS.map((n, i) => `<button type="button" class="fp-day${dv === i ? ' on' : ''}" aria-pressed="${dv === i}" data-fp="day" data-k="${d.k}" data-v="${i}">${n}</button>`).join('')}</div><p class="fp-sm">모임이 있는 날: ${DAYS[dv]}요일 · 알림은 ${DAYS[(dv + 6) % 7]}요일 저녁 8시</p>`;
+      ex = `<div class="fp-days" role="group" aria-label="모임 요일">${DAYS.map((n, i) => `<button type="button" class="fp-day${dv === i ? ' on' : ''}" aria-pressed="${dv === i}" data-fp="day" data-k="${d.k}" data-v="${i}">${n}</button>`).join('')}</div>`;
     }
-    return `<div class="fp-item"><div class="fp-head"><span><b>${esc(d.name)}</b><small>${esc(d.desc)}</small></span>${sw}</div>${ex}</div>`;
+    return `<div class="fp-item"><div class="fp-head"><span class="fp-name"><b>${esc(d.name)}</b>${tip(d.desc, d.name)}</span>${sw}</div>${ex}</div>`;
   }
   let styled = false;
   function style() {
@@ -180,7 +182,9 @@
 .fp-item{display:flex;flex-direction:column;gap:var(--sp-2)}
 .fp-head{display:flex;justify-content:space-between;align-items:center;gap:var(--sp-3)}
 .fp-head b{display:block;font-weight:600}
-.fp-head small,.fp-sm,.fp-note{display:block;color:var(--ink-2);font-size:var(--fs-hint);line-height:1.5;margin:.15em 0 0;word-break:keep-all}
+.fp-name{display:inline-flex;align-items:center;gap:.2em}
+.fp-priv{margin-left:auto}
+.fp-sm,.fp-note{display:block;color:var(--ink-2);font-size:var(--fs-hint);line-height:1.5;margin:.15em 0 0;word-break:keep-all}
 .fp-times{display:flex;flex-wrap:wrap;gap:var(--sp-2);align-items:center}
 .fp-t{display:inline-flex;align-items:center;gap:.2em}
 .fp-time{min-height:var(--touch);padding:.4em .6em;border:1px solid var(--line-strong);border-radius:var(--r-sm);background:var(--surface);color:var(--ink);font:inherit}
@@ -237,9 +241,10 @@
       else if (sp === 'no') top = '<div class="fp-warn">이 브라우저에서는 알림을 켤 수 없어요. 크롬·사파리 같은 최신 브라우저나 홈 화면에 추가한 앱에서 열어 주세요.</div>';
       else if (sp === 'denied') top = '<div class="fp-warn">이 기기에서 알림이 막혀 있어요. 폰 설정에서 이 앱(또는 브라우저)의 알림을 켠 뒤 다시 열어 주세요.</div>';
       const body = sp === 'ok' ? kinds().map(itemHtml).join('') : '';
-      const foot = sp === 'ok' ? `<div class="fp-foot">${anyOn() ? '<button type="button" class="fp-link" data-fp="test">알림 보내 보기</button>' : ''}</div>` : '';
+      const priv = `알림은 이 기기에서만 켜져요. 서버에는 이 기기의 알림 주소와 시각만 맡기고, 계정·이름·${C.app === 'koide' ? '기도제목' : '내가 쓴 글'}은 보내지 않아요. 알림 글에도 들어가지 않아요. 언제든 꺼도 돼요.`;
+      const foot = sp === 'ok' ? `<div class="fp-foot">${anyOn() ? '<button type="button" class="fp-link" data-fp="test">알림 보내 보기</button>' : ''}<span class="fp-name fp-priv"><small class="fp-sm">이 기기에서만 켜져요</small>${tip(priv, '알림과 개인정보')}</span></div>` : '';
       return `<div class="fp-box">${top}${body}${msg ? `<p class="fp-note" role="status">${esc(msg)}</p>` : ''}${foot}
-        <p class="fp-note">알림은 이 기기에서만 켜져요. 서버에는 이 기기의 알림 주소와 시각만 맡기고, 계정·이름·${C.app === 'koide' ? '기도제목' : '내가 쓴 글'}은 보내지 않아요. 알림 글에도 들어가지 않아요. 언제든 꺼도 돼요.</p></div>`;
+        </div>`;
     },
     // 시험용(화면 확인): 내부 상태를 직접 지정한다
     _test: { slots: () => slots(), support, state: () => ST }
