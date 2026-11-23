@@ -276,12 +276,14 @@
 :root[data-style="skeu"] .tabs { background-image: radial-gradient(150% 100% at 50% -70%, rgba(255,255,255,.55) 0, rgba(255,255,255,.14) 62%, rgba(255,255,255,0) 63%), linear-gradient(180deg, var(--dock-a), var(--dock-b)); background-color: var(--dock-b); border-top: 1px solid rgba(255,255,255,.75); box-shadow: inset 0 1px 0 rgba(255,255,255,.5), 0 -3px 10px -3px rgba(0,0,0,.5); }
 :root[data-style="skeu"] .tabs :is(button, a) { color: #fff; filter: none; }
 :root[data-style="skeu"] .tabs .ic { display: none; }
-:root[data-style="skeu"] .tabs :is(button, a)::before { content: ""; width: 48px; height: 48px; background: var(--obj) center / contain no-repeat; filter: drop-shadow(0 2px 2px rgba(0,0,0,.45)); opacity: .8; transform: scale(.92); transition: transform .15s, opacity .15s; }
-:root[data-style="skeu"] .tabs :is(button, a).on::before { opacity: 1; transform: translateY(-3px) scale(1.04); }
+:root[data-style="skeu"] .tabs :is(button, a)::before { content: ""; width: 48px; height: 48px; background: var(--obj) center / contain no-repeat; filter: drop-shadow(0 2px 2px rgba(0,0,0,.45)); opacity: .8; transform: translate3d(0, 0, 0); will-change: transform, opacity; transition: transform .15s, opacity .15s; }
+:root[data-style="skeu"] .tabs :is(button, a).on::before { opacity: 1; transform: translate3d(0, -4px, 0); }
+/* 처음 한 번 누를 때만 깜빡이던 것(아이폰): 고른 칸이 될 때 그림 크기를 바꾸면 그 그림을 그 자리에서 처음 새로 그려야 해서 한 번 깜빡였다. 그림은 크기를 바꾸지 않고 위로만 올리며, 층(will-change)을 미리 만들어 두고, 아래 하얀 점도 처음부터 투명하게 만들어 둔다 */
 /* 화면을 넘기는 동안(data-vt)에는 아래 메뉴가 사진처럼 얼려 보였다가 끝나면 진짜 메뉴로 바뀐다. 그때 물건이 올라오는 움직임이 아직 진행 중이면 한 번 깜빡이므로, 넘기는 동안은 움직임 없이 바로 최종 모양으로 둔다 */
-:root[data-style="skeu"][data-vt] .tabs :is(button, a)::before { transition: none; }
-:root[data-style="skeu"] .tabs :is(button, a).on::after, :root[data-style="skeu"] .tabs :is(button, a).pray-tab.on::after { content: ""; background: #fff; box-shadow: 0 0 5px 1px rgba(255,255,255,.8); bottom: 3px; }
-@media (prefers-reduced-motion: reduce) { :root[data-style="skeu"] .tabs :is(button, a)::before { transition: none; } }
+:root[data-style="skeu"][data-vt] .tabs :is(button, a)::before, :root[data-style="skeu"][data-vt] .tabs :is(button, a)::after { transition: none; }
+:root[data-style="skeu"] .tabs :is(button, a)::after { content: ""; position: absolute; bottom: 3px; width: 5px; height: 5px; border-radius: 50%; background: #fff; box-shadow: 0 0 5px 1px rgba(255,255,255,.8); opacity: 0; will-change: opacity; transition: opacity .15s; }
+:root[data-style="skeu"] .tabs :is(button, a).on::after, :root[data-style="skeu"] .tabs :is(button, a).pray-tab.on::after { content: ""; opacity: 1; }
+@media (prefers-reduced-motion: reduce) { :root[data-style="skeu"] .tabs :is(button, a)::before, :root[data-style="skeu"] .tabs :is(button, a)::after { transition: none; } }
 /* 메뉴 칸마다 그림 */
 :root[data-style="skeu"] .tabs [data-tab="week"] { --obj: var(--obj-lamp); }
 :root[data-style="skeu"] .tabs [data-tab="shelf"] { --obj: var(--obj-books); }
