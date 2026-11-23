@@ -135,6 +135,7 @@ main.wrap { padding-top: 14px; padding-bottom: calc(110px + env(safe-area-inset-
 /* 화면 제목: 디다코 노트와 같은 크기(큰 글씨 모드에서는 기본 글씨와 함께 커진다) */
 .page-top h1 { font: 700 calc(var(--base) * 1.5)/1.35 var(--f-display); margin: 0; }   /* 화면 제목 24px(2026-11-20, 디다코 26px에 가깝게. 제목 옆 날짜가 있어 같게까지는 키우지 않는다) */
 @media (min-width: 1000px) { .page-top h1 { font-size: calc(var(--base) * 1.65); } }
+.page-top h1.ad-h1 { font-size: calc(var(--base) * 1.65); }   /* 관리·교회 전체 화면 제목: 디다코와 같은 크기(제목 옆 날짜가 없다, 2026-11-23) */
 /* 화면 제목의 그림은 글자 크기에 맞춰 커지고, 밝은·어두운 테마의 글자색을 따른다. */
 .h-ic { display:inline-flex; width:1.1em; height:1.1em; align-items:center; justify-content:center; vertical-align:-.16em; flex:none; color:inherit; }
 .h-ic svg { display:block; width:100%; height:100%; overflow:visible; }
@@ -1141,7 +1142,7 @@ body.pop-open { overflow: hidden; }
 /* 관리 › 운영: 앱 상태(문제가 없으면 한 줄로 접힘)와 개인정보 요청 */
 .ops-head { display: flex; align-items: center; gap: .7em; width: 100%; background: none; border: 0; padding: 0; color: inherit; font: inherit; text-align: left; cursor: pointer; }
 .ops-head > span:nth-child(2) { flex: 1; display: flex; flex-direction: column; gap: .15em; min-width: 0; }
-.ops-head small { color: var(--ink-2); font-size: .875em; }
+.ops-head small { color: var(--ink-2); font-size: .85em; }   /* 다른 줄의 작은 글(.mrow small)과 같게(2026-11-23) */
 .ops-dot { width: .7em; height: .7em; border-radius: 50%; background: var(--accent); flex: none; }
 .ops-dot.bad { background: var(--warn); box-shadow: 0 0 0 4px var(--warn-soft); }
 .ops-chev { display: inline-flex; color: var(--ink-2); transition: transform .2s; }
@@ -4223,7 +4224,7 @@ try { const p = JSON.parse(localStorage.getItem('koide-pref') || '{}'), d = docu
     const tab = S.adminTab || 'manage';
     const seg = `<div class="seg2 admin-seg" role="tablist" aria-label="관리 화면">${[['manage', '관리'], ['analysis', '분석']].map(([k, l]) => `<button class="${tab === k ? 'on' : ''}" role="tab" aria-selected="${tab === k}" data-act="admintab" data-v="${k}">${l}</button>`).join('')}</div>`;
     const head = `${S.op ? (S.month.me.all ? `<button class="link back" data-act="church">${ICON.chevL}교회 전체</button>` : S.home ? `<button class="link back" data-act="tab" data-v="more">${ICON.chevL}더보기</button>` : '') : `<button class="link back" data-act="tab" data-v="more">${ICON.chevL}더보기</button>`}
-      <div class="page-top"><div><p class="eyebrow">${S.month.dept && S.month.dept.name ? esc(S.month.dept.name) : '관리자'}${S.op ? (S.month.me.all ? ' · 교회 관리자' : famOps() ? ' · 부서 관리자' : ' · 운영 지원') : ''}${S.op && S.month.dept.closed ? ' · 닫힌 부서' : ''}</p><h1>${tab === 'analysis' ? '분석' : '관리'}</h1></div>${S.me && S.me.ops && S.me.ops.all && !(S.op && S.month.me.all) ? '<button class="link" type="button" data-act="church">교회 전체 ›</button>' : ''}</div>${seg}`;
+      <div class="page-top"><div><p class="eyebrow">${S.month.dept && S.month.dept.name ? esc(S.month.dept.name) : '관리자'}${S.op ? (S.month.me.all ? ' · 교회 관리자' : famOps() ? ' · 부서 관리자' : ' · 운영 지원') : ''}${S.op && S.month.dept.closed ? ' · 닫힌 부서' : ''}</p><h1 class="ad-h1">${tab === 'analysis' ? '분석' : '관리'}</h1></div>${S.me && S.me.ops && S.me.ops.all && !(S.op && S.month.me.all) ? '<button class="link" type="button" data-act="church">교회 전체 ›</button>' : ''}</div>${seg}`;
     if (CHURCHSB) {
       // 분석 탭(⑦b, 026): 옛 길과 같은 함수·같은 모양. 밴드(요약 띠)는 분석 탭에서는 그리지 않는다
       if (tab === 'analysis') return head + analysisView();
@@ -4422,7 +4423,7 @@ try { const p = JSON.parse(localStorage.getItem('koide-pref') || '{}'), d = docu
   async function loadChurchAnalysis() { S.canErr = ''; try { S.can = await api('churchAnalysis'); } catch (e) { S.can = null; S.canErr = CHURCHSB ? (/받지 못했어요/.test(e.message) ? '서버 SQL을 026번까지 넣으면 볼 수 있어요.' : e.message) : e.code === 'bad' ? '서버를 새 버전으로 배포하면 볼 수 있어요.' : e.message; } render(); }
   function churchView() {
     const ct = CHURCHSB ? (S.churchTab === 'analysis' ? 'analysis' : 'home') : S.churchTab || 'home';   // 새 길에는 '의견과 설문' 탭이 없다(설문·교회 전체 의견 표는 만들지 않는다)
-    let head = `${S.home ? `<button class="link back" data-act="tab" data-v="more">${ICON.chevL}더보기</button>` : ''}<div class="page-top"><div><p class="eyebrow">${esc((S.me && S.me.church && S.me.church.name) || lsGet('koide-church-name') || '교회 관리자')}</p><h1>교회 전체</h1></div></div>
+    let head = `${S.home ? `<button class="link back" data-act="tab" data-v="more">${ICON.chevL}더보기</button>` : ''}<div class="page-top"><div><p class="eyebrow">${esc((S.me && S.me.church && S.me.church.name) || lsGet('koide-church-name') || '교회 관리자')}</p><h1 class="ad-h1">교회 전체</h1></div></div>
       <div class="seg2 admin-seg${CHURCHSB ? '' : ' three'}" role="tablist" aria-label="교회 전체">${(CHURCHSB ? [['home', '관리'], ['analysis', '분석']] : [['home', '관리'], ['survey', '의견과 설문'], ['analysis', '분석']]).map(([k, l]) => `<button class="${ct === k ? 'on' : ''}" role="tab" aria-selected="${ct === k}" data-act="churchtab" data-v="${k}">${l}</button>`).join('')}</div>`;
     if (ct === 'analysis') return head + analysisView(true);
     if (ct === 'survey') return head + surveyAdminView();
@@ -4433,8 +4434,8 @@ try { const p = JSON.parse(localStorage.getItem('koide-pref') || '{}'), d = docu
     const card = d => { const solo = d.unit === '개인', few = !d.closed && d.admins < 2, why = d.admins === 0 ? '부서 관리자가 없어요' : '관리자가 한 명뿐이에요', none = !d.closed && !d.asks && !d.privacy && !d.feedback && !few;
       return `<button class="card ch-dept${d.closed ? ' closed' : ''}" data-act="opsgo" data-v="${esc(d.id)}">
         <span class="row"><i class="ops-dot${few ? ' bad' : ''}" aria-hidden="true"></i><b>${esc(d.name)}</b><span class="sr">${few ? '앱 상태 확인이 필요해요' : '앱 상태 괜찮아요'}</span>${d.closed ? '<span class="own-tag">닫음</span>' : ''}${ICON.chevR}</span>
-        <small>소그룹 이름 ${esc(d.group)}, ${solo ? '개인' : '가정'} 단위</small>
-        <small>${esc(d.group)} ${d.rooms}곳, ${solo ? `사람 ${d.n}명` : `가정 ${d.n}`}${d.closed ? ' · ' + esc(d.closedAt.slice(5).replace('-', '/')) + ' 닫음' : ''}</small>
+        <small>소그룹 이름 ${esc(d.group)} · ${solo ? '개인' : '가정'} 단위</small>
+        <small>${esc(d.group)} ${d.rooms}곳 · ${solo ? `사람 ${d.n}명` : `가정 ${d.n}`}${d.closed ? ' · ' + esc(d.closedAt.slice(5).replace('-', '/')) + ' 닫음' : ''}</small>
         <span class="ch-todos">${pill(d.asks, '연결 신청')}${pill(d.privacy, '개인정보')}${pill(d.feedback, '새 의견')}${few ? `<span class="ch-todo warn">${why}</span>` : ''}${none ? '<span class="ch-todo warn">지금 할 일이 없어요</span>' : ''}</span></button>`; };
     const old = C.version.slice(0, 10) < needVer(), eN = CHURCHSB ? 0 : C.errors.n, bad = old || !!eN;
     const live = C.depts.filter(d => !d.closed);
@@ -4446,7 +4447,7 @@ try { const p = JSON.parse(localStorage.getItem('koide-pref') || '{}'), d = docu
     const inbox = C.inbox ? `<div class="fold"><button class="mrow" data-act="churchtab" data-v="survey"><span><b>의견과 설문</b><small>설문 ${C.inbox.survey}개 · 의견 ${C.inbox.feedback}개${C.inbox.feedbackNoDept ? ` (코이데 노트에서 온 것 ${C.inbox.feedbackNoDept})` : ''}</small></span>${ICON.chevR}</button></div>` : '';
     const dp = deptCard(), nClosed = C.depts.length - live.length;
     const oa = opsAdminCard(), adm = ((C.opsList && C.opsList.live) || []).filter(o => o.all);
-    const admSub = adm.length < 2 ? '한 명뿐이에요, 한 명 더 정해 주세요' : esc(adm.map(o => o.name || '이름 없음').join(', '));
+    const admSub = adm.length < 2 ? '한 명뿐이에요, 한 명 더 정해 주세요' : esc(adm.map(o => o.name || '이름 없음').join(' · '));
     return `${head}
       <div class="two-col"><div class="col">
         <p class="more-h">부서</p><div class="ch-grid">${C.depts.map(card).join('')}</div>
@@ -5618,7 +5619,7 @@ try { const p = JSON.parse(localStorage.getItem('koide-pref') || '{}'), d = docu
           <button class="mitem" role="menuitem" data-act="logout"><span>이 기기에서 로그아웃</span></button></div>`
         : S.menu === 'settings' ? `<div class="menu" role="menu" aria-label="설정"><p class="mlabel mhead">화면 설정</p>${screenControls()}</div>` : '';
       return `<div class="wrap">${S.home ? brand : brand.replace(' data-act="tab" data-v="home"', '')}${S.home ? `<nav class="topnav" aria-label="주 메뉴">${TABS.map(([k, l]) => `<button class="${k === 'more' ? 'on' : ''}" data-act="tab" data-v="${k}" ${k === 'more' ? 'aria-current="page"' : ''}>${l}</button>`).join('')}</nav>` : ''}<span class="spacer"></span>
-        <button class="badge-btn" data-act="menu" data-v="badge" aria-haspopup="menu" aria-expanded="${S.menu === 'badge'}"><span class="badge-name">${S.tab === 'church' ? '교회 전체' : esc(M.dept.name)}</span><span class="role-tag admin">${M.me.all ? '교회 관리자' : '지원'}</span></button>
+        <button class="badge-btn" data-act="menu" data-v="badge" aria-haspopup="menu" aria-expanded="${S.menu === 'badge'}"><span class="badge-name">${S.tab === 'church' ? esc((S.me && S.me.church && S.me.church.name) || lsGet('koide-church-name') || '교회 전체') : esc(M.dept.name)}</span><span class="role-tag admin">${M.me.all ? '교회 관리자' : '지원'}</span></button>
         <button class="icon-btn" data-act="menu" data-v="settings" aria-haspopup="menu" aria-expanded="${S.menu === 'settings'}" aria-label="설정">${ICON.gear}</button>${opMenu}</div>`;
     }
     const role = S.grp ? me.role : lead || me.staff ? me.role : me.admin ? '관리자' : '회원', rc = S.grp ? (me.role === '모임장' ? 'leader' : '') : lead || me.staff ? 'leader' : me.admin ? 'admin' : '';
