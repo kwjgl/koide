@@ -2996,6 +2996,14 @@ try { const p = JSON.parse(localStorage.getItem('koide-pref') || '{}'), d = docu
   //  엑셀은 이번 달 / 월 고르기 / 올해 전체(달마다 탭 하나). 각자 볼 수 있는 범위만 담고, "우리 가정만" 항목은 어떤 경우에도 넣지 않는다.
   //  리더·목사님 항목은 볼 수 있는 사람이 고를 때만, 파일이 전달될 수 있다는 경고와 함께
   const isLead = () => S.month.me.role === '리더' || S.month.me.role === '코리더';
+  // 인쇄 > 'PDF로 저장'의 기본 파일 이름은 문서 제목이다. 인쇄하는 동안만 "방 이름 2026년 11월 기도제목 - 코이데"로 바꾸고, 끝나면 되돌린다
+  function printTable() {
+    const M = S.month, old = document.title;
+    const name = (M.room.name + ' ' + M.month.slice(0, 4) + '년 ' + Number(M.month.slice(5)) + '월 기도제목').replace(/[\\/:*?"<>|\u0000-\u001f]/g, ' ').replace(/\s+/g, ' ').trim();
+    const done = () => { window.removeEventListener('afterprint', done); document.title = old; };
+    window.addEventListener('afterprint', done); document.title = name + ' - 코이데';
+    window.print(); setTimeout(done, 60000);
+  }
   function tableCard() {
     const M = S.month, E = S.ex || (S.ex = { open: false, period: 'this', month: null, lead: false });
     const months = S.hist ? S.hist.months.filter(m => m < M.month) : [];
@@ -6210,7 +6218,7 @@ try { const p = JSON.parse(localStorage.getItem('koide-pref') || '{}'), d = docu
       case 'experiod': S.ex.period = v; if (v !== 'this' && !S.hist) loadHist(); return render();
       case 'exmonth': S.ex.month = v; return render();
       case 'exlead': S.ex.lead = b.checked; return render();
-      case 'exprint': return window.print();
+      case 'exprint': return printTable();
       case 'exdo': S.busy = true; render(); try { if (await exportXlsx() !== false) track('내려받기', { range: S.ex.period || 'this' }); } catch (err) { oops(err); } S.busy = false; return render();
       case 'itemtoggle': S.openItems.has(id) ? S.openItems.delete(id) : S.openItems.add(id); return render();
       case 'famtoggle': S.openFams.has(id) ? S.openFams.delete(id) : S.openFams.add(id); return render();
