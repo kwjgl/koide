@@ -1,6 +1,6 @@
-/* 공동체 앱(index.html)과 기도 노트(note.html)가 함께 쓰는 디자인 스타일. 기도 노트에만 있는 것의 짝은 note.html에 있다 */
+/* 코이데(pray-for) app/design-styles.css를 옮겼다. 디다코는 하단 탭과 위쪽 메뉴를 링크(a)로 쓰므로 ".tabs button"을 ".tabs :is(button, a)"로 바꾼 것만 다르다. 기도 노트·기도하기 전용 규칙은 이 앱에서 쓰지 않아도 그대로 둔다 */
 /* ── 디자인 스타일 (설정에서 고름, 이 기기에만): basic(기본) / new(뉴모피즘) / classic(스큐어모피즘) / glass(글래스모피즘).
-   시안(prototype/index.html)의 규칙을 실제 앱의 이름(:root[data-style], .tabs button, .seg, 기도하기·모임 모드 화면)에 맞춰 옮겼다.
+   시안(prototype/index.html)의 규칙을 실제 앱의 이름(:root[data-style], .tabs :is(button, a), .seg, 기도하기·모임 모드 화면)에 맞춰 옮겼다.
    색은 모두 테마색과 화면 모드에서 가져온다 ── */
 
 /* new: 누르는 것은 판에서 볼록하게, 고른 것과 담는 자리(이름표·입력칸)는 오목하게. 판(카드·바·메뉴)은 바탕과 같은 색에 그림자로 나눈다 */
@@ -14,15 +14,15 @@
   --raise-card: -6px -6px 14px var(--neu-hi), 8px 8px 20px var(--neu-lo), 0 0 0 1px color-mix(in srgb, var(--line) 55%, transparent);
 }
 :root[data-style="neu"] .fam-grid, :root[data-style="neu"] .col { gap: 18px; }
-:root[data-style="neu"] .card, :root[data-style="neu"] .notice { background-color: var(--card); border-color: transparent; box-shadow: var(--raise-card); }
+:root[data-style="neu"] .card, :root[data-style="neu"] .gc, :root[data-style="neu"] .notice { background-color: var(--card); border-color: transparent; box-shadow: var(--raise-card); }
 :root[data-style="neu"] .card.today { background: linear-gradient(180deg, var(--accent-soft) 0%, var(--card) 100%); box-shadow: inset 0 4px 0 var(--accent), var(--raise-card); }
 :root[data-style="neu"] .topbar { background: var(--page); border-bottom-color: transparent; box-shadow: 0 4px 12px -6px var(--neu-lo); }
 :root[data-style="neu"] .tabs { background: var(--page); border-top-color: transparent; box-shadow: 0 -4px 12px -6px var(--neu-lo); }
-:root[data-style="neu"] .tabs button.on:not(.pray-tab) { box-shadow: var(--press); border-radius: 16px; margin: 5px 10px; min-height: 46px; }
-:root[data-style="neu"] .tabs button.on::after { content: none; }
-:root[data-style="neu"] .tabs button.pray-tab .ic { background: var(--card); box-shadow: var(--raise-sm); }
-:root[data-style="neu"] .tabs button.pray-tab.on .ic { background: var(--accent); box-shadow: var(--press); }
-:root[data-style="neu"] .topnav button.on { background: var(--surface); box-shadow: var(--press); }
+:root[data-style="neu"] .tabs :is(button, a).on:not(.pray-tab) { box-shadow: var(--press); border-radius: 16px; margin: 5px 10px; min-height: 46px; }
+:root[data-style="neu"] .tabs :is(button, a).on::after { content: none; }
+:root[data-style="neu"] .tabs :is(button, a).pray-tab .ic { background: var(--card); box-shadow: var(--raise-sm); }
+:root[data-style="neu"] .tabs :is(button, a).pray-tab.on .ic { background: var(--accent); box-shadow: var(--press); }
+:root[data-style="neu"] .topnav :is(button, a).on { background: var(--surface); box-shadow: var(--press); }
 :root[data-style="neu"] .brand-mark { box-shadow: var(--raise-sm); }
 :root[data-style="neu"] .badge-btn, :root[data-style="neu"] .topbar .icon-btn { background: var(--card); border-color: transparent; box-shadow: var(--raise-sm); }
 :root[data-style="neu"] .topbar .icon-btn { border-radius: 50%; }
@@ -53,7 +53,7 @@
 :root[data-style="neu"] .item.s-family, :root[data-style="neu"] .today .item.s-family, :root[data-style="neu"] .sub > li.s-family { background: var(--page); box-shadow: var(--press); }
 :root[data-style="neu"] .received { box-shadow: var(--press-sm); }
 :root[data-style="neu"] .received.r-plain { box-shadow: none; }
-:root[data-style="neu"] .field, :root[data-style="neu"] .kid-form input, :root[data-style="neu"] .copybox { background: var(--page); border-color: transparent; box-shadow: var(--press); }
+:root[data-style="neu"] .field, :root[data-style="neu"] textarea.ta, :root[data-style="neu"] .kid-form input, :root[data-style="neu"] .copybox { background: var(--page); border-color: transparent; box-shadow: var(--press); }
 :root[data-style="neu"] .export, :root[data-style="neu"] .kid-list li { background: var(--page); box-shadow: var(--press); }
 :root[data-style="neu"] .switch { background: var(--page); box-shadow: var(--press); }
 :root[data-style="neu"] .switch.on { background: var(--accent); }
@@ -73,15 +73,15 @@
   --bevel: inset 0 1px 0 rgba(255,255,255,.45), inset 0 -1px 0 rgba(0,0,0,.18), 0 1px 2px rgba(0,0,0,.25);
 }
 :root[data-style="skeu"] body { background-image: repeating-linear-gradient(45deg, rgba(0,0,0,.025) 0 2px, transparent 2px 4px), repeating-linear-gradient(-45deg, rgba(255,255,255,.035) 0 2px, transparent 2px 4px); }
-:root[data-style="skeu"] .card, :root[data-style="skeu"] .notice, :root[data-style="skeu"] .menu {
+:root[data-style="skeu"] .card, :root[data-style="skeu"] .gc, :root[data-style="skeu"] .notice, :root[data-style="skeu"] .menu {
   background: linear-gradient(180deg, var(--paper-hi), var(--paper-lo)); border: 1px solid color-mix(in srgb, var(--line-strong) 70%, transparent);
   box-shadow: inset 0 1px 0 rgba(255,255,255,.6), 0 1px 1px rgba(0,0,0,.08), 0 4px 0 -2px color-mix(in srgb, var(--paper-lo) 85%, #000), 0 8px 18px -8px rgba(0,0,0,.3); }
 :root[data-style="skeu"] .card.today { background: linear-gradient(180deg, color-mix(in srgb, var(--accent-soft) 70%, var(--paper-hi)), var(--paper-lo));
   outline: 1.5px dashed color-mix(in srgb, var(--accent) 45%, transparent); outline-offset: -8px; box-shadow: inset 0 4px 0 var(--accent), 0 1px 1px rgba(0,0,0,.08), 0 10px 22px -10px rgba(0,0,0,.35); }
 :root[data-style="skeu"] .topbar { background: linear-gradient(180deg, color-mix(in srgb, var(--surface) 80%, #fff), color-mix(in srgb, var(--surface-2) 85%, #000)); border-bottom: 1px solid rgba(0,0,0,.25); box-shadow: 0 2px 6px rgba(0,0,0,.15); }
 :root[data-style="skeu"] .tabs { background: linear-gradient(180deg, color-mix(in srgb, var(--surface-2) 85%, #000), color-mix(in srgb, var(--surface-2) 70%, #000)); border-top: 1px solid rgba(255,255,255,.25); box-shadow: 0 -2px 6px rgba(0,0,0,.18); }
-:root[data-style="skeu"] .tabs button { color: color-mix(in srgb, var(--ink) 60%, transparent); }
-:root[data-style="skeu"] .tabs button.on { color: var(--accent); filter: drop-shadow(0 0 4px color-mix(in srgb, var(--accent) 50%, transparent)); }
+:root[data-style="skeu"] .tabs :is(button, a) { color: color-mix(in srgb, var(--ink) 60%, transparent); }
+:root[data-style="skeu"] .tabs :is(button, a).on { color: var(--accent); filter: drop-shadow(0 0 4px color-mix(in srgb, var(--accent) 50%, transparent)); }
 :root[data-style="skeu"] .brand-mark { background: radial-gradient(circle at 35% 30%, color-mix(in srgb, var(--accent) 55%, #fff), var(--accent) 60%, color-mix(in srgb, var(--accent) 70%, #000)); box-shadow: var(--bevel); }
 :root[data-style="skeu"] h1 { text-shadow: 0 1px 0 rgba(255,255,255,.55); }
 /* 광택 버튼 */
@@ -96,9 +96,11 @@
 :root[data-style="skeu"] .btn:not(:disabled):active, :root[data-style="skeu"] .pray:active, :root[data-style="skeu"] .mchip:active { box-shadow: inset 0 2px 5px rgba(0,0,0,.3); }
 /* 이름표·입력칸은 종이에 찍힌 듯 */
 :root[data-style="skeu"] .tgt, :root[data-style="skeu"] .chip-status, :root[data-style="skeu"] .role-tag { box-shadow: inset 0 1px 2px rgba(0,0,0,.15), 0 1px 0 rgba(255,255,255,.6); }
-:root[data-style="skeu"] .field, :root[data-style="skeu"] .kid-form input, :root[data-style="skeu"] .copybox, :root[data-style="skeu"] .kakao {
+:root[data-style="skeu"] .field, :root[data-style="skeu"] .kid-form input, :root[data-style="skeu"] .copybox, :root[data-style="skeu"] .kakao:not(.sso-google):not(.sso-apple) {
   background: color-mix(in srgb, var(--surface) 96%, #FFF8E6); border: 1px solid color-mix(in srgb, var(--line-strong) 80%, #000 10%); box-shadow: inset 0 2px 3px rgba(0,0,0,.12); }
-:root[data-style="skeu"] .kakao { background: #FEE500; }
+:root[data-style="skeu"] .kakao:not(.sso-google):not(.sso-apple) { background: #FEE500; }
+/* 구글·애플 로그인 단추는 브랜드 규칙대로 흰/검은 바탕을 지키고 그림자만 더한다(skeu에서 카카오 노랑이 덮어쓰던 것을 막음, 2026-11-21) */
+:root[data-style="skeu"] .kakao.sso-google, :root[data-style="skeu"] .kakao.sso-apple { box-shadow: inset 0 2px 3px rgba(0,0,0,.12); }
 :root[data-style="skeu"] textarea.field { line-height: 1.6em; background-image: repeating-linear-gradient(180deg, transparent 0 calc(1.6em - 1px), color-mix(in srgb, var(--accent) 22%, transparent) calc(1.6em - 1px) 1.6em);
   background-origin: content-box; background-clip: padding-box; background-attachment: local; }
 /* 스위치·선택 버튼 */
@@ -128,7 +130,7 @@
     radial-gradient(38% 34% at 88% 30%, color-mix(in srgb, #F2A65A 45%, transparent), transparent 72%),
     radial-gradient(46% 40% at 70% 92%, color-mix(in srgb, var(--leader) 36%, transparent), transparent 72%),
     radial-gradient(36% 30% at 20% 85%, color-mix(in srgb, var(--accent-mid) 55%, transparent), transparent 72%); }
-:root[data-style="glass"] .card, :root[data-style="glass"] .notice {
+:root[data-style="glass"] .card, :root[data-style="glass"] .gc, :root[data-style="glass"] .notice {
   background: var(--glass); -webkit-backdrop-filter: var(--glass-blur); backdrop-filter: var(--glass-blur); border: var(--glass-edge); box-shadow: var(--glass-shadow); }
 :root[data-style="glass"] .card.today { background: linear-gradient(160deg, color-mix(in srgb, var(--accent-soft) 70%, transparent), var(--glass-soft)); box-shadow: inset 0 4px 0 var(--accent), var(--glass-shadow); }
 :root[data-style="glass"] .topbar, :root[data-style="glass"] .tabs { background: var(--glass); -webkit-backdrop-filter: var(--glass-blur); backdrop-filter: var(--glass-blur); border-color: color-mix(in srgb, var(--surface) 60%, transparent); }
@@ -142,7 +144,7 @@
 :root[data-style="glass"] .btn.ghost, :root[data-style="glass"] .pray:not(.hero):not(.on), :root[data-style="glass"] .mchip, :root[data-style="glass"] .chip-btn, :root[data-style="glass"] .badge-btn,
 :root[data-style="glass"] .tgt, :root[data-style="glass"] .role-tag:not(.admin):not(.leader), :root[data-style="glass"] .seg, :root[data-style="glass"] .seg2 {
   background: var(--glass-soft); border-color: color-mix(in srgb, var(--surface) 65%, transparent); }
-:root[data-style="glass"] .field, :root[data-style="glass"] .kid-form input { background: var(--glass-strong); border-color: color-mix(in srgb, var(--line-strong) 60%, transparent); }
+:root[data-style="glass"] .field, :root[data-style="glass"] textarea.ta, :root[data-style="glass"] .kid-form input { background: var(--glass-strong); border-color: color-mix(in srgb, var(--line-strong) 60%, transparent); }
 :root[data-style="glass"] .seg button.on, :root[data-style="glass"] .seg2 button.on { background: var(--glass-strong); box-shadow: inset 0 1px 0 var(--neu-hi), 0 2px 8px -3px var(--shadow); }
 :root[data-style="glass"] .mchip.on, :root[data-style="glass"] .chip-btn.on { background: color-mix(in srgb, var(--accent-soft) 70%, transparent); color: var(--ink); border-color: color-mix(in srgb, var(--accent) 55%, transparent); }
 :root[data-style="glass"] .btn:not(.ghost), :root[data-style="glass"] .pray.hero { box-shadow: inset 0 1px 0 rgba(255, 255, 255, .3), 0 8px 20px -10px var(--accent); }
@@ -152,7 +154,7 @@
   :root[data-style="glass"] { --glass: color-mix(in srgb, var(--surface) 90%, transparent); --glass-soft: color-mix(in srgb, var(--surface) 75%, transparent); --glass-strong: var(--surface); }
 }
 
-/* ── ⓘ 안내 (info-tip.js): 제목 옆 동그라미 i를 누르면 검은 말풍선으로 설명이 나온다. 상태·경고는 이 안에 넣지 않고 그 자리에 둔다 ──
+/* ── ⓘ 안내 (info-tip.js): 제목 옆 동그라미 i를 누르면 검은 말풍선으로 설명이 나온다. 상태·경고는 이 안에 넣지 않고 그 자리에 둔다(코이데와 같다) ──
    말풍선은 위에 뜨는 것이라 네 디자인 스타일 모두 같은 불투명 검정(유리 흐림·볼록 효과 없음). 밝은 화면은 --ink 바탕, 어두운 화면은 바탕보다 한 톤 더 어두운 검정 + 옅은 테두리 */
 :root { --tip-bg: var(--ink); --tip-ink: var(--page); --tip-line: transparent; --info-d: calc(var(--base) * 1.125); }
 @media (prefers-color-scheme: dark) { :root:not([data-mode="light"]) { --tip-bg: color-mix(in srgb, #000 72%, var(--surface)); --tip-ink: var(--ink); --tip-line: var(--line-strong); } }
@@ -181,6 +183,13 @@
 :root[data-style="neu"] .kakao { box-shadow: var(--raise-sm); }
 :root[data-style="neu"] .kakao:disabled { box-shadow: none; }
 :root:root:root[data-style="neu"] .btn.sso-btn:not(:disabled) { box-shadow: var(--raise-sm) !important; }
+/* 디다코 노트·교회·공동체에만 있는 이름도 코이데 카드·단추와 같게 한다: 카드(.sc 쪽지 · .cg 묶음 · .ft 안내 · .kv 한 줄), 위 막대 이름표·톱니(.place-btn · .tm.ic-btn), 걷는 길의 날짜 동그라미(.walk-day)와 고르는 칸(.walk-choice) */
+:root[data-style="neu"] .sc, :root[data-style="neu"] .cg, :root[data-style="neu"] .ft, :root[data-style="neu"] .kv { background-color: var(--card); border-color: transparent; box-shadow: var(--raise-card); }
+:root[data-style="neu"] .place-btn, :root[data-style="neu"] .topbar .tm.ic-btn { background: var(--card); border-color: transparent; box-shadow: var(--raise-sm); }
+:root[data-style="neu"] .topbar .tm.ic-btn[aria-expanded="true"], :root[data-style="neu"] .place-btn[aria-expanded="true"] { box-shadow: var(--press); }
+:root[data-style="neu"] .walk-day:not(.chosen):not(.today) { background-color: var(--card); border-color: transparent; box-shadow: var(--raise-sm); }
+:root[data-style="neu"] .walk-choice { background-color: var(--card); border-color: transparent; box-shadow: var(--raise-sm); }
+:root[data-style="neu"] .walk-choice.right { background-color: var(--accent-soft); box-shadow: var(--press); }
 
 /* ── 떠 있는 하단 메뉴 (2026-11-22, 사용자) ──
    화면 끝에 붙지 않고 살짝 떠 있는 짧은 둥근 막대. 모양(위치·폭·둥글기)은 모든 스타일이 같고, 겉모습(바탕·그림자)만 스타일을 따른다.
@@ -189,10 +198,10 @@
 :root:not([data-style="skeu"]) { --tabs-gap: max(12px, calc(env(safe-area-inset-bottom, 0px) + 6px)); }
 :root:not([data-style="skeu"]) .tabs { left: 0; right: 0; bottom: var(--tabs-gap); margin: 0 auto; width: min(calc(100% - 40px), 340px); padding: 0 6px; border: 1px solid var(--line); border-radius: 32px;
   background: color-mix(in srgb, var(--surface) 92%, transparent); -webkit-backdrop-filter: blur(14px) saturate(140%); backdrop-filter: blur(14px) saturate(140%); box-shadow: 0 8px 22px -12px var(--shadow), 0 1px 3px -1px var(--shadow); }
-:root:not([data-style="skeu"]) .tabs button { min-height: 56px; padding: 0; border-radius: 28px; }
+:root:not([data-style="skeu"]) .tabs :is(button, a) { min-height: 56px; padding: 0; border-radius: 28px; }
 :root:not([data-style="skeu"]) .tabs .ic { width: 26px; height: 26px; }
-:root:not([data-style="skeu"]) .tabs button.pray-tab .ic { width: 42px; height: 42px; padding: 8px; }
-:root:not([data-style="skeu"]) .tabs button.on::after { bottom: 7px; }
+:root:not([data-style="skeu"]) .tabs :is(button, a).pray-tab .ic { width: 42px; height: 42px; padding: 8px; }
+:root:not([data-style="skeu"]) .tabs :is(button, a).on::after { bottom: 7px; }
 /* 아래로 스크롤하면 숨는 것도 떠 있는 높이만큼 더 내려가야 화면 밖으로 나간다. 따라 하기 중에는 늘 보인다 */
 :root:not([data-style="skeu"]) :is(body.hide-bars, body.tabs-off) .tabs { transform: translateY(calc(100% + var(--tabs-gap) + 8px)); }
 :root:not([data-style="skeu"]).kg-on :is(body.hide-bars, body.tabs-off) .tabs { transform: none; }
@@ -200,7 +209,7 @@
 :root[data-style="skeu"] :is(body.hide-bars, body.tabs-off) .tabs { transform: translateY(calc(100% + 16px)); }
 :root[data-style="skeu"].kg-on :is(body.hide-bars, body.tabs-off) .tabs { transform: none; }
 :root[data-style="neu"] .tabs { background: var(--page); border-color: transparent; -webkit-backdrop-filter: none; backdrop-filter: none; box-shadow: var(--raise); }
-:root[data-style="neu"] .tabs button.on:not(.pray-tab) { margin: 7px 3px; min-height: 42px; border-radius: 20px; }
+:root[data-style="neu"] .tabs :is(button, a).on:not(.pray-tab) { margin: 7px 3px; min-height: 42px; border-radius: 20px; }
 :root[data-style="glass"] .tabs { background: color-mix(in srgb, var(--surface) 72%, transparent); border: var(--glass-edge); -webkit-backdrop-filter: var(--glass-blur); backdrop-filter: var(--glass-blur); box-shadow: var(--glass-shadow); }
 @supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) { :root[data-style="glass"] .tabs { background: color-mix(in srgb, var(--surface) 92%, transparent); } }
 /* 메뉴 위에 붙거나 뜨는 것(안내 글·아래에 붙는 막대)도 떠 있는 높이만큼 올린다 */
@@ -225,12 +234,13 @@
   --gloss: var(--gl), linear-gradient(180deg, rgba(255,255,255,.16), rgba(255,255,255,0) 52%, rgba(0,0,0,.2));
   --glass-rim: inset 0 1px 0 rgba(255,255,255,.85), inset 0 -2px 3px rgba(255,255,255,.18);
   --linen: repeating-linear-gradient(0deg, rgba(0,0,0,.035) 0 1px, transparent 1px 3px), repeating-linear-gradient(90deg, rgba(255,255,255,.35) 0 1px, transparent 1px 3px);
-  --obj-calendar: url("img/menu/calendar.webp");
-  --obj-teacup: url("img/menu/teacup.webp");
-  --obj-notebook: url("img/menu/notebook.webp");
-  --obj-candle: url("img/menu/candle.webp");
-  --obj-mirror: url("img/menu/mirror.webp");
-  --obj-chest: url("img/menu/chest.webp");
+  --obj-books: url("img/menu/books.webp");
+  --obj-bread: url("img/menu/bread.webp");
+  --obj-journal: url("img/menu/journal.webp");
+  --obj-compass: url("img/menu/compass.webp");
+  --obj-quill: url("img/menu/quill.webp");
+  --obj-satchel: url("img/menu/satchel.webp");
+  --obj-lamp: url("img/menu/lamp.webp");
 }
 @media (prefers-color-scheme: dark) { :root[data-style="skeu"]:not([data-mode="light"]) { --bar-hi: color-mix(in srgb, var(--accent) 38%, #0d1513); --bar-lo: color-mix(in srgb, var(--accent) 22%, #0a100f); --btn-ts: none; --h1-ts: none; --card-hi: rgba(255,255,255,.07); --dock-a: color-mix(in srgb, var(--accent) 40%, #0c0a08); --dock-b: color-mix(in srgb, var(--accent) 22%, #060504); --linen: repeating-linear-gradient(0deg, rgba(255,255,255,.025) 0 1px, transparent 1px 3px), repeating-linear-gradient(90deg, rgba(0,0,0,.25) 0 1px, transparent 1px 3px); } }
 :root[data-style="skeu"][data-mode="dark"] { --bar-hi: color-mix(in srgb, var(--accent) 38%, #0d1513); --bar-lo: color-mix(in srgb, var(--accent) 22%, #0a100f); --btn-ts: none; --h1-ts: none; --card-hi: rgba(255,255,255,.07); --dock-a: color-mix(in srgb, var(--accent) 40%, #0c0a08); --dock-b: color-mix(in srgb, var(--accent) 22%, #060504); --linen: repeating-linear-gradient(0deg, rgba(255,255,255,.025) 0 1px, transparent 1px 3px), repeating-linear-gradient(90deg, rgba(0,0,0,.25) 0 1px, transparent 1px 3px); }
@@ -263,11 +273,12 @@
 :root[data-style="skeu"] .tabs :is(button, a).on::after, :root[data-style="skeu"] .tabs :is(button, a).pray-tab.on::after { content: ""; background: #fff; box-shadow: 0 0 5px 1px rgba(255,255,255,.8); bottom: 3px; }
 @media (prefers-reduced-motion: reduce) { :root[data-style="skeu"] .tabs :is(button, a)::before { transition: none; } }
 /* 메뉴 칸마다 그림 */
-:root[data-style="skeu"] .tabs [data-v="home"] { --obj: var(--obj-calendar); }
-:root[data-style="skeu"] .tabs [data-v="mine"] { --obj: var(--obj-notebook); }
-:root[data-style="skeu"] .tabs [data-v="pray"] { --obj: var(--obj-candle); }
-:root[data-style="skeu"] .tabs [data-v="history"] { --obj: var(--obj-mirror); }
-:root[data-style="skeu"] .tabs [data-v="more"] { --obj: var(--obj-chest); }
-:root[data-style="skeu"] .tabs [data-v="today"] { --obj: var(--obj-teacup); }
-:root[data-style="skeu"] .tabs [data-v="note"] { --obj: var(--obj-notebook); }
-:root[data-style="skeu"] .tabs [data-v="look"] { --obj: var(--obj-mirror); }
+:root[data-style="skeu"] .tabs [data-tab="week"] { --obj: var(--obj-lamp); }
+:root[data-style="skeu"] .tabs [data-tab="shelf"] { --obj: var(--obj-books); }
+:root[data-style="skeu"] .tabs [data-tab="share"] { --obj: var(--obj-bread); }
+:root[data-style="skeu"] .tabs [data-tab="record"] { --obj: var(--obj-journal); }
+:root[data-style="skeu"] .tabs [data-tab="more"] { --obj: var(--obj-satchel); }
+:root[data-style="skeu"] .tabs [data-tab="today"] { --obj: var(--obj-lamp); }
+:root[data-style="skeu"] .tabs [data-tab="explore"] { --obj: var(--obj-compass); }
+:root[data-style="skeu"] .tabs [data-tab="write"] { --obj: var(--obj-quill); }
+:root[data-style="skeu"] .tabs [data-tab="mine"] { --obj: var(--obj-journal); }
