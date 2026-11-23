@@ -1,0 +1,22 @@
+/* 기도하기 '저절로 어둡게': 30초 동안 손대지 않으면 기도 화면이 어두워진다. 공동체(index.html)와 기도 노트(note.html)가 함께 쓴다. 움직임은 pray-dim.js와 짝.
+   남는 것은 지금 순서("3 / 7"), 기도 대상, 기도제목, 자동으로 넘어갈 때 알림뿐이다. 나머지(끝내기·음악·고리·아래 단추)는 숨는다.
+   색은 화면 모드·색 테마와 상관없이 늘 같은 어두운 값이다(기도회처럼 어두운 곳에서 눈부시지 않게). 디자인 스타일(neu·skeu·glass)이 깔아 둔 배경보다 먼저 쓰려고 !important를 쓴다.
+   어두워질 때 0.8초, 만지면 0.15초(디다코 화면 내려놓기와 같은 속도). 움직임 줄이기를 켠 기기는 0.2초 */
+.pss { --dim-t: .15s; --dim-e: ease-out; }
+.pss, .pss .pss-body, .pss .pss-body *, .pss .pss-step, .pss .pss-step *, .pss .pss-top, .pss .pss-nav, .pss .pss-cd { transition: color var(--dim-t) var(--dim-e), background-color var(--dim-t) var(--dim-e), border-color var(--dim-t) var(--dim-e); }
+.pss .pss-x, .pss .pss-mus, .pss .pss-timer, .pss .pss-nav > button, .pss .pss-cd button { transition: opacity var(--dim-t) var(--dim-e), visibility 0s; }
+.pss .dim-only { display: none; }
+
+.pss.dim {
+  --dim-t: .8s; --dim-e: ease-in; color-scheme: dark;
+  --page: #090d0c; --surface: #0f1513; --surface-2: #141b18; --ink: #cbd2ce; --ink-2: #8d9893; --line: #1a231f; --line-strong: #26322d;
+  --accent: #8fb3aa; --accent-soft: #101815; --on-accent: #090d0c;
+  color: var(--ink); background: var(--page) !important; -webkit-backdrop-filter: none !important; backdrop-filter: none !important;
+}
+.pss.dim .pss-top, .pss.dim .pss-nav { background-image: none !important; background-color: var(--page); }
+.pss.dim .pss-body li { background: var(--surface) !important; box-shadow: none !important; border: 1px solid var(--line) !important; }
+.pss.dim .pss-x, .pss.dim .pss-mus, .pss.dim .pss-timer, .pss.dim .pss-nav > button { opacity: 0; visibility: hidden; pointer-events: none; transition: opacity var(--dim-t) var(--dim-e), visibility 0s linear var(--dim-t); }
+.pss.dim .pss-nav .pss-cd { background: none; box-shadow: none; justify-content: center; text-align: center; color: var(--ink); }
+.pss.dim .pss-cd button { display: none; }
+.pss.dim .dim-only { display: block; margin-top: .15em; color: var(--ink-2); font-weight: 400; font-size: .9em; }
+@media (prefers-reduced-motion: reduce) { .pss { --dim-t: .2s; } .pss.dim { --dim-t: .2s; } }
