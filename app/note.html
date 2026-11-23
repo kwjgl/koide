@@ -3618,7 +3618,7 @@ button.pg-tag::before { content: ''; position: absolute; inset: -10px; }
     const from = tabIdx(S.tab), to = tabIdx(v);
     if (S.ps || KoideGuide.running() || !b.closest('nav.tabs, .topnav') || calm() || from < 0 || to < 0 || from === to) return go(v);
     const cls = to > from ? 'vt-in-r' : 'vt-in-l', root = document.documentElement;
-    if (typeof document.startViewTransition === 'function') {
+    if (typeof document.startViewTransition === 'function' && document.documentElement.dataset.style !== 'skeu') {
       let t = null;
       root.dataset.vt = cls;
       try { t = document.startViewTransition(() => go(v)); } catch (err) { delete root.dataset.vt; }

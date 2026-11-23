@@ -5487,7 +5487,7 @@ try { const p = JSON.parse(localStorage.getItem('koide-pref') || '{}'), d = docu
   //  못 쓰거나(기능 없음·움직임 줄이기·예외) 겹쳐 넘길 일이 아니면 null을 돌려주고, 부르는 쪽이 지금처럼 바로 그린다
   let vtNow = false, vtCur = null;
   function tabSlide(b, v, change) {
-    if (vtNow || S.view !== 'app' || viewSig().o || !b.closest('#tabs, .topnav') || calm() || typeof document.startViewTransition !== 'function') return null;
+    if (vtNow || S.view !== 'app' || viewSig().o || !b.closest('#tabs, .topnav') || calm() || typeof document.startViewTransition !== 'function' || document.documentElement.dataset.style === 'skeu') return null;
     const from = TABS.findIndex(x => x[0] === tabOn()), to = TABS.findIndex(x => x[0] === tabOn(v));
     if (from < 0 || to < 0 || from === to) return null;
     const root = document.documentElement; let t = null;
