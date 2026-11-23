@@ -133,9 +133,8 @@ main.wrap { padding-top: 14px; padding-bottom: calc(110px + env(safe-area-inset-
 /* 화면 제목 줄: 왼쪽 사랑방·제목, 오른쪽 날짜와 버튼 */
 .page-top { display: flex; justify-content: space-between; align-items: center; gap: 12px; min-height: 44px; }
 /* 화면 제목: 디다코 노트와 같은 크기(큰 글씨 모드에서는 기본 글씨와 함께 커진다) */
-.page-top h1 { font: 700 calc(var(--base) * 1.5)/1.35 var(--f-display); margin: 0; }   /* 화면 제목 24px(2026-11-20, 디다코 26px에 가깝게. 제목 옆 날짜가 있어 같게까지는 키우지 않는다) */
-@media (min-width: 1000px) { .page-top h1 { font-size: calc(var(--base) * 1.65); } }
-.page-top h1.ad-h1 { font-size: calc(var(--base) * 1.65); }   /* 관리·교회 전체 화면 제목: 디다코와 같은 크기(제목 옆 날짜가 없다, 2026-11-23) */
+.page-top h1 { font: 700 calc(var(--base) * 1.65)/1.35 var(--f-display); margin: 0; }   /* 화면 제목: 휴대폰 26px · 넓은 화면 30px(2026-11-23, 디다코와 같게. 이전에는 24px · 25px라 코이데만 작았다) */
+@media (min-width: 1000px) { .page-top h1 { font-size: calc(var(--base) * 2); } }
 /* 화면 제목의 그림은 글자 크기에 맞춰 커지고, 밝은·어두운 테마의 글자색을 따른다. */
 .h-ic { display:inline-flex; width:1.1em; height:1.1em; align-items:center; justify-content:center; vertical-align:-.16em; flex:none; color:inherit; }
 .h-ic svg { display:block; width:100%; height:100%; overflow:visible; }
@@ -755,7 +754,8 @@ h3 { font-size: 1.02em; font-weight: 600; margin: 0; }
 /* 관리 화면: [관리 | 분석] */
 .admin-seg { max-width: 320px; margin: 0 0 14px; }
 .admin-seg.three { grid-template-columns: repeat(3, 1fr); max-width: 420px; }
-.page-top + .admin-seg { margin-top: 10px; }   /* 제목과 [한눈에|분석] 탭 사이를 띄운다(디다코와 같게) */
+.page-top + .admin-seg { margin-top: 6px; }   /* 제목과 [관리|분석] 탭 사이 간격(디다코와 같게 6px) */
+.seg2.admin-seg button { min-height: 44px; }   /* 눌러지는 높이도 디다코와 같게 44px */
 /* 분석: 한눈에(비율 막대·주별 막대)와 달마다 흐름·칸 그림 */
 .ov { display: flex; flex-direction: column; gap: .9em; }
 .ov > .row, .ov-row > .row { justify-content: space-between; align-items: baseline; gap: .6em; }
@@ -4224,7 +4224,7 @@ try { const p = JSON.parse(localStorage.getItem('koide-pref') || '{}'), d = docu
     const tab = S.adminTab || 'manage';
     const seg = `<div class="seg2 admin-seg" role="tablist" aria-label="관리 화면">${[['manage', '관리'], ['analysis', '분석']].map(([k, l]) => `<button class="${tab === k ? 'on' : ''}" role="tab" aria-selected="${tab === k}" data-act="admintab" data-v="${k}">${l}</button>`).join('')}</div>`;
     const head = `${S.op ? (S.month.me.all ? `<button class="link back" data-act="church">${ICON.chevL}교회 전체</button>` : S.home ? `<button class="link back" data-act="tab" data-v="more">${ICON.chevL}더보기</button>` : '') : `<button class="link back" data-act="tab" data-v="more">${ICON.chevL}더보기</button>`}
-      <div class="page-top"><div><p class="eyebrow">${S.month.dept && S.month.dept.name ? esc(S.month.dept.name) : '관리자'}${S.op ? (S.month.me.all ? ' · 교회 관리자' : famOps() ? ' · 부서 관리자' : ' · 운영 지원') : ''}${S.op && S.month.dept.closed ? ' · 닫힌 부서' : ''}</p><h1 class="ad-h1">${tab === 'analysis' ? '분석' : '관리'}</h1></div>${S.me && S.me.ops && S.me.ops.all && !(S.op && S.month.me.all) ? '<button class="link" type="button" data-act="church">교회 전체 ›</button>' : ''}</div>${seg}`;
+      <div class="page-top"><div><p class="eyebrow">${S.month.dept && S.month.dept.name ? esc(S.month.dept.name) : '관리자'}${S.op ? (S.month.me.all ? ' · 교회 관리자' : famOps() ? ' · 부서 관리자' : ' · 운영 지원') : ''}${S.op && S.month.dept.closed ? ' · 닫힌 부서' : ''}</p><h1>${tab === 'analysis' ? '분석' : '관리'}</h1></div>${S.me && S.me.ops && S.me.ops.all && !(S.op && S.month.me.all) ? '<button class="link" type="button" data-act="church">교회 전체 ›</button>' : ''}</div>${seg}`;
     if (CHURCHSB) {
       // 분석 탭(⑦b, 026): 옛 길과 같은 함수·같은 모양. 밴드(요약 띠)는 분석 탭에서는 그리지 않는다
       if (tab === 'analysis') return head + analysisView();
@@ -4423,7 +4423,7 @@ try { const p = JSON.parse(localStorage.getItem('koide-pref') || '{}'), d = docu
   async function loadChurchAnalysis() { S.canErr = ''; try { S.can = await api('churchAnalysis'); } catch (e) { S.can = null; S.canErr = CHURCHSB ? (/받지 못했어요/.test(e.message) ? '서버 SQL을 026번까지 넣으면 볼 수 있어요.' : e.message) : e.code === 'bad' ? '서버를 새 버전으로 배포하면 볼 수 있어요.' : e.message; } render(); }
   function churchView() {
     const ct = CHURCHSB ? (S.churchTab === 'analysis' ? 'analysis' : 'home') : S.churchTab || 'home';   // 새 길에는 '의견과 설문' 탭이 없다(설문·교회 전체 의견 표는 만들지 않는다)
-    let head = `${S.home ? `<button class="link back" data-act="tab" data-v="more">${ICON.chevL}더보기</button>` : ''}<div class="page-top"><div><p class="eyebrow">${esc((S.me && S.me.church && S.me.church.name) || lsGet('koide-church-name') || '교회 관리자')}</p><h1 class="ad-h1">교회 전체</h1></div></div>
+    let head = `${S.home ? `<button class="link back" data-act="tab" data-v="more">${ICON.chevL}더보기</button>` : ''}<div class="page-top"><div><p class="eyebrow">${esc((S.me && S.me.church && S.me.church.name) || lsGet('koide-church-name') || '교회 관리자')}</p><h1>교회 전체</h1></div></div>
       <div class="seg2 admin-seg${CHURCHSB ? '' : ' three'}" role="tablist" aria-label="교회 전체">${(CHURCHSB ? [['home', '관리'], ['analysis', '분석']] : [['home', '관리'], ['survey', '의견과 설문'], ['analysis', '분석']]).map(([k, l]) => `<button class="${ct === k ? 'on' : ''}" role="tab" aria-selected="${ct === k}" data-act="churchtab" data-v="${k}">${l}</button>`).join('')}</div>`;
     if (ct === 'analysis') return head + analysisView(true);
     if (ct === 'survey') return head + surveyAdminView();
