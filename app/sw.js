@@ -4,9 +4,9 @@
  * 이달의 그림(img/ 아래 그림 파일)은 따로 남겨 둔다: 있으면 바로 보여 주고 뒤에서 새로 받아 바꾼다. 화면 파일이 새 버전으로 넘어가도 그림은 지우지 않는다.
  * 기도제목은 여기 남기지 않는다: 서버(Apps Script)와 주고받는 요청과 다른 주소의 파일은 건드리지 않는다. 영상(mp4 등)도 건드리지 않는다.
  */
-const CACHE = 'koide-v246';
+const CACHE = 'koide-v248';
 const IMG = 'koide-img', IMG_MAX = 300; // 그림 사본 이름은 버전을 붙이지 않는다. 300장이 넘으면 오래된 것부터 지운다
-const SHELL = ['./', 'index.html', 'note.html', 'koinonia.html', 'koinonia.js', 'koinonia-api.js', 'church-api.js', 'usage-fields.js', 'koinonia.css', 'sb.js', 'account-delete.js', 'config.js', 'pray-data.js', 'pray-open.js', 'pray-dim.js', 'guide.js', 'info-tip.js', 'font-warm.js', 'ask.js', 'art-data.js', 'intro-video.js', 'beatitudes.js', 'sunrain.js', 'words-ko.js', 'splash.js', 'places.js', 'survey.js', 'pilot.js', 'intro-video.css', 'pray-open.css', 'pray-dim.css', 'beatitudes.css', 'sunrain.css', 'guide.css', 'family-tokens.css', 'family-ui.css', 'design-styles.css', 'manifest.webmanifest', 'icons/favicon.svg', 'icons/icon-192.png', 'icons/apple-touch-icon.png', 'pilgrim/hero.png', 'pilgrim/tiles.png', 'pilgrim/objects.png', 'pilgrim/wild-tiles.png', 'pilgrim/wild-objects.png', 'pilgrim/land-tiles.png', 'pilgrim/land-objects.png', 'pilgrim/david-tiles.png', 'pilgrim/david-objects.png', 'pilgrim/sprites.json'];
+const SHELL = ['./', 'index.html', 'note.html', 'koinonia.html', 'koinonia.js', 'koinonia-api.js', 'church-api.js', 'usage-fields.js', 'koinonia.css', 'sb.js', 'account-delete.js', 'config.js', 'pray-data.js', 'pray-open.js', 'pray-dim.js', 'guide.js', 'info-tip.js', 'font-warm.js', 'family-push.js', 'ask.js', 'art-data.js', 'intro-video.js', 'beatitudes.js', 'sunrain.js', 'words-ko.js', 'splash.js', 'places.js', 'survey.js', 'pilot.js', 'intro-video.css', 'pray-open.css', 'pray-dim.css', 'beatitudes.css', 'sunrain.css', 'guide.css', 'family-tokens.css', 'family-ui.css', 'design-styles.css', 'manifest.webmanifest', 'icons/favicon.svg', 'icons/icon-192.png', 'icons/apple-touch-icon.png', 'pilgrim/hero.png', 'pilgrim/tiles.png', 'pilgrim/objects.png', 'pilgrim/wild-tiles.png', 'pilgrim/wild-objects.png', 'pilgrim/land-tiles.png', 'pilgrim/land-objects.png', 'pilgrim/david-tiles.png', 'pilgrim/david-objects.png', 'pilgrim/sprites.json'];
 
 self.addEventListener('install', e => {
   e.waitUntil(caches.open(CACHE).then(c => c.addAll(SHELL)).then(() => self.skipWaiting()));
@@ -39,4 +39,19 @@ self.addEventListener('fetch', e => {
     return res;
   // 실패하면 남겨 둔 사본. 사본이 없을 때 화면 주소만 첫 화면으로 대신하고, 나머지는 실패 그대로 돌려준다
   }).catch(() => caches.match(req, { ignoreSearch: true }).then(r => r || (req.mode === 'navigate' ? caches.match('./') : Response.error()))));
+});
+
+// 알림(웹 푸시): 서버(supabase/functions/push-send)가 정한 시각에 보낸다. 글은 종류별 고정 문장이라 이름·내용이 없다. 누르면 해당 화면을 연다(family-push.js)
+self.addEventListener('push', e => {
+  let d = {}; try { d = e.data ? e.data.json() : {}; } catch (err) { d = {}; }
+  e.waitUntil(self.registration.showNotification(d.t || '코이데', { body: d.b || '', icon: 'icons/icon-192.png', badge: 'icons/icon-192.png', tag: d.k || 'koide', data: { u: d.u || './' } }));
+});
+self.addEventListener('notificationclick', e => {
+  e.notification.close();
+  const to = new URL((e.notification.data && e.notification.data.u) || './', self.registration.scope).href;
+  e.waitUntil(self.clients.matchAll({ type: 'window', includeUncontrolled: true }).then(list => {
+    const c = list.find(w => w.url.startsWith(self.registration.scope));
+    if (c) return c.focus().then(w => (w && w.navigate ? w.navigate(to) : self.clients.openWindow(to))).catch(() => self.clients.openWindow(to));
+    return self.clients.openWindow(to);
+  }));
 });
