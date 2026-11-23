@@ -688,6 +688,7 @@ button.pg-tag::before { content: ''; position: absolute; inset: -10px; }
 </style>
 <link rel="stylesheet" href="intro-video.css">
 <link rel="stylesheet" href="pray-open.css">
+<link rel="stylesheet" href="pray-dim.css">
 <link rel="stylesheet" href="beatitudes.css">
 <link rel="stylesheet" href="sunrain.css">
 <link rel="stylesheet" href="design-styles.css">
@@ -725,6 +726,7 @@ button.pg-tag::before { content: ''; position: absolute; inset: -10px; }
 <script src="pray-data.js"></script>
 <script src="intro-video.js"></script>
 <script src="pray-open.js"></script>
+<script src="pray-dim.js"></script>
 <script src="beatitudes.js"></script>
 <script src="sunrain.js"></script>
 <script src="words-ko.js"></script>
@@ -1638,7 +1640,7 @@ button.pg-tag::before { content: ''; position: absolute; inset: -10px; }
   // ── 기도하기 설정: 무엇을(오늘의 세 가지 / 모든 기도제목 / 하나님 나라. 켜진 기도제목 단추를 다시 누르면 빼기), 잔잔한 음악 ──────────
   const KP = window.KOIDE_PRAY;
   const PSK = DEMO_LINK ? 'koide-demo-note-pset' : 'koide-note-pset';
-  const PS = Object.assign({ set: 'today', world: false, topics: KP.PRAY_TOPICS.map(t => t.k), music: false, track: 0, auto: true, open: true, dur: 60, flow: false }, (() => { try { return JSON.parse(localStorage.getItem(PSK)) || {}; } catch (e) { return {}; } })());
+  const PS = Object.assign({ set: 'today', world: false, topics: KP.PRAY_TOPICS.map(t => t.k), music: false, track: 0, auto: true, open: true, dur: 60, flow: false, dim: false }, (() => { try { return JSON.parse(localStorage.getItem(PSK)) || {}; } catch (e) { return {}; } })());
   // 한 장에 머무는 시간(초): 공동체 기도하기와 같은 고르기. 0은 시간 없이
   const PS_TIMES = [[0, '시간 없이'], [60, '1분'], [180, '3분'], [300, '5분']];
   if (!PS_TIMES.some(t => t[0] === PS.dur)) PS.dur = 60;
@@ -3416,7 +3418,7 @@ button.pg-tag::before { content: ''; position: absolute; inset: -10px; }
       body = `<h2>${esc(targetName(it.target))}</h2><ul>${its.map(i => `<li><span>${esc(i.text)}<small class="pss-ref">${days(i)}</small></span></li>`).join('')}</ul>`;
     }
     const ready = P.dur && P.left === 0 && !on, nxt = P.i === L.length - 1;
-    const cd = P.cd ? `<div class="pss-cd" role="status"><span><b id="ps-cd">${P.cd}</b>초 뒤 ${nxt ? '마쳐요' : '다음 장으로 넘어가요'}</span><button data-a="psstay">머무르기</button></div>` : '';
+    const cd = P.cd ? `<div class="pss-cd" role="status"><span><b id="ps-cd">${P.cd}</b>초 뒤 ${nxt ? '마쳐요' : '다음 장으로 넘어가요'}<small class="dim-only">화면을 누르면 머물러요</small></span><button data-a="psstay">머무르기</button></div>` : '';
     return `${dlg}${top}<div class="pss-body">${body}</div>
       <div class="pss-nav trio"><button data-a="psgo" data-v="-1"${P.i ? '' : ' disabled'}>이전</button>
         <button class="pss-pray${on ? ' on' : ''}${ready ? ' ready' : ''}" data-a="${it.topic ? 'psxtra' : 'pspray'}" data-v="${it.topic || ''}" aria-pressed="${on}">${ico(on ? ICON.check : TICON.hands)} 기도했어요</button>
@@ -3453,6 +3455,9 @@ button.pg-tag::before { content: ''; position: absolute; inset: -10px; }
   }
   // 읽던 자리를 지키며 다시 그린다
   const psRender = () => { const b = document.querySelector('.pss'), y = b ? b.scrollTop : 0; render(); const n = document.querySelector('.pss'); if (n) n.scrollTop = y; };
+  // 저절로 어둡게(pray-dim.js, 공동체와 같게): 기도 장이 떠 있을 때만(기도를 열며·주기도문 마지막 장에서는 아님). 어두운 채로 '넘어가요' 알림이 뜨면, 깨우려고 화면을 누른 것을 '머무르기'로 본다
+  KoidePrayDim.init({ el: () => document.querySelector('.pss'), enabled: () => !!(S.ps && PS.dim && !S.ps.open && S.ps.i < S.ps.list.length),
+    onWake: () => { const ps = S.ps; if (ps && ps.cd) { clearInterval(psTimer); ps.cd = 0; ps.stay = true; psRender(); } } });
   // 지금 장을 기도한 것으로 센다(넘기면 기도한 것): 기도제목 장은 아직 안 한 것만 기록하고(이미 한 것은 그대로), 하나님 나라 장은 함께 기도한 것
   function psMark() {
     const ps = S.ps, c = ps.list[ps.i];
@@ -3482,7 +3487,11 @@ button.pg-tag::before { content: ''; position: absolute; inset: -10px; }
   }
   ['touchstart', 'wheel', 'mousedown', 'keydown'].forEach(e => document.addEventListener(e, ev => { if (S.ps && (e === 'keydown' || (ev.target.closest && ev.target.closest('.pss')))) S.ps.held = true; }, { passive: true }));
   // 닫기(버튼·뒤로 가기): 타이머와 기도를 열며를 멈추고 화면에서 내린다. 이후 아무것도 바뀌지 않게
-  function psStop() { clearInterval(psTimer); cancelAnimationFrame(psRaf); KoidePrayOpen.stop(); S.ps = null; musicOff(); }
+  // 기도하는 동안 화면이 꺼지지 않게(되는 기기에서만, 공동체와 같게)
+  let wake = null;
+  const wakeOn = () => { try { navigator.wakeLock.request('screen').then(w => { wake = w; }).catch(() => {}); } catch (e) { /* 안 되는 기기 */ } };
+  const wakeOff = () => { try { if (wake) wake.release(); } catch (e) { /* 무시 */ } wake = null; };
+  function psStop() { clearInterval(psTimer); cancelAnimationFrame(psRaf); KoidePrayOpen.stop(); S.ps = null; musicOff(); wakeOff(); }
   function prayTab() {
     const nT = todaySet().length, nA = open().length, list = psList(PS.set);
     const seg = (items, cur, act) => `<div class="seg" role="radiogroup">${items.map(([k, l]) => `<button class="${cur === k ? 'on' : ''}" role="radio" aria-checked="${cur === k}" data-a="${act}" data-v="${k}">${l}</button>`).join('')}</div>`;
@@ -3501,6 +3510,7 @@ button.pg-tag::before { content: ''; position: absolute; inset: -10px; }
         <p class="label" style="margin-top:10px">한 장에 머무는 시간</p>${seg(PS_TIMES, PS.dur, 'psdur')}
         ${PS.dur ? `<div class="row" style="margin-top:6px"><div><p class="plain">자동으로 넘기기${KoideTip.btn('만지면 멈추고, 넘기면 기도한 것으로 세요.', '자동으로 넘기기')}</p></div>${sw(PS.flow, 'psflow', '자동으로 넘기기')}</div>` : ''}
         <div class="row" style="margin-top:6px"><div><p class="plain">기도를 열며</p></div>${sw(PS.open !== false, 'psopening', '기도를 열며')}</div>
+        <div class="row" style="margin-top:6px"><div><p class="plain">저절로 어둡게${KoideTip.btn('30초 동안 손대지 않으면 화면이 어두워져요. 어두운 곳에서도 눈부시지 않게 순서, 기도 대상, 기도제목만 남아요. 화면을 만지면 다시 밝아져요.', '저절로 어둡게')}</p></div>${sw(PS.dim, 'psdim', '저절로 어둡게')}</div>
         <div class="row" style="margin-top:6px"><div><p class="plain">잔잔한 음악 (찬송가 1~8장)</p></div>${sw(PS.music, 'psmusic', '잔잔한 음악')}</div>
         ${PS.music ? `<div class="ps-music-set"><p class="label" style="margin:0">처음 들을 곡</p>
           <div class="ps-tracks">${HYMNS.map((h, i) => `<button class="chip-btn${PS.track === i ? ' on' : ''}" data-a="pstrack" data-v="${i}" aria-pressed="${PS.track === i}" style="justify-content:center">${h.label}</button>`).join('')}</div>
@@ -3564,6 +3574,7 @@ button.pg-tag::before { content: ''; position: absolute; inset: -10px; }
       ${S.done ? doneSheet() : ''}${S.bdg ? bdgSheet() : ''}${S.yr ? yearSheet() : ''}${a2hsOn() ? a2hsSheet() : ''}${S.vsheet ? vaultSheet() : ''}${S.sbSheet ? sbSheet() : ''}${S.acctSheet ? acctSheet() : ''}${S.cut ? cutSheet() : ''}${S.recSheet ? recSheet() : ''}${S.kc ? kcSheet() : ''}${S.share ? shareSheet() : ''}${S.mv ? mvSheet() : ''}${S.pg ? pgHtml() : ''}${S.ps ? psHtml() : ''}${S.toast ? `<div class="toast" role="status">${esc(S.toast)}</div>` : ''}
       ${canSave ? '' : '<div class="toast" role="alert">이 브라우저에서는 저장할 수 없어요. 개인 정보 보호 모드를 끄고 열어 주세요.</div>'}`;
     lockScroll();
+    KoidePrayDim.sync();
     { const yb = $('.yr-body'); if (yb) yb.scrollTop = S.yrNew ? yb.scrollHeight : ysTop; S.yrNew = false; }
     { const tw = $('#tl-wrap'); if (tw) tw.scrollLeft = tw.scrollWidth; }   // 타임라인은 이번 달(오른쪽 끝)이 먼저 보이게
     document.querySelectorAll('textarea.field').forEach(autosize);
@@ -3733,7 +3744,7 @@ button.pg-tag::before { content: ''; position: absolute; inset: -10px; }
       case 'psopen': {
         // 기도하기 탭은 고른 대로, 오늘 화면의 '한 장씩 기도하기'는 그 기도제목에 하나님 나라(켜 두었으면)를 더해서
         const L = psList(v === 'tab' ? PS.set : v); if (!L.length) return;
-        S.ps = { list: L, i: 0, extra: [], dur: PS.dur, left: PS.dur, flow: !!(PS.flow && PS.dur), cd: 0, stay: false, held: false, pt0: Date.now(), t0: Date.now() }; track('note.pray-start'); if (PS.music) playTrack(PS.track);
+        S.ps = { list: L, i: 0, extra: [], dur: PS.dur, left: PS.dur, flow: !!(PS.flow && PS.dur), cd: 0, stay: false, held: false, pt0: Date.now(), t0: Date.now() }; track('note.pray-start'); if (PS.music) playTrack(PS.track); wakeOn();
         // 기도를 열며(기본 켜짐): 첫 장 앞에 한 장. 몇 초 뒤 저절로, 또는 누르면 첫 장으로
         if (PS.open !== false) { const ps = S.ps; ps.open = true; KoidePrayOpen.begin(() => psOpenDone(ps)); }
         if (PS.dur === 60 && PS.flow) KoidePilot.done('n-ps');
@@ -3747,6 +3758,7 @@ button.pg-tag::before { content: ''; position: absolute; inset: -10px; }
       case 'psstay': clearInterval(psTimer); S.ps.cd = 0; S.ps.stay = true; return psRender();
       case 'psdur': PS.dur = Number(v); savePs(); return render();
       case 'psflow': PS.flow = !PS.flow; savePs(); return render();
+      case 'psdim': PS.dim = !PS.dim; savePs(); return render();
       case 'psclose': if (S.ps && S.ps.t0) track('note.pray-done', { n: Math.round((Date.now() - S.ps.t0) / 1000) }); psStop(); return render();
       case 'renperson': { const p = D.people.find(x => x.id === v), n = (await KoideAsk.text('새 이름', p.name) || '').trim().slice(0, 12); if (n) { p.name = n; p.up = now(); save(); } return render(); }
       // 기도제목 지우기: 기도 기록과 함께 지우고, 지움 표시(D.gone)를 남겨 동기화가 되살리지 않게 한다

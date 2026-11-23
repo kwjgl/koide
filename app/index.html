@@ -1409,6 +1409,7 @@ body.pop-open { overflow: hidden; }
 </style>
 <link rel="stylesheet" href="intro-video.css">
 <link rel="stylesheet" href="pray-open.css">
+<link rel="stylesheet" href="pray-dim.css">
 <link rel="stylesheet" href="beatitudes.css">
 <link rel="stylesheet" href="design-styles.css">
 <link rel="stylesheet" href="guide.css">
@@ -1443,6 +1444,7 @@ try { const p = JSON.parse(localStorage.getItem('koide-pref') || '{}'), d = docu
 <script src="art-data.js"></script>
 <script src="intro-video.js"></script>
 <script src="pray-open.js"></script>
+<script src="pray-dim.js"></script>
 <script src="guide.js"></script>
 <script src="info-tip.js"></script>
 <script src="ask.js"></script>
@@ -3401,7 +3403,7 @@ try { const p = JSON.parse(localStorage.getItem('koide-pref') || '{}'), d = docu
   }
   // 고른 것은 이 기기에 기억한다(다음에 열 때 그대로)
   const PSET_KEY = 'koide-pray';
-  const PSET = Object.assign({ kinds: ['room'], topics: PRAY_TOPICS.map(t => t.k), dur: 60, flow: false, music: false, track: 0, auto: true, open: true },
+  const PSET = Object.assign({ kinds: ['room'], topics: PRAY_TOPICS.map(t => t.k), dur: 60, flow: false, music: false, track: 0, auto: true, open: true, dim: false },
     (() => { try { return JSON.parse(localStorage.getItem(PSET_KEY)) || {}; } catch (e) { return {}; } })());
   const savePset = () => { try { localStorage.setItem(PSET_KEY, JSON.stringify(PSET)); } catch (e) { /* 무시 */ } };
   // 예전에 '내 기도 노트'를 골라 둔 기기: 종류는 공동체 것만 남긴다
@@ -3548,6 +3550,8 @@ try { const p = JSON.parse(localStorage.getItem('koide-pref') || '{}'), d = docu
           <button class="switch${PSET.flow ? ' on' : ''}" role="switch" aria-checked="${!!PSET.flow}" aria-label="자동으로 넘기기" data-act="psflow"><span></span></button></div>` : ''}
         <div class="row" style="margin-top:14px"><div><p class="plain" style="margin:0;word-break:keep-all">기도를 열며</p></div>
           <button class="switch${PSET.open !== false ? ' on' : ''}" role="switch" aria-checked="${PSET.open !== false}" aria-label="기도를 열며" data-act="psopen"><span></span></button></div>
+        <div class="row" style="margin-top:14px"><div><p class="plain" style="margin:0;word-break:keep-all">저절로 어둡게${KoideTip.btn('30초 동안 손대지 않으면 화면이 어두워져요. 어두운 곳에서도 눈부시지 않게 순서, 기도 대상, 기도제목만 남아요. 화면을 만지면 다시 밝아져요.', '저절로 어둡게')}</p></div>
+          <button class="switch${PSET.dim ? ' on' : ''}" role="switch" aria-checked="${!!PSET.dim}" aria-label="저절로 어둡게" data-act="psdim"><span></span></button></div>
         <div class="row" style="margin-top:14px"><div><p class="plain" style="margin:0;word-break:keep-all">잔잔한 음악 (찬송가 1~8장)</p></div>
           <button class="switch${PSET.music ? ' on' : ''}" role="switch" aria-checked="${PSET.music}" aria-label="잔잔한 음악" data-act="psmusic"><span></span></button></div>
         ${PSET.music ? `<div class="ps-music-set"><p class="label" style="margin:0">처음 들을 곡</p>
@@ -3603,7 +3607,7 @@ try { const p = JSON.parse(localStorage.getItem('koide-pref') || '{}'), d = docu
         body = `<p class="pss-lp">${t.lines.map(n => LORDS_PRAYER[n]).join(' ')}</p><p class="eyebrow">하나님 나라</p><h2>${t.name}</h2><ul>${line(d.a.map(locG))}${line(d.b.map(locG))}</ul>${t.k === 'church' && !S.grp && (S.month.together || []).length ? `<p class="label serve-who">이번 달 함께 기도해요</p><ul>${S.month.together.map(i => li(i.target, i.text)).join('')}</ul>` : ''}<p class="pss-next">${esc(locG(d.next))}</p>`; }
       pray = `<button class="pss-pray${ready ? ' ready' : ''}" data-act="psextra">${ICON.hands.replace('<svg', '<svg width="20" height="20"')} 기도했어요</button>`;
     }
-    const cd = ps.cd ? `<div class="pss-cd" role="status"><span><b id="pss-cd">${ps.cd}</b>초 뒤 ${last ? '마쳐요' : '다음 장으로 넘어가요'}</span><button data-act="psstay">머무르기</button></div>` : '';
+    const cd = ps.cd ? `<div class="pss-cd" role="status"><span><b id="pss-cd">${ps.cd}</b>초 뒤 ${last ? '마쳐요' : '다음 장으로 넘어가요'}<small class="dim-only">화면을 누르면 머물러요</small></span><button data-act="psstay">머무르기</button></div>` : '';
     return `${top}<div class="pss-body">${body}</div><div class="pss-nav trio"><button data-act="psprev"${ps.i ? '' : ' disabled'}>이전</button>${pray}<button data-act="psnext">${last ? '마치기' : '다음'}</button>${cd}</div>${ask}`;
   }
   // 한 장에 머무는 시간: 줄어드는 고리와 숫자. 다 되면 '기도했어요'가 부드럽게 반짝인다
@@ -3630,6 +3634,9 @@ try { const p = JSON.parse(localStorage.getItem('koide-pref') || '{}'), d = docu
   }
   // 읽던 자리를 지키며 다시 그린다
   const psRender = () => { const P = $('#pss'), y = P.scrollTop; render(); P.scrollTop = y; };
+  // 저절로 어둡게(pray-dim.js): 기도 장이 떠 있을 때만(기도를 열며·끝내기 묻는 창·마친 화면에서는 아님). 어두운 채로 '넘어가요' 알림이 뜨면, 깨우려고 화면을 누른 것을 '머무르기'로 본다
+  KoidePrayDim.init({ el: () => $('#pss'), enabled: () => !!(S.ps && PSET.dim && !S.ps.open && !S.ps.done && !S.ps.ask),
+    onWake: () => { const ps = S.ps; if (ps && ps.cd) { clearInterval(psTimer); ps.cd = 0; ps.stay = true; psRender(); } } });
   // 지금 장을 기도한 것으로 센다: 사랑방 가정은 기도했어요(하루 3번까지), 다른 장은 함께 기도한 것
   function psMark() {
     const ps = S.ps, id = ps.list[ps.i];
@@ -5849,6 +5856,7 @@ try { const p = JSON.parse(localStorage.getItem('koide-pref') || '{}'), d = docu
     stickToday();
     TourC.maybe();
     KOIDE_SURVEY.schedule();
+    KoidePrayDim.sync();
   }
   // PC 오른쪽 칸: 화면보다 짧으면 위에 붙고, 길면 화면과 함께 내려가다 칸의 끝에서 붙는다(스크롤이 하나만 있게).
   //  그림이 늦게 불러와져 칸 높이가 바뀌어도 다시 맞춘다
@@ -6501,6 +6509,7 @@ try { const p = JSON.parse(localStorage.getItem('koide-pref') || '{}'), d = docu
       case 'pspray': case 'psextra': return psMark() && psGo(S.ps.i + 1);
       case 'psstay': clearInterval(psTimer); S.ps.cd = 0; S.ps.stay = true; return psRender();
       case 'psflow': PSET.flow = !PSET.flow; savePset(); return render();
+      case 'psdim': PSET.dim = !PSET.dim; savePset(); return render();
       case 'psend': S.ps.ask = true; return psRender();
       case 'psaskno': S.ps.ask = false; return psRender();
       case 'psendok': S.ps.ask = false; S.ps.done = true; S.ps.open = false; KoidePrayOpen.stop(); clearInterval(psTimer); return render();
