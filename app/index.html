@@ -20,6 +20,7 @@
 <script src="font-warm.js"></script>
 <link rel="stylesheet" href="family-tokens.css">
 <link rel="stylesheet" href="family-ui.css">
+<link rel="stylesheet" href="church-survey.css">
 <style>
 /* 두 손가락 확대는 허용한다(viewport에서 maximum-scale 뺌). 아이폰은 16px보다 작은 입력칸을 누르면 화면이 저절로 커지므로, 입력칸 글자는 16px 밑으로 내려가지 않게 한다 */
 @supports (-webkit-touch-callout: none) { input, textarea, select { font-size: max(16px, 1em) !important; } }
@@ -580,7 +581,7 @@ h3 { font-size: 1.02em; font-weight: 600; margin: 0; }
 .sr-legend { font-size: .74em; color: var(--ink-2); white-space: nowrap; }
 /* 관리 화면: [관리 | 분석] */
 .admin-seg { max-width: 320px; margin: 0 0 14px; }
-.admin-seg.three { grid-template-columns: repeat(3, 1fr); max-width: 420px; }
+.admin-seg.three { grid-template-columns: repeat(3, 1fr); max-width: 480px; }
 .page-top + .admin-seg { margin-top: 6px; }   /* 제목과 [관리|분석] 탭 사이 간격(디다코와 같게 6px) */
 .seg2.admin-seg button { min-height: 44px; }   /* 눌러지는 높이도 디다코와 같게 44px */
 /* 분석: 한눈에(비율 막대·주별 막대)와 달마다 흐름·칸 그림 */
@@ -1236,6 +1237,7 @@ try { const p = JSON.parse(localStorage.getItem('koide-pref') || '{}'), d = docu
 <script src="usage-fields.js"></script>
 <script src="koinonia-api.js"></script>
 <script src="church-api.js"></script>
+<script src="church-survey.js"></script>
 <script>
 (function () {
   const CFG = window.KOIDE_CONFIG || {};
@@ -1255,6 +1257,7 @@ try { const p = JSON.parse(localStorage.getItem('koide-pref') || '{}'), d = docu
   const CHURCH_ON = CFG.CHURCH_BACKEND === 'supabase' && !!CFG.SUPABASE_URL && !!CFG.SUPABASE_KEY && !!window.koideChurchApi;
   const DEMO_LINK = KOINONIA ? KOINONIA_DEMO : (!!CFG.API_URL || CHURCH_ON) && new URLSearchParams(location.search).has('demo'), DEMO = KOINONIA ? KOINONIA_DEMO : (!CFG.API_URL && !CHURCH_ON) || DEMO_LINK || TUT;
   const CHURCHSB = CHURCH_ON && !KOINONIA && !DEMO;
+  const SV_ON = !KOINONIA && (CHURCHSB || DEMO);   // 교회 설문(관리 화면의 셋째 탭, 2026-11-23)
   // 장면 모드(?as=사람&at=화면, 데모에서만): 그 사람으로 바로 들어가 그 화면을 연다. 화면 지도(demo/map.html)가 쓴다.
   //  이 창의 localStorage는 splash.js가 메모리 판으로 바꿔 놓아서, 로그인·화면 기억이 다른 창과 섞이지 않는다.
   //  처음 도움말, 사용법, 홈 화면에 두기 창, 사용 기록은 없다(&fresh를 붙이면 도움말은 처음처럼 나온다)
@@ -2351,7 +2354,7 @@ try { const p = JSON.parse(localStorage.getItem('koide-pref') || '{}'), d = docu
   function homeView() {
     if (staffMe()) return staffHomeView();
     const M = S.month, others = M.families.filter(f => !f.own), t = todayFam();
-    return `<div class="page-top"><div><p class="eyebrow">${esc(M.room.name)}${S.grp && !KOINONIA ? ' · 모임' + (M.group && M.group.left != null ? ' · ' + koidePlaces.dday(M.group) : '') : ''}</p><h1>${Number(M.month.slice(5))}월 기도제목 ${HEAD_ICON.hands}</h1></div><p class="date">${todayLabel()}</p></div>
+    return `<div data-sv-card>${SV_ON && window.ChurchSurvey ? ChurchSurvey.cardHtml() : ''}</div><div class="page-top"><div><p class="eyebrow">${esc(M.room.name)}${S.grp && !KOINONIA ? ' · 모임' + (M.group && M.group.left != null ? ' · ' + koidePlaces.dday(M.group) : '') : ''}</p><h1>${Number(M.month.slice(5))}월 기도제목 ${HEAD_ICON.hands}</h1></div><p class="date">${todayLabel()}</p></div>
       ${KOINONIA ? groupEndCard() : ''}${S.grp && !KOINONIA ? `<p class="hint grp-note">${ICON.people}모임 사람들과 함께 봐요 · 내 모임은 <a href="note.html${DEMO_LINK ? '?demo' : ''}">코이데 노트</a>에 있어요</p>${groupEndCard()}` : ''}${newsCard()}${shiftCard()}<div class="home-grid"><div class="col side">${t ? `<section class="card today" aria-label="지금 함께 기도할 ${words().one}"><p class="today-tag">${ICON.hands}지금 함께 기도할 ${words().one}</p><h2>${esc(t.name)}</h2>
           <div class="today-body" data-id="${esc(t.id)}" tabindex="0" aria-label="${esc(t.name)} 기도제목">${t.items.length ? itemList(t.items, false) : `<p class="hint">아직 올린 기도제목이 없어요. 이 ${words().one}을 떠올리며 기도해요.</p>`}</div>
           <div class="pray-hero"><div class="pray-row">${prayBtn(t, false, true)}<button class="btn next${t.today ? '' : ' ghost'}" data-act="nexttoday">다음 ${words().one}</button></div>
@@ -3752,7 +3755,7 @@ try { const p = JSON.parse(localStorage.getItem('koide-pref') || '{}'), d = docu
     const setOpen = !!S.setOpen;
     return `<div class="page-top"><div><h1>더보기</h1></div></div>
       <div class="fam-grid" style="margin-top:12px">
-        <div class="col">${KOINONIA ? `<p class="more-h">이 공동체</p>${groupMoreCard()}
+        <div class="col">${SV_ON && !S.grp ? `<div data-sv-row hidden><p class="more-h">교회</p><section class="card mrows"><button class="mrow" type="button" data-sv="pick"><span><b>교회 설문</b><small class="sv-row-sub"></small></span>${ICON.chevR}</button></section></div>` : ''}${KOINONIA ? `<p class="more-h">이 공동체</p>${groupMoreCard()}
           <p class="more-h">함께하는 곳</p>
           <section class="card mrows">${row('note', '', '코이데 노트', '')}</section>
           ${kcCirclesCard()}
@@ -4019,9 +4022,10 @@ try { const p = JSON.parse(localStorage.getItem('koide-pref') || '{}'), d = docu
 
   function adminView() {
     const tab = S.adminTab || 'manage';
-    const seg = `<div class="seg2 admin-seg" role="tablist" aria-label="관리 화면">${[['manage', '관리'], ['analysis', '분석']].map(([k, l]) => `<button class="${tab === k ? 'on' : ''}" role="tab" aria-selected="${tab === k}" data-act="admintab" data-v="${k}">${l}</button>`).join('')}</div>`;
+    const seg = `<div class="seg2 admin-seg${SV_ON ? ' three' : ''}" role="tablist" aria-label="관리 화면">${[['manage', '관리'], ['analysis', '분석']].concat(SV_ON ? [['survey', '설문']] : []).map(([k, l]) => `<button class="${tab === k ? 'on' : ''}" role="tab" aria-selected="${tab === k}" data-act="admintab" data-v="${k}">${l}</button>`).join('')}</div>`;
     const head = `${S.op ? (S.month.me.all ? `<button class="link back" data-act="church">${ICON.chevL}교회 전체</button>` : S.home || linkedMe() ? `<button class="link back" data-act="tab" data-v="more">${ICON.chevL}더보기</button>` : '') : `<button class="link back" data-act="tab" data-v="more">${ICON.chevL}더보기</button>`}
       <div class="page-top"><div><p class="eyebrow">${S.month.dept && S.month.dept.name ? esc(S.month.dept.name) : '관리자'}${S.op && S.month.dept.closed ? ' · 닫힌 부서' : ''}</p><h1>${tab === 'analysis' ? '분석' : '관리'}</h1></div>${S.me && S.me.ops && S.me.ops.all && !(S.op && S.month.me.all) ? '<button class="link" type="button" data-act="church">교회 전체 ›</button>' : ''}</div>${seg}`;
+    if (tab === 'survey' && SV_ON) return svScreen(head);
     if (CHURCHSB) {
       // 분석 탭(⑦b, 026): 옛 길과 같은 함수·같은 모양. 밴드(요약 띠)는 분석 탭에서는 그리지 않는다
       if (tab === 'analysis') return head + analysisView();
@@ -4218,12 +4222,49 @@ try { const p = JSON.parse(localStorage.getItem('koide-pref') || '{}'), d = docu
     track('내려받기', { range: which === 'survey' ? '설문' : '의견' });
   }
   async function loadChurchAnalysis() { S.canErr = ''; try { S.can = await api('churchAnalysis'); } catch (e) { S.can = null; S.canErr = CHURCHSB ? (/받지 못했어요/.test(e.message) ? '서버 SQL을 026번까지 넣으면 볼 수 있어요.' : e.message) : e.code === 'bad' ? '서버를 새 버전으로 배포하면 볼 수 있어요.' : e.message; } render(); }
+  // ── 교회 설문(관리 화면의 셋째 탭, 2026-11-23): 모양과 하는 일은 공용 파일 church-survey.js(원본은 디다코 저장소 shared/family-ui)가 맡고, 여기서는 앱과 이어 주기만 한다 ──
+  // 서버 함수(supabase/026_church_survey.sql)가 아직 없으면 그 화면이 "설문 기능을 준비하고 있어요"만 보여 주고 앱의 다른 곳은 그대로 돈다
+  // 이 앱은 화면을 통째로 다시 그리므로, 그린 뒤마다 설문 화면을 다시 칠한다(서버에 다시 묻지는 않는다)
+  var svShown = false, svHead = "", svInited = false, svMounted = null;
+  function svInit() {
+    if (svInited || !window.ChurchSurvey) return;
+    svInited = true;
+    ChurchSurvey.init({
+      app: 'koide', demo: !CHURCHSB, rpc: CHURCHSB ? (name, args) => window.KoideSb.rpc(name, args) : null,
+      church: () => (S.me && S.me.church && S.me.church.name) || lsGet('koide-church-name') || (DEMO ? '예시교회' : ''), toast,
+      head: () => svHead
+    });
+  }
+  const svMatch = () => /^#survey(?:-((?:s|try)-[\w-]+))?$/.exec(location.hash);
+  function svScreen(head) { svShown = true; svHead = head; svInit(); return window.ChurchSurvey ? ChurchSurvey.page() : ''; }
+  function svAfterDraw() {
+    if (!SV_ON || !window.ChurchSurvey) return;
+    svInit();
+    if (svShown) {
+      const sub = S.svSub || '';
+      if (svMounted === sub) ChurchSurvey.repaint(); else { svMounted = sub; ChurchSurvey.mount(sub); }
+    } else svMounted = null;
+    if (S.view === 'app' && !S.op) ChurchSurvey.fillCards();
+  }
+  // 설문 탭을 눌렀을 때: 주소(#survey…)가 화면을 정한다
+  function svGo(church) {
+    if (church) S.churchTab = 'survey'; else S.adminTab = 'survey';
+    S.svSub = ''; svMounted = null;
+    if (location.hash === '#survey') render(); else location.hash = '#survey';
+  }
+  function svLeave() { S.svSub = ''; svMounted = null; if (svMatch()) history.replaceState(null, '', location.pathname + location.search); }
+  function svHashChange() {
+    const m = svMatch(); if (!m || !SV_ON || !S.op) return;
+    S.svSub = m[1] || ''; if (S.tab === 'church') S.churchTab = 'survey'; else S.adminTab = 'survey';
+    render();
+  }
+  addEventListener('hashchange', svHashChange);
   function churchView() {
-    const ct = CHURCHSB ? (S.churchTab === 'analysis' ? 'analysis' : 'home') : S.churchTab || 'home';   // 새 길에는 '의견과 설문' 탭이 없다(설문·교회 전체 의견 표는 만들지 않는다)
+    const ct = SV_ON ? (S.churchTab === 'analysis' || S.churchTab === 'survey' ? S.churchTab : 'home') : CHURCHSB ? (S.churchTab === 'analysis' ? 'analysis' : 'home') : S.churchTab || 'home';   // 새 길에는 '의견과 설문' 탭이 없다(설문·교회 전체 의견 표는 만들지 않는다)
     let head = `${S.home || linkedMe() ? `<button class="link back" data-act="tab" data-v="more">${ICON.chevL}더보기</button>` : ''}<div class="page-top"><div><p class="eyebrow">${esc((S.me && S.me.church && S.me.church.name) || lsGet('koide-church-name') || (DEMO ? '예시교회' : '') || '교회 관리자')}</p><h1>교회 전체</h1></div></div>
-      <div class="seg2 admin-seg${CHURCHSB ? '' : ' three'}" role="tablist" aria-label="교회 전체">${(CHURCHSB ? [['home', '관리'], ['analysis', '분석']] : [['home', '관리'], ['survey', '의견과 설문'], ['analysis', '분석']]).map(([k, l]) => `<button class="${ct === k ? 'on' : ''}" role="tab" aria-selected="${ct === k}" data-act="churchtab" data-v="${k}">${l}</button>`).join('')}</div>`;
+      <div class="seg2 admin-seg${CHURCHSB && !SV_ON ? '' : ' three'}" role="tablist" aria-label="교회 전체">${(SV_ON ? [['home', '관리'], ['analysis', '분석'], ['survey', '설문']] : CHURCHSB ? [['home', '관리'], ['analysis', '분석']] : [['home', '관리'], ['survey', '의견과 설문'], ['analysis', '분석']]).map(([k, l]) => `<button class="${ct === k ? 'on' : ''}" role="tab" aria-selected="${ct === k}" data-act="churchtab" data-v="${k}">${l}</button>`).join('')}</div>`;
     if (ct === 'analysis') return head + analysisView(true);
-    if (ct === 'survey') return head + surveyAdminView();
+    if (ct === 'survey') return SV_ON ? svScreen(head) : head + surveyAdminView();
     const C = S.church;
     if (!C || C.err) return `${head}<section class="card"><p class="hint">${C ? esc(C.err) : '불러오는 중…'}</p></section>`;
     const pill = (n, l) => n ? `<span class="ch-todo">${l} ${n}</span>` : '';
@@ -5596,7 +5637,9 @@ try { const p = JSON.parse(localStorage.getItem('koide-pref') || '{}'), d = docu
     const at = $('#add-t'); if (at) S.draft = at.value;
     // 기도했어요를 눌러 다시 그려도 같은 가정이면 읽던 자리를 지킨다
     const tb = $('.today-body'), tbKeep = tb && { id: tb.dataset.id, top: tb.scrollTop };
+    svShown = false;
     $('#main').innerHTML = VIEWS[S.view]();
+    svAfterDraw();
     if (app) placeTip();
     // 내 사랑방이 시범 중인지(서버가 월 데이터에 실어 줌). 목사님·운영 화면·모임 화면에는 이 값이 없다
     if (app && !S.op && !S.grp && S.month && S.month.room && typeof S.month.room.pilot === 'boolean') KoidePilot.room(S.month.room.pilot);
@@ -5924,7 +5967,7 @@ try { const p = JSON.parse(localStorage.getItem('koide-pref') || '{}'), d = docu
       case 'eraseask': S.eraseAsk = v || null; return render();
       case 'opsgo': S.menu = null; return enterOps(v);
       case 'church': S.menu = null; return enterChurch();
-      case 'churchtab': S.churchTab = v; render(); if (v === 'analysis') { track('화면 보기', { screen: '교회 분석' }); loadChurchAnalysis(); } if (v === 'survey' && S.sv !== undefined) loadSurveyAdmin(); return;
+      case 'churchtab': if (v === 'survey' && SV_ON) return svGo(true); svLeave(); S.churchTab = v; render(); if (v === 'analysis') { track('화면 보기', { screen: '교회 분석' }); loadChurchAnalysis(); } if (v === 'survey' && S.sv !== undefined) loadSurveyAdmin(); return;
       case 'svpl': S.svPl = Number(v); return render();
       case 'svfilter': S.svKind = v; S.svMore = false; return render();
       case 'svmore': S.svMore = !S.svMore; return render();
@@ -6128,7 +6171,8 @@ try { const p = JSON.parse(localStorage.getItem('koide-pref') || '{}'), d = docu
         return;
       }
       case 'admintab':
-        S.adminTab = v; render();
+        if (v === 'survey' && SV_ON) return svGo(false);
+        svLeave(); S.adminTab = v; render();
         if (v === 'analysis') { track('화면 보기', { screen: '분석' }); loadAnalysis(); }
         return;
       case 'tab':

@@ -1,0 +1,23 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="robots" content="noindex">
+<meta name="color-scheme" content="light dark">
+<title>설문</title>
+<!-- 교회 설문에 답하는 쪽. 앱을 깔지 않고 로그인하지 않아도 링크나 QR로 들어와 이름 없이 답한다.
+     원본은 디다코 저장소 shared/family-ui/church-survey.html 한 곳이고 sync.sh로 두 앱 app/ 폴더에 복사한다(복사본은 고치지 않는다) -->
+<link rel="stylesheet" href="family-tokens.css">
+<link rel="stylesheet" href="family-ui.css">
+<link rel="stylesheet" href="design-styles.css">
+<link rel="stylesheet" href="church-survey.css">
+<script src="config.js"></script>
+</head>
+<body class="sv-page">
+<div class="sv sv-shell" id="svApp"></div>
+<noscript><p style="padding:2em">설문에 답하려면 자바스크립트를 켜 주세요.</p></noscript>
+<script src="church-survey.js"></script>
+<script>ChurchSurvey.respondPage(document.getElementById('svApp'));</script>
+</body>
+</html>
