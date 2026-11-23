@@ -14,6 +14,8 @@ window.KOIDE_CONFIG = {
   NOTE_BACKEND: 'supabase',
   SUPABASE_URL: 'https://knzibzjnpkcpelwfqdvx.supabase.co',  // 공개 값
   SUPABASE_KEY: 'sb_publishable_zWrybkJVwpzQ04XnUoxnSA_keakooJI',  // publishable 키(공개 값). secret(service_role) 키는 절대 넣지 않는다
+  // 알림(웹 푸시) 공개 열쇠. 비우면 더보기 › 앱 설정에 알림 줄이 없다(공개 값, 비밀 열쇠는 Supabase에만 있다)
+  PUSH_KEY: 'BGqC5a_zTqB3EzsEKyRME1KPPy6uGXiUN7XaNKwXv9jw-MS3aj01IR8sLI8m8_fDFX9KdLv1wUJa7fz_PGTCkIs',
   // 코이데 공동체 켜기. 비우면 꺼짐, 'on'이면 켬. 서버 스위치 community_open도 켜져 있어야 쓸 수 있다
   COMMUNITY: 'on',
   // 이용 통계 보내기(2026-11-18 켬). 'on'이면 서버 스위치 usage_track도 켜져 있을 때만 쌓인다. 사용자가 더보기 › 앱 설정에서 끈 기기는 보내지 않는다
