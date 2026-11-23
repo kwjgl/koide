@@ -5598,11 +5598,11 @@ try { const p = JSON.parse(localStorage.getItem('koide-pref') || '{}'), d = docu
   const screenControls = () => `${themeControls(true)}<div><p class="mlabel">큰 글씨</p>${bigControls()}</div>`;
 
   const tabOn = (t = S.tab) => S.op || ['import', 'status', 'admin', 'reorg', 'about', 'help', 'church', 'feedback', 'acctdel', 'account', 'praytext'].includes(t) ? 'more' : t;
-  // 위 막대 이름표의 이름(2026-11-20, 디다코와 같게): 내 소속을 보인다. 모임은 모임 이름, 교역자는 맡은 부서, 리더·회원은 내 사랑방(한 사람만이면 그 이름). 이름을 모르면 "코이데 교회"
+  // 위 막대 이름표의 이름(2026-11-23, 디다코와 같게): 교회 화면에서는 교회 이름만 보인다. 사랑방·부서 이름은 제목 윗글과 더보기에 있다. 모임 화면은 다른 곳이라 모임 이름을 보인다. 교회 이름을 모르면(데모는 "예시교회") 사랑방·부서 이름, 그것도 없으면 "코이데 교회"
   function badgeName() {
     const M = S.month, me = M.me;
     if (S.grp) return M.room.name;
-    return (me.staff ? M.dept && M.dept.name : M.room && M.room.name) || (S.me && S.me.church && S.me.church.name) || '코이데 교회';   // 사랑방도 부서도 없으면 교회 이름(디다코와 같다)
+    return (S.me && S.me.church && S.me.church.name) || (DEMO ? '예시교회' : '') || (me.staff ? M.dept && M.dept.name : M.room && M.room.name) || '코이데 교회';
   }
   // 상단 바: 로고(누르면 이번 달), PC에서는 메뉴, 사랑방 배지(누르면 사랑방 정보), 설정
   function topHtml() {
