@@ -5527,7 +5527,7 @@ try { const p = JSON.parse(localStorage.getItem('koide-pref') || '{}'), d = docu
     if (a.o !== b.o) return !a.o ? 'open' : !b.o ? 'close' : 'fade';
     if (b.o) return a.page === b.page ? '' : b.page > a.page ? 'next' : 'prev';
     if (a.scr !== b.scr) return b.tab > a.tab ? 'fwd' : b.tab < a.tab ? 'back' : 'fade';
-    if (a.sub !== b.sub) return 'fade';
+    if (a.sub !== b.sub) return 'sub';   // 같은 화면 안의 탭(돌아보기 사랑방·타임라인·나의 기도, 관리·분석·설문)은 움직임 없이 바꾼다. 화면 전체를 흐리게 했다 밝히면 탭 줄까지 같이 깜빡였다(2026-11-24)
     if (a.today !== b.today && S.tab === 'home') return 'today';
     return '';
   }
@@ -5628,7 +5628,13 @@ try { const p = JSON.parse(localStorage.getItem('koide-pref') || '{}'), d = docu
     if (getComputedStyle(g).position === 'static') g.style.position = 'relative';
     g.prepend(pill); el.classList.add('seg-moving');
     pill.animate([{ transform: `translateX(${r.left - nr.left}px) scaleX(${(r.width / nr.width).toFixed(3)})` }, { transform: 'none' }],
-      { duration: 240, easing: 'cubic-bezier(.3, 1.25, .5, 1)' }).onfinish = () => { pill.remove(); el.classList.remove('seg-moving'); };
+      { duration: 240, easing: 'cubic-bezier(.3, 1.25, .5, 1)' }).onfinish = () => {
+        // 판을 치우고 버튼 바탕을 되돌릴 때 바탕색이 서서히 차오르면 선택 표시가 잠깐 옅어져 깜빡인다(2026-11-24). 이 순간만 전환을 끈다
+        el.style.setProperty('transition', 'none');
+        pill.remove(); el.classList.remove('seg-moving');
+        void el.offsetWidth;
+        el.style.removeProperty('transition');
+      };
   }
   function draw() {
     trackView(S.view);
