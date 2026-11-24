@@ -483,3 +483,8 @@
 .sv .ba-r .sv-track { margin: 0; }
 .sv .ba-r .prev .sv-fill { background: var(--line-strong); }
 @media print { .sv .ipa-wrap { break-inside: avoid; } }
+
+/* 분석 탭의 표(보고서 표와 같은 값): 좁은 화면에서는 옆으로 밀어 본다 */
+.sv .an-tbl { margin: .9em 0 .4em; }
+.sv .an-cap { margin: 0 0 .3em; font-size: .82em; color: var(--muted); }
+.sv .an-tw { overflow-x: auto; -webkit-overflow-scrolling: touch; }

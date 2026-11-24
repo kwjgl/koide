@@ -865,6 +865,20 @@ function ipaSvg(pts, xc, yc, s) {
     ${ticks.join('')}<text class="ipa-t" x="${L + pw / 2}" y="${H - 8}" text-anchor="middle">만족도(평균 점수) →</text>
     <text class="ipa-t" transform="translate(13 ${Tm + ph / 2}) rotate(-90)" text-anchor="middle">전체 만족과 이어지는 정도 →</text>${dots}${lab}</svg>`;
 }
+// ── 분석 탭의 표(보고서의 표와 같은 값) ──
+const tblWrap = (cap, head, body) => `<div class="an-tbl"><p class="an-cap">${cap}</p><div class="an-tw"><table class="pp-t"><thead><tr>${head}</tr></thead><tbody>${body}</tbody></table></div></div>`;
+function tblSat(S, s) {
+  return tblWrap('표. 항목별 만족과 전체 만족의 관계', ['항목', '<i>n</i>', '평균', '만족 %', '<i>ρ</i>', '<i>p</i>'].map(x => `<th>${x}</th>`).join(''),
+    S.items.map(x => `<tr><td>${esc(satLab(x.id, s))}</td><td>${x.n}</td><td>${x.mean.toFixed(2)}</td><td>${x.fav ? pc(x.fav[0], x.fav[1]) : '—'}</td><td>${x.rho == null ? '—' : nz(x.rho)}</td><td>${x.p == null ? '—' : pTxt(x.p).replace('= ', '')}</td></tr>`).join(''));
+}
+function tblGroup(g) {
+  return tblWrap(`표. ${esc(g.title)} (<i>n</i> = ${g.n})`, `<th></th><th>평균</th>${g.cols.map(x => `<th>${esc(x)}</th>`).join('')}<th>계</th>`,
+    g.rows.map(([lab, v, tot, mean]) => `<tr><td>${esc(lab)}</td><td>${mean == null ? '—' : mean.toFixed(2)}</td>${v.map(x => x == null || tot == null ? '<td>—</td>' : `<td>${x} (${pc(x, tot)}%)</td>`).join('')}<td>${tot == null ? '—' : tot}</td></tr>`).join(''));
+}
+function tblChange(c) {
+  return tblWrap(`표. 교재 전(<i>n</i> = ${c.np})과 후(<i>n</i> = ${c.nc})`, '<th></th><th>전</th><th>후</th>',
+    c.cols.map((lab, i) => `<tr><td>${esc(lab)}</td><td>${c.prev[i] == null ? '—' : `${c.prev[i]} (${pc(c.prev[i], c.np)}%)`}</td><td>${c.cur[i] == null ? '—' : `${c.cur[i]} (${pc(c.cur[i], c.nc)}%)`}</td></tr>`).join(''));
+}
 function satCard(an, s) {
   const S = an.sat; if (!S || !S.items || !S.items.length) return '';
   const P = satPick(S), o = S.overall, wr = P.withRho;
@@ -873,15 +887,13 @@ function satCard(an, s) {
   const fixTxt = P.fix.length ? P.fix.map(x => `<b>${esc(satLab(x.id, s))}</b>(평균 ${x.mean.toFixed(1)}점, <i>ρ</i> = ${nz(x.rho)})`).join(', ') + '이다. 전체 만족과의 상관이 항목 평균 이상이고 점수는 항목 평균 미만이다.'
     : '전체 만족과의 상관이 항목 평균 이상이면서 점수가 항목 평균 미만인 항목은 없다.';
   const rows = S.items.map(x => {
-    const pct = x.fav ? ` 만족 이상 ${pc(x.fav[0], x.fav[1])}%.` : '';
-    const rel = x.rho != null ? ` 전체 만족과의 순위상관 <i>ρ</i> = ${nz(x.rho)}, <i>p</i> ${pTxt(x.p)}.` : '';
-    return `<div class="sat-row"><div class="sat-h"><span>${esc(satLab(x.id, s))}</span><b>${x.mean.toFixed(1)}<small>점</small></b></div><span class="sv-track" role="img" aria-label="${esc(satLab(x.id, s))} 평균 ${x.mean}점"><span class="sv-fill" style="width:${(x.mean / 5 * 100).toFixed(1)}%"></span></span><small class="sat-s"><i>n</i> = ${x.n}.${pct}${rel}</small></div>`;
+    return `<div class="sat-row"><div class="sat-h"><span>${esc(satLab(x.id, s))}</span><b>${x.mean.toFixed(1)}<small>점</small></b></div><span class="sv-track" role="img" aria-label="${esc(satLab(x.id, s))} 평균 ${x.mean}점"><span class="sv-fill" style="width:${(x.mean / 5 * 100).toFixed(1)}%"></span></span></div>`;
   }).join('');
   const overall = `전체 만족 평균은 <b>${o.mean.toFixed(1)}점</b>(5점 만점, <i>n</i> = ${S.n})이다.${o.fav ? ` '만족' 이상은 ${o.fav[0]}명(${pc(o.fav[0], o.fav[1])}%)이다.` : ''}`;
   const detail = `평균은 보기를 1점(${esc(satOpts(s)[0])})부터 ${satOpts(s).length}점(${esc(satOpts(s)[satOpts(s).length - 1])})까지 순서대로 매긴 값이다. 상관은 스피어만 순위상관계수 <i>ρ</i>이며 항목마다 따로 검정했고 다중비교 보정은 하지 않았다. 그림의 가로 점선은 항목 평균 점수의 평균, 세로 점선은 <i>ρ</i>의 평균이다. 항목 사이에 겹치는 부분이 있고 응답이 적으면 추정이 불안정하다.`;
   return `<p class="gl">만족도 살펴보기</p><section class="card rq"><h3>항목별 만족과 전체 만족의 관계</h3><p class="rq-sub">중요도(전체 만족과의 상관)와 만족도(평균 점수)</p>${chart}
     <p class="sent">${overall}</p>${P.xc != null && chart ? `<p class="sent ipa-sum">${P.fix.length ? '먼저 살펴볼 곳: ' : ''}${fixTxt}<small>세로축은 전체 만족과의 순위상관, 가로축은 평균 점수이며 상대 위치다. 상관은 인과를 뜻하지 않는다.</small></p>` : ''}
-    <div class="sat-list">${rows}</div>${fold(detail)}</section>`;
+    ${tblSat(S, s)}<div class="sat-list">${rows}</div>${fold(detail)}</section>`;
 }
 const satOpts = s => { const q = qsAll(s).find(x => x.id === SAT_ALL); return q && q.o ? q.o : ['불만족', '만족']; };
 
@@ -912,7 +924,7 @@ function groupCards(an) {
   const L = an.groups || []; if (!L.length) return '';
   return `<p class="gl">집단에 따른 차이</p><p class="hint" style="margin:0 0 4px">틀이 미리 정해 둔 짝만 계산한다. 응답자가 아니라 모임에 맞는 운영을 가늠하는 용도이며, 5명 미만 집단은 가린다.</p>
     ${L.map(g => { const sig = g.kind === 'sig';
-      return `<section class="card rq">${verdict2(g.kind)}<h3>${esc(g.title)}</h3>${g.mean ? meanBars(g) : crossTable(g)}${g.hid ? `<p class="hint" style="margin:.4em 0 0">5명 미만 집단은 가리고 계산에서도 제외했다.</p>` : ''}
+      return `<section class="card rq">${verdict2(g.kind)}<h3>${esc(g.title)}</h3>${g.mean ? meanBars(g) + tblGroup(g) : crossTable(g)}${g.hid ? `<p class="hint" style="margin:.4em 0 0">5명 미만 집단은 가리고 계산에서도 제외했다.</p>` : ''}
         <p class="sent" style="margin-top:.5em">${groupSentence(g, sig)}</p>${statLine(g.stat, an.alpha_g, nTests(an.groups) > 1)}${fold(diffDetail(g, an))}</section>`; }).join('')}`;
 }
 
@@ -939,7 +951,7 @@ function changeCards(an, s, R) {
   const L = an.change || [];
   if (!L.length) return `<p class="gl">교재 전과 후 비교</p><section class="card rq"><p class="rq-sub" style="margin:0">견줄 문항이 없다. 지난 설문과 고치지 않은 같은 문항이 있고 양쪽에 5명 이상 답해야 견줄 수 있다.</p></section>`;
   return `<p class="gl">교재 전과 후 비교</p><p class="hint" style="margin:0 0 4px">교재 전 <i>n</i> = ${an.prev_n}, 후 <i>n</i> = ${R.n}. 익명 응답이라 같은 사람의 변화가 아니라 두 시점의 분포를 견준다.</p>
-    ${L.map(c => `<section class="card rq">${verdict2(c.kind)}<h3>${esc(c.t)}</h3><p class="rq-sub">전 <i>n</i> = ${c.np}, 후 <i>n</i> = ${c.nc}</p>${baRows(c, c.np, c.nc)}<p class="sent" style="margin-top:.5em">${changeSentence(c)}</p>${statLine(c.stat, an.alpha_c, nTests(an.change) > 1)}${fold(changeDetail(c, an))}</section>`).join('')}`;
+    ${L.map(c => `<section class="card rq">${verdict2(c.kind)}<h3>${esc(c.t)}</h3><p class="rq-sub">전 <i>n</i> = ${c.np}, 후 <i>n</i> = ${c.nc}</p>${baRows(c, c.np, c.nc)}${tblChange(c)}<p class="sent" style="margin-top:.5em">${changeSentence(c)}</p>${statLine(c.stat, an.alpha_c, nTests(an.change) > 1)}${fold(changeDetail(c, an))}</section>`).join('')}`;
 }
 function repAnalysis(R, s) {
   const an = ST.an[s.id]; if (!anHas(an)) return '<section class="card rq"><p class="rq-sub" style="margin:0">분석을 불러오는 중이에요…</p></section>';
