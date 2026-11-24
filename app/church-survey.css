@@ -205,12 +205,13 @@
 .sv .share-r .acts .btn { flex: 1 1 auto; }
 .sv .code-line { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
 .sv .code-big { font-family: var(--f-display); font-size: 2.2em; letter-spacing: .22em; font-weight: 700; font-variant-numeric: tabular-nums; line-height: 1.2; }
-.sv .board { position: fixed; inset: 0; z-index: 55; background: var(--page); display: flex; flex-direction: column; align-items: center; justify-content: center; gap: .7em; padding: 24px; text-align: center; }
-.sv .board .code-big { font-size: clamp(3.5em, 18vw, 9em); }
-.sv .board .qr { width: min(70vw, 380px); height: min(70vw, 380px); }
-.sv .board p { margin: 0; color: var(--ink-2); }
-.sv .board .board-t { font-family: var(--f-display); font-size: 1.5em; color: var(--ink); }
-.sv .board .board-x { position: absolute; top: max(14px, env(safe-area-inset-top)); right: max(14px, env(safe-area-inset-right)); }
+.sv.board { position: fixed; inset: 0; z-index: 55; background: var(--page); display: flex; flex-direction: column; align-items: center; justify-content: center; gap: .7em; padding: 24px; text-align: center; }
+.sv.board .code-big { font-size: clamp(3.5em, 18vw, 9em); color: var(--ink); }
+.sv.board .qr { width: min(70vw, 380px); height: min(70vw, 380px); }
+.sv.board p { margin: 0; color: var(--ink-2); }
+.sv.board .board-t { font-family: var(--f-display); font-size: 1.5em; color: var(--ink); }
+.sv.board .board-x { position: absolute; top: max(14px, env(safe-area-inset-top)); right: max(14px, env(safe-area-inset-right)); }
+.sv.board[hidden] { display: none; }
 
 /* ── 보고서 ── */
 .sv .rep-meta { margin: 0 0 6px; font-size: .9em; color: var(--ink-2); line-height: 1.6; }
