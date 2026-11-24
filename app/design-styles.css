@@ -61,7 +61,7 @@
 :root[data-style="neu"] .pray-table thead th { background: var(--page); }
 :root[data-style="neu"] .pss { background: var(--page); }
 :root[data-style="neu"] .pss-nav button { box-shadow: var(--raise); }
-:root[data-style="neu"] .pss-nav button:first-child { background: var(--page); border-color: transparent; }
+:root[data-style="neu"] .pss-nav button:first-child:not(.pss-pray) { background: var(--page); border-color: transparent; }
 :root[data-style="neu"] .pss-body li { background: var(--card); box-shadow: var(--raise-sm); }
 @media (prefers-reduced-motion: reduce) { :root[data-style="neu"] .pray { transition: none; } }
 
