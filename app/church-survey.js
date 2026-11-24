@@ -144,6 +144,35 @@ const PRAY_Q = [
   { id: 'p12', g: '바라는 점', t: '기도 생활이나 기도 모임에 바라는 점이 있다면 적어 주세요.', type: 'text', opt: true }
 ];
 
+// ── 수련회 만족도 조사 틀 12문항(2026-11-24, 두 앱 모두). 전체 만족(r4)과 항목별 만족(r5~r10)을 함께 묻는다. 보고서에서 어느 항목이 전체 만족과 함께 움직이는지(중요도와 만족도 그림)와
+//    연령대·참석 횟수·소그룹 참여(r1~r3)에 따른 차이를 본다. 사람을 점수로 견주지 않고 프로그램을 고치는 데만 쓴다. 문항 번호가 분석과 이어져 있어서 고치면 그 문항의 분석이 빠진다 ──
+const SAT5 = ['매우 불만족', '불만족', '보통', '만족', '매우 만족'];
+const RET_Q = [
+  { id: 'r1', g: '참석자', t: '어느 연령대인가요?', type: 'one', o: ['10대 이하', '20~30대', '40~50대', '60대 이상'] },
+  { id: 'r2', g: '참석자', t: '이 수련회에 몇 번째로 참석했나요?', type: 'one', o: ['처음이에요', '두세 번째예요', '여러 번 왔어요'] },
+  { id: 'r3', g: '참석자', t: '평소 소그룹(구역·셀·성경공부 모임 등)에 참여하나요?', type: 'one', o: ['참여해요', '참여하지 않아요'] },
+  { id: 'r4', g: '전체 만족', t: '이번 수련회에 전체적으로 얼마나 만족했나요?', type: 'range', o: SAT5 },
+  { id: 'r5', g: '프로그램', t: '프로그램(활동과 순서)은 어땠나요?', type: 'range', o: SAT5 },
+  { id: 'r6', g: '말씀', t: '말씀(강의·설교)은 어땠나요?', type: 'range', o: SAT5 },
+  { id: 'r7', g: '소그룹 나눔', t: '소그룹 나눔 시간은 어땠나요?', type: 'range', o: SAT5 },
+  { id: 'r8', g: '숙소·장소', t: '숙소와 장소는 어땠나요?', type: 'range', o: SAT5 },
+  { id: 'r9', g: '식사', t: '식사는 어땠나요?', type: 'range', o: SAT5 },
+  { id: 'r10', g: '일정', t: '일정과 시간 배분은 어땠나요?', type: 'range', o: SAT5 },
+  { id: 'r11', g: '다음', t: '다음 수련회에도 오고 싶나요?', type: 'one', o: ['꼭 오고 싶어요', '아마 올 거예요', '잘 모르겠어요', '어려울 것 같아요'] },
+  { id: 'r12', g: '바라는 점', t: '좋았던 점이나 아쉬운 점, 다음에 바라는 점을 적어 주세요.', type: 'text', opt: true }
+];
+const SAT_ITEMS = ['r5', 'r6', 'r7', 'r8', 'r9', 'r10'], SAT_ALL = 'r4';   // 서버 supabase/031의 sv_sat_spec과 같다
+
+// ── 디다코: 교재 전후 확인 틀 6문항(2026-11-24). 같은 설문을 교재 시작 전과 끝난 뒤에 두 번 받아 달라진 점을 본다. 이름 없이 받으니 같은 사람의 변화가 아니라 두 모임 전체의 모습을 견준다 ──
+const POST_Q = [
+  { id: 't1', g: '읽기', t: '성경을 읽는 빈도는 어느 정도인가요?', type: 'range', o: ['거의 안 읽어요', '가끔', '주 몇 번', '거의 매일'] },
+  { id: 't2', g: '자신감', t: '성경 본문을 혼자 읽고 이해하는 데 자신이 있나요?', type: 'range', o: ['전혀 없어요', '별로 없어요', '보통이에요', '있는 편이에요', '매우 있어요'] },
+  { id: 't3', g: '삶', t: '성경 이야기가 지금 내 삶과 이어진다고 느끼나요?', type: 'range', o: ['전혀 아니에요', '별로 아니에요', '보통이에요', '그런 편이에요', '매우 그래요'] },
+  { id: 't4', g: '나눔', t: '모임에서 내 생각을 말하는 것이 편한가요?', type: 'range', o: ['매우 불편해요', '불편한 편이에요', '보통이에요', '편한 편이에요', '매우 편해요'] },
+  { id: 't5', g: '궁금함', t: '성경을 읽다 궁금한 것이 생기면 어떻게 하나요?', type: 'one', o: ['그냥 넘어가요', '검색해 봐요', '사람에게 물어봐요', '성경 안에서 더 찾아봐요'] },
+  { id: 't6', g: '바라는 점', t: '공부에 기대하는 점이나 도움이 된 점, 아쉬운 점을 적어 주세요.', type: 'text', opt: true }
+];
+
 // ── 앱마다 다른 것: 설문 틀 목록과 이름, 보고서 뒤의 다음 걸음 ──
 // tpls: 기본 틀 목록(앞의 것이 '추천'). 맨 위의 nm·questions·mins는 첫째 틀을 가리킨다. lead·heads는 두 틀의 문항 번호를 함께 적어 두면 문항이 있는 쪽만 쓰인다
 const APPS = {
@@ -151,25 +180,29 @@ const APPS = {
     name: '디다코', mark: 'didako', nm: '교육 기초 조사', questions: DID_Q, quiz: true,
     tpls: [
       { nm: '교육 기초 조사', questions: DID_Q, quiz: true, mins: 4, icon: 'spark', short: '지금 어디에 있고 무엇을 배우고 싶은지 물어요.' },
-      { nm: '모임 방식 선호 조사', questions: MEET_Q, quiz: false, mins: 4, icon: 'users', short: '어떤 모임이 편한지 물어요. 사람을 유형으로 나누지 않아요.' }
+      { nm: '모임 방식 선호 조사', questions: MEET_Q, quiz: false, mins: 4, icon: 'users', short: '어떤 모임이 편한지 물어요. 사람을 유형으로 나누지 않아요.' },
+      { nm: '수련회 만족도 조사', questions: RET_Q, quiz: false, mins: 5, icon: 'cal', short: '항목별 만족을 묻고, 무엇이 전체 만족과 이어지는지 봐요.' },
+      { nm: '교재 전후 확인', questions: POST_Q, quiz: false, mins: 3, icon: 'refresh', short: '교재 시작 전과 끝난 뒤에 같은 설문을 받아 달라진 점을 봐요.', prepost: true }
     ],
     tplDesc: '지금 어디에 있고 무엇을 배우고 싶은지 묻는 기초 조사예요. 경험·읽는 빈도·주제·방식·시간·어려움을 물어요.',
-    mins: 4, quizMins: 3, next: '교재 추천', dflt: '교육 기초 조사',
+    mins: 4, quizMins: 3, next: '교재 추천', dflt: '교육 기초 조사', prepost: true,
     lead: { d2: '성경을 읽는 빈도는', d3: '배우고 싶은 주제는', d4: '성경공부에 익숙한 정도는', d8: '가장 어려운 것 1순위는',
-      w1: '가장 마음이 편한 모임 방식은', w3: '편한 모임 인원은', w4: '알맞은 모임 시간은', w5: '모일 수 있는 때는', w6: '모이기 편한 곳은', w8: '모임에 참여하기 어렵게 하는 것은' },
-    heads: ['d3', 'd8', 'd4', 'd2', 'w1', 'w4', 'w5']
+      w1: '가장 마음이 편한 모임 방식은', w3: '편한 모임 인원은', w4: '알맞은 모임 시간은', w5: '모일 수 있는 때는', w6: '모이기 편한 곳은', w8: '모임에 참여하기 어렵게 하는 것은',
+      r11: '다음 수련회에 오고 싶은 마음은', t5: '궁금한 것이 생겼을 때는' },
+    heads: ['d3', 'd8', 'd4', 'd2', 'w1', 'w4', 'w5', 'r11', 't5']
   },
   koide: {
     name: '코이데', mark: 'cord', nm: '신앙 점검', questions: KOI_Q, quiz: false,
     tpls: [
       { nm: '신앙 점검', questions: KOI_Q, quiz: false, mins: 7, icon: 'spark', short: '신앙을 정체성·신념·신앙 활동·경험·공동체 영역으로 나눠 물어요.' },
-      { nm: '기도 생활 돌아보기', questions: PRAY_Q, quiz: false, mins: 5, icon: 'pray', short: '기도하는 때와 방식, 어려움, 바라는 도움을 물어요. 기도의 양을 견주지 않아요.' }
+      { nm: '기도 생활 돌아보기', questions: PRAY_Q, quiz: false, mins: 5, icon: 'pray', short: '기도하는 때와 방식, 어려움, 바라는 도움을 물어요. 기도의 양을 견주지 않아요.' },
+      { nm: '수련회 만족도 조사', questions: RET_Q, quiz: false, mins: 5, icon: 'cal', short: '항목별 만족을 묻고, 무엇이 전체 만족과 이어지는지 봐요.' }
     ],
     tplDesc: '신앙을 정체성·신념·신앙 활동·경험·공동체 영역으로 나눠 묻는 점검이에요. 문구는 교회에 맞게 고칠 수 있어요.',
     mins: 7, quizMins: 0, next: '함께 기도할 제목', dflt: '신앙 점검',
     lead: { k5: '구원의 확신은', k6: '신앙생활을 하는 가장 큰 이유는', k14: '요즘 가장 큰 어려움 1순위는', k7: '공예배 참석은', k11: '공예배에서 은혜를 경험한 정도는',
-      p2: '혼자 기도하는 빈도는', p3: '주로 기도하는 때는', p6: '마음이 편한 기도 방식은', p9: '기도할 때 가장 어려운 것 1순위는', p10: '교회에 바라는 도움은' },
-    heads: ['k5', 'k6', 'k14', 'p6', 'p9', 'p10']
+      p2: '혼자 기도하는 빈도는', p3: '주로 기도하는 때는', p6: '마음이 편한 기도 방식은', p9: '기도할 때 가장 어려운 것 1순위는', p10: '교회에 바라는 도움은', r11: '다음 수련회에 오고 싶은 마음은' },
+    heads: ['k5', 'k6', 'k14', 'p6', 'p9', 'p10', 'r11']
   }
 };
 const DEF_CLOSED = '응답을 마감했어요. 감사합니다.';
@@ -178,7 +211,7 @@ const DEPT_Q = { id: 'dept', g: '기본', t: '소속이 어떻게 되나요?', t
 // ══ 상태 ═══════════════════════════════════════════════════════════════════
 let C = { app: 'didako', demo: false, rpc: null };
 const A = () => APPS[C.app];
-const ST = { items: null, scope: { all: false, depts: [] }, error: '', loading: false, sub: '', open: null, openAt: 0, rep: {}, repTab: 'glance', openQ: null, keepQ: false, undo: null, newDept: '', saveState: 'saved', qrReady: false };
+const ST = { items: null, scope: { all: false, depts: [] }, error: '', loading: false, sub: '', open: null, openAt: 0, rep: {}, an: {}, repTab: 'glance', openQ: null, keepQ: false, undo: null, newDept: '', saveState: 'saved', qrReady: false };
 let OPEN = null;     // 열기 창 상태
 let RS = null;       // 답하는 화면 상태
 let adapter = null;
@@ -189,10 +222,10 @@ function fromSrv(j) {
   return { id: j.id, title: j.title || '', deptId: j.dept_id || null, dept: j.dept_name || '', linkMode: j.link_mode === 'multi' ? 'multi' : 'dept', status: j.status,
     start: toLocal(j.start), end: toLocal(j.end), limit: j.limit || null, gate: j.gate || 'open', code: j.code || '', closedText: j.closed_text || DEF_CLOSED,
     showAns: !!j.show_ans, check: !!j.check, quizIds: Array.isArray(j.quiz_ids) ? j.quiz_ids : null, qs: Array.isArray(j.qs) ? j.qs : [], from: j.from || 'tpl', fromTitle: j.from_title || '',
-    prev: j.prev || null, token: j.token || '', memo: j.memo || '', resp: j.resp || 0, oneN: j.once_n || 0, oneUsed: j.once_used || 0 };
+    prev: j.prev || null, cmp: j.cmp === 'prepost' ? 'prepost' : 'year', token: j.token || '', memo: j.memo || '', resp: j.resp || 0, oneN: j.once_n || 0, oneUsed: j.once_used || 0 };
 }
 const toSrv = s => ({ title: s.title, dept_id: s.linkMode === 'dept' ? s.deptId : null, questions: s.qs, check: !!s.check, quiz_ids: s.check ? quizOf(s).map(q => q.id) : null,
-  from: s.from || 'tpl', from_title: s.fromTitle || '', prev: s.prev || null });
+  from: s.from || 'tpl', from_title: s.fromTitle || '', prev: s.prev || null, cmp: s.prev && s.cmp === 'prepost' ? 'prepost' : 'year' });
 // 앱의 문항 모음 정답표: 서버가 결과를 셀 때 쓴다(비밀이 아니다)
 const quizKey = () => C.app === 'didako' ? Object.fromEntries(DID_BANK.map(q => [q.id, { a: q.a, lv: q.lv }])) : {};
 
@@ -283,12 +316,13 @@ const live = {
   async codes(id) { return await C.rpc('survey_codes', { p_app: C.app, p_id: id }); },
   async memo(id, text) { await C.rpc('survey_memo', { p_app: C.app, p_id: id, p_text: text }); },
   async report(id) { return await C.rpc('survey_report', { p_app: C.app, p_id: id, p_key: quizKey() }); },
+  async analysis(id) { return await C.rpc('survey_analysis', { p_app: C.app, p_id: id }); },
   async openList() { return await C.rpc('survey_open_list', { p_app: C.app }); }
 };
 
 // ── 데모: 지어낸 설문 다섯 개와 지어낸 결과. 이 브라우저에만 남는다 ──
 const DEMO_DEPTS = [['dm1', '청장년부'], ['dm2', '청소년부'], ['dm3', '장년부']];
-const demoKey = () => 'sv-demo-v2-' + C.app;
+const demoKey = () => 'sv-demo-v3-' + C.app;
 const dayIso = (n, h = 14) => { const t = NOW(); t.setDate(t.getDate() + n); t.setHours(h, 0, 0, 0); return isoOf(t); };
 function demoSeed() {
   const nm = A().nm, quiz = C.app === 'didako', t2 = A().tpls[1];
@@ -300,6 +334,10 @@ function demoSeed() {
     { ...base, id: 's5', title: `장년부 ${nm}`, deptId: 'dm3', dept: '장년부', status: 'draft', start: null, end: null, resp: 0, token: 'demo-s5' },
     { ...base, id: 's3', title: `${y} 봄 ${nm}`, status: 'closed', start: dayIso(-190, 9), end: dayIso(-176), resp: 55, prev: 's4', fromTitle: `${y - 1} 봄 ${nm}`, from: 'copy', token: 'demo-s3' },
     { ...base, id: 's4', title: `${y - 1} 봄 ${nm}`, status: 'closed', start: dayIso(-555, 9), end: dayIso(-541), resp: 52, token: 'demo-s4' },
+    { ...base, id: 's7', title: `${y} 가을 수련회 만족도`, deptId: 'dm1', dept: '청장년부', status: 'closed', start: dayIso(-45, 9), end: dayIso(-31), resp: 64, check: false, qs: RET_Q.map(cloneQ), fromTitle: '수련회 만족도 조사', token: 'demo-s7' },
+    ...(C.app === 'didako' ? [
+      { ...base, id: 's9', title: `${y} 청장년부 교재 전 확인`, status: 'closed', start: dayIso(-140, 9), end: dayIso(-126), resp: 46, check: false, qs: POST_Q.map(cloneQ), fromTitle: '교재 전후 확인', token: 'demo-s9' },
+      { ...base, id: 's8', title: `${y} 청장년부 교재 후 확인`, status: 'closed', start: dayIso(-20, 9), end: dayIso(-6), resp: 52, check: false, qs: POST_Q.map(cloneQ), prev: 's9', cmp: 'prepost', from: 'copy', fromTitle: `${y} 청장년부 교재 전 확인`, token: 'demo-s8' }] : []),
     ...(t2 ? [{ ...base, id: 's6', title: `${y} 여름 ${t2.nm}`, status: 'closed', start: dayIso(-100, 9), end: dayIso(-86), resp: 38, check: false, qs: t2.questions.map(cloneQ), fromTitle: t2.nm, token: 'demo-s6' }] : [])
   ];
 }
@@ -316,13 +354,19 @@ const DEMO_TEXT = {
   w9: ['처음 오는 사람도 부담 없이 앉을 수 있으면 좋겠어요.', '말씀을 읽고 각자 생각을 적은 뒤에 나누면 좋겠어요.', '퇴근하고 온라인으로 짧게 모일 수 있으면 해요.', '아이를 데리고 와도 괜찮은 모임이면 좋겠어요.', '한 시간 안에 끝나고 간식이 있으면 좋겠어요.', '정답을 말해야 하는 분위기가 아니었으면 해요.', '가끔은 밖에 나가서 걸으며 나누고 싶어요.'],
   p12: ['함께 기도하는 시간이 한 달에 한 번이라도 있으면 좋겠어요.', '기도하는 법을 차근차근 알려 주는 시간이 있었으면 해요.', '조용히 기도할 수 있는 예배당이 평일에도 열려 있으면 좋겠어요.', '기도 짝이 있으면 꾸준히 할 수 있을 것 같아요.', '기도 제목을 편하게 나눌 수 있는 분위기였으면 해요.', '짧게라도 날마다 따라 할 수 있는 안내가 있으면 좋겠어요.'],
   k15: ['함께 기도하는 시간이 조금 더 있으면 좋겠어요.', '예배 끝나고 이야기 나누는 자리가 있으면 좋겠어요.', '말씀이 삶에 어떻게 이어지는지 더 듣고 싶어요.', '봉사에 참여해 보고 싶은데 어디서 시작하는지 몰랐어요.', '공부하는 모임이 평일 저녁에도 있으면 좋겠어요.', '기도 제목을 편하게 나눌 수 있는 분위기였으면 해요.'],
+  r12: ['프로그램은 좋았는데 방이 조금 추웠어요.', '소그룹 나눔 시간이 가장 기억에 남아요.', '식사가 정말 좋았어요. 감사해요.', '일정이 빡빡해서 쉬는 시간이 더 있으면 좋겠어요.', '말씀이 마음에 와닿았어요.', '샤워실이 부족해서 아침이 힘들었어요.', '아이들 프로그램도 있으면 좋겠어요.', '다음에도 꼭 오고 싶어요.'],
+  t6: ['처음에는 막막했는데 이제는 혼자서도 읽어 보고 싶어요.', '모임에서 말하는 게 조금 편해졌어요.', '본문 설명이 쉬워서 좋았어요.', '시간이 조금 더 길었으면 좋겠어요.', '질문이 어렵지 않아서 좋았어요.', '다음 교재도 같이 하고 싶어요.'],
   k16: ['리더님, 늘 먼저 안부 물어 주셔서 감사해요.', '선생님, 힘들 때 기도해 주셔서 큰 힘이 됐어요.', '새로 온 사람을 챙겨 주는 분들이 계셔서 고마웠어요.', '찬양 시간이 조금 더 길어도 좋겠어요.', '늘 고맙습니다.', '응원합니다.']
 };
 const DEMO_OTHER = { didako: { d3: ['찬양과 예배', '성경 원어 맛보기', '선교 이야기', '교회 역사'], d8: ['아이를 돌봐야 해서 모임에 오기 어려워요', '어디서부터 읽어야 할지 모르겠어요', '혼자 하면 금방 잊어요'], w1: ['걸으면서 이야기 나누기'], w8: ['몸이 불편해서 이동이 어려워요'] }, koide: { k6: ['그냥 교회가 좋아서요'], p4: ['버스 안'], p6: ['걸으면서 마음속으로'], p10: ['기도하는 사람의 이야기를 듣는 시간'] } };
+// 분석 데모 값: 지어낸 응답(수련회 64명, 교재 전 46명·후 52명, 교육 기초 조사 55명)을 서버의 survey_analysis와 같은 계산(supabase/031)에 돌려 얻은 결과다
+const DEMO_SV_N = { s7: {"r1":[9,19,21,15],"r2":[19,21,24],"r3":[40,24],"r4":[0,5,11,29,19],"r5":[1,4,8,27,24],"r6":[0,1,12,25,26],"r7":[0,0,18,19,27],"r8":[0,22,16,19,3],"r9":[0,1,11,24,28],"r10":[2,13,24,21,4],"r11":[7,27,18,12]}, s8: {"t1":[5,11,17,19],"t2":[4,4,13,15,16],"t3":[0,5,15,22,10],"t4":[3,7,16,22,4],"t5":[5,14,15,18]}, s9: {"t1":[10,18,12,6],"t2":[12,8,17,5,4],"t3":[2,9,21,11,3],"t4":[1,5,13,19,8],"t5":[19,14,9,4]} };
+const DEMO_AN = { s7: {"sat":{"n":64,"items":[{"n":64,"p":4.2e-11,"id":"r5","nc":64,"fav":[51,64],"rho":0.712,"mean":4.08},{"n":64,"p":5.2e-07,"id":"r6","nc":64,"fav":[51,64],"rho":0.58,"mean":4.19},{"n":64,"p":1.1e-08,"id":"r7","nc":64,"fav":[46,64],"rho":0.642,"mean":4.14},{"n":60,"p":1.1e-11,"id":"r8","nc":60,"fav":[22,60],"rho":0.742,"mean":3.05},{"n":64,"p":0.285,"id":"r9","nc":64,"fav":[52,64],"rho":0.136,"mean":4.23},{"n":64,"p":0.0049,"id":"r10","nc":64,"fav":[25,64],"rho":0.348,"mean":3.19}],"overall":{"id":"r4","fav":[48,64],"mean":3.97}},"groups":[{"n":64,"p":0.0012,"id":"ret_age_sat","hid":false,"cols":["불만족 쪽","보통","만족 쪽"],"kind":"sig","mean":true,"rows":[["10대 이하",[null,null,5],9,3.22],["20~30대",[null,null,12],19,3.63],["40~50대",[null,null,17],21,4.19],["60대 이상",[null,null,14],15,4.53]],"stat":{"h":15.9,"n":64,"p":0.0012,"df":3,"e2":0.253,"name":"kw"},"small":0,"title":"연령대에 따른 전체 만족"},{"n":64,"p":0.116,"id":"ret_age_again","hid":false,"cols":["오고 싶어요","잘 모르겠거나 어려워요"],"kind":"weak","mean":false,"rows":[["10대 이하",[null,null],9,null],["20~30대",[10,9],19,null],["40~50대",[11,10],21,null],["60대 이상",[null,null],15,null]],"stat":{"n":64,"p":0.116,"v":0.3,"df":3,"chi2":5.92,"name":"chi"},"small":2,"title":"연령대에 따른 다음 참석"},{"n":64,"p":0.743,"id":"ret_first_sat","hid":false,"cols":["불만족 쪽","보통","만족 쪽"],"kind":"weak","mean":true,"rows":[["처음이에요",[null,null,15],19,4.05],["두세 번째예요",[null,null,15],21,3.95],["여러 번 왔어요",[null,null,18],24,3.92]],"stat":{"h":0.59,"n":64,"p":0.743,"df":2,"e2":0.009,"name":"kw"},"small":0,"title":"참석 횟수에 따른 전체 만족"},{"n":64,"p":0.217,"id":"ret_first_again","hid":false,"cols":["오고 싶어요","잘 모르겠거나 어려워요"],"kind":"weak","mean":false,"rows":[["처음이에요",[13,6],19,null],["두세 번째예요",[11,10],21,null],["여러 번 왔어요",[10,14],24,null]],"stat":{"n":64,"p":0.217,"v":0.22,"df":2,"chi2":3.06,"name":"chi"},"small":0,"title":"참석 횟수에 따른 다음 참석"},{"n":64,"p":0.859,"id":"ret_cell_sat","hid":false,"cols":["불만족 쪽","보통","만족 쪽"],"kind":"weak","mean":true,"rows":[["참여해요",[null,null,30],40,4.0],["참여하지 않아요",[null,null,18],24,3.92]],"stat":{"h":0.03,"n":64,"p":0.859,"df":1,"e2":0.001,"name":"kw"},"small":0,"title":"소그룹 참여에 따른 전체 만족"},{"n":64,"p":0.0005,"id":"ret_cell_again","hid":false,"cols":["오고 싶어요","잘 모르겠거나 어려워요"],"kind":"sig","mean":false,"rows":[["참여해요",[28,12],40,null],["참여하지 않아요",[6,18],24,null]],"stat":{"n":64,"p":0.0005,"v":0.44,"df":1,"chi2":12.2,"name":"chi"},"small":0,"title":"소그룹 참여에 따른 다음 참석"}],"alpha_g":0.0083}, s3d: {"groups":[{"n":55,"p":0.109,"y":"d7","id":"edu_lv_time","hid":false,"cols":["30분 이하","30~60분","60분 넘게"],"kind":"weak","mean":false,"rows":[["처음·조금 익숙",[null,15,null],29,null],["익숙·가르쳐 봄",[null,16,null],26,null]],"stat":{"h":2.57,"n":55,"p":0.109,"df":1,"e2":0.048,"name":"kw"},"small":0,"title":"성경공부에 익숙한 정도에 따른 한 번에 낼 수 있는 시간"}],"alpha_g":0.05}, s8: {"change":[{"p":0.0014,"t":"성경을 읽는 빈도는 어느 정도인가요?","id":"t1","nc":52,"np":46,"cur":[5,11,17,19],"cols":["거의 안 읽어요","가끔","주 몇 번","거의 매일"],"kind":"sig","prev":[10,18,12,6],"stat":{"h":10.2,"n":98,"p":0.0014,"df":1,"e2":0.106,"name":"kw"},"type":"range","shift":0.66,"small":0},{"p":4.4e-05,"t":"성경 본문을 혼자 읽고 이해하는 데 자신이 있나요?","id":"t2","nc":52,"np":46,"cur":[null,null,13,15,16],"cols":["전혀 없어요","별로 없어요","보통이에요","있는 편이에요","매우 있어요"],"kind":"sig","prev":[12,8,17,null,null],"stat":{"h":16.7,"n":98,"p":4.4e-05,"df":1,"e2":0.172,"name":"kw"},"type":"range","shift":1.09,"small":0},{"p":0.0013,"t":"성경 이야기가 지금 내 삶과 이어진다고 느끼나요?","id":"t3","nc":52,"np":46,"cur":[null,null,15,22,10],"cols":["전혀 아니에요","별로 아니에요","보통이에요","그런 편이에요","매우 그래요"],"kind":"sig","prev":[null,9,21,11,null],"stat":{"h":10.3,"n":98,"p":0.0013,"df":1,"e2":0.106,"name":"kw"},"type":"range","shift":0.62,"small":0},{"p":0.188,"t":"모임에서 내 생각을 말하는 것이 편한가요?","id":"t4","nc":52,"np":46,"cur":[null,7,16,22,null],"cols":["매우 불편해요","불편한 편이에요","보통이에요","편한 편이에요","매우 편해요"],"kind":"weak","prev":[null,null,13,19,8],"stat":{"h":1.73,"n":98,"p":0.188,"df":1,"e2":0.018,"name":"kw"},"type":"range","shift":-0.28,"small":0},{"p":0.0004,"t":"성경을 읽다 궁금한 것이 생기면 어떻게 하나요?","id":"t5","nc":52,"np":46,"cur":[5,14,15,18],"cols":["그냥 넘어가요","검색해 봐요","사람에게 물어봐요","성경 안에서 더 찾아봐요"],"kind":"sig","prev":[19,14,null,null],"stat":{"n":98,"p":0.0004,"v":0.43,"df":3,"chi2":18.3,"name":"chi"},"type":"one","shift":null,"small":0}],"alpha_c":0.01,"prev_n":46,"cmp":"prepost"} };
 const hash32 = str => { let h = 2166136261; for (const c of String(str)) { h ^= c.charCodeAt(0); h = Math.imul(h, 16777619); } return h >>> 0; };
 const rnd32 = seed => { let h = seed; return () => { h += 0x6D2B79F5; let t = h; t = Math.imul(t ^ t >>> 15, t | 1); t ^= t + Math.imul(t ^ t >>> 7, t | 61); return ((t ^ t >>> 14) >>> 0) / 4294967296; }; };
 const demoMask = c => c.map(x => x < MASK ? null : x);
 function demoCounts(s, q, n, real) {
+  const sv = DEMO_SV_N[s.id] && DEMO_SV_N[s.id][q.id]; if (sv) return sv.slice();
   const k = (q.o || []).length, key = DEMO_N[C.app][q.id];
   if (real && key && key.length === k) return key.slice();
   const r = rnd32(hash32(s.id + q.id)), w = (q.o || []).map(() => .15 + r() * r() * 1.4), tot = w.reduce((a, b) => a + b, 0);
@@ -332,7 +376,7 @@ function demoCounts(s, q, n, real) {
 function demoReport(s) {
   const n = s.resp, head = { n, title: s.title, dept_name: s.dept, start: s.start, end: s.end, gate: s.gate, memo: s.memo || '' };
   if (n < MASK) return { ...head, few: true };
-  const real = s.id === 's3' || s.id === 's4' || s.id === 's6';   // 시안의 숫자를 그대로 쓰는 설문
+  const real = s.id === 's3' || s.id === 's4' || s.id === 's6' || s.id === 's7';   // 시안의 숫자를 그대로 쓰는 설문
   const qs = respQs(s).map(q => {
     if (q.type === 'text') return { id: q.id, t: q.t, type: 'text', n: 12, items: (DEMO_TEXT[q.id] || ['고맙습니다.', '좋았어요.', '다음에도 했으면 해요.', '함께해서 좋았어요.', '응원합니다.']).slice(), sub: !!q.sub };
     const cnt = demoCounts(s, q, n, real), nq = q.type === 'multi' ? Math.round(n * .98) : n, hidden = false;
@@ -393,6 +437,7 @@ const demo = {
   async codes(id) { const x = this.load().items.find(y => y.id === id); return Array.from({ length: x.oneN || 0 }, (_, i) => 'DEMO' + p2(i + 1)); },
   async memo(id, text) { const d = this.load(); d.items.find(y => y.id === id).memo = text; this.put(d); },
   async report(id) { return demoReport(this.load().items.find(y => y.id === id)); },
+  async analysis(id) { return id === 's3' && C.app === 'didako' ? DEMO_AN.s3d : DEMO_AN[id] || {}; },
   async openList() { return this.load().items.filter(x => x.status === 'open' && new Date(x.end) > NOW()).map(x => ({ id: x.id, token: x.token, title: x.title, dept_name: x.dept, end: toSrvTime(x.end), gate: x.gate })); }
 };
 
@@ -481,9 +526,10 @@ async function createDraftRun(kind, src, ti) {
   const dname = linkMode === 'multi' ? '교회 전체' : ((ST.scope.depts.find(d => d.id === deptId) || {}).name || (src && src.dept) || '');
   const qs = kind === 'blank' ? [newQ()] : kind === 'copy' ? qsAll(src).map(cloneQ) : tpl.questions.map(cloneQ);
   const y = NOW().getFullYear();
-  const title = kind === 'copy' ? src.title.replace(/^(\d{4}) (봄|가을)/, (m, yy, ss) => ss === '봄' ? `${yy} 가을` : `${+yy + 1} 봄`) : kind === 'blank' ? '제목 없는 설문' : `${linkMode === 'multi' ? '교회' : dname} ${tpl.nm}`;
+  const pre = kind === 'copy' && !!A().prepost && !!tplOf(src).prepost;   // 교재 전후 확인 틀에서 온 설문을 복사하면 '교재 전후'가 기본이다
+  const title = kind === 'copy' ? (pre ? src.title.replace(/교재 전 확인$/, '교재 후 확인') : src.title.replace(/^(\d{4}) (봄|가을)/, (m, yy, ss) => ss === '봄' ? `${yy} 가을` : `${+yy + 1} 봄`)) : kind === 'blank' ? '제목 없는 설문' : `${linkMode === 'multi' ? '교회' : dname} ${tpl.prepost ? '교재 전 확인' : tpl.nm}`;
   const s = { id: null, title, deptId, dept: dname, linkMode, status: 'draft', start: null, end: null, limit: null, gate: 'open', code: '', closedText: DEF_CLOSED, showAns: false, resp: 0, oneN: 0, oneUsed: 0, memo: '', token: '',
-    check: kind === 'copy' ? !!src.check : !!tpl.quiz && kind !== 'blank', quizIds: kind === 'copy' && src.quizIds ? [...src.quizIds] : null, qs, prev: kind === 'copy' ? src.id : null, from: kind, fromTitle: src ? src.title : kind === 'tpl' ? tpl.nm : '' };
+    check: kind === 'copy' ? !!src.check : !!tpl.quiz && kind !== 'blank', quizIds: kind === 'copy' && src.quizIds ? [...src.quizIds] : null, qs, prev: kind === 'copy' ? src.id : null, cmp: pre ? 'prepost' : 'year', from: kind, fromTitle: src ? src.title : kind === 'tpl' ? tpl.nm : '' };
   normDept(s);
   let saved;
   try { saved = await adapter.save(s); } catch (e) { toast(rpcErr(e)); return; }
@@ -549,13 +595,15 @@ function viewEdit(s) {
   const quiz = A().quiz ? `<section class="card"><div class="set-row"><span><b>성경 이해도 스스로 점검</b>${tip(`점수는 아무도 볼 수 없고, 교회에는 합계만 남아요. 문항 모음 ${DID_BANK.length}개에서 쉬움·중간·어려움 2개씩 골라요. 바꿀 때도 같은 난이도 안에서 골라야 해마다 난이도별로 견줄 수 있어요.`, '스스로 점검')}<br><small class="soft">6문항, 약 ${A().quizMins}분</small></span>
       <button class="switch${s.check ? ' on' : ''}" type="button" role="switch" aria-checked="${!!s.check}" data-sv="quiz-on" aria-label="스스로 점검 넣기"><span></span></button></div>
       ${s.check ? quizPicked(s) : ''}</section>` : '';
+  const cmp = A().prepost && s.prev ? `<section class="card"><div class="tip-line"><b>지난 설문과 견주기</b>${tip('같은 문항을 고치지 않았을 때만 견줘요. 해마다: 작년 같은 설문과 한 문항을 나란히 봐요. 교재 전후: 지난 설문을 교재 시작 전, 이 설문을 교재가 끝난 뒤로 보고 문항마다 달라진 점을 견줘요. 이름 없이 받아서 같은 사람의 변화가 아니라 두 시점의 분포를 견줘요.', '견주기')}</div>
+      <div class="types" role="radiogroup" aria-label="지난 설문과 견주기"><button type="button" class="type-b${s.cmp === 'prepost' ? '' : ' on'}" role="radio" aria-checked="${s.cmp !== 'prepost'}" data-sv="cmp" data-v="year">해마다</button><button type="button" class="type-b${s.cmp === 'prepost' ? ' on' : ''}" role="radio" aria-checked="${s.cmp === 'prepost'}" data-sv="cmp" data-v="prepost">교재 전후</button></div></section>` : '';
   const side = `<section class="card pc-only"><h2>다 만들었으면</h2><p class="hint" style="margin:.4em 0 1em">답하는 화면을 미리 보고 여세요. 여는 창에서 닫는 날과 받는 방법을 정해요.</p>
       <div class="acts" style="flex-direction:column"><button class="btn" type="button" data-sv="open-sheet" data-id="${esc(s.id)}">${ic('send')}설문 열기</button><a class="btn ghost" href="${hashOf('try-' + s.id)}">${ic('eye')}답하는 화면 미리보기</a></div></section>
     <section class="card"><h2>누구에게</h2><p class="hint" style="margin:.4em 0 0">${s.linkMode === 'multi' ? '교회 전체에 묻는 설문이에요. 링크 하나로 여러 부서가 답하고, 첫 문항에서 소속을 골라요.' : `${esc(s.dept)}에 묻는 설문이에요. 이 부서만 쓰는 링크가 생겨요.`}</p></section>`;
   return `<a class="back-link" href="${hashOf('')}">${ic('back')}<span>설문</span></a><p class="eyebrow top-eyebrow">${esc(s.dept)}, 만드는 중</p>
     <input class="title-in" data-svin="title" value="${esc(s.title)}" maxlength="40" aria-label="설문 이름(눌러서 고치기)">
     <p class="ed-meta">${savedHtml()}${tip(`${qCountText(s)}, 약 ${minsOf(s)}분이에요. 고친 것은 저절로 저장돼요. ${originText(s, true)}`, '이 설문')}</p>
-    <div class="two-col"><div class="col">${cards}<button class="add-q" type="button" data-sv="q-add">${ic('plus')}문항 더하기</button>${quiz}
+    <div class="two-col"><div class="col">${cards}<button class="add-q" type="button" data-sv="q-add">${ic('plus')}문항 더하기</button>${quiz}${cmp}
       <div class="acts" style="justify-content:space-between"><button class="link-btn warn" type="button" data-sv="del-draft" data-id="${esc(s.id)}">${ic('trash')}이 설문 지우기</button></div></div>
     <div class="col side pc-side">${side}</div></div>`;
 }
@@ -615,7 +663,7 @@ async function doOpen() {
   const re = o.mode === 'reopen', p = { start: o.startNow ? null : st, end: en, gate: o.gate, once_n: Math.max(5, +o.onceN || 40), limit: o.limitOn ? Math.max(5, +o.limit || 120) : 0, closed_text: o.closedText.trim() || DEF_CLOSED, show_ans: o.showAns };
   const btn = $('#svPopSheet [data-sv="op-go"]'); if (btn) btn.disabled = true;
   try { const r = await adapter.open(s.id, p); Object.assign(s, r); } catch (e) { if (btn) btn.disabled = false; toast(rpcErr(e)); return; }
-  popClose(); delete ST.rep[s.id]; paint();
+  popClose(); dropRep(s.id); paint();
   toast(s.status === 'sched' ? `예약했어요. ${fmt(s.start)}에 열려요.` : re ? '다시 열었어요.' : '열었어요. 이제 링크나 QR을 보내 주세요.');
 }
 function endSheet(s) { OPEN = { ...openSheetState(s, 'end'), endK: 'pick', endD: s.end.slice(0, 10), endT: s.end.slice(11, 16) }; renderEndSheet(); }
@@ -741,8 +789,10 @@ function qItem(g) {
 }
 // 점검: 작년과 문항이 달라도 같은 난이도 묶음끼리 정답률을 나란히 본다
 const lvPc = x => x[1] == null ? '가림' : pc(x[1], x[2]) + '%';
-function quizLvTable(Q) {
-  return `<h3 style="margin-top:1.2em">작년과 난이도별로 견주기</h3><table class="sv-table"><thead><tr><th>난이도</th><th>작년</th><th>올해</th></tr></thead><tbody>
+const cmpWords = s => s && s.cmp === 'prepost' ? { a: '교재 전', b: '교재 후', t: '교재 전과' } : { a: '작년', b: '올해', t: '작년과' };
+function quizLvTable(Q, s) {
+  const W = cmpWords(s);
+  return `<h3 style="margin-top:1.2em">${W.t} 난이도별로 견주기</h3><table class="sv-table"><thead><tr><th>난이도</th><th>${W.a}</th><th>${W.b}</th></tr></thead><tbody>
     ${Q.lvls.map((x, k) => `<tr><td>${esc(x[0])}</td><td>${Q.prev_lvls[k] ? lvPc(Q.prev_lvls[k]) : ''}</td><td>${lvPc(x)}</td></tr>`).join('')}</tbody></table>
     <p class="hint">해마다 문항을 바꿔 쓰니, 문항 하나하나가 아니라 같은 난이도 묶음끼리만 견줘요. 문항이 바뀌면 묶음의 어려움도 조금 달라질 수 있어 참고로만 보세요.</p>`;
 }
@@ -752,13 +802,169 @@ function quizCard(R, s) {
   const sent = Q.lvls.filter(x => x[1] != null).map(x => `${x[0] === '쉬움' ? '쉬운 문항' : x[0] === '중간' ? '중간 문항' : '어려운 문항'}은 ${pc(x[1], x[2])}%`).join(', ');
   return `<p class="gl">스스로 점검(${Q.n}명이 끝까지 했어요)</p><section class="card rq"><h3>문항별로 맞힌 비율</h3><p class="rq-sub">사람별 점수와 순위는 어디에도 없어요.</p>
     ${Q.rows.map(r => { const q = bankQ(r.id); return `<div class="qz-row"><span class="qt"><span class="chip sched">${esc(r.lv)}</span>${esc(q ? q.t : r.id)}</span><span class="pct">${r.ok == null ? '가림' : pc(r.ok, Q.n) + '%'}</span><span class="sv-track"><span class="sv-fill" style="width:${r.ok == null ? 6 : pc(r.ok, Q.n)}%"></span></span></div>`; }).join('')}
-    ${sent ? `<p class="sent">${sent}가 맞혔어요. 이 결과는 교재 난이도를 고를 때만 써요.</p>` : ''}${s.prev && Q.prev_lvls ? quizLvTable(Q) : ''}</section>`;
+    ${sent ? `<p class="sent">${sent}가 맞혔어요. 이 결과는 교재 난이도를 고를 때만 써요.</p>` : ''}${s.prev && Q.prev_lvls ? quizLvTable(Q, s) : ''}</section>`;
 }
+// ══ 분석: 만족도 · 집단 차이 · 교재 전후 ═══════════════════════════════════════
+// 서버(supabase/031)가 닫힌 설문의 합계·평균·검정 값만 보낸다. 사람별 답은 어디에도 없다. 문장은 그 값에서 규칙으로 만든다(해석은 쓰지 않는다).
+// 글은 학술지처럼 통계량(H, χ², ρ, p, 효과 크기)과 담담한 문장으로만 쓴다. p값을 쉬운 말로 풀어 주는 해설은 쓰지 않는다(나중에 유료 해설로 따로 제공할 예정, 2026-11-24 사용자 결정).
+const SAT_LABEL = { r5: '프로그램', r6: '말씀', r7: '소그룹 나눔', r8: '숙소·장소', r9: '식사', r10: '일정' };
+const satLab = (id, s) => SAT_LABEL[id] || ((qsAll(s).find(q => q.id === id) || {}).g) || id;
+const anHas = a => !!(a && ((a.sat && a.sat.items && a.sat.items.length) || (a.groups && a.groups.length) || (a.change && a.change.length)));
+const alphaTxt = a => a >= .05 ? '.05' : '.' + a.toFixed(3).slice(2);
+const effWord = e => e < .01 ? '거의 없음' : e < .06 ? '작음' : e < .14 ? '중간' : '큼';
+const verdict2 = kind => kind === 'sig' ? `<span class="verdict sig">${ic('check')}통계적으로 유의</span>` : `<span class="verdict mild">${ic('info')}유의하지 않음</span>`;
+const nz = v => String(v).replace(/^(-?)0\./, '$1.');   // 0.25 → .25 (학술지 표기)
+// 통계량 한 줄: 검정 이름·자유도·통계량·p·효과 크기. 유의 기준(α)은 검정이 여럿일 때만 덧붙인다
+function statLine(t, alpha, multi) {
+  if (!t) return '';
+  const body = t.name === 'kw' ? `<i>H</i>(${t.df}) = ${t.h}, <i>p</i> ${pTxt(t.p)}, <i>ε</i>² = ${nz(t.e2)}` : `χ²(${t.df}, <i>N</i> = ${t.n}) = ${t.chi2}, <i>p</i> ${pTxt(t.p)}, <i>V</i> = ${nz(t.v)}`;
+  return `<p class="pline">${body}${multi ? `, <i>α</i> = ${alphaTxt(alpha)}` : ''}</p>`;
+}
+const nTests = list => (list || []).filter(x => x.p != null).length;
+const alphaNote = (list, alpha) => nTests(list) > 1 ? ` 검정 ${nTests(list)}개를 함께 보아 유의 기준을 α = .05 / ${nTests(list)} = ${alphaTxt(alpha)}로 보정했다(Bonferroni).` : '';
+const jx = w => hasBatchim(w) ? '이에요' : '예요';
+const ordWord = (cols, up) => `'${esc(up ? cols[cols.length - 1] : cols[0])}'`;
+
+// ── 만족도: 평균 목록 + 중요도와 만족도 그림 ──
+function satPick(S) {
+  const its = S.items, withRho = its.filter(x => x.rho != null), xc = its.reduce((a, x) => a + x.mean, 0) / its.length,
+    yc = withRho.length ? withRho.reduce((a, x) => a + x.rho, 0) / withRho.length : null;
+  const best = its.reduce((a, x) => (x.mean > a.mean ? x : a), its[0]), worst = its.reduce((a, x) => (x.mean < a.mean ? x : a), its[0]);
+  const fix = yc == null ? [] : withRho.filter(x => x.rho >= yc && x.mean < xc).sort((a, b) => b.rho - a.rho);
+  return { xc, yc, best, worst, fix, withRho };
+}
+function ipaSvg(pts, xc, yc, s) {
+  const W = 360, H = 310, L = 44, Rm = 14, Tm = 14, Bm = 44, pw = W - L - Rm, ph = H - Tm - Bm;
+  const xs = pts.map(p => p.mean), ys = pts.map(p => p.rho);
+  let x0 = Math.max(1, Math.min(...xs, xc) - .3), x1 = Math.min(5, Math.max(...xs, xc) + .3);
+  if (x1 - x0 < 1) { const m = (x0 + x1) / 2; x0 = Math.max(1, m - .5); x1 = Math.min(5, m + .5); }
+  let y0 = Math.max(-1, Math.min(...ys, yc) - .12), y1 = Math.min(1, Math.max(...ys, yc) + .12);
+  if (y1 - y0 < .4) { const m = (y0 + y1) / 2; y0 = m - .2; y1 = m + .2; }
+  const X = v => L + (v - x0) / (x1 - x0) * pw, Y = v => Tm + (1 - (v - y0) / (y1 - y0)) * ph;
+  const cx = X(xc), cy = Y(yc), fixIds = new Set(pts.filter(p => p.rho >= yc && p.mean < xc).map(p => p.id));
+  // 이름표가 겹치지 않게 위아래로 조금 비킨다
+  const placed = [];
+  const lab = pts.slice().sort((a, b) => b.rho - a.rho).map(p => {
+    const t = satLab(p.id, s), w = t.length * 11 + 6, px = X(p.mean), py = Y(p.rho), left = px + 8 + w > W - 4;
+    let ty = py + 4;
+    for (const o of [0, 13, -13, 26, -26, 39, -39]) {
+      const x1_ = left ? px - 8 - w : px + 8, c = py + 4 + o;
+      if (!placed.some(b => x1_ < b.x + b.w && x1_ + w > b.x && Math.abs(c - b.y) < 13)) { ty = c; break; }
+    }
+    placed.push({ x: left ? px - 8 - w : px + 8, w, y: ty });
+    return `<text class="ipa-l${fixIds.has(p.id) ? ' fix' : ''}" x="${left ? px - 8 : px + 8}" y="${ty.toFixed(1)}" text-anchor="${left ? 'end' : 'start'}">${esc(t)}</text>`;
+  }).join('');
+  const dots = pts.map(p => `<circle class="ipa-p${fixIds.has(p.id) ? ' fix' : ''}" cx="${X(p.mean).toFixed(1)}" cy="${Y(p.rho).toFixed(1)}" r="5.5"/>`).join('');
+  const ticks = []; for (let v = Math.ceil(x0); v <= x1; v++) ticks.push(`<text class="ipa-t" x="${X(v).toFixed(1)}" y="${H - Bm + 15}" text-anchor="middle">${v}점</text><line class="ipa-tk" x1="${X(v).toFixed(1)}" x2="${X(v).toFixed(1)}" y1="${H - Bm}" y2="${H - Bm + 4}"/>`);
+  const alt = `중요도와 만족도 그림. ${pts.map(p => `${satLab(p.id, s)} 평균 ${p.mean}점`).join(', ')}.`;
+  return `<svg class="ipa" viewBox="0 0 ${W} ${H}" role="img" aria-label="${esc(alt)}"><rect class="ipa-fix" x="${L}" y="${Tm}" width="${(cx - L).toFixed(1)}" height="${(cy - Tm).toFixed(1)}"/>
+    <line class="ipa-ax" x1="${L}" x2="${L}" y1="${Tm}" y2="${H - Bm}"/><line class="ipa-ax" x1="${L}" x2="${W - Rm}" y1="${H - Bm}" y2="${H - Bm}"/>
+    <line class="ipa-cut" x1="${cx.toFixed(1)}" x2="${cx.toFixed(1)}" y1="${Tm}" y2="${H - Bm}"/><line class="ipa-cut" x1="${L}" x2="${W - Rm}" y1="${cy.toFixed(1)}" y2="${cy.toFixed(1)}"/>
+    <text class="ipa-q fix" x="${L + 6}" y="${Tm + 13}">먼저 살펴볼 곳</text><text class="ipa-q" x="${W - Rm - 6}" y="${Tm + 13}" text-anchor="end">잘하고 있어요</text>
+    <text class="ipa-q" x="${L + 6}" y="${H - Bm - 7}">지켜봐요</text><text class="ipa-q" x="${W - Rm - 6}" y="${H - Bm - 7}" text-anchor="end">지금처럼</text>
+    ${ticks.join('')}<text class="ipa-t" x="${L + pw / 2}" y="${H - 8}" text-anchor="middle">만족도(평균 점수) →</text>
+    <text class="ipa-t" transform="translate(13 ${Tm + ph / 2}) rotate(-90)" text-anchor="middle">전체 만족과 이어지는 정도 →</text>${dots}${lab}</svg>`;
+}
+function satCard(an, s) {
+  const S = an.sat; if (!S || !S.items || !S.items.length) return '';
+  const P = satPick(S), o = S.overall, wr = P.withRho;
+  const chart = wr.length >= 3 && P.yc != null ? `<div class="ipa-wrap">${ipaSvg(wr, P.xc, P.yc, s)}</div>` : '';
+  const lastFix = P.fix.length ? satLab(P.fix[P.fix.length - 1].id, s) : '';
+  const fixTxt = P.fix.length ? P.fix.map(x => `<b>${esc(satLab(x.id, s))}</b>(평균 ${x.mean.toFixed(1)}점, <i>ρ</i> = ${nz(x.rho)})`).join(', ') + '이다. 전체 만족과의 상관이 항목 평균 이상이고 점수는 항목 평균 미만이다.'
+    : '전체 만족과의 상관이 항목 평균 이상이면서 점수가 항목 평균 미만인 항목은 없다.';
+  const rows = S.items.map(x => {
+    const pct = x.fav ? ` 만족 이상 ${pc(x.fav[0], x.fav[1])}%.` : '';
+    const rel = x.rho != null ? ` 전체 만족과의 순위상관 <i>ρ</i> = ${nz(x.rho)}, <i>p</i> ${pTxt(x.p)}.` : '';
+    return `<div class="sat-row"><div class="sat-h"><span>${esc(satLab(x.id, s))}</span><b>${x.mean.toFixed(1)}<small>점</small></b></div><span class="sv-track" role="img" aria-label="${esc(satLab(x.id, s))} 평균 ${x.mean}점"><span class="sv-fill" style="width:${(x.mean / 5 * 100).toFixed(1)}%"></span></span><small class="sat-s"><i>n</i> = ${x.n}.${pct}${rel}</small></div>`;
+  }).join('');
+  const overall = `전체 만족 평균은 <b>${o.mean.toFixed(1)}점</b>(5점 만점, <i>n</i> = ${S.n})이다.${o.fav ? ` '만족' 이상은 ${o.fav[0]}명(${pc(o.fav[0], o.fav[1])}%)이다.` : ''}`;
+  const detail = `평균은 보기를 1점(${esc(satOpts(s)[0])})부터 ${satOpts(s).length}점(${esc(satOpts(s)[satOpts(s).length - 1])})까지 순서대로 매긴 값이다. 상관은 스피어만 순위상관계수 <i>ρ</i>이며 항목마다 따로 검정했고 다중비교 보정은 하지 않았다. 그림의 가로 점선은 항목 평균 점수의 평균, 세로 점선은 <i>ρ</i>의 평균이다. 항목 사이에 겹치는 부분이 있고 응답이 적으면 추정이 불안정하다.`;
+  return `<p class="gl">만족도 살펴보기</p><section class="card rq"><h3>항목별 만족과 전체 만족의 관계</h3><p class="rq-sub">중요도(전체 만족과의 상관)와 만족도(평균 점수)</p>${chart}
+    <p class="sent">${overall}</p>${P.xc != null && chart ? `<p class="sent ipa-sum">${P.fix.length ? '먼저 살펴볼 곳: ' : ''}${fixTxt}<small>세로축은 전체 만족과의 순위상관, 가로축은 평균 점수이며 상대 위치다. 상관은 인과를 뜻하지 않는다.</small></p>` : ''}
+    <div class="sat-list">${rows}</div>${fold(detail)}</section>`;
+}
+const satOpts = s => { const q = qsAll(s).find(x => x.id === SAT_ALL); return q && q.o ? q.o : ['불만족', '만족']; };
+
+// ── 집단 차이 ──
+function groupSentence(g, sig) {
+  const vis = g.rows.filter(r => r[2] != null);
+  if (g.mean) {
+    const m = vis.filter(r => r[3] != null).sort((a, b) => b[3] - a[3]);
+    if (m.length >= 2) return `평균은 ${esc(m[0][0])} ${m[0][3].toFixed(2)}점으로 가장 높고 ${esc(m[m.length - 1][0])} ${m[m.length - 1][3].toFixed(2)}점으로 가장 낮다.`;
+  } else if (g.cols.length === 2) {
+    const v = vis.filter(r => r[1][0] != null && r[2]);
+    if (v.length >= 2) return `'${esc(g.cols[0])}' 비율은 ${v.map(r => `${esc(r[0])} ${pc(r[1][0], r[2])}%`).join(', ')}이다.`;
+  }
+  return sig ? '집단 사이에 응답 분포의 차이가 있다.' : '집단 사이에 응답 분포의 유의한 차이는 없다.';
+}
+function meanBars(g) {
+  const mx = Math.max(...g.rows.map(r => r[3] || 0), 1);
+  return `<div class="sv-rows">${g.rows.map(([lab, , tot, mean]) => { const hide = mean == null;
+    return `<div class="sv-row${hide ? ' hide' : ''}"><div class="row"><span>${esc(lab)}</span><b>${hide ? '5명 미만이라 가렸어요' : `평균 ${mean.toFixed(1)}점 <small>${tot}명</small>`}</b></div><span class="sv-track" role="img" aria-label="${esc(lab)} ${hide ? '가림' : '평균 ' + mean + '점'}"><span class="sv-fill" style="width:${hide ? 6 : (mean / 5 * 100).toFixed(1)}%"></span></span></div>`; }).join('')}</div>`;
+}
+function diffDetail(g, an) {
+  const t = g.stat; if (!t) return '';
+  const base = t.name === 'kw' ? '순서가 있는 응답이라 평균 대신 순위로 견주는 크루스칼–왈리스 검정을 썼다. 효과 크기 <i>ε</i>²는 ' + effWord(t.e2) + ' 수준이다.' : `카이제곱 독립성 검정을 썼다. Cramér의 <i>V</i>는 ${strength(t.v)} 수준이다.`;
+  return base + ` 보이는 집단의 응답 ${t.n}명으로 계산했다.` + (g.hid ? ' 5명 미만 집단은 합계로 역산되지 않도록 함께 가린 집단까지 표에서 가리고 계산에서도 제외했다.' : ' 표에서 5명 미만 칸은 가렸으나 계산에는 실제 값을 썼다.')
+    + (g.small ? ' 기대 빈도가 5 미만인 칸이 있어 참고로만 본다.' : '') + alphaNote(an.groups, an.alpha_g) + ' 집단 간 차이는 인과를 뜻하지 않는다.';
+}
+function groupCards(an) {
+  const L = an.groups || []; if (!L.length) return '';
+  return `<p class="gl">집단에 따른 차이</p><p class="hint" style="margin:0 0 4px">틀이 미리 정해 둔 짝만 계산한다. 응답자가 아니라 모임에 맞는 운영을 가늠하는 용도이며, 5명 미만 집단은 가린다.</p>
+    ${L.map(g => { const sig = g.kind === 'sig';
+      return `<section class="card rq">${verdict2(g.kind)}<h3>${esc(g.title)}</h3>${g.mean ? meanBars(g) : crossTable(g)}${g.hid ? `<p class="hint" style="margin:.4em 0 0">5명 미만 집단은 가리고 계산에서도 제외했다.</p>` : ''}
+        <p class="sent" style="margin-top:.5em">${groupSentence(g, sig)}</p>${statLine(g.stat, an.alpha_g, nTests(an.groups) > 1)}${fold(diffDetail(g, an))}</section>`; }).join('')}`;
+}
+
+// ── 교재 전후 ──
+function baRows(c, np, nc) {
+  const tp = c.prev.reduce((a, x) => a + (x == null ? 0 : x), 0), tc = c.cur.reduce((a, x) => a + (x == null ? 0 : x), 0);
+  return `<div class="ba">${c.cols.map((lab, i) => {
+    const a = c.prev[i], b = c.cur[i], pa = a == null ? null : pc(a, np), pb = b == null ? null : pc(b, nc);
+    return `<div class="ba-o"><span class="ba-l">${esc(lab)}</span><span class="ba-r"><span class="lab">전</span><span class="sv-track prev"><span class="sv-fill" style="width:${pa == null ? 6 : Math.max(2, pa)}%"></span></span><span class="val">${pa == null ? '가림' : pa + '%'}</span></span>
+      <span class="ba-r"><span class="lab">후</span><span class="sv-track"><span class="sv-fill" style="width:${pb == null ? 6 : Math.max(2, pb)}%;background:var(--accent)"></span></span><span class="val">${pb == null ? '가림' : pb + '%'}</span></span></div>`; }).join('')}</div>`;
+}
+function changeSentence(c) {
+  if (c.type === 'range' && c.shift != null && Math.abs(c.shift) >= .05) return `평균 응답 위치가 ${ordWord(c.cols, c.shift > 0)} 쪽으로 ${Math.abs(c.shift).toFixed(2)}단계 ${c.shift > 0 ? '상승' : '하강'}했다.`;
+  if (c.type === 'range') return '평균 응답 위치는 거의 같다.';
+  let best = null; c.cols.forEach((lab, i) => { if (c.prev[i] != null && c.cur[i] != null) { const d = pc(c.cur[i], c.nc) - pc(c.prev[i], c.np); if (!best || Math.abs(d) > Math.abs(best.d)) best = { lab, d, a: pc(c.prev[i], c.np), b: pc(c.cur[i], c.nc) }; } });
+  return best && best.d ? `'${esc(best.lab)}' 비율이 전 ${best.a}%에서 후 ${best.b}%로 ${best.d > 0 ? '증가' : '감소'}했다.` : '응답 분포는 거의 같다.';
+}
+function changeDetail(c, an) {
+  const t = c.stat; if (!t) return '';
+  const base = t.name === 'kw' ? `순서가 있는 응답이라 크루스칼–왈리스 검정(두 집단)을 썼다. 효과 크기 <i>ε</i>²는 ${effWord(t.e2)} 수준이다.` : `카이제곱 독립성 검정을 썼다. Cramér의 <i>V</i>는 ${strength(t.v)} 수준이다.`;
+  return base + ' 이름 없이 받은 두 번의 응답을 견준 독립 표본이라 같은 사람의 변화가 아니다. 표에서 5명 미만 칸은 가렸으나 계산에는 실제 값을 썼다.' + (c.small ? ' 기대 빈도가 5 미만인 칸이 있어 참고로만 본다.' : '') + alphaNote(an.change, an.alpha_c);
+}
+function changeCards(an, s, R) {
+  const L = an.change || [];
+  if (!L.length) return `<p class="gl">교재 전과 후 비교</p><section class="card rq"><p class="rq-sub" style="margin:0">견줄 문항이 없다. 지난 설문과 고치지 않은 같은 문항이 있고 양쪽에 5명 이상 답해야 견줄 수 있다.</p></section>`;
+  return `<p class="gl">교재 전과 후 비교</p><p class="hint" style="margin:0 0 4px">교재 전 <i>n</i> = ${an.prev_n}, 후 <i>n</i> = ${R.n}. 익명 응답이라 같은 사람의 변화가 아니라 두 시점의 분포를 견준다.</p>
+    ${L.map(c => `<section class="card rq">${verdict2(c.kind)}<h3>${esc(c.t)}</h3><p class="rq-sub">전 <i>n</i> = ${c.np}, 후 <i>n</i> = ${c.nc}</p>${baRows(c, c.np, c.nc)}<p class="sent" style="margin-top:.5em">${changeSentence(c)}</p>${statLine(c.stat, an.alpha_c, nTests(an.change) > 1)}${fold(changeDetail(c, an))}</section>`).join('')}`;
+}
+function repAnalysis(R, s) {
+  const an = ST.an[s.id]; if (!anHas(an)) return '<section class="card rq"><p class="rq-sub" style="margin:0">분석을 불러오는 중이에요…</p></section>';
+  return `${satCard(an, s)}${groupCards(an)}${s.cmp === 'prepost' ? changeCards(an, s, R) : ''}`;
+}
+// 한눈에에 올리는 눈에 띄는 것(뚜렷한 것만)
+function anFinds(an, s, R) {
+  const out = [];
+  if (!an) return out;
+  if (an.sat && an.sat.items && an.sat.items.length) {
+    const P = satPick(an.sat);
+    out.push({ p: `항목별 평균은 <b>${esc(satLab(P.best.id, s))}</b> ${P.best.mean.toFixed(1)}점이 가장 높고 <b>${esc(satLab(P.worst.id, s))}</b> ${P.worst.mean.toFixed(1)}점이 가장 낮다.`,
+      s: P.fix.length ? `전체 만족과의 상관은 항목 평균 이상이면서 점수는 평균 미만인 항목: ${P.fix.map(x => `<b>${esc(satLab(x.id, s))}</b>`).join(', ')}.` : '', go: 'analysis' });
+  }
+  (an.groups || []).filter(g => g.kind === 'sig').forEach(g => out.push({ p: `<b>${esc(g.title)}</b>: ${groupSentence(g, true)}`, s: statLine(g.stat, an.alpha_g, nTests(an.groups) > 1).replace(/<\/?p[^>]*>/g, ''), go: 'analysis' }));
+  if (s.cmp === 'prepost') (an.change || []).filter(c => c.kind === 'sig').slice(0, 3).forEach(c => out.push({ p: `교재 전후로 <b>${esc(cut(c.t, 26))}</b>의 응답이 달라졌다. ${changeSentence(c)}`, s: statLine(c.stat, an.alpha_c, nTests(an.change) > 1).replace(/<\/?p[^>]*>/g, ''), go: 'analysis' }));
+  return out;
+}
+const PROFILE_IDS = new Set(['r1', 'r2', 'r3']);   // 누가 답했는지 묻는 문항은 눈에 띄는 것으로 올리지 않는다
+
 const nonText = R => R.qs.filter(q => q.type !== 'text');
 const textQs = R => R.qs.filter(q => q.type === 'text');
 function repItems(R, s) {
   const all = nonText(R), tq = textQs(R), tn = tq.reduce((a, q) => a + (q.items ? q.items.length : 0), 0);
-  return `<p class="gl">문항 ${all.length}개, 많이 고른 보기는 진하게 표시했어요</p>${all.map(qItem).join('')}${quizCard(R, s)}${pairCards(R, s)}${yoyCard(R)}
+  return `<p class="gl">문항 ${all.length}개, 많이 고른 보기는 진하게 표시했어요</p>${all.map(qItem).join('')}${quizCard(R, s)}${pairCards(R, s)}${s.cmp === 'prepost' ? '' : yoyCard(R)}
     ${tq.length ? `<section class="card"><div class="set-row"><span><b style="font-weight:600">받은 의견 ${tn}개</b><br><small class="soft">${esc(tq.map(q => q.t).join(' / '))}</small></span><button class="btn small ghost" type="button" data-sv="rep-tab" data-v="text">읽기</button></div></section>` : ''}`;
 }
 
@@ -784,10 +990,10 @@ function findsOf(R, s) {
     } else out.push(mk(q));
     used.add(q.id);
   });
-  qs.filter(q => !used.has(q.id) && q.type !== 'range').slice(0, Math.max(0, 3 - out.length)).forEach(q => out.push(mk(q)));
+  qs.filter(q => !used.has(q.id) && q.type !== 'range' && !PROFILE_IDS.has(q.id)).slice(0, Math.max(0, 3 - out.length)).forEach(q => out.push(mk(q)));
   const pr = R.pairs.find(c => c.kind === 'sig');
   if (pr) out.push({ p: `${pairPlain(pr)} <b>차이가 뚜렷해요.</b>`, s: '함께 움직인다는 뜻이지 원인이라는 뜻은 아니에요.' });
-  const y = R.yoy;
+  const y = s.cmp === 'prepost' ? null : R.yoy;
   if (y) { const a = pc(...y.prev), b = pc(...y.cur), dir = b > a ? '늘었다고' : b < a ? '줄었다고' : '달라졌다고'; out.push({ p: `${esc(y.label)}라고 답한 비율은 작년 <b>${a}%</b>에서 올해 <b>${b}%</b>예요.`, s: y.kind === 'sig' ? '우연으로 보기 어려운 차이예요.' : `응답이 적어 ${dir} 판단하기는 어려워요.` }); }
   return out;
 }
@@ -833,7 +1039,23 @@ function meetNext(R) {
   ].join('');
   return `<p class="hint" style="margin:0 0 .5em">합계에서 뽑은 참고예요. 모임을 꾸릴 때 이야기 거리로 써 주세요. 사람별 유형은 나누지 않아요.</p>${body || '<p class="hint" style="margin:0">답이 더 모이면 참고할 내용이 여기에 나와요.</p>'}`;
 }
+// 다음 걸음(수련회 만족도): 만족도 분석에서 뽑은 참고. 사람별 점수는 없다
+function retNext(R, s) {
+  const an = ST.an[s.id], S = an && an.sat && an.sat.items && an.sat.items.length ? an.sat : null;
+  if (!S) return `<p class="hint" style="margin:0">의견 쪽에서 좋았던 점과 아쉬운 점을 읽고, 다음 수련회 계획에 이어 주세요.</p>`;
+  const P = satPick(S);
+  return `<p class="hint" style="margin:0 0 .5em">합계에서 뽑은 참고예요. 의견 쪽의 글과 함께 다음 수련회 계획에 써 주세요.</p>
+    <p class="sent" style="margin:.3em 0">가장 만족한 곳은 <b>${esc(satLab(P.best.id, s))}</b>${jx(satLab(P.best.id, s))}(평균 ${P.best.mean.toFixed(1)}점). 이어 가면 좋아요.</p>
+    <p class="sent" style="margin:.3em 0">${P.fix.length ? `먼저 살펴볼 곳은 ${P.fix.map(x => `<b>${esc(satLab(x.id, s))}</b>`).join(', ')}${jx(satLab(P.fix[P.fix.length - 1].id, s))}.` : `가장 낮은 곳은 <b>${esc(satLab(P.worst.id, s))}</b>${jx(satLab(P.worst.id, s))}(평균 ${P.worst.mean.toFixed(1)}점).`}</p>`;
+}
+// 다음 걸음(교재 전후 확인): 전 설문이면 다시 받는 법, 후 설문이면 분석 쪽 안내
+function postNext(R, s) {
+  if (s.prev && s.cmp === 'prepost') return `<p class="hint" style="margin:0">[분석] 쪽에서 교재 전과 후에 달라진 점을 볼 수 있어요. 달라진 점은 모임에서 함께 이야기해 보세요.</p>`;
+  return `<p class="hint" style="margin:0">교재를 마친 뒤 위의 [복사해서 새 설문]을 눌러 같은 설문을 다시 받으면, 교재 전과 후에 달라진 점을 볼 수 있어요. 다시 받을 때 '지난 설문과 견주기'를 '교재 전후'로 두세요.</p>`;
+}
 function endCard(R, s) {
+  if (R.qs.some(q => q.id === SAT_ALL)) return `<p class="gl">다음 걸음: 다음 수련회에 이어 갈 것</p><section class="card">${retNext(R, s)}</section>`;
+  if (C.app === 'didako' && R.qs.some(q => /^t\d/.test(q.id))) return `<p class="gl">다음 걸음: 모임에서 나눌 이야기</p><section class="card">${postNext(R, s)}</section>`;
   return C.app === 'didako' ? (R.qs.some(q => /^w\d/.test(q.id)) ? `<p class="gl">다음 걸음: 모임 꾸리기</p><section class="card">${meetNext(R)}</section>` : `<p class="gl">다음 걸음: 교재 추천</p><section class="card">${bookRec(R)}</section>`)
     : `<p class="gl">다음 걸음: 함께 기도할 제목</p><section class="card"><p class="hint" style="margin:0 0 .5em">합계에서 뽑은 초안이에요. 꼭 고친 뒤에 올려 주세요.</p>
       <textarea class="field" rows="4" id="svPray">${esc(prayerDraft(R, s))}</textarea>
@@ -841,10 +1063,10 @@ function endCard(R, s) {
 }
 function repGlance(s, R) {
   const gateTxt = s.gate === 'code' ? '현장 코드를 아는 사람만 답했어요.' : s.gate === 'once' ? '일회용 코드로 한 사람이 한 번씩 답했어요.' : '한 기기에서 한 번만 받았지만, 다른 기기로 또 답했을 수는 있어요.';
-  const F = findsOf(R, s);
+  const F = findsOf(R, s).concat(anFinds(ST.an[s.id], s, R));
   const finds = F.length ? F.map((f, i) => `<div class="find"><span class="n">${i + 1}</span><div class="b"><p>${f.p}</p>${f.s ? `<small>${f.s}</small>` : ''}
       ${f.bar ? `<div class="mini-bar" role="img" aria-label="${f.bar.join('%, ')}%">${f.bar.map(v => `<span style="width:${v}%"></span>`).join('')}</div>` : ''}
-      <button class="link-btn go" type="button" data-sv="rep-tab" data-v="items">문항별로 자세히 ${ic('chev', 'chev-r')}</button></div></div>`).join('') : '<p class="hint" style="margin:0">눈에 띄는 것을 뽑을 만큼 답이 모이지 않았어요. 문항별로 봐 주세요.</p>';
+      <button class="link-btn go" type="button" data-sv="rep-tab" data-v="${f.go || 'items'}">${f.go === 'analysis' ? '분석에서 자세히' : '문항별로 자세히'} ${ic('chev', 'chev-r')}</button></div></div>`).join('') : '<p class="hint" style="margin:0">눈에 띄는 것을 뽑을 만큼 답이 모이지 않았어요. 문항별로 봐 주세요.</p>';
   return `<section class="card"><div class="trust">${ic('info')}<p>이름 없이 받은 <b>${R.n}명</b>의 답이에요. ${gateTxt} 5명 미만인 칸은 가렸어요.</p></div></section>
     <p class="gl">눈에 띄는 것</p><section class="card">${finds}</section>${endCard(R, s)}
     <p class="gl">메모</p><section class="card"><textarea class="field" data-svin="memo" rows="3" maxlength="1500" placeholder="읽고 느낀 점, 다음에 할 일을 적어 두세요. 보고서와 함께 저장돼요.">${esc(R.memo || '')}</textarea></section>`;
@@ -859,9 +1081,10 @@ function repPaper(R, s) {
   const dist = `<figure class="pp-fig"><figcaption><b>${T()}</b><br><i>문항별 응답 분포 (N = ${R.n})</i></figcaption><table class="pp-t"><thead><tr><th>문항과 보기</th><th>n</th><th>%</th><th>SE</th><th>95% CI</th></tr></thead><tbody>
     ${all.map(g => `<tr class="pp-q"><td colspan="5">${esc(g.t)}${g.multi ? ' (복수 응답)' : g.rank && !/1순위/.test(g.t) ? ' (1순위)' : ''}</td></tr>${g.rows.map(([lab, k]) => k == null ? `<tr><td class="pp-o">${esc(lab)}</td><td>—</td><td>—</td><td>—</td><td>—</td></tr>` : `<tr><td class="pp-o">${esc(lab)}</td><td>${k}</td><td>${pc(k, g.n)}</td><td>${se(k, g.n)}</td><td>${ci(k, g.n)}</td></tr>`).join('')}`).join('')}
     </tbody></table><p class="pp-note"><i>주.</i> SE = 비율의 표준오차 √(<i>p</i>(1−<i>p</i>)/<i>n</i>), %p 단위. CI = 윌슨 점수 95% 신뢰구간(비율과 응답 수로 계산하며, 응답이 적거나 비율이 0·100%에 가까워도 0~100% 밖으로 나가지 않는다). 5명 미만 칸은 —로 가렸다. 복수 응답 문항은 비율의 합이 100%를 넘는다.</p></figure>`;
+  const W = cmpWords(s), an = ST.an[s.id], pre = s.cmp === 'prepost';
   const Q = R.quiz && !R.quiz.hidden ? R.quiz : null;
   const quiz = Q ? `<figure class="pp-fig"><figcaption><b>${T()}</b><br><i>성경 이해도 스스로 점검 문항별 정답률 (n = ${Q.n})</i></figcaption><table class="pp-t"><thead><tr><th>문항(난이도)</th><th>정답 %</th><th>95% CI</th></tr></thead><tbody>
-    ${Q.rows.map(r => { const q = bankQ(r.id); return `<tr><td>${esc(q ? q.t : r.id)} <span class="pp-lv">(${esc(r.lv)})</span></td><td>${r.ok == null ? '—' : pc(r.ok, Q.n)}</td><td>${r.ok == null ? '—' : ci(r.ok, Q.n)}</td></tr>`; }).join('')}</tbody></table><p class="pp-note"><i>주.</i> 사람별 점수는 저장하지 않으며, 문항별 합계만 썼다.</p></figure>${s.prev && Q.prev_lvls ? `<figure class="pp-fig"><figcaption><b>${T()}</b><br><i>난이도별 정답률: 작년(n = ${Q.prev_n})과 올해(n = ${Q.n})</i></figcaption><table class="pp-t"><thead><tr><th>난이도</th><th>작년 %</th><th>올해 %</th></tr></thead><tbody>
+    ${Q.rows.map(r => { const q = bankQ(r.id); return `<tr><td>${esc(q ? q.t : r.id)} <span class="pp-lv">(${esc(r.lv)})</span></td><td>${r.ok == null ? '—' : pc(r.ok, Q.n)}</td><td>${r.ok == null ? '—' : ci(r.ok, Q.n)}</td></tr>`; }).join('')}</tbody></table><p class="pp-note"><i>주.</i> 사람별 점수는 저장하지 않으며, 문항별 합계만 썼다.</p></figure>${s.prev && Q.prev_lvls ? `<figure class="pp-fig"><figcaption><b>${T()}</b><br><i>난이도별 정답률: ${W.a}(n = ${Q.prev_n})과 ${W.b}(n = ${Q.n})</i></figcaption><table class="pp-t"><thead><tr><th>난이도</th><th>${W.a} %</th><th>${W.b} %</th></tr></thead><tbody>
     ${Q.lvls.map((x, k) => `<tr><td>${esc(x[0])}</td><td>${Q.prev_lvls[k] && Q.prev_lvls[k][1] != null ? pc(Q.prev_lvls[k][1], Q.prev_lvls[k][2]) : '—'}</td><td>${x[1] != null ? pc(x[1], x[2]) : '—'}</td></tr>`).join('')}</tbody></table><p class="pp-note"><i>주.</i> 문항 모음에서 해마다 난이도별로 2문항씩 골라 쓰므로 문항 단위가 아니라 난이도 묶음 단위로 비교했다. 문항이 달라 묶음 난이도가 같다고 보장할 수 없어 검정은 하지 않았다.</p></figure>` : ''}` : '';
   const pairs = R.pairs.map(c => { const tl = T(), fl = F();
     return `<figure class="pp-fig"><figcaption><b>${tl}</b><br><i>${esc(c.title)} 교차표 (n = ${c.n})</i></figcaption><table class="pp-t"><thead><tr><th></th>${c.cols.map(x => `<th>${esc(x)}</th>`).join('')}<th>계</th></tr></thead><tbody>
@@ -869,20 +1092,50 @@ function repPaper(R, s) {
       <p class="pp-note"><i>주.</i> ${pairApa(c)}. 5명 미만 칸은 가렸으나 검정에는 실제 값을 썼다.</p></figure>
       <figure class="pp-fig"><figcaption><b>${fl}</b><br><i>${esc(c.title)}: 행별 비율</i></figcaption><div class="pp-stack">${c.rows.map(([lab, v, tot]) => `<div class="pp-sr"><span class="lab">${esc(lab)}</span><span class="bar">${v.map((x, i) => `<span class="${x == null || tot == null ? 'm' : 's' + i}" style="width:${tot ? (x == null ? 100 / 3 : x / tot * 100) : 100 / 3}%"></span>`).join('')}</span></div>`).join('')}</div>
       <p class="pp-leg">${c.cols.map((x, i) => `<span><i class="s${i}"></i>${esc(x)}</span>`).join('')}${c.rows.some(([, v]) => v.some(x => x == null)) ? '<span><i class="m"></i>5명 미만(가림)</span>' : ''}</p></figure>`; }).join('');
-  const y = R.yoy, yoy = y ? `<figure class="pp-fig"><figcaption><b>${T()}</b><br><i>작년 같은 설문과 비교: ${esc(y.q)}</i></figcaption><table class="pp-t"><thead><tr><th></th><th>작년</th><th>올해</th></tr></thead><tbody>
+  const y = pre ? null : R.yoy, yoy = y ? `<figure class="pp-fig"><figcaption><b>${T()}</b><br><i>작년 같은 설문과 비교: ${esc(y.q)}</i></figcaption><table class="pp-t"><thead><tr><th></th><th>작년</th><th>올해</th></tr></thead><tbody>
       <tr><td class="pp-o" style="padding-left:0">${esc(y.label)}</td><td>${y.prev[0]}/${y.prev[1]} (${pc(...y.prev)}%)</td><td>${y.cur[0]}/${y.cur[1]} (${pc(...y.cur)}%)</td></tr></tbody></table>
       <p class="pp-note"><i>주.</i> 두 비율 차이 <i>z</i> = ${y.z}, <i>p</i> ${pTxt(y.p)}, 차이의 95% CI [${sgn(y.ci[0])}, ${sgn(y.ci[1])}]%p. 익명 응답이라 같은 사람의 변화가 아닌 독립 표본으로 비교했다.</p></figure>` : '';
+  // 분석(만족도·집단 차이·교재 전후)
+  const fmtP = p => `<i>p</i> ${pTxt(p)}`, rhoTxt = r => String(r).replace(/^(-?)0/, '$1');
+  let anHtml = '', anMethods = '', anEasy = '';
+  if (an && an.sat && an.sat.items && an.sat.items.length) {
+    const S = an.sat, tl = T(), P = satPick(S), fg = P.withRho.length >= 3 && P.yc != null ? F() : null;
+    anHtml += `<figure class="pp-fig"><figcaption><b>${tl}</b><br><i>항목별 만족과 전체 만족의 관계 (전체 만족 평균 ${S.overall.mean.toFixed(2)}, n = ${S.n})</i></figcaption><table class="pp-t"><thead><tr><th>항목</th><th>n</th><th>평균</th><th>만족 %</th><th>ρ</th><th><i>p</i></th></tr></thead><tbody>
+      ${S.items.map(x => `<tr><td class="pp-o" style="padding-left:0">${esc(satLab(x.id, s))}</td><td>${x.n}</td><td>${x.mean.toFixed(2)}</td><td>${x.fav ? pc(x.fav[0], x.fav[1]) : '—'}</td><td>${x.rho == null ? '—' : rhoTxt(x.rho)}</td><td>${x.p == null ? '—' : pTxt(x.p).replace('= ', '')}</td></tr>`).join('')}</tbody></table>
+      <p class="pp-note"><i>주.</i> 평균은 보기를 1~${satOpts(s).length}점으로 매긴 값이다. 만족 %는 위 두 보기('만족' 이상)를 고른 비율이고 5명 미만 칸은 —로 가렸다. ρ는 전체 만족 문항과의 스피어만 순위상관이고 <i>p</i>는 항목마다 따로 구했다(다중비교 보정 없음).</p></figure>
+      ${fg ? `<figure class="pp-fig"><figcaption><b>${fg}</b><br><i>중요도와 만족도(가로: 평균 점수, 세로: 전체 만족과의 순위상관)</i></figcaption><div class="ipa-wrap">${ipaSvg(P.withRho, P.xc, P.yc, s)}</div><p class="pp-note"><i>주.</i> 점선은 항목들의 평균 점수와 상관의 평균이다. 다른 항목과 견준 위치이며 원인을 뜻하지 않는다.</p></figure>` : ''}`;
+    anMethods += ' 항목별 만족은 평균(1~5점)과 전체 만족 문항과의 스피어만 순위상관으로 살폈고, 평균 점수와 상관의 평균을 기준선으로 한 중요도·만족도 그림을 그렸다.';
+    anEasy += `<li><b>만족도</b>: 평균은 ${esc(satLab(P.best.id, s))} ${P.best.mean.toFixed(1)}점이 가장 높고 ${esc(satLab(P.worst.id, s))} ${P.worst.mean.toFixed(1)}점이 가장 낮다.${P.fix.length ? ` 전체 만족과의 상관이 평균 이상이면서 점수는 평균 미만인 항목: ${P.fix.map(x => esc(satLab(x.id, s))).join(', ')}.` : ''}</li>`;
+  }
+  if (an && an.groups && an.groups.length) {
+    anHtml += an.groups.map(g => { const tl = T(), t = g.stat;
+      const stat = !t ? '' : t.name === 'kw' ? `Kruskal–Wallis <i>H</i>(${t.df}) = ${t.h}, ${fmtP(t.p)}, ε² = ${rhoTxt(t.e2)}` : `χ²(${t.df}, <i>N</i> = ${t.n}) = ${t.chi2}, ${fmtP(t.p)}, Cramér의 <i>V</i> = ${rhoTxt(t.v)}`;
+      return `<figure class="pp-fig"><figcaption><b>${tl}</b><br><i>${esc(g.title)} (n = ${g.n})</i></figcaption><table class="pp-t"><thead><tr><th></th>${g.mean ? '<th>평균</th>' : ''}${g.cols.map(x => `<th>${esc(x)}</th>`).join('')}<th>계</th></tr></thead><tbody>
+        ${g.rows.map(([lab, v, tot, mean]) => `<tr><td class="pp-o" style="padding-left:0">${esc(lab)}</td>${g.mean ? `<td>${mean == null ? '—' : mean.toFixed(2)}</td>` : ''}${v.map(x => x == null || tot == null ? '<td>—</td>' : `<td>${x} (${pc(x, tot)}%)</td>`).join('')}<td>${tot == null ? '—' : tot}</td></tr>`).join('')}</tbody></table>
+        <p class="pp-note"><i>주.</i> ${stat}. 5명 미만 칸은 —로 가렸다${g.hid ? '(5명 미만 집단은 계산에서도 뺐다)' : ''}.${nTests(an.groups) > 1 ? ` ${nTests(an.groups)}가지를 견주어 뚜렷하다고 보는 기준을 <i>p</i> < ${alphaTxt(an.alpha_g)}(.05를 검정 수로 나눔)로 잡았다.` : ''}</p></figure>`; }).join('');
+    anMethods += ' 집단 차이는 틀이 미리 정한 짝만 보았다(순서가 있는 답은 크루스칼–왈리스 검정, 그 밖은 카이제곱 검정). 여러 번 검정하므로 .05를 검정 수로 나눈 값을 기준으로 삼았고, 5명 미만 집단은 가리고 계산에서도 뺐다.';
+    anEasy += an.groups.map(g => `<li><b>${esc(g.title)}</b>: ${groupSentence(g, g.kind === 'sig')} ${g.kind === 'sig' ? '통계적으로 유의하다.' : '통계적으로 유의하지 않다.'}</li>`).join('');
+  }
+  if (pre && an && an.change && an.change.length) {
+    anHtml += an.change.map(c => { const tl = T(), t = c.stat;
+      const stat = !t ? '' : t.name === 'kw' ? `Kruskal–Wallis <i>H</i>(1) = ${t.h}, ${fmtP(t.p)}, ε² = ${rhoTxt(t.e2)}` : `χ²(${t.df}, <i>N</i> = ${t.n}) = ${t.chi2}, ${fmtP(t.p)}, Cramér의 <i>V</i> = ${rhoTxt(t.v)}`;
+      return `<figure class="pp-fig"><figcaption><b>${tl}</b><br><i>교재 전(n = ${c.np})과 후(n = ${c.nc}): ${esc(c.t)}</i></figcaption><table class="pp-t"><thead><tr><th></th><th>전</th><th>후</th></tr></thead><tbody>
+        ${c.cols.map((lab, i) => `<tr><td class="pp-o" style="padding-left:0">${esc(lab)}</td><td>${c.prev[i] == null ? '—' : `${c.prev[i]} (${pc(c.prev[i], c.np)}%)`}</td><td>${c.cur[i] == null ? '—' : `${c.cur[i]} (${pc(c.cur[i], c.nc)}%)`}</td></tr>`).join('')}</tbody></table>
+        <p class="pp-note"><i>주.</i> ${stat}. 익명 응답이라 같은 사람의 변화가 아닌 독립 표본으로 비교했다. 5명 미만 칸은 —로 가렸다.${nTests(an.change) > 1 ? ` ${nTests(an.change)}가지를 견주어 기준을 <i>p</i> < ${alphaTxt(an.alpha_c)}로 잡았다.` : ''}</p></figure>`; }).join('');
+    anMethods += ' 교재 전후는 지난 설문(전)과 이 설문(후)에서 고치지 않은 같은 문항의 응답 분포를 견주었다(하나만·구간 문항, 순서가 있는 답은 크루스칼–왈리스 검정, 그 밖은 카이제곱 검정).';
+    anEasy += an.change.map(c => `<li><b>${esc(cut(c.t, 30))}</b>: ${changeSentence(c)} ${c.kind === 'sig' ? '통계적으로 유의하다.' : '통계적으로 유의하지 않다.'}</li>`).join('');
+  }
   const easy = [
     ...R.pairs.map(c => `<li><b>${esc(c.title)}</b>: ${pairPlain(c)} ${c.kind === 'sig' ? '이 정도 차이는 우연으로 보기 어려워요.' : '응답이 적어 판단하기 어려워요.'}</li>`),
     y ? `<li><b>작년과 비교</b>: ${pc(...y.prev)}%에서 ${pc(...y.cur)}%로 ${pc(...y.cur) >= pc(...y.prev) ? '높아' : '낮아'} 보이지만, ${y.kind === 'sig' ? '우연으로 보기 어려운 차이예요.' : '이만큼은 우연으로도 생길 수 있어서 달라졌다고 말하기는 일러요.'}</li>` : '',
     `<li><b>SE(표준오차)</b>: 이 비율이 응답한 사람에 따라 얼마나 흔들릴 수 있는지예요. 응답이 많을수록 작아져요.</li>`,
     `<li><b>95% CI(신뢰구간)</b>: ${R.n}명만 답했기 때문에, 모두에게 물었다면 비율이 대략 이 범위 안에 있었을 거라는 뜻이에요.</li>`,
     R.pairs.length || y ? `<li><b>p</b>: 차이가 우연히 생겼을 가능성이에요. 보통 .05보다 작으면 "우연으로 보기 어렵다"고 해요.</li>` : '',
-    R.pairs.length ? `<li><b>V, ρ</b>: 두 문항이 얼마나 함께 움직이는지예요. .1은 약하고 .3은 중간, .5 넘으면 강한 편이에요.</li>` : ''].filter(Boolean).join('');
+    R.pairs.length ? `<li><b>V, ρ</b>: 두 문항이 얼마나 함께 움직이는지예요. .1은 약하고 .3은 중간, .5 넘으면 강한 편이에요.</li>` : ''].filter(Boolean).join('') + anEasy;
   return `<article class="pp">
     <header class="pp-head"><h2>${esc(s.title)} 결과 보고서</h2><p>${esc(churchName())} ${esc(s.dept)}, ${fmtDay(s.start)} ~ ${fmtDay(s.end)}, <i>N</i> = ${R.n}</p></header>
-    <h3>1. 방법</h3><p>${esc(s.dept)}에 ${gate}로 익명 설문을 받았다(문항 틀: ${esc(tplOf(s).nm)}). 이름과 연락처는 받지 않았고, 응답 수는 기기 단위로 셌다. 문항별 빈도와 비율, 윌슨 95% 신뢰구간을 구했다.${tplPairs ? ' 두 문항의 관련은 문항 틀이 미리 정해 둔 짝만 보았다(카이제곱 검정 또는 스피어만 순위상관).' : ''}${y ? ' 작년 비교는 두 비율 차이 검정을 썼다.' : ''} 5명 미만 칸은 가렸다.${tplPairs && Q && !R.pairs.length ? ' 짝이 되는 문항을 고쳤거나 직접 만든 설문이라 두 문항의 관련은 보지 않았다.' : ''}${s.prev && !R.yoy ? ' 작년과 같은 문항을 고쳤거나 비교할 응답이 모자라 작년 비교는 하지 않았다.' : ''}</p>
-    <h3>2. 결과</h3>${dist}${quiz}${pairs}${yoy}
+    <h3>1. 방법</h3><p>${esc(s.dept)}에 ${gate}로 익명 설문을 받았다(문항 틀: ${esc(tplOf(s).nm)}). 이름과 연락처는 받지 않았고, 응답 수는 기기 단위로 셌다. 문항별 빈도와 비율, 윌슨 95% 신뢰구간을 구했다.${tplPairs ? ' 두 문항의 관련은 문항 틀이 미리 정해 둔 짝만 보았다(카이제곱 검정 또는 스피어만 순위상관).' : ''}${y ? ' 작년 비교는 두 비율 차이 검정을 썼다.' : ''} 5명 미만 칸은 가렸다.${tplPairs && Q && !R.pairs.length ? ' 짝이 되는 문항을 고쳤거나 직접 만든 설문이라 두 문항의 관련은 보지 않았다.' : ''}${s.prev && !R.yoy && !pre ? ' 작년과 같은 문항을 고쳤거나 비교할 응답이 모자라 작년 비교는 하지 않았다.' : ''}${anMethods}</p>
+    <h3>2. 결과</h3>${dist}${quiz}${pairs}${yoy}${anHtml}
     <h3>3. 해설</h3><ul class="pp-easy">${easy}</ul>
     <p class="pp-caution"><b>읽을 때 조심할 것.</b> ${R.pairs.length ? '함께 움직인다고 해서 한쪽이 다른 쪽의 원인이라는 뜻은 아니에요. ' : ''}답한 사람이 스스로 고른 사람들이라 부서 전체와 다를 수 있어요. 한 사람이 다른 기기로 두 번 답했을 수도 있어요. 해석과 결론은 읽는 분이 써 주세요.</p>
   </article>`;
@@ -909,10 +1162,10 @@ function viewReport(s) {
   const tools = `<div class="rep-tools"><button class="btn small ghost" type="button" data-sv="print-paper">${ic('print')}인쇄·PDF</button><button class="btn small ghost" type="button" data-sv="dup" data-id="${esc(s.id)}">${ic('copy')}복사해서 새 설문</button><button class="btn small ghost" type="button" data-sv="reopen" data-id="${esc(s.id)}">${ic('refresh')}다시 열기</button><button class="btn small ghost" type="button" data-sv="del-closed" data-id="${esc(s.id)}">${ic('trash')}지우기</button></div>`;
   if (R.few) return `${back2list(s)}<p class="rep-meta">${meta}</p>${tools}<section class="card empty"><h2>아직 결과를 보여 드릴 수 없어요</h2><p>답이 5명보다 적으면 누가 어떻게 답했는지 짐작할 수 있어서 결과를 보여 드리지 않아요. 더 받으려면 다시 열어 보세요.</p></section>
     <p class="lockline">${ic('lock')} 사람별 답과 점수, 사람·부서 사이 순위는 어디에도 없어요.</p>`;
-  const tabs = [['glance', '한눈에'], ['items', '문항별'], ['text', '의견'], ['paper', '보고서']];
-  const body = ST.repTab === 'items' ? repItems(R, s) : ST.repTab === 'paper' ? repPaper(R, s) : ST.repTab === 'text' ? repText(R) : repGlance(s, R);
+  const hasAn = anHas(ST.an[s.id]), tabs = [['glance', '한눈에'], ['items', '문항별'], ...(hasAn ? [['analysis', '분석']] : []), ['text', '의견'], ['paper', '보고서']];
+  const body = ST.repTab === 'analysis' && hasAn ? repAnalysis(R, s) : ST.repTab === 'items' ? repItems(R, s) : ST.repTab === 'paper' ? repPaper(R, s) : ST.repTab === 'text' ? repText(R) : repGlance(s, R);
   return `${back2list(s)}<p class="rep-meta">${meta}</p>${tools}
-    <div class="seg2 rep-tabs" role="tablist" aria-label="결과 보기">${tabs.map(([k, l]) => `<button type="button" role="tab" class="${ST.repTab === k ? 'on' : ''}" aria-selected="${ST.repTab === k}" data-sv="rep-tab" data-v="${k}">${l}</button>`).join('')}</div>
+    <div class="seg2 rep-tabs${tabs.length === 5 ? ' five' : ''}" role="tablist" aria-label="결과 보기">${tabs.map(([k, l]) => `<button type="button" role="tab" class="${ST.repTab === k ? 'on' : ''}" aria-selected="${ST.repTab === k}" data-sv="rep-tab" data-v="${k}">${l}</button>`).join('')}</div>
     <div class="rep-col" style="max-width:760px;margin-top:12px">${body}</div>
     <p class="lockline">${ic('lock')} 사람별 답과 점수, 사람·부서 사이 순위는 어디에도 없어요.</p>`;
 }
@@ -1174,8 +1427,14 @@ async function refresh() {
 }
 async function loadRep(s) {
   ST.repErr = '';
-  try { ST.rep[s.id] = await adapter.report(s.id); } catch (e) { ST.repErr = rpcErr(e); }
+  try { ST.rep[s.id] = await adapter.report(s.id); } catch (e) { ST.repErr = rpcErr(e); return; }
+  if (!ST.rep[s.id].few) loadAn(s);   // 분석은 따로 불러 오고 도착하면 다시 칠한다
 }
+async function loadAn(s) {
+  try { ST.an[s.id] = (await adapter.analysis(s.id)) || {}; } catch (e) { ST.an[s.id] = {}; }   // 서버에 분석 함수가 아직 없으면(SQL 031 전) 이 부분만 조용히 감춘다
+  if (curId() === s.id) paint();
+}
+const dropRep = id => { delete ST.rep[id]; delete ST.an[id]; };
 // 앱의 위치 주소가 바뀌면 앱이 이 함수를 부른다. sub: '' | 's-설문번호' | 'try-설문번호'
 SV.mount = async function (sub) {
   ensureLayers(); tipClose();
@@ -1204,7 +1463,7 @@ SV.page = () => '<div class="sv" id="svRoot"></div>';
 SV.hashOf = hashOf; SV.splitSub = splitSub;
 // 앱이 화면을 통째로 다시 그린 뒤(서버에 다시 묻지 않고) 같은 내용을 다시 칠한다
 SV.repaint = () => { if ($('#svRoot')) paint(); };
-SV.reset = () => { ST.items = null; ST.rep = {}; ST.open = null; };
+SV.reset = () => { ST.items = null; ST.rep = {}; ST.an = {}; ST.open = null; };
 
 async function run(f) { try { return await f(); } catch (e) { toast(rpcErr(e)); return null; } }
 const doc = document;
@@ -1241,6 +1500,7 @@ const ACTS = {
     const ids = QUIZ_LV.flatMap(lv => { const pool = DID_BANK.filter(x => x.lv === lv), fresh = pool.filter(x => !avoid.has(x.id)), pick = (fresh.length >= QUIZ_PER ? fresh : pool).slice().sort(() => Math.random() - .5); return pick.slice(0, QUIZ_PER).map(x => x.id); });
     s.quizIds = ids; touch(s); paint(); toast('난이도마다 2개씩 새로 골랐어요.'); },
   'qz-default'() { const s = curS(); s.quizIds = null; touch(s); paint(); toast('기본 6문항으로 돌렸어요.'); },
+  cmp(e, el) { const s = curS(); s.cmp = el.dataset.v === 'prepost' ? 'prepost' : 'year'; touch(s); paint(); },
   'quiz-on'() { const s = curS(); s.check = !s.check; touch(s); paint(); },
   // 닫은 설문 지우기(2026-11-24): 받은 답도 함께 지워지니 한 번 더 묻는다. 이 설문을 복사해 만든 설문은 작년 비교만 빠진다
   'del-closed'(e, el) {
@@ -1272,7 +1532,7 @@ const ACTS = {
   async 'end-go'() { const s = byId(OPEN.id), en = openEnd(OPEN); if (new Date(en) <= NOW()) { toast('지금보다 뒤로 골라 주세요.'); return; } const r = await run(() => adapter.state(s.id, 'end', { end: en })); if (r) { Object.assign(s, r); popClose(); paint(); toast(`${fmt(en)}에 닫히게 바꿨어요.`); } },
   'q-view'(e, el) { const s = byId(el.dataset.id); let no = 0; pop(`<h2 class="sheet-h">문항 보기</h2><p class="sheet-sub">받는 동안은 문항을 고칠 수 없어요. 바꾸려면 복사해서 새 설문으로 만들어요.</p><ol style="margin:0;padding-left:1.3em;line-height:1.6;font-size:.94em">${respQs(s).map(q => `<li style="margin:.4em 0"${q.sub ? ' value="' + no + '"' : ''}>${esc(q.t)} <span class="soft" style="font-size:.85em">${TYPES[q.type]}</span></li>`).join('')}</ol><div class="sheet-acts"><button class="btn" type="button" data-sv="pop-close">닫기</button></div>`); },
   unsched(e, el) { const s = byId(el.dataset.id); ask({ title: '예약을 풀까요?', body: '만드는 중으로 돌아가 문항을 고칠 수 있어요. 보낸 링크는 다시 열 때까지 "아직 열리지 않았어요"가 보여요.', ok: '예약 풀기', onOk: async () => { const r = await run(() => adapter.state(s.id, 'unsched')); if (r) { Object.assign(s, r); paint(); toast('만드는 중으로 돌아왔어요.'); } } }); },
-  'close-now'(e, el) { const s = byId(el.dataset.id); ask({ title: '지금 닫을까요?', body: `${s.resp}명의 답이 있어요. 닫으면 더 받지 않고, 바로 결과를 볼 수 있어요. 필요하면 다시 열 수 있어요.`, ok: '닫고 결과 보기', danger: true, onOk: async () => { const r = await run(() => adapter.state(s.id, 'close')); if (r) { Object.assign(s, r); delete ST.rep[s.id]; ST.repTab = 'glance'; SV.mount(ST.sub); toast('닫았어요.'); } } }); },
+  'close-now'(e, el) { const s = byId(el.dataset.id); ask({ title: '지금 닫을까요?', body: `${s.resp}명의 답이 있어요. 닫으면 더 받지 않고, 바로 결과를 볼 수 있어요. 필요하면 다시 열 수 있어요.`, ok: '닫고 결과 보기', danger: true, onOk: async () => { const r = await run(() => adapter.state(s.id, 'close')); if (r) { Object.assign(s, r); dropRep(s.id); ST.repTab = 'glance'; SV.mount(ST.sub); toast('닫았어요.'); } } }); },
   'qr-big'(e, el) { const s = byId(el.dataset.id); board(`<p class="board-t">${esc(s.title)}</p><div class="qr">${qrSvg(respUrl(s))}</div><p>휴대폰 카메라로 비춰 답해 주세요</p>`); },
   'code-big'(e, el) { const s = byId(el.dataset.id); board(`<p class="board-t">현장 코드</p><p class="code-big">${esc(s.code)}</p><p>${esc(s.title)}</p><p>QR이나 링크로 들어와 이 숫자를 넣어 주세요</p>`); },
   'board-x'() { const b = $('#svBoard'); if (b) b.hidden = true; },
@@ -1392,7 +1652,7 @@ function bind() {
 SV.init = function (cfg) {
   C = { ...C, ...cfg };
   adapter = (C.demo || !C.rpc) ? demo : live;
-  if (cfg.app && cfg.app !== ST.app) { ST.items = null; ST.rep = {}; ST.open = null; ST.app = cfg.app; }
+  if (cfg.app && cfg.app !== ST.app) { ST.items = null; ST.rep = {}; ST.an = {}; ST.open = null; ST.app = cfg.app; }
   ensureLayers(); bind();
 };
 })();

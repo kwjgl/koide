@@ -447,3 +447,39 @@
   #svPrint .sv-cardp small { font-size: 9pt; color: #333; display: block; }
   #svPrint .pp { border: 0 !important; padding: 0 !important; background: #fff !important; color: #000 !important; }
 }
+
+/* ── 분석: 만족도 · 집단 차이 · 교재 전후(2026-11-24). 글은 학술지 말투, 통계량은 글자 모양을 달리해 한 줄로 ── */
+.sv .rep-tabs.five { max-width: 640px; grid-template-columns: repeat(5, 1fr); }
+.sv .verdict.mild { background: var(--surface-2); color: var(--ink-2); }
+.sv .pline { margin: .6em 0 0; font-size: .86em; color: var(--ink-2); font-family: var(--f-body); font-variant-numeric: tabular-nums; line-height: 1.6; word-break: keep-all; }
+.sv .pline i, .sv .sat-s i { font-style: italic; }
+.sv .sat-list { margin-top: .8em; display: flex; flex-direction: column; gap: .9em; }
+.sv .sat-row { display: flex; flex-direction: column; gap: .3em; }
+.sv .sat-h { display: flex; justify-content: space-between; align-items: baseline; gap: .6em; }
+.sv .sat-h b { font-variant-numeric: tabular-nums; }
+.sv .sat-h b small { font-weight: 400; color: var(--ink-2); margin-left: .15em; }
+.sv .sat-row .sv-track { margin: 0; }
+.sv .sat-s { color: var(--ink-2); font-size: .82em; line-height: 1.5; font-variant-numeric: tabular-nums; }
+.sv .ipa-wrap { margin: .6em 0 .4em; }
+.sv .ipa { display: block; width: 100%; max-width: 520px; height: auto; margin: 0 auto; font-family: var(--f-body); }
+.sv .ipa-fix { fill: var(--warn-soft); opacity: .7; }
+.sv .ipa-ax { stroke: var(--line-strong); stroke-width: 1; }
+.sv .ipa-tk { stroke: var(--line-strong); stroke-width: 1; }
+.sv .ipa-cut { stroke: var(--ink-2); stroke-width: 1; stroke-dasharray: 4 3; opacity: .6; }
+.sv .ipa-t { font-size: 10.5px; fill: var(--ink-2); }
+.sv .ipa-q { font-size: 10.5px; fill: var(--ink-2); font-weight: 600; }
+.sv .ipa-q.fix { fill: var(--warn); }
+.sv .ipa-p { fill: var(--accent); stroke: var(--surface); stroke-width: 1.5; }
+.sv .ipa-p.fix { fill: var(--warn); }
+.sv .ipa-l { font-size: 11.5px; fill: var(--ink); font-weight: 600; paint-order: stroke; stroke: var(--surface); stroke-width: 3px; stroke-linejoin: round; }
+.sv .ipa-l.fix { fill: var(--warn); }
+.sv .ipa-sum small { display: block; color: var(--ink-2); font-size: .84em; margin-top: .3em; }
+.sv .ba { display: flex; flex-direction: column; gap: .8em; margin-top: .6em; }
+.sv .ba-o { display: flex; flex-direction: column; gap: .25em; }
+.sv .ba-l { font-size: .9em; font-weight: 600; }
+.sv .ba-r { display: grid; grid-template-columns: 1.6em 1fr 3.4em; gap: .5em; align-items: center; font-size: .86em; }
+.sv .ba-r .lab { color: var(--ink-2); }
+.sv .ba-r .val { text-align: right; font-variant-numeric: tabular-nums; font-weight: 600; }
+.sv .ba-r .sv-track { margin: 0; }
+.sv .ba-r .prev .sv-fill { background: var(--line-strong); }
+@media print { .sv .ipa-wrap { break-inside: avoid; } }
