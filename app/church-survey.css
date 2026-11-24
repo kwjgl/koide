@@ -414,6 +414,12 @@
 .sv-page { margin: 0; min-height: 100%; background: var(--page); }
 .sv-page .sv-shell { position: fixed; inset: 0; display: flex; flex-direction: column; }
 .sv-page .rs-stage { overflow: hidden; }
+/* PC에서 답하는 쪽을 열면 휴대폰 흉내 틀 없이, 적당한 폭의 일반 화면으로 보인다(앱 안 미리보기만 틀을 쓴다) */
+@media (min-width: 700px) {
+  .sv-page .rs-stage { display: block; padding: 0; overflow-y: auto; }
+  .sv-page .rs-stage > div { height: auto; width: 100%; max-width: 560px; margin: 4vh auto 0; }
+  .sv-page .sv .rs, .sv-page .rs { max-width: none; height: auto; min-height: min(560px, 92vh); max-height: 92vh; border: 0; border-radius: 0; box-shadow: none; }
+}
 
 /* ── 앱 맨 위의 회원 카드와 더보기 줄 ── */
 .sv .svm-card { display: flex; flex-direction: column; gap: .5em; margin: 0 0 var(--sp-3); }
