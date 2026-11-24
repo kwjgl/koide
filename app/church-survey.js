@@ -906,7 +906,7 @@ function viewReport(s) {
   const R = ST.rep[s.id];
   if (!R) return `${back2list(s)}<p class="hint">${ST.repErr ? esc(ST.repErr) : '결과를 불러오는 중이에요…'}</p>${ST.repErr ? `<button class="btn ghost" type="button" data-sv="retry">${ic('refresh')}다시 해 보기</button>` : ''}`;
   const meta = `${fmtDay(s.start)}부터 ${fmtDay(s.end)}까지 ${R.n}명이 답했어요. 지금은 닫혔어요.`;
-  const tools = `<div class="rep-tools"><button class="btn small ghost" type="button" data-sv="print-paper">${ic('print')}인쇄·PDF</button><button class="btn small ghost" type="button" data-sv="dup" data-id="${esc(s.id)}">${ic('copy')}복사해서 새 설문</button><button class="btn small ghost" type="button" data-sv="reopen" data-id="${esc(s.id)}">${ic('refresh')}다시 열기</button></div>`;
+  const tools = `<div class="rep-tools"><button class="btn small ghost" type="button" data-sv="print-paper">${ic('print')}인쇄·PDF</button><button class="btn small ghost" type="button" data-sv="dup" data-id="${esc(s.id)}">${ic('copy')}복사해서 새 설문</button><button class="btn small ghost" type="button" data-sv="reopen" data-id="${esc(s.id)}">${ic('refresh')}다시 열기</button><button class="btn small ghost" type="button" data-sv="del-closed" data-id="${esc(s.id)}">${ic('trash')}지우기</button></div>`;
   if (R.few) return `${back2list(s)}<p class="rep-meta">${meta}</p>${tools}<section class="card empty"><h2>아직 결과를 보여 드릴 수 없어요</h2><p>답이 5명보다 적으면 누가 어떻게 답했는지 짐작할 수 있어서 결과를 보여 드리지 않아요. 더 받으려면 다시 열어 보세요.</p></section>
     <p class="lockline">${ic('lock')} 사람별 답과 점수, 사람·부서 사이 순위는 어디에도 없어요.</p>`;
   const tabs = [['glance', '한눈에'], ['items', '문항별'], ['text', '의견'], ['paper', '보고서']];
@@ -1242,6 +1242,13 @@ const ACTS = {
     s.quizIds = ids; touch(s); paint(); toast('난이도마다 2개씩 새로 골랐어요.'); },
   'qz-default'() { const s = curS(); s.quizIds = null; touch(s); paint(); toast('기본 6문항으로 돌렸어요.'); },
   'quiz-on'() { const s = curS(); s.check = !s.check; touch(s); paint(); },
+  // 닫은 설문 지우기(2026-11-24): 받은 답도 함께 지워지니 한 번 더 묻는다. 이 설문을 복사해 만든 설문은 작년 비교만 빠진다
+  'del-closed'(e, el) {
+    const s = byId(el.dataset.id); if (!s || s.status !== 'closed') return;
+    const kids = ST.items.filter(x => x.prev === s.id).length;
+    ask({ title: '이 설문을 지울까요?', body: `"${esc(s.title)}"${hasBatchim(s.title) ? '과' : '와'} 받은 답 ${s.resp}명분을 모두 지워요. 지우면 되돌릴 수 없으니 결과가 필요하면 먼저 인쇄·PDF로 저장해 두세요.${kids ? ' 이 설문을 복사해 만든 설문은 작년과 나란히 보기만 빠져요.' : ''}`, ok: '지우기', danger: true,
+      onOk: async () => { const r = await run(() => adapter.del(s.id)); if (r === null && ST.error) return; ST.items = ST.items.filter(x => x !== s); ST.items.forEach(x => { if (x.prev === s.id) x.prev = null; }); delete ST.rep[s.id]; nav(''); toast('지웠어요.'); } });
+  },
   'del-draft'(e, el) { const s = byId(el.dataset.id); ask({ title: '이 설문을 지울까요?', body: `"${esc(s.title)}"을 지워요. 아직 열지 않은 설문이라 받은 답은 없어요.`, ok: '지우기', danger: true, onOk: async () => { const r = await run(() => adapter.del(s.id)); if (r === null && ST.error) return; ST.items = ST.items.filter(x => x !== s); ST.editId = null; nav(''); toast('지웠어요.'); } }); },
   undo() { const u = ST.undo; if (!u) return; const s = byId(u.id); s.qs.splice(u.i, 0, u.q); ST.undo = null; touch(s); paint(); toast('되돌렸어요.'); },
   'save-retry'() { const s = curS(); ST.saveState = 'dirty'; s && flush(s.id); },
