@@ -115,21 +115,61 @@ const KOI_Q = [
   { id: 'k16', g: '한마디', t: '교역자·교사(리더)에게 한마디!', type: 'text', opt: true }
 ];
 
+// ── 디다코: 모임 방식 선호 조사 틀 9문항(2026-11-24). 사람을 학습 유형으로 나누지 않고, 모임을 어떻게 꾸릴지 정하는 데만 쓴다. 교재 추천이 아니라 모임 꾸리기를 다음 걸음으로 삼는다 ──
+const MEET_Q = [
+  { id: 'w1', g: '방식', t: '성경공부 모임에서 가장 마음이 편한 방식은 무엇인가요?', type: 'one', o: ['이야기를 나누는 토론', '강의·설명 듣기', '혼자 조용히 묵상', '함께 하는 활동·실습', '기타'] },
+  { id: 'w2', g: '준비', t: '모임 전에 미리 준비하는 분량은 어느 정도가 알맞나요?', type: 'range', o: ['준비 없이 와요', '본문만 읽고 와요', '읽고 질문에 답을 적어 와요'] },
+  { id: 'w3', g: '인원', t: '함께 모이는 사람 수는 몇 명쯤이 편한가요?', type: 'range', o: ['둘에서 셋', '네다섯 명', '예닐곱 명', '열 명 넘게'] },
+  { id: 'w4', g: '시간', t: '한 번 모일 때 시간은 어느 정도가 알맞나요?', type: 'range', o: ['30분 이하', '30~60분', '60~90분', '90분 넘게'] },
+  { id: 'w5', g: '때', t: '모일 수 있는 때를 모두 골라 주세요.', type: 'multi', max: 5, o: ['주일 예배 직후', '주중 아침', '주중 저녁', '주말 낮', '온라인이면 아무 때나'] },
+  { id: 'w6', g: '곳', t: '어디서 모이는 것이 편한가요?', type: 'one', o: ['교회', '집이나 카페', '온라인', '번갈아 가며'] },
+  { id: 'w7', g: '말하기', t: '모임에서 내 생각을 말하는 것은 어떤가요?', type: 'one', o: ['편하게 말해요', '질문을 받으면 말해요', '듣는 편이 더 편해요', '말하기가 부담돼요'] },
+  { id: 'w8', g: '어려움', t: '모임에 참여하기 어렵게 하는 것을 3가지까지 골라 주세요.', type: 'multi', max: 3, o: ['시간이 맞지 않아요', '거리가 멀어요', '아이 돌봄이 어려워요', '말하기나 준비가 부담돼요', '모임 방식이 맞지 않아요', '기타'] },
+  { id: 'w9', g: '바라는 점', t: '이런 모임이면 좋겠다 싶은 모습이 있다면 적어 주세요.', type: 'text', opt: true }
+];
+
+// ── 코이데: 기도 생활 돌아보기 틀 12문항(2026-11-24). 신앙 점검처럼 영역별로 묻되, 기도의 양이나 깊이를 견주지 않고 어떤 도움이 필요한지 알아보는 데 쓴다 ──
+const PRAY_Q = [
+  { id: 'p1', g: '기본', t: '소속이 어떻게 되나요?', type: 'one', o: ['청장년부', '청소년부', '장년부', '기타'], dept: true },   // 소속 문항은 고정(고칠 수 없음). 보기는 교회 부서 목록
+  { id: 'p2', g: '때와 곳', t: '혼자 기도하는 빈도는 어느 정도인가요?', type: 'one', o: ['거의 매일', '주 몇 번', '가끔·필요할 때', '거의 안 해요'] },
+  { id: 'p3', g: '때와 곳', t: '주로 기도하는 때는 언제인가요? 3개까지 골라 주세요.', type: 'multi', max: 3, o: ['아침 일찍', '낮 시간', '저녁', '잠들기 전', '틈틈이 짧게', '정해진 때가 없어요'] },
+  { id: 'p4', g: '때와 곳', t: '주로 기도하는 곳은 어디인가요? 3개까지 골라 주세요.', type: 'multi', max: 3, o: ['집', '교회(예배당)', '차 안·길 위', '일터·학교', '자연 속', '기타'] },
+  { id: 'p5', g: '때와 곳', t: '한 번 기도하는 시간은 어느 정도인가요?', type: 'range', o: ['5분 이하', '5~15분', '15~30분', '30분 넘게'] },
+  { id: 'p6', g: '방식', t: '어떤 방식으로 기도할 때 마음이 편한가요? 3개까지 골라 주세요.', type: 'multi', max: 3, o: ['혼자 조용히', '누군가와 함께', '글로 적으며', '소리 내어', '노래·찬양으로', '걸으며', '기타'] },
+  { id: 'p7', g: '방식', t: '여럿이 함께 기도하는 자리는 어떤가요?', type: 'one', o: ['편하게 소리 내어 기도해요', '함께하지만 마음속으로 해요', '어색해서 피하게 돼요', '그런 자리가 없어요'] },
+  { id: 'p8', g: '경험', t: '기도할 때 하나님과 가까워지는 느낌이 있나요?', type: 'one', o: ['자주', '종종', '가끔', '거의 없어요'] },
+  { id: 'p9', g: '어려움', t: '기도할 때 어려운 것을 어려운 순서대로 3개까지 골라 주세요.', type: 'rank', o: ['시간 내기', '집중하기', '무엇을 기도할지 모르겠어요', '응답이 없는 것 같아요', '꾸준히 하기', '소리 내어 하기', '기타'] },
+  { id: 'p10', g: '도움', t: '교회가 어떤 도움을 주면 좋겠나요? 3개까지 골라 주세요.', type: 'multi', max: 3, o: ['함께 기도하는 모임', '기도 짝', '기도하는 법을 배우는 시간', '기도 제목을 나누는 자리', '조용히 기도할 공간', '기도 안내 자료', '기타'] },
+  { id: 'p11', g: '나눔', t: '기도 제목을 다른 사람과 나누는 것은 어떤가요?', type: 'one', o: ['편하게 나눠요', '가까운 사람과만 나눠요', '나누기가 조심스러워요', '나누고 싶지 않아요'] },
+  { id: 'p12', g: '바라는 점', t: '기도 생활이나 기도 모임에 바라는 점이 있다면 적어 주세요.', type: 'text', opt: true }
+];
+
 // ── 앱마다 다른 것: 설문 틀 목록과 이름, 보고서 뒤의 다음 걸음 ──
+// tpls: 기본 틀 목록(앞의 것이 '추천'). 맨 위의 nm·questions·mins는 첫째 틀을 가리킨다. lead·heads는 두 틀의 문항 번호를 함께 적어 두면 문항이 있는 쪽만 쓰인다
 const APPS = {
   didako: {
     name: '디다코', mark: 'didako', nm: '교육 기초 조사', questions: DID_Q, quiz: true,
+    tpls: [
+      { nm: '교육 기초 조사', questions: DID_Q, quiz: true, mins: 4, icon: 'spark', short: '지금 어디에 있고 무엇을 배우고 싶은지 물어요.' },
+      { nm: '모임 방식 선호 조사', questions: MEET_Q, quiz: false, mins: 4, icon: 'users', short: '어떤 모임이 편한지 물어요. 사람을 유형으로 나누지 않아요.' }
+    ],
     tplDesc: '지금 어디에 있고 무엇을 배우고 싶은지 묻는 기초 조사예요. 경험·읽는 빈도·주제·방식·시간·어려움을 물어요.',
     mins: 4, quizMins: 3, next: '교재 추천', dflt: '교육 기초 조사',
-    lead: { d2: '성경을 읽는 빈도는', d3: '배우고 싶은 주제는', d4: '성경공부에 익숙한 정도는', d8: '가장 어려운 것 1순위는' },
-    heads: ['d3', 'd8', 'd4', 'd2']
+    lead: { d2: '성경을 읽는 빈도는', d3: '배우고 싶은 주제는', d4: '성경공부에 익숙한 정도는', d8: '가장 어려운 것 1순위는',
+      w1: '가장 마음이 편한 모임 방식은', w3: '편한 모임 인원은', w4: '알맞은 모임 시간은', w5: '모일 수 있는 때는', w6: '모이기 편한 곳은', w8: '모임에 참여하기 어렵게 하는 것은' },
+    heads: ['d3', 'd8', 'd4', 'd2', 'w1', 'w4', 'w5']
   },
   koide: {
     name: '코이데', mark: 'cord', nm: '신앙 점검', questions: KOI_Q, quiz: false,
+    tpls: [
+      { nm: '신앙 점검', questions: KOI_Q, quiz: false, mins: 7, icon: 'spark', short: '신앙을 정체성·신념·신앙 활동·경험·공동체 영역으로 나눠 물어요.' },
+      { nm: '기도 생활 돌아보기', questions: PRAY_Q, quiz: false, mins: 5, icon: 'pray', short: '기도하는 때와 방식, 어려움, 바라는 도움을 물어요. 기도의 양을 견주지 않아요.' }
+    ],
     tplDesc: '신앙을 정체성·신념·신앙 활동·경험·공동체 영역으로 나눠 묻는 점검이에요. 문구는 교회에 맞게 고칠 수 있어요.',
     mins: 7, quizMins: 0, next: '함께 기도할 제목', dflt: '신앙 점검',
-    lead: { k5: '구원의 확신은', k6: '신앙생활을 하는 가장 큰 이유는', k14: '요즘 가장 큰 어려움 1순위는', k7: '공예배 참석은', k11: '공예배에서 은혜를 경험한 정도는' },
-    heads: ['k5', 'k6', 'k14']
+    lead: { k5: '구원의 확신은', k6: '신앙생활을 하는 가장 큰 이유는', k14: '요즘 가장 큰 어려움 1순위는', k7: '공예배 참석은', k11: '공예배에서 은혜를 경험한 정도는',
+      p2: '혼자 기도하는 빈도는', p3: '주로 기도하는 때는', p6: '마음이 편한 기도 방식은', p9: '기도할 때 가장 어려운 것 1순위는', p10: '교회에 바라는 도움은' },
+    heads: ['k5', 'k6', 'k14', 'p6', 'p9', 'p10']
   }
 };
 const DEF_CLOSED = '응답을 마감했어요. 감사합니다.';
@@ -176,7 +216,15 @@ const minsOf = s => Math.max(2, Math.round(countQ(respQs(s)) * .45 + (quizOf(s).
 const qCountText = s => `문항 ${countQ(respQs(s))}개${quizOf(s).length ? ` + 스스로 점검 ${quizOf(s).length}개` : ''}`;
 const isOther = o => /^기타/.test(String(o || '').trim());   // '기타' 보기를 고르면 직접 쓸 칸이 열린다
 // 어디서 시작했는지(기본 틀은 원본을 고치지 않고 사본을 고친다)
-const originText = (s, raw) => { const e = raw ? (x => String(x)) : esc; return s.from === 'blank' ? '빈 설문에서 직접 만들었어요.' : s.from === 'copy' ? `우리 교회 설문 "${e(s.fromTitle)}"을 복사했어요.` : `${e(A().name)} 기본 틀(${e(A().nm)})을 가져왔어요. 원본은 그대로예요.`; };
+// 설문이 어느 틀에서 왔는지: 기본 틀로 만든 것은 서버에 적힌 틀 이름(from_title)으로, 복사한 것은 같은 문항 번호가 가장 많은 틀로 찾는다. 알 수 없으면 첫째 틀이다
+function tplOf(s) {
+  const T = A().tpls, byName = s && s.from === 'tpl' && T.find(t => t.nm === s.fromTitle);
+  if (byName) return byName;
+  const ids = new Set(((s && s.qs) || []).map(q => q.id)); let best = T[0], most = -1;
+  T.forEach(t => { const c = t.questions.filter(q => ids.has(q.id)).length; if (c > most) { best = t; most = c; } });
+  return best;
+}
+const originText = (s, raw) => { const e = raw ? (x => String(x)) : esc; return s.from === 'blank' ? '빈 설문에서 직접 만들었어요.' : s.from === 'copy' ? `우리 교회 설문 "${e(s.fromTitle)}"을 복사했어요.` : `${e(A().name)} 기본 틀(${e(tplOf(s).nm)})을 가져왔어요. 원본은 그대로예요.`; };
 const markEdited = q => { if (!q.custom) q.edited = true; };
 const newQ = () => ({ id: 'q' + Date.now().toString(36) + Math.floor(Math.random() * 99), t: '', type: 'one', o: ['', ''], custom: true });
 
@@ -240,10 +288,10 @@ const live = {
 
 // ── 데모: 지어낸 설문 다섯 개와 지어낸 결과. 이 브라우저에만 남는다 ──
 const DEMO_DEPTS = [['dm1', '청장년부'], ['dm2', '청소년부'], ['dm3', '장년부']];
-const demoKey = () => 'sv-demo-v1-' + C.app;
+const demoKey = () => 'sv-demo-v2-' + C.app;
 const dayIso = (n, h = 14) => { const t = NOW(); t.setDate(t.getDate() + n); t.setHours(h, 0, 0, 0); return isoOf(t); };
 function demoSeed() {
-  const nm = A().nm, quiz = C.app === 'didako';
+  const nm = A().nm, quiz = C.app === 'didako', t2 = A().tpls[1];
   const base = { deptId: 'dm1', dept: '청장년부', linkMode: 'dept', limit: null, gate: 'open', code: '', oneN: 0, oneUsed: 0, closedText: DEF_CLOSED, check: quiz, quizIds: null, showAns: false, qs: A().questions.map(cloneQ), prev: null, from: 'tpl', fromTitle: '', memo: '' };
   const y = NOW().getFullYear();
   return [
@@ -251,20 +299,26 @@ function demoSeed() {
     { ...base, id: 's2', title: `청소년부 겨울 ${nm}`, deptId: 'dm2', dept: '청소년부', status: 'sched', start: dayIso(14, 9), end: dayIso(28), resp: 0, limit: 120, gate: 'once', oneN: 40, token: 'demo-s2' },
     { ...base, id: 's5', title: `장년부 ${nm}`, deptId: 'dm3', dept: '장년부', status: 'draft', start: null, end: null, resp: 0, token: 'demo-s5' },
     { ...base, id: 's3', title: `${y} 봄 ${nm}`, status: 'closed', start: dayIso(-190, 9), end: dayIso(-176), resp: 55, prev: 's4', fromTitle: `${y - 1} 봄 ${nm}`, from: 'copy', token: 'demo-s3' },
-    { ...base, id: 's4', title: `${y - 1} 봄 ${nm}`, status: 'closed', start: dayIso(-555, 9), end: dayIso(-541), resp: 52, token: 'demo-s4' }
+    { ...base, id: 's4', title: `${y - 1} 봄 ${nm}`, status: 'closed', start: dayIso(-555, 9), end: dayIso(-541), resp: 52, token: 'demo-s4' },
+    ...(t2 ? [{ ...base, id: 's6', title: `${y} 여름 ${t2.nm}`, status: 'closed', start: dayIso(-100, 9), end: dayIso(-86), resp: 38, check: false, qs: t2.questions.map(cloneQ), fromTitle: t2.nm, token: 'demo-s6' }] : [])
   ];
 }
 // 결과에 쓰는 지어낸 숫자(보기 순서대로). 맞는 문항이 없으면 문항 번호로 정해진 값을 만든다
 const DEMO_N = {
-  didako: { d1: [6, 14, 21, 14], d2: [9, 17, 21, 8], d3: [31, 24, 27, 18, 12, 20, 4], d4: [7, 22, 20, 6], d6: [15, 38, 22, 17], d7: [14, 31, 10], d8: [21, 14, 11, 6, 3] },
-  koide: { k2: [20, 12, 14, 5, 4], k3: [48, 5, 2], k4: [1, 3, 14, 24, 13], k5: [37, 14, 4], k6: [18, 15, 5, 9, 7, 1], k7: [33, 14, 6, 2], k8: [11, 15, 22, 7], k9: [10, 18, 20, 7], k11: [10, 20, 16, 9], k13: [41, 11, 3], k14: [6, 8, 9, 14, 10, 7, 1, 0] }
+  didako: { d1: [6, 14, 21, 14], d2: [9, 17, 21, 8], d3: [31, 24, 27, 18, 12, 20, 4], d4: [7, 22, 20, 6], d6: [15, 38, 22, 17], d7: [14, 31, 10], d8: [21, 14, 11, 6, 3],
+    w1: [14, 8, 9, 6, 1], w2: [9, 17, 12], w3: [8, 16, 10, 4], w4: [5, 17, 12, 4], w5: [12, 3, 22, 10, 9], w6: [20, 6, 8, 4], w7: [14, 13, 8, 3], w8: [21, 9, 10, 12, 6, 3] },
+  koide: { k2: [20, 12, 14, 5, 4], k3: [48, 5, 2], k4: [1, 3, 14, 24, 13], k5: [37, 14, 4], k6: [18, 15, 5, 9, 7, 1], k7: [33, 14, 6, 2], k8: [11, 15, 22, 7], k9: [10, 18, 20, 7], k11: [10, 20, 16, 9], k13: [41, 11, 3], k14: [6, 8, 9, 14, 10, 7, 1, 0],
+    p2: [10, 12, 11, 5], p3: [9, 3, 8, 21, 12, 6], p4: [29, 14, 9, 3, 4, 1], p5: [9, 17, 9, 3], p6: [28, 11, 9, 14, 8, 6, 1], p7: [12, 10, 11, 5], p8: [7, 15, 12, 4], p9: [8, 11, 6, 4, 6, 2, 1],
+    p10: [17, 6, 15, 13, 18, 7, 1], p11: [14, 13, 8, 3] }
 };
 const DEMO_TEXT = {
   d9: ['한 번에 읽는 분량이 너무 많지 않았으면 좋겠어요.', '처음 하는 사람도 따라갈 수 있는 설명이 있으면 좋겠어요.', '퇴근하고 늦게라도 할 수 있게 온라인으로도 하고 싶어요.', '질문이 어렵지 않고 나눌 거리가 있으면 좋아요.', '성경 인물 이야기를 하나씩 배우고 싶어요.', '기도하는 법을 배우고 싶어요. 기도가 늘 막막해요.', '소모임은 좋은데 말하는 게 조금 부담돼요.', '교재에 그림이나 지도가 있으면 좋겠어요.', '한 시간 안에 끝나면 좋겠어요.', '로마서 같은 깊은 책도 천천히 같이 읽고 싶어요.', '이해가 안 될 때 물어볼 사람이 있으면 좋겠어요.', '혼자서도 이어 갈 수 있는 짧은 교재가 있으면 해요.'],
+  w9: ['처음 오는 사람도 부담 없이 앉을 수 있으면 좋겠어요.', '말씀을 읽고 각자 생각을 적은 뒤에 나누면 좋겠어요.', '퇴근하고 온라인으로 짧게 모일 수 있으면 해요.', '아이를 데리고 와도 괜찮은 모임이면 좋겠어요.', '한 시간 안에 끝나고 간식이 있으면 좋겠어요.', '정답을 말해야 하는 분위기가 아니었으면 해요.', '가끔은 밖에 나가서 걸으며 나누고 싶어요.'],
+  p12: ['함께 기도하는 시간이 한 달에 한 번이라도 있으면 좋겠어요.', '기도하는 법을 차근차근 알려 주는 시간이 있었으면 해요.', '조용히 기도할 수 있는 예배당이 평일에도 열려 있으면 좋겠어요.', '기도 짝이 있으면 꾸준히 할 수 있을 것 같아요.', '기도 제목을 편하게 나눌 수 있는 분위기였으면 해요.', '짧게라도 날마다 따라 할 수 있는 안내가 있으면 좋겠어요.'],
   k15: ['함께 기도하는 시간이 조금 더 있으면 좋겠어요.', '예배 끝나고 이야기 나누는 자리가 있으면 좋겠어요.', '말씀이 삶에 어떻게 이어지는지 더 듣고 싶어요.', '봉사에 참여해 보고 싶은데 어디서 시작하는지 몰랐어요.', '공부하는 모임이 평일 저녁에도 있으면 좋겠어요.', '기도 제목을 편하게 나눌 수 있는 분위기였으면 해요.'],
   k16: ['리더님, 늘 먼저 안부 물어 주셔서 감사해요.', '선생님, 힘들 때 기도해 주셔서 큰 힘이 됐어요.', '새로 온 사람을 챙겨 주는 분들이 계셔서 고마웠어요.', '찬양 시간이 조금 더 길어도 좋겠어요.', '늘 고맙습니다.', '응원합니다.']
 };
-const DEMO_OTHER = { didako: { d3: ['찬양과 예배', '성경 원어 맛보기', '선교 이야기', '교회 역사'], d8: ['아이를 돌봐야 해서 모임에 오기 어려워요', '어디서부터 읽어야 할지 모르겠어요', '혼자 하면 금방 잊어요'] }, koide: { k6: ['그냥 교회가 좋아서요'] } };
+const DEMO_OTHER = { didako: { d3: ['찬양과 예배', '성경 원어 맛보기', '선교 이야기', '교회 역사'], d8: ['아이를 돌봐야 해서 모임에 오기 어려워요', '어디서부터 읽어야 할지 모르겠어요', '혼자 하면 금방 잊어요'], w1: ['걸으면서 이야기 나누기'], w8: ['몸이 불편해서 이동이 어려워요'] }, koide: { k6: ['그냥 교회가 좋아서요'], p4: ['버스 안'], p6: ['걸으면서 마음속으로'], p10: ['기도하는 사람의 이야기를 듣는 시간'] } };
 const hash32 = str => { let h = 2166136261; for (const c of String(str)) { h ^= c.charCodeAt(0); h = Math.imul(h, 16777619); } return h >>> 0; };
 const rnd32 = seed => { let h = seed; return () => { h += 0x6D2B79F5; let t = h; t = Math.imul(t ^ t >>> 15, t | 1); t ^= t + Math.imul(t ^ t >>> 7, t | 61); return ((t ^ t >>> 14) >>> 0) / 4294967296; }; };
 const demoMask = c => c.map(x => x < MASK ? null : x);
@@ -278,7 +332,7 @@ function demoCounts(s, q, n, real) {
 function demoReport(s) {
   const n = s.resp, head = { n, title: s.title, dept_name: s.dept, start: s.start, end: s.end, gate: s.gate, memo: s.memo || '' };
   if (n < MASK) return { ...head, few: true };
-  const real = s.id === 's3' || s.id === 's4';   // 시안의 숫자를 그대로 쓰는 설문
+  const real = s.id === 's3' || s.id === 's4' || s.id === 's6';   // 시안의 숫자를 그대로 쓰는 설문
   const qs = respQs(s).map(q => {
     if (q.type === 'text') return { id: q.id, t: q.t, type: 'text', n: 12, items: (DEMO_TEXT[q.id] || ['고맙습니다.', '좋았어요.', '다음에도 했으면 해요.', '함께해서 좋았어요.', '응원합니다.']).slice(), sub: !!q.sub };
     const cnt = demoCounts(s, q, n, real), nq = q.type === 'multi' ? Math.round(n * .98) : n, hidden = false;
@@ -376,7 +430,7 @@ function viewList() {
   const body = L.length ? sec('진행 중', live) + sec('만드는 중', drafts) + sec('지난 설문', past)
     : `<section class="card empty"><h2>아직 설문이 없어요</h2><p>틀을 고르면 문항이 채워져서, 몇 분이면 첫 설문을 열 수 있어요.</p><button class="btn" type="button" data-sv="new">새 설문 만들기</button></section>`;
   const side = `<section class="card"><h2>설문은 이렇게 해요</h2><ol class="flow">
-      <li><span><b>틀을 가져오거나 직접 만들어요</b><small>${esc(A().name)} 기본 틀(${esc(A().nm)})을 가져와 고치거나, 빈 설문으로 새로 써요. 기본 틀 원본은 바뀌지 않아요.</small></span></li>
+      <li><span><b>틀을 가져오거나 직접 만들어요</b><small>${esc(A().name)} 기본 틀(${A().tpls.map(t => esc(t.nm)).join(', ')}) 가운데 골라 가져와 고치거나, 빈 설문으로 새로 써요. 기본 틀 원본은 바뀌지 않아요.</small></span></li>
       <li><span><b>열고 링크나 QR을 보내요</b><small>앱이 없어도, 가입하지 않아도 답할 수 있어요.</small></span></li>
       <li><span><b>닫으면 결과를 봐요</b><small>합계와 쉬운 문장으로 보여 드려요.</small></span></li></ol></section>`;
   return `${headHtml()}${tipOn}
@@ -391,13 +445,13 @@ function viewList() {
 function newDeptId() { return ST.newDept === 'all' && ST.scope.all ? 'all' : (ST.scope.depts.some(d => d.id === ST.newDept) ? ST.newDept : (ST.scope.depts[0] || {}).id); }
 function newSheet() {
   const closed = ST.items.filter(s => s.status === 'closed');
-  const pick = (act, icon, title, desc, tag) => `<button class="pick" type="button" data-sv="${act}"><span class="pk-ic">${ic(icon)}</span><span class="pk-t"><b>${title}${tag ? ` <span class="chip on">${tag}</span>` : ''}</b><small>${desc}</small></span>${ic('chev', 'chev-r')}</button>`;
+  const pick = (act, icon, title, desc, tag, v) => `<button class="pick" type="button" data-sv="${act}"${v != null ? ` data-v="${esc(v)}"` : ''}><span class="pk-ic">${ic(icon)}</span><span class="pk-t"><b>${title}${tag ? ` <span class="chip on">${tag}</span>` : ''}</b><small>${desc}</small></span>${ic('chev', 'chev-r')}</button>`;
   const cur = newDeptId();
   const choices = [...ST.scope.depts.map(d => [d.id, d.name]), ...(ST.scope.all ? [['all', '교회 전체']] : [])];
   const depts = choices.length > 1 ? `<div class="tip-line"><span class="f-label">누구에게 물을까요?</span>${tip(cur === 'all' ? '링크 하나로 여러 부서가 답해요. 첫 문항에서 부서를 골라요.' : '이 부서만 쓰는 링크가 생겨요. 부서는 묻지 않아도 돼요.', '누구에게')}</div><div class="types" role="radiogroup" aria-label="부서">${choices.map(([id, n]) => `<button type="button" class="type-b${cur === id ? ' on' : ''}" role="radio" aria-checked="${cur === id}" data-sv="new-dept" data-v="${esc(id)}">${esc(n)}</button>`).join('')}</div>` : '';
   pop(`<h2 class="sheet-h">새 설문</h2><p class="sheet-sub">시작할 문항을 고르면 바로 고칠 수 있어요.</p>
     ${depts}<div class="tip-line"><span class="f-label">${esc(A().name)} 기본 틀</span>${tip(`가져온 사본을 고쳐요. 기본 틀 원본은 바뀌지 않아요.${A().quiz ? ' 성경 이해도 스스로 점검을 더할 수 있어요.' : ''}`, '기본 틀')}</div>
-    ${pick('new-tpl', 'spark', esc(A().nm), `문항 ${countQ(A().questions)}개, 약 ${A().mins}분`, '추천')}
+    ${A().tpls.map((t, i) => pick('new-tpl', t.icon || 'spark', esc(t.nm), `${A().tpls.length > 1 ? esc(t.short) + ' ' : ''}문항 ${countQ(t.questions)}개, 약 ${t.mins}분`, i ? '' : '추천', i)).join('')}
     <div class="tip-line"><span class="f-label">우리 교회 설문</span>${closed.length ? tip('지난 설문을 복사해 같은 문항을 그대로 두면, 결과에서 작년과 나란히 볼 수 있어요.', '우리 교회 설문') : ''}</div>
     ${closed.length ? pick('new-copy', 'copy', '지난 설문 복사해서 고치기', '문항만 가져와요') : ''}
     ${pick('new-blank', 'plus', '빈 설문에서 직접 만들기', '문항을 처음부터 직접 써요.')}
@@ -411,24 +465,25 @@ function copySheet() {
 }
 // 만드는 동안(서버가 느릴 수 있다) 같은 단추를 또 눌러도 하나만 만든다
 let creating = false;
-async function createDraft(kind, src) {
+async function createDraft(kind, src, ti) {
   if (creating) return;
   creating = true;
   const pp = document.getElementById('svPop');
   if (pp) { pp.querySelectorAll('button').forEach(b => { b.disabled = true; }); const sub = pp.querySelector('.sheet-sub'); if (sub) sub.textContent = '만드는 중이에요…'; }
-  try { await createDraftRun(kind, src); } finally { creating = false; if (pp) pp.querySelectorAll('button').forEach(b => { b.disabled = false; }); }
+  try { await createDraftRun(kind, src, ti); } finally { creating = false; if (pp) pp.querySelectorAll('button').forEach(b => { b.disabled = false; }); }
 }
-async function createDraftRun(kind, src) {
+async function createDraftRun(kind, src, ti) {
+  const tpl = A().tpls[+ti || 0] || A().tpls[0];   // 기본 틀로 만들 때 고른 틀
   let linkMode, deptId;
   if (src) { linkMode = src.linkMode; deptId = src.deptId; }
   else if (newDeptId() === 'all') { linkMode = 'multi'; deptId = null; }
   else { linkMode = 'dept'; deptId = newDeptId(); }
   const dname = linkMode === 'multi' ? '교회 전체' : ((ST.scope.depts.find(d => d.id === deptId) || {}).name || (src && src.dept) || '');
-  const qs = kind === 'blank' ? [newQ()] : kind === 'copy' ? qsAll(src).map(cloneQ) : A().questions.map(cloneQ);
+  const qs = kind === 'blank' ? [newQ()] : kind === 'copy' ? qsAll(src).map(cloneQ) : tpl.questions.map(cloneQ);
   const y = NOW().getFullYear();
-  const title = kind === 'copy' ? src.title.replace(/^(\d{4}) (봄|가을)/, (m, yy, ss) => ss === '봄' ? `${yy} 가을` : `${+yy + 1} 봄`) : kind === 'blank' ? '제목 없는 설문' : `${linkMode === 'multi' ? '교회' : dname} ${A().nm}`;
+  const title = kind === 'copy' ? src.title.replace(/^(\d{4}) (봄|가을)/, (m, yy, ss) => ss === '봄' ? `${yy} 가을` : `${+yy + 1} 봄`) : kind === 'blank' ? '제목 없는 설문' : `${linkMode === 'multi' ? '교회' : dname} ${tpl.nm}`;
   const s = { id: null, title, deptId, dept: dname, linkMode, status: 'draft', start: null, end: null, limit: null, gate: 'open', code: '', closedText: DEF_CLOSED, showAns: false, resp: 0, oneN: 0, oneUsed: 0, memo: '', token: '',
-    check: kind === 'copy' ? !!src.check : !!A().quiz && kind !== 'blank', quizIds: kind === 'copy' && src.quizIds ? [...src.quizIds] : null, qs, prev: kind === 'copy' ? src.id : null, from: kind, fromTitle: src ? src.title : '' };
+    check: kind === 'copy' ? !!src.check : !!tpl.quiz && kind !== 'blank', quizIds: kind === 'copy' && src.quizIds ? [...src.quizIds] : null, qs, prev: kind === 'copy' ? src.id : null, from: kind, fromTitle: src ? src.title : kind === 'tpl' ? tpl.nm : '' };
   normDept(s);
   let saved;
   try { saved = await adapter.save(s); } catch (e) { toast(rpcErr(e)); return; }
@@ -753,16 +808,33 @@ const sortRows = q => visRows(q).slice().sort((a, b) => b[1] - a[1]);
 // 다음 걸음(코이데): 합계에서 뽑은 기도 제목 초안. 꼭 고친 뒤에 올리게 한다
 function prayerDraft(R, s) {
   const get = id => R.qs.find(q => q.id === id && !q.hidden), lines = [];
-  const k5 = get('k5'), k14 = get('k14'), k11 = get('k11'), k13 = get('k13');
+  const k5 = get('k5'), k14 = get('k14'), k11 = get('k11'), k13 = get('k13'), p8 = get('p8'), p9 = get('p9'), p11 = get('p11');
   if (k5) lines.push('구원의 확신을 더 깊이 누리는 한 해가 되도록');
   if (k11) lines.push('예배 가운데 은혜를 경험하는 지체가 늘어나도록');
   if (k13) lines.push('이 모임이 마음 놓고 쉴 수 있는 자리가 되도록');
   if (k14) { const t = sortRows(k14).filter(r => !isOther(r[0]) && r[0] !== '신앙').slice(0, 2).map(r => r[0]); if (t.length) lines.push(`${t.join('과 ')} 문제로 마음이 무거운 지체들을 위해`); }
+  // 기도 생활 돌아보기 틀
+  if (p8) lines.push('기도 가운데 하나님과 가까워지는 기쁨을 누리도록');
+  if (p11) lines.push('기도 제목을 마음 놓고 나눌 수 있는 모임이 되도록');
+  if (p9) { const t = sortRows(p9).filter(r => !isOther(r[0])).slice(0, 2).map(r => r[0]); if (t.length) lines.push(`기도하는 데 어려움(${t.join(', ')})을 겪는 지체들을 위해`); }
   if (!lines.length) lines.push('이 모임을 위해 함께 기도해요');
   return lines.map(l => '- ' + l).join('\n');
 }
+// 다음 걸음(디다코, 모임 방식 선호 조사): 합계에서 뽑은 모임 꾸리기 참고. 사람별 유형은 없다
+function meetNext(R) {
+  const top = id => { const q = R.qs.find(x => x.id === id && !x.hidden && x.n >= MASK); const v = q ? sortRows(q).filter(r => !isOther(r[0])) : []; return v.length ? { raw: v[0][0], l: esc(v[0][0]), p: pc(v[0][1], q.n) } : null; };
+  const f = (id, fn) => { const t = top(id); return t ? `<p class="sent" style="margin:.3em 0">${fn(t)}</p>` : ''; };
+  const body = [
+    f('w1', t => `가장 마음이 편하다고 한 방식은 <b>${t.l}</b>${hasBatchim(t.raw) ? '이에요' : '예요'}(${t.p}%).`),
+    f('w3', t => `편한 모임 인원은 <b>${t.l}</b>${iga(t.raw)} 가장 많았어요(${t.p}%).`),
+    f('w4', t => `알맞은 모임 시간은 <b>${t.l}</b>${iga(t.raw)} 가장 많았어요(${t.p}%).`),
+    f('w5', t => `모일 수 있는 때는 <b>${t.l}</b>${eulreul(t.raw)} 가장 많이 골랐어요.`),
+    f('w6', t => `모이기 편한 곳은 <b>${t.l}</b>${iga(t.raw)} 가장 많았어요(${t.p}%).`)
+  ].join('');
+  return `<p class="hint" style="margin:0 0 .5em">합계에서 뽑은 참고예요. 모임을 꾸릴 때 이야기 거리로 써 주세요. 사람별 유형은 나누지 않아요.</p>${body || '<p class="hint" style="margin:0">답이 더 모이면 참고할 내용이 여기에 나와요.</p>'}`;
+}
 function endCard(R, s) {
-  return C.app === 'didako' ? `<p class="gl">다음 걸음: 교재 추천</p><section class="card">${bookRec(R)}</section>`
+  return C.app === 'didako' ? (R.qs.some(q => /^w\d/.test(q.id)) ? `<p class="gl">다음 걸음: 모임 꾸리기</p><section class="card">${meetNext(R)}</section>` : `<p class="gl">다음 걸음: 교재 추천</p><section class="card">${bookRec(R)}</section>`)
     : `<p class="gl">다음 걸음: 함께 기도할 제목</p><section class="card"><p class="hint" style="margin:0 0 .5em">합계에서 뽑은 초안이에요. 꼭 고친 뒤에 올려 주세요.</p>
       <textarea class="field" rows="4" id="svPray">${esc(prayerDraft(R, s))}</textarea>
       <div class="acts" style="margin-top:.6em"><button class="btn small" type="button" data-sv="pray-go">${ic('pray')}기도 제목으로 옮기기</button></div></section>`;
@@ -779,7 +851,7 @@ function repGlance(s, R) {
 }
 // ── 보고서 쪽(인쇄·PDF용, 논문 형식): 표·그림 번호, 통계량은 APA 비슷한 형식, 쉬운 해설은 맨 아래 ──
 function repPaper(R, s) {
-  const tplPairs = C.app === 'didako';
+  const tplPairs = C.app === 'didako' && !!R.quiz;   // 짝은 성경 이해도 점검이 있을 때만 본다
   const se = (k, n) => (Math.sqrt(k / n * (1 - k / n) / n) * 100).toFixed(1);
   const all = nonText(R).filter(q => !q.hidden), ci = (k, n) => { const [lo, hi] = wilson(k, n); return `[${Math.floor(lo * 100)}, ${Math.ceil(hi * 100)}]`; };
   let tn = 0, fn = 0; const T = () => `표 ${++tn}`, F = () => `그림 ${++fn}`;
@@ -809,7 +881,7 @@ function repPaper(R, s) {
     R.pairs.length ? `<li><b>V, ρ</b>: 두 문항이 얼마나 함께 움직이는지예요. .1은 약하고 .3은 중간, .5 넘으면 강한 편이에요.</li>` : ''].filter(Boolean).join('');
   return `<article class="pp">
     <header class="pp-head"><h2>${esc(s.title)} 결과 보고서</h2><p>${esc(churchName())} ${esc(s.dept)}, ${fmtDay(s.start)} ~ ${fmtDay(s.end)}, <i>N</i> = ${R.n}</p></header>
-    <h3>1. 방법</h3><p>${esc(s.dept)}에 ${gate}로 익명 설문을 받았다(문항 틀: ${esc(A().nm)}). 이름과 연락처는 받지 않았고, 응답 수는 기기 단위로 셌다. 문항별 빈도와 비율, 윌슨 95% 신뢰구간을 구했다.${tplPairs ? ' 두 문항의 관련은 문항 틀이 미리 정해 둔 짝만 보았다(카이제곱 검정 또는 스피어만 순위상관).' : ''} 작년 비교는 두 비율 차이 검정을 썼다. 5명 미만 칸은 가렸다.${tplPairs && Q && !R.pairs.length ? ' 짝이 되는 문항을 고쳤거나 직접 만든 설문이라 두 문항의 관련은 보지 않았다.' : ''}${s.prev && !R.yoy ? ' 작년과 같은 문항을 고쳤거나 비교할 응답이 모자라 작년 비교는 하지 않았다.' : ''}</p>
+    <h3>1. 방법</h3><p>${esc(s.dept)}에 ${gate}로 익명 설문을 받았다(문항 틀: ${esc(tplOf(s).nm)}). 이름과 연락처는 받지 않았고, 응답 수는 기기 단위로 셌다. 문항별 빈도와 비율, 윌슨 95% 신뢰구간을 구했다.${tplPairs ? ' 두 문항의 관련은 문항 틀이 미리 정해 둔 짝만 보았다(카이제곱 검정 또는 스피어만 순위상관).' : ''} 작년 비교는 두 비율 차이 검정을 썼다. 5명 미만 칸은 가렸다.${tplPairs && Q && !R.pairs.length ? ' 짝이 되는 문항을 고쳤거나 직접 만든 설문이라 두 문항의 관련은 보지 않았다.' : ''}${s.prev && !R.yoy ? ' 작년과 같은 문항을 고쳤거나 비교할 응답이 모자라 작년 비교는 하지 않았다.' : ''}</p>
     <h3>2. 결과</h3>${dist}${quiz}${pairs}${yoy}
     <h3>3. 해설</h3><ul class="pp-easy">${easy}</ul>
     <p class="pp-caution"><b>읽을 때 조심할 것.</b> ${R.pairs.length ? '함께 움직인다고 해서 한쪽이 다른 쪽의 원인이라는 뜻은 아니에요. ' : ''}답한 사람이 스스로 고른 사람들이라 부서 전체와 다를 수 있어요. 한 사람이 다른 기기로 두 번 답했을 수도 있어요. 해석과 결론은 읽는 분이 써 주세요.</p>
@@ -1144,7 +1216,7 @@ const ACTS = {
   // 새 설문
   new() { newSheet(); },
   'new-dept'(e, el) { ST.newDept = el.dataset.v; newSheet(); },
-  'new-tpl'() { createDraft('tpl'); }, 'new-blank'() { createDraft('blank'); }, 'new-copy'() { copySheet(); },
+  'new-tpl'(e, el) { createDraft('tpl', null, el.dataset.v); }, 'new-blank'() { createDraft('blank'); }, 'new-copy'() { copySheet(); },
   'new-from'(e, el) { createDraft('copy', byId(el.dataset.v)); },
   dup(e, el) { createDraft('copy', byId(el.dataset.id)); },
   // 문항 고치기
