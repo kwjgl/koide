@@ -304,3 +304,13 @@
 :root[data-style="skeu"] .tabs [data-v="today"] { --obj: var(--obj-teacup); }
 :root[data-style="skeu"] .tabs [data-v="note"] { --obj: var(--obj-notebook); }
 :root[data-style="skeu"] .tabs [data-v="look"] { --obj: var(--obj-mirror); }
+
+/* 디다코 교회·공동체 과 편집(2026-11-24): 위쪽 저장 줄 대신 화면 아래에 떠 있는 저장 막대(.mg-dock)와 질문 안쪽 상자(.mg-q)를 디자인마다 입힌다 */
+:root[data-style="neu"] .mg-dock .mg-savebar { background-color: var(--card); border-color: transparent; box-shadow: var(--raise-card); }
+:root[data-style="neu"] .mg-q { background: var(--page); border-color: transparent; box-shadow: var(--press-sm); }
+:root[data-style="neu"] .mg-stage-head { border-bottom-color: transparent; }
+:root[data-style="neu"] .mg-stage-new { border-color: var(--line-strong); box-shadow: none; background: transparent; }
+:root[data-style="glass"] .mg-dock .mg-savebar { background: var(--glass-soft); border-color: color-mix(in srgb, var(--surface) 65%, transparent); box-shadow: var(--glass-shadow); backdrop-filter: blur(18px) saturate(1.4); -webkit-backdrop-filter: blur(18px) saturate(1.4); }
+:root[data-style="glass"] .mg-q { background: color-mix(in srgb, var(--surface) 35%, transparent); border-color: color-mix(in srgb, var(--surface) 65%, transparent); }
+:root[data-style="skeu"] .mg-dock .mg-savebar { background: linear-gradient(180deg, var(--hi), var(--surface)); border-color: color-mix(in srgb, var(--line-strong) 80%, #000 10%); box-shadow: inset 0 1px 0 #fff, 0 1px 3px rgba(0,0,0,.2), 0 12px 22px -12px rgba(0,0,0,.4); }
+:root[data-style="skeu"] .mg-q { background: color-mix(in srgb, var(--surface-2) 75%, var(--surface)); box-shadow: inset 0 1px 3px rgba(0,0,0,.12); }
