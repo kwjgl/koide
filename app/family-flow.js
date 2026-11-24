@@ -52,8 +52,10 @@
     if (!el || calm()) { apply(); return; }
     busy = true;
     let done = false;
-    const go = () => { if (done) return; done = true; busy = false; apply(); enter(document.getElementById(el.id) || el, dir); };
-    el.animate([{ opacity: 1, transform: 'none' }, { opacity: 0, transform: `translateX(${-(dir || 1) * 18}px)` }], { duration: 160, easing: 'ease-in', fill: 'forwards' }).onfinish = go;
+    // 나가는 움직임은 끝난 모습(투명)을 붙잡아 두므로, 새 단계를 그리기 전에 반드시 걷어 낸다(안 걷으면 새 단계가 투명한 채로 남아 빈 화면이 된다, 2026-11-24)
+    const out = el.animate([{ opacity: 1, transform: 'none' }, { opacity: 0, transform: `translateX(${-(dir || 1) * 18}px)` }], { duration: 160, easing: 'ease-in', fill: 'forwards' });
+    const go = () => { if (done) return; done = true; busy = false; try { out.cancel(); } catch (e) { /* 이미 없으면 그대로 */ } apply(); enter(document.getElementById(el.id) || el, dir); };
+    out.onfinish = go;
     setTimeout(go, 400);   // 끝남 알림이 안 오는 환경 대비
   }
 
