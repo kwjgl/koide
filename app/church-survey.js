@@ -374,14 +374,14 @@ function viewList() {
   const sec = (h, x) => x.length ? `<p class="gl">${h}</p><div class="sv-grid">${x.map(svCard).join('')}</div>` : '';
   const tipOn = ls.get('sv-tip-v2') === '1' ? '' : `<aside class="tg-tip" role="note"><p><b>처음이세요?</b>설문을 만들어 링크나 QR로 보내면, 앱이 없는 분도 이름 없이 답해요. 결과는 설문을 닫은 뒤 합계로 봐요.</p><button class="btn small ghost" type="button" data-sv="tipok">알겠어요</button></aside>`;
   const body = L.length ? sec('진행 중', live) + sec('만드는 중', drafts) + sec('지난 설문', past)
-    : `<section class="card empty"><h2>아직 설문이 없어요</h2><p>틀을 고르면 문항이 채워져서, 몇 분이면 첫 설문을 열 수 있어요.</p><button class="btn" type="button" data-sv="new">${ic('plus')}새 설문 만들기</button></section>`;
+    : `<section class="card empty"><h2>아직 설문이 없어요</h2><p>틀을 고르면 문항이 채워져서, 몇 분이면 첫 설문을 열 수 있어요.</p><button class="btn" type="button" data-sv="new">새 설문 만들기</button></section>`;
   const side = `<section class="card"><h2>설문은 이렇게 해요</h2><ol class="flow">
       <li><span><b>틀을 가져오거나 직접 만들어요</b><small>${esc(A().name)} 기본 틀(${esc(A().nm)})을 가져와 고치거나, 빈 설문으로 새로 써요. 기본 틀 원본은 바뀌지 않아요.</small></span></li>
       <li><span><b>열고 링크나 QR을 보내요</b><small>앱이 없어도, 가입하지 않아도 답할 수 있어요.</small></span></li>
       <li><span><b>닫으면 결과를 봐요</b><small>합계와 쉬운 문장으로 보여 드려요.</small></span></li></ol></section>`;
   return `${headHtml()}${tipOn}
     <div class="two-col"><div class="col">
-      ${L.length ? `<div class="new-row"><button class="btn" type="button" data-sv="new">${ic('plus')}새 설문 만들기</button></div>` : ''}
+      ${L.length ? `<div class="new-row"><button class="btn" type="button" data-sv="new">새 설문 만들기</button></div>` : ''}
       <div>${body}</div>
     </div><div class="col side">${side}</div></div>
     <p class="lockline">${ic('lock')} 답한 사람의 이름은 어디에도 남지 않아요. 5명 미만인 칸은 가려요.</p>`;
@@ -409,7 +409,16 @@ function copySheet() {
     ${closed.map(s => `<button class="pick" type="button" data-sv="new-from" data-v="${esc(s.id)}"><span class="pk-ic">${ic('file')}</span><span class="pk-t"><b>${esc(s.title)}</b><small>${esc(s.dept)}, ${qCountText(s)}, ${fmtDay(s.end)} 닫음</small></span>${ic('chev', 'chev-r')}</button>`).join('')}
     <div class="sheet-acts"><button class="btn ghost" type="button" data-sv="new">${ic('back')}뒤로</button></div>`);
 }
+// 만드는 동안(서버가 느릴 수 있다) 같은 단추를 또 눌러도 하나만 만든다
+let creating = false;
 async function createDraft(kind, src) {
+  if (creating) return;
+  creating = true;
+  const pp = document.getElementById('svPop');
+  if (pp) { pp.querySelectorAll('button').forEach(b => { b.disabled = true; }); const sub = pp.querySelector('.sheet-sub'); if (sub) sub.textContent = '만드는 중이에요…'; }
+  try { await createDraftRun(kind, src); } finally { creating = false; if (pp) pp.querySelectorAll('button').forEach(b => { b.disabled = false; }); }
+}
+async function createDraftRun(kind, src) {
   let linkMode, deptId;
   if (src) { linkMode = src.linkMode; deptId = src.deptId; }
   else if (newDeptId() === 'all') { linkMode = 'multi'; deptId = null; }
@@ -902,7 +911,7 @@ function rsInner() {
     opts = `<div class="rs-opts" role="${single ? 'radiogroup' : 'group'}">${list.map((o, j) => {
       const dk = q.type === 'quiz' && j === q.o.length, val = dk ? -1 : j;
       const on = single ? a === val : (a || []).includes(j), rank = q.type === 'rank' && on ? (a.indexOf(j) + 1) : 0;
-      return `<button type="button" class="rs-opt${on ? ' on' : ''}${dk ? ' dk' : ''}" data-sv="rs-pick" data-v="${val}" role="${single ? 'radio' : 'checkbox'}" aria-checked="${on}"><span class="key">${rank || (j < 9 ? j + 1 : '·')}</span><span>${esc(o)}</span>${on && !rank ? ic('check', 'chk') : ''}</button>`; }).join('')}</div>`;
+      return `<button type="button" class="rs-opt${on ? ' on' : ''}${dk ? ' dk' : ''}" data-sv="rs-pick" data-v="${val}" role="${single ? 'radio' : 'checkbox'}" aria-checked="${on}"><span class="key">${rank || (j < 9 ? j + 1 : '·')}</span><span>${esc(o)}</span>${on && !rank ? ic('check', 'sv-chk') : ''}</button>`; }).join('')}</div>`;
     const oj = q.type === 'quiz' ? -1 : q.o.findIndex(isOther), othOn = oj >= 0 && (single ? a === oj : (a || []).includes(oj));
     if (othOn) opts += `<input class="field rs-other" id="svRsOther" data-svin="rs-other" maxlength="40" value="${esc((RS.other || {})[q.id] || '')}" placeholder="어떤 건지 짧게 적어 주세요 (안 써도 돼요)" aria-label="기타 내용">`;
   }
