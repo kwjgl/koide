@@ -2992,7 +2992,7 @@ button.pg-tag::before { content: ''; position: absolute; inset: -10px; }
     { k: 'p-abraham', ic: 'road',
       name: '아브라함의 길', mean: '기도한 날을 모아 아브라함의 길을 끝까지 걸었어요.', when: '아브라함의 길을 끝까지 걸으면 생겨요.',
       at: () => pgCalc('abraham', { lap: 0 }).doneDate },
-    { k: 'p-joseph', ic: 'coat', noArt: 1, // 요셉의 길 24구간(기도한 날 24일)을 다 걸은 날 생긴다 · 삽화는 코덱스가 그리면 noArt를 빼고 app/img/badges/p-joseph.webp를 둔다
+    { k: 'p-joseph', ic: 'coat', // 요셉의 길 24구간(기도한 날 24일)을 다 걸은 날 생긴다 · 삽화는 pray-for#447(코덱스)
       name: '요셉의 길', mean: '기도한 날을 모아 요셉의 길을 끝까지 걸었어요.', when: '요셉의 길을 끝까지 걸으면 생겨요.',
       at: () => pgCalc('joseph', { lap: 0 }).doneDate },
     { k: 'p-wild', ic: 'wild', // 광야의 길 40구간(기도한 날 40일)을 다 걸은 날 생긴다
@@ -3004,19 +3004,19 @@ button.pg-tag::before { content: ''; position: absolute; inset: -10px; }
     { k: 'p-david', ic: 'david', // 다윗의 길 40구간(기도한 날 40일)을 다 걸은 날 생긴다 · 삽화는 pray-for#219(수금)
       name: '다윗의 길', mean: '기도한 날을 모아 다윗의 길을 끝까지 걸었어요.', when: '다윗의 길을 끝까지 걸으면 생겨요.',
       at: () => pgCalc('david', { lap: 0 }).doneDate },
-    { k: 'p-elijah', ic: 'flame', noArt: 1, // 엘리야의 길 14구간(기도한 날 14일)을 다 걸은 날 생긴다 · 삽화는 코덱스가 그리면 noArt를 빼고 app/img/badges/p-elijah.webp를 둔다
+    { k: 'p-elijah', ic: 'flame', // 엘리야의 길 14구간(기도한 날 14일)을 다 걸은 날 생긴다 · 삽화는 pray-for#447(코덱스)
       name: '엘리야의 길', mean: '기도한 날을 모아 엘리야의 길을 끝까지 걸었어요.', when: '엘리야의 길을 끝까지 걸으면 생겨요.',
       at: () => pgCalc('elijah', { lap: 0 }).doneDate },
-    { k: 'p-jonah', ic: 'wave', noArt: 1, // 요나의 바닷길 12구간(기도한 날 12일)을 다 걸은 날 생긴다 · 삽화는 코덱스가 그리면 noArt를 빼고 app/img/badges/p-jonah.webp를 둔다
+    { k: 'p-jonah', ic: 'wave', // 요나의 바닷길 12구간(기도한 날 12일)을 다 걸은 날 생긴다 · 삽화는 pray-for#447(코덱스)
       name: '요나의 바닷길', mean: '기도한 날을 모아 요나의 바닷길을 끝까지 걸었어요.', when: '요나의 바닷길을 끝까지 걸으면 생겨요.',
       at: () => pgCalc('jonah', { lap: 0 }).doneDate },
-    { k: 'p-home', ic: 'wall', noArt: 1, // 돌아오는 길 15구간(기도한 날 15일)을 다 걸은 날 생긴다 · 삽화는 코덱스가 그리면 noArt를 빼고 app/img/badges/p-home.webp를 둔다
+    { k: 'p-home', ic: 'wall', // 돌아오는 길 15구간(기도한 날 15일)을 다 걸은 날 생긴다 · 삽화는 pray-for#447(코덱스)
       name: '돌아오는 길', mean: '기도한 날을 모아 돌아오는 길을 끝까지 걸었어요.', when: '돌아오는 길을 끝까지 걸으면 생겨요.',
       at: () => pgCalc('home', { lap: 0 }).doneDate },
-    { k: 'p-jesus', ic: 'crook', noArt: 1, // 예수님의 길 36구간(기도한 날 36일)을 다 걸은 날 생긴다 · 삽화는 코덱스가 그리면 noArt를 빼고 app/img/badges/p-jesus.webp를 둔다
+    { k: 'p-jesus', ic: 'crook', // 예수님의 길 36구간(기도한 날 36일)을 다 걸은 날 생긴다 · 삽화는 pray-for#447(코덱스)
       name: '예수님의 길', mean: '기도한 날을 모아 예수님의 길을 끝까지 걸었어요.', when: '예수님의 길을 끝까지 걸으면 생겨요.',
       at: () => pgCalc('jesus', { lap: 0 }).doneDate },
-    { k: 'p-paul', ic: 'letter', noArt: 1, // 바울의 길 40구간(기도한 날 40일)을 다 걸은 날 생긴다 · 삽화는 코덱스가 그리면 noArt를 빼고 app/img/badges/p-paul.webp를 둔다
+    { k: 'p-paul', ic: 'letter', // 바울의 길 40구간(기도한 날 40일)을 다 걸은 날 생긴다 · 삽화는 pray-for#447(코덱스)
       name: '바울의 길', mean: '기도한 날을 모아 바울의 길을 끝까지 걸었어요.', when: '바울의 길을 끝까지 걸으면 생겨요.',
       at: () => pgCalc('paul', { lap: 0 }).doneDate },
     // 본선을 처음부터 끝까지 한 바퀴 걸은 날(다시 걷기). 몇 바퀴를 돌아도 배지는 하나이고, 받으면 몇 번째 순례까지 마쳤는지만 알려 준다
