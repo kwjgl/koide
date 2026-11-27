@@ -488,5 +488,481 @@
         "h": 2
       }
     }
+  },
+  "joseph": {
+    "tiles": {
+      "file": "joseph-tiles.png",
+      "ground": [
+        [
+          0,
+          0
+        ],
+        [
+          1,
+          0
+        ]
+      ],
+      "river": [
+        2,
+        0
+      ],
+      "ford": [
+        3,
+        0
+      ],
+      "rock": [
+        4,
+        0
+      ],
+      "grain": [
+        5,
+        0
+      ],
+      "paving": [
+        6,
+        0
+      ],
+      "reedbed": [
+        7,
+        0
+      ]
+    },
+    "objects": {
+      "file": "joseph-objects.png",
+      "pit": 0,
+      "coat": 1,
+      "sheep": 2,
+      "camel": 3,
+      "jar": 4,
+      "sheaf": 5,
+      "palm": 6,
+      "camp": 7,
+      "chain": 8,
+      "ring": 9,
+      "house": {
+        "x": 0,
+        "y": 1,
+        "w": 2,
+        "h": 2
+      },
+      "prison": {
+        "x": 2,
+        "y": 1,
+        "w": 2,
+        "h": 2
+      },
+      "palace": {
+        "x": 4,
+        "y": 1,
+        "w": 3,
+        "h": 2
+      },
+      "granary": {
+        "x": 7,
+        "y": 1,
+        "w": 2,
+        "h": 2
+      }
+    }
+  },
+  "elijah": {
+    "tiles": {
+      "file": "elijah-tiles.png",
+      "ground": [
+        [
+          0,
+          0
+        ],
+        [
+          1,
+          0
+        ]
+      ],
+      "river": [
+        2,
+        0
+      ],
+      "ford": [
+        3,
+        0
+      ],
+      "rock": [
+        4,
+        0
+      ],
+      "meadow": [
+        5,
+        0
+      ],
+      "scorch": [
+        6,
+        0
+      ],
+      "shrub": [
+        7,
+        0
+      ]
+    },
+    "objects": {
+      "file": "elijah-objects.png",
+      "raven": 0,
+      "bread": 1,
+      "oil": 2,
+      "flour": 3,
+      "wood": 4,
+      "broom": 5,
+      "cake": 6,
+      "jar": 7,
+      "dead": 8,
+      "cloud": 9,
+      "carmel": {
+        "x": 0,
+        "y": 1,
+        "w": 3,
+        "h": 3
+      },
+      "carmelFire": {
+        "x": 3,
+        "y": 1,
+        "w": 3,
+        "h": 3
+      },
+      "horeb": {
+        "x": 6,
+        "y": 1,
+        "w": 3,
+        "h": 3
+      }
+    }
+  },
+  "jonah": {
+    "tiles": {
+      "file": "jonah-tiles.png",
+      "ground": [
+        [
+          0,
+          0
+        ],
+        [
+          1,
+          0
+        ]
+      ],
+      "sea": [
+        2,
+        0
+      ],
+      "storm": [
+        3,
+        0
+      ],
+      "wake": [
+        4,
+        0
+      ],
+      "wallL": [
+        5,
+        0
+      ],
+      "wallR": [
+        6,
+        0
+      ],
+      "bar": [
+        7,
+        0
+      ],
+      "shoreS": [
+        0,
+        1
+      ],
+      "shoreN": [
+        1,
+        1
+      ]
+    },
+    "objects": {
+      "file": "jonah-objects.png",
+      "post": 0,
+      "crates": 1,
+      "anchor": 2,
+      "boat": 3,
+      "gull": 4,
+      "islet": 5,
+      "palm": 6,
+      "sackcloth": 7,
+      "booth": 8,
+      "foam": 9,
+      "ship": {
+        "x": 0,
+        "y": 1,
+        "w": 3,
+        "h": 3
+      },
+      "shipStorm": {
+        "x": 3,
+        "y": 1,
+        "w": 3,
+        "h": 3
+      },
+      "fish": {
+        "x": 6,
+        "y": 1,
+        "w": 3,
+        "h": 3
+      },
+      "fishGone": {
+        "x": 0,
+        "y": 4,
+        "w": 3,
+        "h": 3
+      },
+      "nineveh": {
+        "x": 3,
+        "y": 4,
+        "w": 3,
+        "h": 3
+      },
+      "gourd": {
+        "x": 6,
+        "y": 4,
+        "w": 2,
+        "h": 2
+      }
+    }
+  },
+  "home": {
+    "tiles": {
+      "file": "home-tiles.png",
+      "ground": [
+        [
+          0,
+          0
+        ],
+        [
+          1,
+          0
+        ]
+      ],
+      "river": [
+        2,
+        0
+      ],
+      "ford": [
+        3,
+        0
+      ],
+      "rock": [
+        4,
+        0
+      ],
+      "shrub": [
+        5,
+        0
+      ],
+      "paving": [
+        6,
+        0
+      ],
+      "ruin": [
+        7,
+        0
+      ]
+    },
+    "objects": {
+      "file": "home-objects.png",
+      "willow": 0,
+      "willowHarp": 1,
+      "reeds": 2,
+      "camp": 3,
+      "well": 4,
+      "rubble": 5,
+      "bricks": 6,
+      "ladder": 7,
+      "altar": 8,
+      "dead": 9,
+      "cityRuin": {
+        "x": 0,
+        "y": 1,
+        "w": 3,
+        "h": 3
+      },
+      "cityBuilt": {
+        "x": 3,
+        "y": 1,
+        "w": 3,
+        "h": 3
+      },
+      "temple": {
+        "x": 6,
+        "y": 1,
+        "w": 3,
+        "h": 3
+      }
+    }
+  },
+  "jesus": {
+    "tiles": {
+      "file": "jesus-tiles.png",
+      "ground": [
+        [
+          0,
+          0
+        ],
+        [
+          1,
+          0
+        ]
+      ],
+      "lake": [
+        2,
+        0
+      ],
+      "hill": [
+        3,
+        0
+      ],
+      "bush": [
+        4,
+        0
+      ],
+      "rock": [
+        5,
+        0
+      ],
+      "field": [
+        6,
+        0
+      ],
+      "paving": [
+        7,
+        0
+      ]
+    },
+    "objects": {
+      "file": "jesus-objects.png",
+      "olive": 0,
+      "sheep": 1,
+      "manger": 2,
+      "boat": 3,
+      "net": 4,
+      "bread": 5,
+      "palm": 6,
+      "donkey": 7,
+      "jar": 8,
+      "house": 9,
+      "town": {
+        "x": 0,
+        "y": 1,
+        "w": 3,
+        "h": 2
+      },
+      "city": {
+        "x": 3,
+        "y": 1,
+        "w": 3,
+        "h": 2
+      },
+      "emmaus": {
+        "x": 6,
+        "y": 1,
+        "w": 2,
+        "h": 2
+      }
+    }
+  },
+  "paul": {
+    "tiles": {
+      "file": "paul-tiles.png",
+      "ground": [
+        [
+          0,
+          0
+        ],
+        [
+          1,
+          0
+        ]
+      ],
+      "sea": [
+        2,
+        0
+      ],
+      "hill": [
+        3,
+        0
+      ],
+      "bush": [
+        4,
+        0
+      ],
+      "rock": [
+        5,
+        0
+      ],
+      "paving": [
+        6,
+        0
+      ],
+      "shore": [
+        7,
+        0
+      ]
+    },
+    "objects": {
+      "file": "paul-objects.png",
+      "scroll": 0,
+      "boat": 1,
+      "tent": 2,
+      "altar": 3,
+      "olive": 4,
+      "palm": 5,
+      "fire": 6,
+      "chain": 7,
+      "lamp": 8,
+      "light": 9,
+      "city": {
+        "x": 0,
+        "y": 1,
+        "w": 3,
+        "h": 2
+      },
+      "prison": {
+        "x": 3,
+        "y": 1,
+        "w": 2,
+        "h": 2
+      },
+      "acropolis": {
+        "x": 5,
+        "y": 1,
+        "w": 3,
+        "h": 2
+      },
+      "school": {
+        "x": 8,
+        "y": 1,
+        "w": 2,
+        "h": 2
+      },
+      "ship": {
+        "x": 0,
+        "y": 3,
+        "w": 3,
+        "h": 3
+      },
+      "wreck": {
+        "x": 3,
+        "y": 3,
+        "w": 3,
+        "h": 3
+      },
+      "rome": {
+        "x": 6,
+        "y": 3,
+        "w": 3,
+        "h": 3
+      }
+    }
   }
 }
