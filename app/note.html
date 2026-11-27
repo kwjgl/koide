@@ -3020,12 +3020,12 @@ button.pg-tag::before { content: ''; position: absolute; inset: -10px; }
       name: '바울의 길', mean: '기도한 날을 모아 바울의 길을 끝까지 걸었어요.', when: '바울의 길을 끝까지 걸으면 생겨요.',
       at: () => pgCalc('paul', { lap: 0 }).doneDate },
     // 본선을 처음부터 끝까지 한 바퀴 걸은 날(다시 걷기). 몇 바퀴를 돌아도 배지는 하나이고, 받으면 몇 번째 순례까지 마쳤는지만 알려 준다
-    { k: 'p-lap', ic: 'laps', noArt: 1, name: '순례 한 바퀴', mean: () => `순례길을 처음부터 끝까지 걸었어요. 지금까지 ${pgOrd(Math.floor(pgSplit().main.length / PG_TOTAL))} 순례를 마쳤어요.`, when: '순례길을 처음부터 끝까지 걸으면 생겨요. 그 뒤로는 처음부터 다시 걸을 수 있어요.',
+    { k: 'p-lap', ic: 'laps', name: '순례 한 바퀴', mean: () => `순례길을 처음부터 끝까지 걸었어요. 지금까지 ${pgOrd(Math.floor(pgSplit().main.length / PG_TOTAL))} 순례를 마쳤어요.`, when: '순례길을 처음부터 끝까지 걸으면 생겨요. 그 뒤로는 처음부터 다시 걸을 수 있어요.',
       at: () => { const M = pgSplit().main; return M.length >= PG_TOTAL ? M[PG_TOTAL - 1] : null; } },
     // 곁길(절기 길)을 끝까지 걸은 날. 해마다 다시 걸을 수 있지만 배지는 하나다
-    { k: 'p-advent', ic: 'star', noArt: 1, name: '대림절 길', mean: '기도한 날을 모아 대림절 길을 끝까지 걸었어요.', when: '대림절(성탄 전 네 주)에 곁길로 들어가 끝까지 걸으면 생겨요.', at: () => pgSeasonDone('advent') },
-    { k: 'p-lent', ic: 'cross', noArt: 1, name: '사순절 길', mean: '기도한 날을 모아 사순절 길을 끝까지 걸었어요.', when: '사순절(재의 수요일부터 부활절 전날까지)에 곁길로 들어가 끝까지 걸으면 생겨요.', at: () => pgSeasonDone('lent') },
-    { k: 'p-easter', ic: 'sun', noArt: 1, name: '부활절 길', mean: '기도한 날을 모아 부활절 길을 끝까지 걸었어요.', when: '부활절부터 오순절까지 곁길로 들어가 끝까지 걸으면 생겨요.', at: () => pgSeasonDone('easter') }
+    { k: 'p-advent', ic: 'star', name: '대림절 길', mean: '기도한 날을 모아 대림절 길을 끝까지 걸었어요.', when: '대림절(성탄 전 네 주)에 곁길로 들어가 끝까지 걸으면 생겨요.', at: () => pgSeasonDone('advent') },
+    { k: 'p-lent', ic: 'cross', name: '사순절 길', mean: '기도한 날을 모아 사순절 길을 끝까지 걸었어요.', when: '사순절(재의 수요일부터 부활절 전날까지)에 곁길로 들어가 끝까지 걸으면 생겨요.', at: () => pgSeasonDone('lent') },
+    { k: 'p-easter', ic: 'sun', name: '부활절 길', mean: '기도한 날을 모아 부활절 길을 끝까지 걸었어요.', when: '부활절부터 오순절까지 곁길로 들어가 끝까지 걸으면 생겨요.', at: () => pgSeasonDone('easter') }
   ];
   // 배지 그림: 노트에 있는 그림(ICON)을 쓰고, 없는 열(감사 · 사람 · 홈 화면 · 사람 더하기 · 왕관 · 팔레트 · 모임 · 그물 · 내려놓기 · 별 · 기념)만 같은 굵기(24칸, 선 1.8)로 더했다
   const bico = n => {
