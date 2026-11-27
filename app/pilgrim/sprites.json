@@ -271,5 +271,222 @@
         "h": 2
       }
     }
+  },
+  "advent": {
+    "tiles": {
+      "file": "advent-tiles.png",
+      "ground": [
+        [
+          0,
+          0
+        ],
+        [
+          1,
+          0
+        ]
+      ],
+      "hill": [
+        2,
+        0
+      ],
+      "river": [
+        3,
+        0
+      ],
+      "ford": [
+        4,
+        0
+      ],
+      "bush": [
+        5,
+        0
+      ],
+      "rock": [
+        6,
+        0
+      ],
+      "paving": [
+        7,
+        0
+      ]
+    },
+    "objects": {
+      "file": "advent-objects.png",
+      "olive": 0,
+      "flock": 1,
+      "well": 2,
+      "house": 3,
+      "jar": 4,
+      "candles": 5,
+      "manger": 6,
+      "donkey": 7,
+      "reeds": 8,
+      "rubble": 9,
+      "starDay": {
+        "x": 0,
+        "y": 1,
+        "w": 1,
+        "h": 2
+      },
+      "starNight": {
+        "x": 1,
+        "y": 1,
+        "w": 1,
+        "h": 2
+      },
+      "town": {
+        "x": 2,
+        "y": 1,
+        "w": 3,
+        "h": 2
+      },
+      "townStar": {
+        "x": 5,
+        "y": 1,
+        "w": 3,
+        "h": 2
+      }
+    }
+  },
+  "lent": {
+    "tiles": {
+      "file": "lent-tiles.png",
+      "ground": [
+        [
+          0,
+          0
+        ],
+        [
+          1,
+          0
+        ]
+      ],
+      "hill": [
+        2,
+        0
+      ],
+      "river": [
+        3,
+        0
+      ],
+      "ford": [
+        4,
+        0
+      ],
+      "thorn": [
+        5,
+        0
+      ],
+      "rock": [
+        6,
+        0
+      ],
+      "paving": [
+        7,
+        0
+      ]
+    },
+    "objects": {
+      "file": "lent-objects.png",
+      "rocks": 0,
+      "well": 1,
+      "pool": 2,
+      "tomb": 3,
+      "palms": 4,
+      "olive": 5,
+      "thorns": 6,
+      "colt": 7,
+      "jar": 8,
+      "deadtree": 9,
+      "lamb": 10,
+      "golgotha": {
+        "x": 0,
+        "y": 1,
+        "w": 3,
+        "h": 3
+      },
+      "city": {
+        "x": 3,
+        "y": 1,
+        "w": 3,
+        "h": 2
+      }
+    }
+  },
+  "easter": {
+    "tiles": {
+      "file": "easter-tiles.png",
+      "ground": [
+        [
+          0,
+          0
+        ],
+        [
+          1,
+          0
+        ]
+      ],
+      "hill": [
+        2,
+        0
+      ],
+      "river": [
+        3,
+        0
+      ],
+      "ford": [
+        4,
+        0
+      ],
+      "bush": [
+        5,
+        0
+      ],
+      "rock": [
+        6,
+        0
+      ],
+      "paving": [
+        7,
+        0
+      ]
+    },
+    "objects": {
+      "file": "easter-objects.png",
+      "olive": 0,
+      "emmaus": 1,
+      "boat": 2,
+      "net": 3,
+      "coals": 4,
+      "cloud": 5,
+      "flames": 6,
+      "dove": 7,
+      "reeds": 8,
+      "flowers": 9,
+      "tomb": {
+        "x": 0,
+        "y": 1,
+        "w": 2,
+        "h": 2
+      },
+      "upper": {
+        "x": 2,
+        "y": 1,
+        "w": 2,
+        "h": 2
+      },
+      "upperOpen": {
+        "x": 4,
+        "y": 1,
+        "w": 2,
+        "h": 2
+      },
+      "mount": {
+        "x": 6,
+        "y": 1,
+        "w": 2,
+        "h": 2
+      }
+    }
   }
 }
